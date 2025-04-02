@@ -56,7 +56,7 @@ const NotFound: React.FC = () => {
           <Button
             variant="contained"
             size="large"
-            onClick={() => navigate(PATHS.PRIVATE.DASHBOARD.ROOT)}
+            onClick={() => navigate(PATHS.PUBLIC.HOME.path)}
             sx={{
               px: 4,
               py: 1.5
