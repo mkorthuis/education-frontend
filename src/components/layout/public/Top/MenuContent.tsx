@@ -17,14 +17,14 @@ import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import { PATHS } from '@routes/paths';
 
 const mainListItems = [
-  { text: 'Dashboard', icon: <GroupsIcon />, route: PATHS.PUBLIC.HOME },
-  { text: 'Community', icon: <GroupsIcon />, route: PATHS.PUBLIC.HOME },
-  { text: 'Habits', icon: <CheckCircleOutlineIcon />, route: PATHS.PUBLIC.HOME },
-  { text: 'Insights', icon: <AssessmentIcon />, route: PATHS.PUBLIC.HOME },
-  { text: 'Programs', icon: <FitnessCenterIcon />, route: PATHS.PUBLIC.HOME },
-  { text: 'Profile', icon: <AccountCircleIcon />, route: PATHS.PUBLIC.HOME },
-  { text: 'Account', icon: <SettingsIcon />, route: PATHS.PUBLIC.HOME },
-  { text: 'Logout', icon: <ExitToAppIcon />, route: PATHS.PUBLIC.HOME },
+  { text: 'Dashboard', icon: <GroupsIcon />, route: PATHS.PUBLIC.HOME.path },
+  { text: 'Community', icon: <GroupsIcon />, route: PATHS.PUBLIC.HOME.path },
+  { text: 'Habits', icon: <CheckCircleOutlineIcon />, route: PATHS.PUBLIC.HOME.path },
+  { text: 'Insights', icon: <AssessmentIcon />, route: PATHS.PUBLIC.HOME.path },
+  { text: 'Programs', icon: <FitnessCenterIcon />, route: PATHS.PUBLIC.HOME.path },
+  { text: 'Profile', icon: <AccountCircleIcon />, route: PATHS.PUBLIC.HOME.path },
+  { text: 'Account', icon: <SettingsIcon />, route: PATHS.PUBLIC.HOME.path },
+  { text: 'Logout', icon: <ExitToAppIcon />, route: PATHS.PUBLIC.HOME.path },
 ];
 
 interface MenuContentProps {
