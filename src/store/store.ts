@@ -3,13 +3,15 @@ import appReducer from '../appSlice';
 import authReducer from '@/features/auth/store/authSlice';
 import locationReducer from '@/features/location/store/locationSlice';
 import measurementReducer from '@/features/measurement/store/measurementSlice';
+import financeReducer from '@/features/finance/store/financeSlice';
 
 export const store = configureStore({
   reducer: {
     app: appReducer,
     auth: authReducer,
     location: locationReducer,
-    measurement: measurementReducer
+    measurement: measurementReducer,
+    finance: financeReducer
   },
   middleware: getDefaultMiddleware =>
       getDefaultMiddleware()

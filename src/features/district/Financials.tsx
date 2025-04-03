@@ -7,7 +7,17 @@ import {
   selectLocationLoading,
   fetchAllDistrictData 
 } from '@/features/location/store/locationSlice';
-import { financeApi } from '@/services/api/endpoints/finances';
+import {
+  fetchFinancialReport,
+  selectExpendituresByEntryType,
+  selectExpendituresByFundType,
+  selectTotalExpenditures,
+  selectRevenuesByEntryType,
+  selectRevenuesByFundType,
+  selectTotalRevenues,
+  selectFinanceLoading,
+  selectFinanceError
+} from '@/features/finance/store/financeSlice';
 
 // Define types for the financial data
 type FundType = {
@@ -84,6 +94,7 @@ type FinancialData = {
   expenditures: Expenditure[];
 };
 
+// Chart item type used for rendering
 type ChartItem = {
   name: string;
   value: number;
@@ -95,14 +106,22 @@ const Financials: React.FC = () => {
   const district = useAppSelector(selectCurrentDistrict);
   const districtLoading = useAppSelector(selectLocationLoading);
   const dispatch = useAppDispatch();
-  const [financialData, setFinancialData] = useState<FinancialData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [tabValue, setTabValue] = useState(0);
-  const [entryTypes, setEntryTypes] = useState<EntryType[]>([]);
-  const [fundTypes, setFundTypes] = useState<FundType[]>([]);
-  const [entryTypesLoading, setEntryTypesLoading] = useState(false);
-  const [fundTypesLoading, setFundTypesLoading] = useState(false);
+  const [mainTabValue, setMainTabValue] = useState(0);
+  const [expenditureTabValue, setExpenditureTabValue] = useState(0);
+  const [revenueTabValue, setRevenueTabValue] = useState(0);
+  
+  // Get financial data from Redux store using selectors
+  const entryTypeData = useAppSelector(selectExpendituresByEntryType);
+  const fundTypeData = useAppSelector(selectExpendituresByFundType);
+  const totalExpenditures = useAppSelector(selectTotalExpenditures);
+  
+  // Get revenue data from Redux store
+  const revenueEntryTypeData = useAppSelector(selectRevenuesByEntryType);
+  const revenueFundTypeData = useAppSelector(selectRevenuesByFundType);
+  const totalRevenues = useAppSelector(selectTotalRevenues);
+  
+  const financeLoading = useAppSelector(selectFinanceLoading);
+  const financeError = useAppSelector(selectFinanceError);
 
   useEffect(() => {
     if (id) {
@@ -110,133 +129,24 @@ const Financials: React.FC = () => {
       if (!district && !districtLoading) {
         dispatch(fetchAllDistrictData(id));
       }
+      
+      // Fetch financial data for the district
+      dispatch(fetchFinancialReport({ districtId: id }));
     }
   }, [dispatch, id, district, districtLoading]);
 
-  // Fetch entry types and fund types
-  useEffect(() => {
-    const fetchEntryTypes = async () => {
-      setEntryTypesLoading(true);
-      try {
-        const data: EntryTypesResponse = await financeApi.getEntryTypes();
-        // Use expenditure entry types for expenditure analysis
-        setEntryTypes(data.expenditure_entry_types);
-      } catch (err) {
-        console.error('Error fetching entry types:', err);
-      } finally {
-        setEntryTypesLoading(false);
-      }
-    };
-
-    const fetchFundTypes = async () => {
-      setFundTypesLoading(true);
-      try {
-        const data: FundTypesResponse = await financeApi.getFundTypes();
-        // Use expenditure fund types for expenditure analysis
-        setFundTypes(data.expenditure_fund_types);
-      } catch (err) {
-        console.error('Error fetching fund types:', err);
-      } finally {
-        setFundTypesLoading(false);
-      }
-    };
-
-    fetchEntryTypes();
-    fetchFundTypes();
-  }, []);
-
-  useEffect(() => {
-    const fetchFinancialData = async () => {
-      if (id && entryTypes.length > 0 && fundTypes.length > 0) {
-        setLoading(true);
-        try {
-          const rawData: FinancialDataRaw = await financeApi.getFinanceData(id, '2024');
-          
-          // Create lookup maps for entry types and fund types
-          const entryTypeMap = new Map<number, EntryType>();
-          const fundTypeMap = new Map<number, FundType>();
-          
-          entryTypes.forEach(entry => entryTypeMap.set(entry.id, entry));
-          fundTypes.forEach(fund => fundTypeMap.set(fund.id, fund));
-          
-          // Process expenditures to include full entry type and fund type objects
-          const processedExpenditures: Expenditure[] = rawData.expenditures.map(exp => ({
-            id: exp.id,
-            value: exp.value,
-            entry_type: entryTypeMap.get(exp.entry_type_id) || { 
-              id: exp.entry_type_id, 
-              name: `Unknown (${exp.entry_type_id})`,
-              page: '',
-              account_no: '',
-              line: ''
-            },
-            fund_type: fundTypeMap.get(exp.fund_type_id) || { 
-              id: exp.fund_type_id, 
-              state_name: `Unknown (${exp.fund_type_id})`,
-              state_id: ''
-            }
-          }));
-          
-          // Create processed financial data
-          const processedData: FinancialData = {
-            ...rawData,
-            expenditures: processedExpenditures
-          };
-          
-          setFinancialData(processedData);
-          setError(null);
-        } catch (err) {
-          console.error('Error fetching financial data:', err);
-          setError('Failed to load financial data. Please try again later.');
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchFinancialData();
-  }, [id, entryTypes, fundTypes]);
-
-  // Process expenditure data by entry type
-  const processByEntryType = (): ChartItem[] => {
-    if (!financialData?.expenditures) return [];
-
-    // Group by entry_type.name and sum values
-    const entryTypeMap = new Map<string, number>();
-    
-    financialData.expenditures.forEach(exp => {
-      const entryTypeName = exp.entry_type.name;
-      const currentSum = entryTypeMap.get(entryTypeName) || 0;
-      entryTypeMap.set(entryTypeName, currentSum + exp.value);
-    });
-
-    // Calculate total for percentages
-    const total = Array.from(entryTypeMap.values()).reduce((sum, value) => sum + value, 0);
-
-    // Convert to array and sort by value descending
-    return Array.from(entryTypeMap.entries())
-      .map(([name, value]) => ({
-        name,
-        value,
-        percentage: (value / total) * 100
-      }))
-      .sort((a, b) => b.value - a.value);
-  };
-
-  // Process expenditure data by entry type with "Other" rollup
-  const processByEntryTypeWithRollup = (): ChartItem[] => {
-    const allEntryTypes = processByEntryType();
-    
+  // Process entry type data with "Other" rollup
+  const processDataWithRollup = (data: ChartItem[]): ChartItem[] => {
     // If 5 or fewer items, return as is
-    if (allEntryTypes.length <= 5) return allEntryTypes;
+    if (data.length <= 5) return data;
     
     // Take top 5 items
-    const top5 = allEntryTypes.slice(0, 5);
+    const top5 = data.slice(0, 5);
     
     // Combine the rest into "Other"
-    const otherItems = allEntryTypes.slice(5);
+    const otherItems = data.slice(5);
     const otherValue = otherItems.reduce((sum, item) => sum + item.value, 0);
-    const total = allEntryTypes.reduce((sum, item) => sum + item.value, 0);
+    const total = data.reduce((sum, item) => sum + item.value, 0);
     
     // Add "Other" item to the result
     return [
@@ -249,36 +159,9 @@ const Financials: React.FC = () => {
     ];
   };
 
-  // Process expenditure data by fund type
-  const processByFundType = (): ChartItem[] => {
-    if (!financialData?.expenditures) return [];
-
-    // Group by fund_type.state_name and sum values
-    const fundTypeMap = new Map<string, number>();
-    
-    financialData.expenditures.forEach(exp => {
-      const fundTypeName = exp.fund_type.state_name;
-      const currentSum = fundTypeMap.get(fundTypeName) || 0;
-      fundTypeMap.set(fundTypeName, currentSum + exp.value);
-    });
-
-    // Calculate total for percentages
-    const total = Array.from(fundTypeMap.values()).reduce((sum, value) => sum + value, 0);
-
-    // Convert to array and sort by value descending
-    return Array.from(fundTypeMap.entries())
-      .map(([name, value]) => ({
-        name,
-        value,
-        percentage: (value / total) * 100
-      }))
-      .sort((a, b) => b.value - a.value);
-  };
-
-  const entryTypeData = processByEntryType();
-  const entryTypeDataWithRollup = processByEntryTypeWithRollup();
-  const fundTypeData = processByFundType();
-  const isLoading = districtLoading || loading || entryTypesLoading || fundTypesLoading;
+  const entryTypeDataWithRollup = processDataWithRollup(entryTypeData);
+  const revenueEntryTypeDataWithRollup = processDataWithRollup(revenueEntryTypeData);
+  const isLoading = districtLoading || financeLoading;
 
   // Generate a unique color for each item
   const getColor = (index: number) => {
@@ -289,11 +172,6 @@ const Financials: React.FC = () => {
     ];
     return colors[index % colors.length];
   };
-
-  // Calculate the total expenditure amount
-  const totalExpenditures = financialData?.expenditures.reduce(
-    (total, exp) => total + exp.value, 0
-  ) || 0;
 
   // Create a single bar with segments for fund types
   const renderSegmentedBar = (data: ChartItem[]) => {
@@ -329,8 +207,16 @@ const Financials: React.FC = () => {
     );
   };
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
+  const handleMainTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setMainTabValue(newValue);
+  };
+
+  const handleExpenditureTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setExpenditureTabValue(newValue);
+  };
+
+  const handleRevenueTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setRevenueTabValue(newValue);
   };
 
   const formatCurrency = (value: number) => {
@@ -341,6 +227,59 @@ const Financials: React.FC = () => {
       maximumFractionDigits: 0
     }).format(value);
   };
+
+  // Render chart items list with bars
+  const renderChartItems = (items: ChartItem[]) => (
+    <Box sx={{ mt: 2, mb: 4 }}>
+      {items.map((item, index) => (
+        <Box key={item.name} sx={{ mb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+            <Typography variant="body2" sx={{ width: '35%', pr: 2 }}>
+              {item.name}
+            </Typography>
+            <Typography variant="body2" sx={{ width: '15%', textAlign: 'right', pr: 2 }}>
+              {formatCurrency(item.value)}
+            </Typography>
+            <Typography variant="body2" sx={{ width: '10%', textAlign: 'right', pr: 2 }}>
+              {item.percentage.toFixed(1)}%
+            </Typography>
+          </Box>
+          <Tooltip title={`${item.name}: ${formatCurrency(item.value)} (${item.percentage.toFixed(1)}%)`}>
+            <Box 
+              sx={{ 
+                width: `${item.percentage}%`, 
+                height: 24, 
+                bgcolor: getColor(index),
+                borderRadius: 1
+              }}
+            />
+          </Tooltip>
+        </Box>
+      ))}
+    </Box>
+  );
+
+  // Render color legend for chart items
+  const renderLegend = (items: ChartItem[]) => (
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+      {items.map((item, index) => (
+        <Box key={item.name} sx={{ display: 'flex', alignItems: 'center' }}>
+          <Box 
+            sx={{ 
+              width: 16, 
+              height: 16, 
+              bgcolor: getColor(index), 
+              mr: 1, 
+              borderRadius: '2px' 
+            }} 
+          />
+          <Typography variant="body2">
+            {item.name}: {formatCurrency(item.value)}
+          </Typography>
+        </Box>
+      ))}
+    </Box>
+  );
 
   return (
       <>
@@ -353,130 +292,84 @@ const Financials: React.FC = () => {
           <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
             <CircularProgress />
           </Box>
-        ) : error ? (
-          <Typography color="error">{error}</Typography>
-        ) : financialData?.expenditures.length === 0 ? (
+        ) : financeError ? (
+          <Typography color="error">{financeError}</Typography>
+        ) : entryTypeData.length === 0 && revenueEntryTypeData.length === 0 ? (
           <Typography>No financial data available for this district.</Typography>
         ) : (
           <Box>
-            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-              Total Expenditures: {formatCurrency(totalExpenditures)}
-            </Typography>
-
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle1" gutterBottom>
-                Expenditure By Fund Type
-              </Typography>
-              {renderSegmentedBar(fundTypeData)}
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
-                {fundTypeData.map((item, index) => (
-                  <Box key={item.name} sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Box 
-                      sx={{ 
-                        width: 16, 
-                        height: 16, 
-                        bgcolor: getColor(index), 
-                        mr: 1, 
-                        borderRadius: '2px' 
-                      }} 
-                    />
-                    <Typography variant="body2">
-                      {item.name}: {formatCurrency(item.value)}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-            </Box>
-
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle1" gutterBottom>
-                Expenditure By Program
-              </Typography>
-              {renderSegmentedBar(entryTypeDataWithRollup)}
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
-                {entryTypeDataWithRollup.map((item, index) => (
-                  <Box key={item.name} sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Box 
-                      sx={{ 
-                        width: 16, 
-                        height: 16, 
-                        bgcolor: getColor(index), 
-                        mr: 1, 
-                        borderRadius: '2px' 
-                      }} 
-                    />
-                    <Typography variant="body2">
-                      {item.name}: {formatCurrency(item.value)}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-            </Box>
-
-            <Divider sx={{ my: 3 }} />
-
-            <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 2 }}>
-              <Tab label="By Program" />
-              <Tab label="By Expenditure Type" />
+            <Tabs value={mainTabValue} onChange={handleMainTabChange} sx={{ mb: 3 }}>
+              <Tab label="Expenditures" />
+              <Tab label="Revenues" />
             </Tabs>
 
-            {tabValue === 0 && (
-              <Box sx={{ mt: 2, mb: 4 }}>
-                {entryTypeData.map((item, index) => (
-                  <Box key={item.name} sx={{ mb: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                      <Typography variant="body2" sx={{ width: '35%', pr: 2 }}>
-                        {item.name}
-                      </Typography>
-                      <Typography variant="body2" sx={{ width: '15%', textAlign: 'right', pr: 2 }}>
-                        {formatCurrency(item.value)}
-                      </Typography>
-                      <Typography variant="body2" sx={{ width: '10%', textAlign: 'right', pr: 2 }}>
-                        {item.percentage.toFixed(1)}%
-                      </Typography>
-                    </Box>
-                    <Tooltip title={`${item.name}: ${formatCurrency(item.value)} (${item.percentage.toFixed(1)}%)`}>
-                      <Box 
-                        sx={{ 
-                          width: `${item.percentage}%`, 
-                          height: 24, 
-                          bgcolor: getColor(index),
-                          borderRadius: 1
-                        }}
-                      />
-                    </Tooltip>
-                  </Box>
-                ))}
+            {mainTabValue === 0 && (
+              // Expenditures Tab
+              <Box>
+                <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                  Total Expenditures: {formatCurrency(totalExpenditures)}
+                </Typography>
+
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Expenditure By Fund Type
+                  </Typography>
+                  {renderSegmentedBar(fundTypeData)}
+                  {renderLegend(fundTypeData)}
+                </Box>
+
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Expenditure By Program
+                  </Typography>
+                  {renderSegmentedBar(entryTypeDataWithRollup)}
+                  {renderLegend(entryTypeDataWithRollup)}
+                </Box>
+
+                <Divider sx={{ my: 3 }} />
+
+                <Tabs value={expenditureTabValue} onChange={handleExpenditureTabChange} sx={{ mb: 2 }}>
+                  <Tab label="By Program" />
+                  <Tab label="By Expenditure Type" />
+                </Tabs>
+
+                {expenditureTabValue === 0 && renderChartItems(entryTypeData)}
+                {expenditureTabValue === 1 && renderChartItems(fundTypeData)}
               </Box>
             )}
 
-            {tabValue === 1 && (
-              <Box sx={{ mt: 2, mb: 4 }}>
-                {fundTypeData.map((item, index) => (
-                  <Box key={item.name} sx={{ mb: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                      <Typography variant="body2" sx={{ width: '35%', pr: 2 }}>
-                        {item.name}
-                      </Typography>
-                      <Typography variant="body2" sx={{ width: '15%', textAlign: 'right', pr: 2 }}>
-                        {formatCurrency(item.value)}
-                      </Typography>
-                      <Typography variant="body2" sx={{ width: '10%', textAlign: 'right', pr: 2 }}>
-                        {item.percentage.toFixed(1)}%
-                      </Typography>
-                    </Box>
-                    <Tooltip title={`${item.name}: ${formatCurrency(item.value)} (${item.percentage.toFixed(1)}%)`}>
-                      <Box 
-                        sx={{ 
-                          width: `${item.percentage}%`, 
-                          height: 24, 
-                          bgcolor: getColor(index),
-                          borderRadius: 1
-                        }}
-                      />
-                    </Tooltip>
-                  </Box>
-                ))}
+            {mainTabValue === 1 && (
+              // Revenues Tab
+              <Box>
+                <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                  Total Revenues: {formatCurrency(totalRevenues)}
+                </Typography>
+
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Revenue By Fund Type
+                  </Typography>
+                  {renderSegmentedBar(revenueFundTypeData)}
+                  {renderLegend(revenueFundTypeData)}
+                </Box>
+
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Revenue By Source
+                  </Typography>
+                  {renderSegmentedBar(revenueEntryTypeDataWithRollup)}
+                  {renderLegend(revenueEntryTypeDataWithRollup)}
+                </Box>
+
+                <Divider sx={{ my: 3 }} />
+
+                <Tabs value={revenueTabValue} onChange={handleRevenueTabChange} sx={{ mb: 2 }}>
+                  <Tab label="By Source" />
+                  <Tab label="By Revenue Type" />
+                </Tabs>
+
+                {revenueTabValue === 0 && renderChartItems(revenueEntryTypeData)}
+                {revenueTabValue === 1 && renderChartItems(revenueFundTypeData)}
               </Box>
             )}
           </Box>
