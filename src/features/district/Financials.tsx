@@ -20,9 +20,23 @@ type EntryType = {
   id: number;
   name: string;
   page: string;
-  expenditure_entry_category_type_id: number;
   account_no: string;
   line: string;
+  category?: {
+    id: number;
+    name: string;
+    super_category?: {
+      id: number;
+      name: string;
+    }
+  }
+};
+
+type ExpenditureRaw = {
+  id: number;
+  value: number;
+  entry_type_id: number;
+  fund_type_id: number;
 };
 
 type Expenditure = {
@@ -30,6 +44,31 @@ type Expenditure = {
   value: number;
   entry_type: EntryType;
   fund_type: FundType;
+};
+
+type EntryTypesResponse = {
+  balance_entry_types: EntryType[];
+  revenue_entry_types: EntryType[];
+  expenditure_entry_types: EntryType[];
+};
+
+type FundTypesResponse = {
+  balance_fund_types: FundType[];
+  revenue_fund_types: FundType[];
+  expenditure_fund_types: FundType[];
+};
+
+type FinancialDataRaw = {
+  doe_form: {
+    id: number;
+    year: number;
+    date_created: string;
+    date_updated: string;
+    district_id: number;
+  };
+  balance_sheets: any[];
+  revenues: any[];
+  expenditures: ExpenditureRaw[];
 };
 
 type FinancialData = {
@@ -60,6 +99,10 @@ const Financials: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tabValue, setTabValue] = useState(0);
+  const [entryTypes, setEntryTypes] = useState<EntryType[]>([]);
+  const [fundTypes, setFundTypes] = useState<FundType[]>([]);
+  const [entryTypesLoading, setEntryTypesLoading] = useState(false);
+  const [fundTypesLoading, setFundTypesLoading] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -70,13 +113,77 @@ const Financials: React.FC = () => {
     }
   }, [dispatch, id, district, districtLoading]);
 
+  // Fetch entry types and fund types
+  useEffect(() => {
+    const fetchEntryTypes = async () => {
+      setEntryTypesLoading(true);
+      try {
+        const data: EntryTypesResponse = await financeApi.getEntryTypes();
+        // Use expenditure entry types for expenditure analysis
+        setEntryTypes(data.expenditure_entry_types);
+      } catch (err) {
+        console.error('Error fetching entry types:', err);
+      } finally {
+        setEntryTypesLoading(false);
+      }
+    };
+
+    const fetchFundTypes = async () => {
+      setFundTypesLoading(true);
+      try {
+        const data: FundTypesResponse = await financeApi.getFundTypes();
+        // Use expenditure fund types for expenditure analysis
+        setFundTypes(data.expenditure_fund_types);
+      } catch (err) {
+        console.error('Error fetching fund types:', err);
+      } finally {
+        setFundTypesLoading(false);
+      }
+    };
+
+    fetchEntryTypes();
+    fetchFundTypes();
+  }, []);
+
   useEffect(() => {
     const fetchFinancialData = async () => {
-      if (id) {
+      if (id && entryTypes.length > 0 && fundTypes.length > 0) {
         setLoading(true);
         try {
-          const data = await financeApi.getFinanceData(id, '2024');
-          setFinancialData(data);
+          const rawData: FinancialDataRaw = await financeApi.getFinanceData(id, '2024');
+          
+          // Create lookup maps for entry types and fund types
+          const entryTypeMap = new Map<number, EntryType>();
+          const fundTypeMap = new Map<number, FundType>();
+          
+          entryTypes.forEach(entry => entryTypeMap.set(entry.id, entry));
+          fundTypes.forEach(fund => fundTypeMap.set(fund.id, fund));
+          
+          // Process expenditures to include full entry type and fund type objects
+          const processedExpenditures: Expenditure[] = rawData.expenditures.map(exp => ({
+            id: exp.id,
+            value: exp.value,
+            entry_type: entryTypeMap.get(exp.entry_type_id) || { 
+              id: exp.entry_type_id, 
+              name: `Unknown (${exp.entry_type_id})`,
+              page: '',
+              account_no: '',
+              line: ''
+            },
+            fund_type: fundTypeMap.get(exp.fund_type_id) || { 
+              id: exp.fund_type_id, 
+              state_name: `Unknown (${exp.fund_type_id})`,
+              state_id: ''
+            }
+          }));
+          
+          // Create processed financial data
+          const processedData: FinancialData = {
+            ...rawData,
+            expenditures: processedExpenditures
+          };
+          
+          setFinancialData(processedData);
           setError(null);
         } catch (err) {
           console.error('Error fetching financial data:', err);
@@ -88,7 +195,7 @@ const Financials: React.FC = () => {
     };
 
     fetchFinancialData();
-  }, [id]);
+  }, [id, entryTypes, fundTypes]);
 
   // Process expenditure data by entry type
   const processByEntryType = (): ChartItem[] => {
@@ -171,7 +278,7 @@ const Financials: React.FC = () => {
   const entryTypeData = processByEntryType();
   const entryTypeDataWithRollup = processByEntryTypeWithRollup();
   const fundTypeData = processByFundType();
-  const isLoading = districtLoading || loading;
+  const isLoading = districtLoading || loading || entryTypesLoading || fundTypesLoading;
 
   // Generate a unique color for each item
   const getColor = (index: number) => {

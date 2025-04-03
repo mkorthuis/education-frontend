@@ -15,6 +15,23 @@ export const financeApi = {
         );
         return response.data;
     },
+
+    getEntryTypes: async (forceRefresh = false) => {
+        const url = BASE_ENDPOINT_URL + 'entry-types';
+        const response = await axiosInstance.get(
+            url, 
+            forceRefresh ? skipCache() : undefined
+        );
+        return response.data;
+    },
     
+    getFundTypes: async (forceRefresh = false) => {
+        const url = BASE_ENDPOINT_URL + 'fund-types';
+        const response = await axiosInstance.get(
+            url, 
+            forceRefresh ? skipCache() : undefined
+        );
+        return response.data;
+    }
         
 };
