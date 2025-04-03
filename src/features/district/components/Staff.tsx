@@ -1,19 +1,21 @@
 import React, { useEffect } from 'react';
-import { useParams} from 'react-router-dom';
-import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, CircularProgress } from '@mui/material';
+import { useParams } from 'react-router-dom';
+import { Box, Typography, Paper, CircularProgress } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentDistrict,
   selectLocationLoading,
   selectLocationError,
   fetchAllDistrictData
-} from '@/features/location/store/locationSlice';
+} from '@/store/slices/locationSlice';
 import { 
   fetchAllMeasurements, 
   selectAllMeasurements, 
   selectMeasurementsLoading,
   selectMeasurementsError
-} from '@/features/measurement/store/measurementSlice';
+} from '@/store/slices/measurementSlice';
+import MeasurementTable from '@/components/ui/tables/MeasurementTable';
+import SectionTitle from '@/components/ui/SectionTitle';
 
 const Staff: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -49,15 +51,10 @@ const Staff: React.FC = () => {
   const isLoading = districtLoading || measurementsLoading;
 
   return (
-    <Paper sx={{ p: 3, mt: 2 }}>
-      
-      <Typography variant="h5" gutterBottom>
-        Staff
-      </Typography>
-      
-      <Typography variant="h6" gutterBottom>
-        {district?.name || 'District'}
-      </Typography>
+    <>
+      <SectionTitle>
+        {district?.name || 'District'} School District
+      </SectionTitle>
       
       <Box sx={{ mt: 3 }}>
         {isLoading ? (
@@ -67,31 +64,12 @@ const Staff: React.FC = () => {
         ) : measurementsError ? (
           <Typography color="error">Error loading staff data: {measurementsError}</Typography>
         ) : teacherMeasurements.length === 0 ? (
-          <Typography>No staff data available for this district.</Typography>
+          <Typography>No staff information available for this district.</Typography>
         ) : (
-          <TableContainer>
-            <Table aria-label="staff data">
-              <TableHead>
-                <TableRow>
-                  <TableCell><strong>Measurement Type</strong></TableCell>
-                  <TableCell><strong>Year</strong></TableCell>
-                  <TableCell align="right"><strong>Value</strong></TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {teacherMeasurements.map((measurement) => (
-                  <TableRow key={measurement.id}>
-                    <TableCell>{measurement.measurementType || `Type ${measurement.measurement_type_id}`}</TableCell>
-                    <TableCell>{measurement.year}</TableCell>
-                    <TableCell align="right">{measurement.value}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <MeasurementTable data={teacherMeasurements} />
         )}
       </Box>
-    </Paper>
+    </>
   );
 };
 

@@ -1,4 +1,7 @@
-import { clearCache, clearCacheEntry } from '../services/api/config/axios';
+import { 
+  clearCache as clearApiCache, 
+  clearCacheEntry as clearApiCacheEntry 
+} from '../services/api/config/interceptors/cacheUtils';
 
 /**
  * Utility functions for managing API request caching
@@ -8,7 +11,7 @@ import { clearCache, clearCacheEntry } from '../services/api/config/axios';
  * Clears all cached API responses.
  * Use this when doing a major state reset, like after logout.
  */
-export const clearAllCache = clearCache;
+export const clearAllCache = clearApiCache;
 
 /**
  * Clears cached API responses for a specific endpoint.
@@ -17,7 +20,7 @@ export const clearAllCache = clearCache;
  * @param url - The endpoint URL to clear from cache
  * @param params - Any params that were used with the request (optional)
  */
-export const invalidateCache = clearCacheEntry;
+export const invalidateCache = clearApiCacheEntry;
 
 /**
  * Creates a configuration object for Axios requests that should skip the cache

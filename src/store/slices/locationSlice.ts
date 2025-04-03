@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
-import { locationApi } from '@/services/api';
-import { fetchAllMeasurements } from '@/features/measurement/store/measurementSlice';
+import { locationApi } from '@/services/api/endpoints/locations';
+import { fetchAllMeasurements } from '@/store/slices/measurementSlice';
 
 // Define types for the slice state
 export interface District {
@@ -200,8 +200,7 @@ export const fetchAllSchoolData = createAsyncThunk(
     const district = state.location.currentDistrict;
     
     if (district && district.id) {
-      // Fetch SAU data for the district
-      await dispatch(fetchSauByDistrictId(district.id));
+      dispatch(fetchSauByDistrictId(district.id));
     }
 
     // Once school data is loaded, trigger fetch of all measurements at once
@@ -212,20 +211,20 @@ export const fetchAllSchoolData = createAsyncThunk(
   }
 );
 
+// Create the location slice
 export const locationSlice = createSlice({
   name: 'location',
   initialState,
   reducers: {
+    clearSchoolData: (state) => {
+      state.currentSchool = null;
+      state.error = null;
+    },
     clearDistrictData: (state) => {
       state.currentDistrict = null;
       state.currentSchools = [];
       state.currentTowns = [];
       state.currentSau = null;
-      state.error = null;
-    },
-    clearSchoolData: (state) => {
-      state.currentSchool = null;
-      state.currentDistrict = null;
       state.error = null;
     },
   },
@@ -236,7 +235,7 @@ export const locationSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchDistricts.fulfilled, (state, action: PayloadAction<District[]>) => {
+      .addCase(fetchDistricts.fulfilled, (state, action) => {
         state.districts = action.payload;
         state.loading = false;
       })
@@ -250,48 +249,55 @@ export const locationSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchDistrictById.fulfilled, (state, action: PayloadAction<District>) => {
+      .addCase(fetchDistrictById.fulfilled, (state, action) => {
         state.currentDistrict = action.payload;
+        state.loading = false;
       })
       .addCase(fetchDistrictById.rejected, (state, action) => {
+        state.loading = false;
         state.error = action.payload as string;
       })
       
       // Handle fetchSchoolsByDistrictId
-      .addCase(fetchSchoolsByDistrictId.fulfilled, (state, action: PayloadAction<School[]>) => {
+      .addCase(fetchSchoolsByDistrictId.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchSchoolsByDistrictId.fulfilled, (state, action) => {
         state.currentSchools = action.payload;
+        state.loading = false;
       })
       .addCase(fetchSchoolsByDistrictId.rejected, (state, action) => {
+        state.loading = false;
         state.error = action.payload as string;
       })
       
       // Handle fetchTownsByDistrictId
-      .addCase(fetchTownsByDistrictId.fulfilled, (state, action: PayloadAction<Town[]>) => {
+      .addCase(fetchTownsByDistrictId.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchTownsByDistrictId.fulfilled, (state, action) => {
         state.currentTowns = action.payload;
+        state.loading = false;
       })
       .addCase(fetchTownsByDistrictId.rejected, (state, action) => {
+        state.loading = false;
         state.error = action.payload as string;
       })
       
       // Handle fetchSauByDistrictId
-      .addCase(fetchSauByDistrictId.fulfilled, (state, action: PayloadAction<Sau>) => {
-        state.currentSau = action.payload;
-      })
-      .addCase(fetchSauByDistrictId.rejected, (state, action) => {
-        state.error = action.payload as string;
-      })
-      
-      // Handle fetchAllDistrictData
-      .addCase(fetchAllDistrictData.pending, (state) => {
+      .addCase(fetchSauByDistrictId.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchAllDistrictData.fulfilled, (state) => {
+      .addCase(fetchSauByDistrictId.fulfilled, (state, action) => {
+        state.currentSau = action.payload;
         state.loading = false;
       })
-      .addCase(fetchAllDistrictData.rejected, (state, action) => {
+      .addCase(fetchSauByDistrictId.rejected, (state, action) => {
         state.loading = false;
-        state.error = 'Failed to load district information. Please try again later.';
+        state.error = action.payload as string;
       })
       
       // Handle fetchSchoolById
@@ -299,40 +305,38 @@ export const locationSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchSchoolById.fulfilled, (state, action: PayloadAction<School>) => {
+      .addCase(fetchSchoolById.fulfilled, (state, action) => {
         state.currentSchool = action.payload;
+        state.loading = false;
       })
       .addCase(fetchSchoolById.rejected, (state, action) => {
+        state.loading = false;
         state.error = action.payload as string;
       })
       
       // Handle fetchDistrictBySchoolId
-      .addCase(fetchDistrictBySchoolId.fulfilled, (state, action: PayloadAction<District[]>) => {
-        // If array is empty, set to null; otherwise take the first item
-        state.currentDistrict = action.payload.length > 0 ? action.payload[0] : null;
-      })
-      .addCase(fetchDistrictBySchoolId.rejected, (state, action) => {
-        state.error = action.payload as string;
-      })
-      
-      // Handle fetchAllSchoolData
-      .addCase(fetchAllSchoolData.pending, (state) => {
+      .addCase(fetchDistrictBySchoolId.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchAllSchoolData.fulfilled, (state) => {
+      .addCase(fetchDistrictBySchoolId.fulfilled, (state, action) => {
+        // When fetching district by school ID, we get an array, so take the first one
+        if (Array.isArray(action.payload) && action.payload.length > 0) {
+          state.currentDistrict = action.payload[0];
+        }
         state.loading = false;
       })
-      .addCase(fetchAllSchoolData.rejected, (state, action) => {
+      .addCase(fetchDistrictBySchoolId.rejected, (state, action) => {
         state.loading = false;
-        state.error = 'Failed to load school information. Please try again later.';
+        state.error = action.payload as string;
       });
   },
 });
 
-export const { clearDistrictData, clearSchoolData } = locationSlice.actions;
+// Export actions
+export const { clearSchoolData, clearDistrictData } = locationSlice.actions;
 
-// Selectors
+// Export selectors
 export const selectDistricts = (state: RootState) => state.location.districts;
 export const selectCurrentDistrict = (state: RootState) => state.location.currentDistrict;
 export const selectCurrentSchools = (state: RootState) => state.location.currentSchools;
@@ -342,4 +346,5 @@ export const selectCurrentSchool = (state: RootState) => state.location.currentS
 export const selectLocationLoading = (state: RootState) => state.location.loading;
 export const selectLocationError = (state: RootState) => state.location.error;
 
+// Export the reducer
 export default locationSlice.reducer; 

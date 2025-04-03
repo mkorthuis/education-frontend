@@ -1,4 +1,4 @@
-import { School } from '@/features/location/store/locationSlice';
+import { School } from '@/store/slices/locationSlice';
 
 /**
  * Calculates the total enrollment for a school

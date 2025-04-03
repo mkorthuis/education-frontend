@@ -14,7 +14,7 @@ import {
   selectDistricts, 
   selectLocationLoading,
   District
-} from '@/features/location/store/locationSlice';
+} from '@/store/slices/locationSlice';
 
 /**
  * Home page component that allows users to select a school district

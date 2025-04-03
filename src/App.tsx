@@ -2,7 +2,7 @@ import React, { Suspense } from 'react';
 import { createTheme, CssBaseline, ThemeProvider } from "@mui/material";
 import ErrorBoundary from "./components/ErrorBoundary/ErrorBoundary";
 import { RouterProvider } from "react-router-dom";
-import { selectThemeMode } from "./appSlice";
+import { selectThemeMode } from "@/store/slices/appSlice";
 import { useAppSelector } from "@store/hooks";
 import router from "@routes/index";
 import { LocalizationProvider } from '@mui/x-date-pickers';

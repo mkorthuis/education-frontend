@@ -1,18 +1,20 @@
 import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, CircularProgress } from '@mui/material';
+import { Box, Typography, Paper, CircularProgress } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentSchool, 
   selectLocationLoading, 
   selectLocationError,
   fetchAllSchoolData
-} from '@/features/location/store/locationSlice';
+} from '@/store/slices/locationSlice';
 import { 
   selectAllMeasurements, 
   selectMeasurementsLoading,
   selectMeasurementsError
-} from '@/features/measurement/store/measurementSlice';
+} from '@/store/slices/measurementSlice';
+import MeasurementTable from '@/components/ui/tables/MeasurementTable';
+import SectionTitle from '@/components/ui/SectionTitle';
 
 const Demographics: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -45,14 +47,10 @@ const Demographics: React.FC = () => {
   const isLoading = schoolLoading || measurementsLoading;
 
   return (
-    <Paper sx={{ p: 3, mt: 2 }}>
-      <Typography variant="h5" gutterBottom>
-        Demographics
-      </Typography>
-      
-      <Typography variant="h6" gutterBottom>
+    <>
+      <SectionTitle>
         {school?.name || 'School'}
-      </Typography>
+      </SectionTitle>
       
       <Box sx={{ mt: 3 }}>
         {isLoading ? (
@@ -64,29 +62,10 @@ const Demographics: React.FC = () => {
         ) : demographicMeasurements.length === 0 ? (
           <Typography>No demographic data available for this school.</Typography>
         ) : (
-          <TableContainer>
-            <Table aria-label="demographic data">
-              <TableHead>
-                <TableRow>
-                  <TableCell><strong>Measurement Type</strong></TableCell>
-                  <TableCell><strong>Year</strong></TableCell>
-                  <TableCell align="right"><strong>Value</strong></TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {demographicMeasurements.map((measurement) => (
-                  <TableRow key={measurement.id}>
-                    <TableCell>{measurement.measurementType || `Type ${measurement.measurement_type_id}`}</TableCell>
-                    <TableCell>{measurement.year}</TableCell>
-                    <TableCell align="right">{measurement.value}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <MeasurementTable data={demographicMeasurements} />
         )}
       </Box>
-    </Paper>
+    </>
   );
 };
 

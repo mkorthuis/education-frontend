@@ -1,9 +1,9 @@
 import { configureStore, ThunkAction, Action } from '@reduxjs/toolkit';
-import appReducer from '../appSlice';
+import appReducer from '@/store/slices/appSlice';
 import authReducer from '@/features/auth/store/authSlice';
-import locationReducer from '@/features/location/store/locationSlice';
-import measurementReducer from '@/features/measurement/store/measurementSlice';
-import financeReducer from '@/features/finance/store/financeSlice';
+import locationReducer from '@/store/slices/locationSlice';
+import measurementReducer from '@/store/slices/measurementSlice';
+import financeReducer from '@/store/slices/financeSlice';
 
 export const store = configureStore({
   reducer: {

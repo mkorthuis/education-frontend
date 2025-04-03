@@ -1,4 +1,24 @@
-import { School, Staff } from '@/features/location/store/locationSlice';
+import { School, Staff } from '@/store/slices/locationSlice';
+
+/**
+ * Formats a number to a compact representation (e.g., 1.25M, 250K)
+ * 
+ * @param value - The number to format
+ * @returns A string with the compact representation including dollar sign
+ */
+export const formatCompactNumber = (value: number): string => {
+  const absValue = Math.abs(value);
+  
+  if (absValue >= 1000000000) {
+    return `$${(value / 1000000000).toFixed(2)}B`;
+  } else if (absValue >= 1000000) {
+    return `$${(value / 1000000).toFixed(2)}M`;
+  } else if (absValue >= 1000) {
+    return `$${(value / 1000).toFixed(1)}K`;
+  } else {
+    return `$${value.toFixed(0)}`;
+  }
+};
 
 /**
  * Formats the grades for display with proper ranges and abbreviations

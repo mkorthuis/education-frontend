@@ -3,41 +3,44 @@ import { useParams, Link } from 'react-router-dom';
 import { Box, Typography, Divider, CircularProgress, Alert, Button, Stack } from '@mui/material';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { 
-  fetchAllSchoolData, 
-  selectCurrentSchool, 
-  selectCurrentDistrict,
-  selectCurrentSau,
+  fetchAllDistrictData, 
+  selectCurrentDistrict, 
+  selectCurrentTowns, 
+  selectCurrentSchools, 
+  selectCurrentSau, 
   selectLocationLoading, 
-  selectLocationError
-} from '@/features/location/store/locationSlice';
+  selectLocationError,
+  School
+} from '@/store/slices/locationSlice';
 import { formatGradesDisplay } from '@/utils/formatting';
 import { calculateTotalEnrollment } from '@/utils/calculations';
 
 /**
- * Represents the School page/feature.
- * Displays school information based on the ID from the URL.
+ * Represents the District page/feature.
+ * Displays district information based on the ID from the URL.
  */
-const School: React.FC = () => {
+const District: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const dispatch = useAppDispatch();
   
   // Select from Redux store
-  const school = useAppSelector(selectCurrentSchool);
   const district = useAppSelector(selectCurrentDistrict);
+  const towns = useAppSelector(selectCurrentTowns);
+  const schools = useAppSelector(selectCurrentSchools);
   const sau = useAppSelector(selectCurrentSau);
   const loading = useAppSelector(selectLocationLoading);
   const error = useAppSelector(selectLocationError);
 
   useEffect(() => {
     if (id) {
-      dispatch(fetchAllSchoolData(id));
+      dispatch(fetchAllDistrictData(id));
     }
   }, [id, dispatch]);
 
   // Show loading when:
   // 1. We're explicitly in a loading state
-  // 2. OR we've initiated a fetch (id exists) but don't have school data yet
-  const isLoading = loading || (!!id && !school && !error);
+  // 2. OR we've initiated a fetch (id exists) but don't have district data yet
+  const isLoading = loading || (!!id && !district && !error);
 
   if (isLoading) {
     return (
@@ -55,40 +58,53 @@ const School: React.FC = () => {
     );
   }
 
-  if (!school) {
+  if (!district || !sau) {
     return (
       <Box sx={{ p: 4 }}>
-        <Alert severity="warning">No school information found.</Alert>
+        <Alert severity="warning">No district information found.</Alert>
       </Box>
     );
   }
-
-  const gradesDisplay = formatGradesDisplay(school);
-  const totalEnrollment = calculateTotalEnrollment(school);
 
   return (
     <Box>
       <Divider sx={{ mb: 2 }} />
       <Typography variant="h5" gutterBottom>
-        {school.name}
+        {district.name} (SAU #{sau.id})
       </Typography>
-      <Typography variant="body1">{school.school_type.name}</Typography>
-      <Typography variant="body1">Grades: {gradesDisplay}</Typography>
-      <Typography variant="body1">Total Enrollment: {totalEnrollment} students</Typography>
-      {district && (
-        <Typography variant="body1">District: {district.name}</Typography>
-      )}
-      {sau && (
-        <Typography variant="body1">SAU: {sau.id}</Typography>
-      )}
       
+      <Typography variant="h6">Towns Served</Typography>
+      <Box sx={{ mb: 2 }}>
+        {towns.map((town) => (
+          <Typography key={town.id} variant="body1">
+            {town.name}
+          </Typography>
+        ))}
+      </Box>
+      
+      <Typography variant="h6">Schools</Typography>
+      <Box sx={{ mb: 4 }}>
+        {schools.map((school) => {
+          const gradesDisplay = formatGradesDisplay(school);
+          
+          return (
+            <Typography key={school.id} variant="body1">
+              <Link to={`/school/${school.id}`} style={{ textDecoration: 'none', color: 'primary.main' }}>
+                {school.name}
+              </Link>
+              {gradesDisplay && ` (${gradesDisplay})`}
+            </Typography>
+          );
+        })}
+      </Box>
+
       <Divider sx={{ my: 3 }} />
       
       <Stack direction="column" spacing={2} sx={{ mb: 4 }}>
         <Button 
           variant="outlined" 
           component={Link} 
-          to={`/school/${id}/academic`}
+          to={`/district/${id}/academic`}
           fullWidth
         >
           Academic Achievement
@@ -96,7 +112,7 @@ const School: React.FC = () => {
         <Button 
           variant="outlined" 
           component={Link} 
-          to={`/school/${id}/financials`}
+          to={`/district/${id}/financials`}
           fullWidth
         >
           Financials
@@ -104,7 +120,7 @@ const School: React.FC = () => {
         <Button 
           variant="outlined" 
           component={Link} 
-          to={`/school/${id}/demographics`}
+          to={`/district/${id}/demographics`}
           fullWidth
         >
           Demographics
@@ -112,7 +128,7 @@ const School: React.FC = () => {
         <Button 
           variant="outlined" 
           component={Link} 
-          to={`/school/${id}/safety`}
+          to={`/district/${id}/safety`}
           fullWidth
         >
           School Safety
@@ -120,7 +136,7 @@ const School: React.FC = () => {
         <Button 
           variant="outlined" 
           component={Link} 
-          to={`/school/${id}/staff`}
+          to={`/district/${id}/staff`}
           fullWidth
         >
           Staff Metrics
@@ -128,7 +144,7 @@ const School: React.FC = () => {
         <Button 
           variant="outlined" 
           component={Link} 
-          to={`/school/${id}/contact`}
+          to={`/district/${id}/contact`}
           fullWidth
         >
           Contact Information
@@ -138,4 +154,4 @@ const School: React.FC = () => {
   );
 };
 
-export default School;
+export default District;

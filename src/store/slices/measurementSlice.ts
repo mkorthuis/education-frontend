@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
-import { measurementApi } from '@/services/api';
+import { measurementApi } from '@/services/api/endpoints/measurements';
 
 // Define types for the slice state
 export interface Measurement {

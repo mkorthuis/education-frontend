@@ -1,18 +1,20 @@
 import React, { useEffect } from 'react';
-import { useParams, Link as RouterLink } from 'react-router-dom';
-import { Box, Typography,  Table, TableBody, TableCell,  TableHead, TableRow, CircularProgress, Divider } from '@mui/material';
+import { useParams } from 'react-router-dom';
+import { Box, Typography, CircularProgress, Divider } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentDistrict,
   selectLocationLoading,
   fetchAllDistrictData
-} from '@/features/location/store/locationSlice';
+} from '@/store/slices/locationSlice';
 import { 
   selectAllMeasurements, 
   selectMeasurementsLoading,
   selectMeasurementsError,
   Measurement
-} from '@/features/measurement/store/measurementSlice';
+} from '@/store/slices/measurementSlice';
+import MeasurementTable from '@/components/ui/tables/MeasurementTable';
+import SectionTitle from '@/components/ui/SectionTitle';
 
 const AcademicAchievement: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -46,28 +48,6 @@ const AcademicAchievement: React.FC = () => {
   // Show loading when either district data or measurement data is loading
   const isLoading = districtLoading || measurementsLoading;
 
-  // Table component to display measurement data
-  const MeasurementTable = ({ data }: { data: Measurement[] }) => (
-      <Table aria-label="measurement data">
-        <TableHead>
-          <TableRow>
-            <TableCell><strong>Academic Measure</strong></TableCell>
-            <TableCell><strong>Year</strong></TableCell>
-            <TableCell align="right"><strong>Value</strong></TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {data.map((measurement) => (
-            <TableRow key={measurement.id}>
-              <TableCell>{measurement.measurementType || `Type ${measurement.measurement_type_id}`}</TableCell>
-              <TableCell>{measurement.year}</TableCell>
-              <TableCell align="right">{measurement.value}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-  );
-
   // Loading and error handling component
   const LoadingErrorHandler = ({ data, label }: { data: Measurement[], label: string }) => {
     if (isLoading) {
@@ -91,10 +71,9 @@ const AcademicAchievement: React.FC = () => {
 
   return (
     <>
-      <Divider sx={{ mb: 2 }} />
-      <Typography variant="h5" gutterBottom>
+      <SectionTitle>
         {district?.name} School District
-      </Typography>
+      </SectionTitle>
       
       <LoadingErrorHandler data={filteredMeasurements} label="academic achievement" />
     </>
