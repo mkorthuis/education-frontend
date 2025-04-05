@@ -120,6 +120,81 @@ const handleApiError = (error: any, errorMessage: string) => {
   return errorMessage;
 };
 
+// Helper functions to create maps from arrays
+const createEntryTypeMap = (entryTypes: EntryType[]): Map<number, EntryType> => {
+  const map = new Map<number, EntryType>();
+  entryTypes.forEach(entryType => {
+    map.set(entryType.id, entryType);
+  });
+  return map;
+};
+
+const createFundTypeMap = (fundTypes: FundType[]): Map<number, FundType> => {
+  const map = new Map<number, FundType>();
+  fundTypes.forEach(fundType => {
+    map.set(fundType.id, fundType);
+  });
+  return map;
+};
+
+// Helper function to process raw financial items with entry and fund types
+const processFinancialItems = <T extends FinancialItemRaw>(
+  items: T[], 
+  entryTypeMap: Map<number, EntryType>, 
+  fundTypeMap: Map<number, FundType>
+): FinancialItem[] => {
+  return items.map((item: T) => ({
+    id: item.id,
+    value: item.value,
+    entry_type: entryTypeMap.get(item.entry_type_id) || { 
+      id: item.entry_type_id, 
+      name: `Unknown (${item.entry_type_id})`,
+      page: '',
+      account_no: '',
+      line: ''
+    },
+    fund_type: fundTypeMap.get(item.fund_type_id) || { 
+      id: item.fund_type_id, 
+      state_name: `Unknown (${item.fund_type_id})`,
+      state_id: ''
+    }
+  }));
+};
+
+// Helper function to process a report
+const processReport = (
+  report: FinancialReport, 
+  state: FinanceState
+): ProcessedReport => {
+  const balanceEntryTypeMap = createEntryTypeMap(state.balanceEntryTypes);
+  const revenueEntryTypeMap = createEntryTypeMap(state.revenueEntryTypes);
+  const expenditureEntryTypeMap = createEntryTypeMap(state.expenditureEntryTypes);
+  
+  const balanceFundTypeMap = createFundTypeMap(state.balanceFundTypes);
+  const revenueFundTypeMap = createFundTypeMap(state.revenueFundTypes);
+  const expenditureFundTypeMap = createFundTypeMap(state.expenditureFundTypes);
+  
+  return {
+    balance_sheets: processFinancialItems(
+      report.balance_sheets,
+      balanceEntryTypeMap,
+      balanceFundTypeMap
+    ) as BalanceSheet[],
+    
+    revenues: processFinancialItems(
+      report.revenues,
+      revenueEntryTypeMap,
+      revenueFundTypeMap
+    ) as Revenue[],
+    
+    expenditures: processFinancialItems(
+      report.expenditures,
+      expenditureEntryTypeMap,
+      expenditureFundTypeMap
+    ) as Expenditure[]
+  };
+};
+
 // Async thunks for fetching financial data
 export const fetchEntryTypes = createAsyncThunk(
   'finance/fetchEntryTypes',
@@ -143,6 +218,24 @@ export const fetchFundTypes = createAsyncThunk(
   }
 );
 
+// Helper to ensure entry types and fund types are loaded
+const ensureTypesLoaded = async (state: RootState, dispatch: any) => {
+  const { entryTypesLoaded, fundTypesLoaded } = state.finance;
+  
+  const promises = [];
+  if (!entryTypesLoaded) {
+    promises.push(dispatch(fetchEntryTypes()));
+  }
+  
+  if (!fundTypesLoaded) {
+    promises.push(dispatch(fetchFundTypes()));
+  }
+  
+  if (promises.length > 0) {
+    await Promise.all(promises);
+  }
+};
+
 export const fetchFinancialReport = createAsyncThunk(
   'finance/fetchFinancialReport',
   async ({ 
@@ -159,17 +252,8 @@ export const fetchFinancialReport = createAsyncThunk(
     comparisonYear?: string | null;
   }, { rejectWithValue, getState, dispatch }) => {
     try {
-      // Check if entry types and fund types are loaded, if not fetch them first
-      const state = getState() as RootState;
-      const { entryTypesLoaded, fundTypesLoaded } = state.finance;
-      
-      if (!entryTypesLoaded) {
-        await dispatch(fetchEntryTypes());
-      }
-      
-      if (!fundTypesLoaded) {
-        await dispatch(fetchFundTypes());
-      }
+      // Ensure entry types and fund types are loaded
+      await ensureTypesLoaded(getState() as RootState, dispatch);
       
       // Fetch current year data
       const currentYearData = await financeApi.getFinanceData(districtId, year, forceRefresh);
@@ -207,22 +291,15 @@ export const fetchComparisonYearReport = createAsyncThunk(
     forceRefresh?: boolean;
   }, { rejectWithValue, getState, dispatch }) => {
     try {
-      // Check if entry types and fund types are loaded, if not fetch them first
       const state = getState() as RootState;
-      const { entryTypesLoaded, fundTypesLoaded, processedComparisonReports } = state.finance;
       
       // Return early if we already have this year in the store and not forcing refresh
-      if (!forceRefresh && processedComparisonReports[year]) {
+      if (!forceRefresh && state.finance.processedComparisonReports[year]) {
         return { year, reportData: null, alreadyExists: true };
       }
       
-      if (!entryTypesLoaded) {
-        await dispatch(fetchEntryTypes());
-      }
-      
-      if (!fundTypesLoaded) {
-        await dispatch(fetchFundTypes());
-      }
+      // Ensure entry types and fund types are loaded
+      await ensureTypesLoaded(state, dispatch);
       
       // Fetch the comparison year data
       const reportData = await financeApi.getFinanceData(districtId, year, forceRefresh);
@@ -233,30 +310,6 @@ export const fetchComparisonYearReport = createAsyncThunk(
     }
   }
 );
-
-// Helper function to process raw financial items with entry and fund types
-const processFinancialItems = <T extends FinancialItemRaw>(
-  items: T[], 
-  entryTypeMap: Map<number, EntryType>, 
-  fundTypeMap: Map<number, FundType>
-): FinancialItem[] => {
-  return items.map((item: T) => ({
-    id: item.id,
-    value: item.value,
-    entry_type: entryTypeMap.get(item.entry_type_id) || { 
-      id: item.entry_type_id, 
-      name: `Unknown (${item.entry_type_id})`,
-      page: '',
-      account_no: '',
-      line: ''
-    },
-    fund_type: fundTypeMap.get(item.fund_type_id) || { 
-      id: item.fund_type_id, 
-      state_name: `Unknown (${item.fund_type_id})`,
-      state_id: ''
-    }
-  }));
-};
 
 export const financeSlice = createSlice({
   name: 'finance',
@@ -317,135 +370,24 @@ export const financeSlice = createSlice({
         const { currentYearData, comparisonYearData, comparisonYear } = action.payload;
         
         // Process current year data
-        state.currentFinancialReport = currentYearData;
         if (currentYearData) {
-          // Create lookup maps for all entry types and fund types
-          const balanceEntryTypeMap = new Map<number, EntryType>();
-          const revenueEntryTypeMap = new Map<number, EntryType>();
-          const expenditureEntryTypeMap = new Map<number, EntryType>();
-          
-          const balanceFundTypeMap = new Map<number, FundType>();
-          const revenueFundTypeMap = new Map<number, FundType>();
-          const expenditureFundTypeMap = new Map<number, FundType>();
-          
-          // Populate entry type maps
-          state.balanceEntryTypes.forEach(entryType => {
-            balanceEntryTypeMap.set(entryType.id, entryType);
-          });
-          
-          state.revenueEntryTypes.forEach(entryType => {
-            revenueEntryTypeMap.set(entryType.id, entryType);
-          });
-          
-          state.expenditureEntryTypes.forEach(entryType => {
-            expenditureEntryTypeMap.set(entryType.id, entryType);
-          });
-          
-          // Populate fund type maps
-          state.balanceFundTypes.forEach(fundType => {
-            balanceFundTypeMap.set(fundType.id, fundType);
-          });
-          
-          state.revenueFundTypes.forEach(fundType => {
-            revenueFundTypeMap.set(fundType.id, fundType);
-          });
-          
-          state.expenditureFundTypes.forEach(fundType => {
-            expenditureFundTypeMap.set(fundType.id, fundType);
-          });
-          
-          // Process raw data into processed data
-          const processedReport: ProcessedReport = {
-            balance_sheets: processFinancialItems(
-              currentYearData.balance_sheets,
-              balanceEntryTypeMap,
-              balanceFundTypeMap
-            ) as BalanceSheet[],
-            
-            revenues: processFinancialItems(
-              currentYearData.revenues,
-              revenueEntryTypeMap,
-              revenueFundTypeMap
-            ) as Revenue[],
-            
-            expenditures: processFinancialItems(
-              currentYearData.expenditures,
-              expenditureEntryTypeMap,
-              expenditureFundTypeMap
-            ) as Expenditure[]
-          };
-          
-          state.processedReport = processedReport;
+          state.currentFinancialReport = currentYearData;
+          state.processedReport = processReport(currentYearData, state);
         }
         
         // Process comparison year data if available
-        state.comparisonFinancialReport = comparisonYearData;
         if (comparisonYearData) {
-          // Use the same maps as above since they're already populated
-          const balanceEntryTypeMap = new Map<number, EntryType>();
-          const revenueEntryTypeMap = new Map<number, EntryType>();
-          const expenditureEntryTypeMap = new Map<number, EntryType>();
-          
-          const balanceFundTypeMap = new Map<number, FundType>();
-          const revenueFundTypeMap = new Map<number, FundType>();
-          const expenditureFundTypeMap = new Map<number, FundType>();
-          
-          // Populate entry type maps
-          state.balanceEntryTypes.forEach(entryType => {
-            balanceEntryTypeMap.set(entryType.id, entryType);
-          });
-          
-          state.revenueEntryTypes.forEach(entryType => {
-            revenueEntryTypeMap.set(entryType.id, entryType);
-          });
-          
-          state.expenditureEntryTypes.forEach(entryType => {
-            expenditureEntryTypeMap.set(entryType.id, entryType);
-          });
-          
-          // Populate fund type maps
-          state.balanceFundTypes.forEach(fundType => {
-            balanceFundTypeMap.set(fundType.id, fundType);
-          });
-          
-          state.revenueFundTypes.forEach(fundType => {
-            revenueFundTypeMap.set(fundType.id, fundType);
-          });
-          
-          state.expenditureFundTypes.forEach(fundType => {
-            expenditureFundTypeMap.set(fundType.id, fundType);
-          });
-          
-          const comparisonProcessedReport: ProcessedReport = {
-            balance_sheets: processFinancialItems(
-              comparisonYearData.balance_sheets,
-              balanceEntryTypeMap,
-              balanceFundTypeMap
-            ) as BalanceSheet[],
-            
-            revenues: processFinancialItems(
-              comparisonYearData.revenues,
-              revenueEntryTypeMap,
-              revenueFundTypeMap
-            ) as Revenue[],
-            
-            expenditures: processFinancialItems(
-              comparisonYearData.expenditures,
-              expenditureEntryTypeMap,
-              expenditureFundTypeMap
-            ) as Expenditure[]
-          };
-          
-          state.comparisonProcessedReport = comparisonProcessedReport;
+          state.comparisonFinancialReport = comparisonYearData;
+          const processedComparisonReport = processReport(comparisonYearData, state);
+          state.comparisonProcessedReport = processedComparisonReport;
           
           // Store in the multi-year map as well
-          if (comparisonYear) {
-            state.comparisonReports[comparisonYear] = comparisonYearData;
-            state.processedComparisonReports[comparisonYear] = comparisonProcessedReport;
-          } else if (comparisonYearData.doe_form?.year) {
-            const year = comparisonYearData.doe_form.year.toString();
-            state.comparisonReports[year] = comparisonYearData;
-            state.processedComparisonReports[year] = comparisonProcessedReport;
+          const yearKey = comparisonYear || 
+            (comparisonYearData.doe_form?.year ? comparisonYearData.doe_form.year.toString() : null);
+          
+          if (yearKey) {
+            state.comparisonReports[yearKey] = comparisonYearData;
+            state.processedComparisonReports[yearKey] = processedComparisonReport;
           }
         }
         
@@ -472,60 +414,7 @@ export const financeSlice = createSlice({
         
         // Process the report data
         if (reportData) {
-          // Create lookup maps for all entry types and fund types
-          const balanceEntryTypeMap = new Map<number, EntryType>();
-          const revenueEntryTypeMap = new Map<number, EntryType>();
-          const expenditureEntryTypeMap = new Map<number, EntryType>();
-          
-          const balanceFundTypeMap = new Map<number, FundType>();
-          const revenueFundTypeMap = new Map<number, FundType>();
-          const expenditureFundTypeMap = new Map<number, FundType>();
-          
-          // Populate entry type maps
-          state.balanceEntryTypes.forEach(entryType => {
-            balanceEntryTypeMap.set(entryType.id, entryType);
-          });
-          
-          state.revenueEntryTypes.forEach(entryType => {
-            revenueEntryTypeMap.set(entryType.id, entryType);
-          });
-          
-          state.expenditureEntryTypes.forEach(entryType => {
-            expenditureEntryTypeMap.set(entryType.id, entryType);
-          });
-          
-          // Populate fund type maps
-          state.balanceFundTypes.forEach(fundType => {
-            balanceFundTypeMap.set(fundType.id, fundType);
-          });
-          
-          state.revenueFundTypes.forEach(fundType => {
-            revenueFundTypeMap.set(fundType.id, fundType);
-          });
-          
-          state.expenditureFundTypes.forEach(fundType => {
-            expenditureFundTypeMap.set(fundType.id, fundType);
-          });
-          
-          const processedReport: ProcessedReport = {
-            balance_sheets: processFinancialItems(
-              reportData.balance_sheets,
-              balanceEntryTypeMap,
-              balanceFundTypeMap
-            ) as BalanceSheet[],
-            
-            revenues: processFinancialItems(
-              reportData.revenues,
-              revenueEntryTypeMap,
-              revenueFundTypeMap
-            ) as Revenue[],
-            
-            expenditures: processFinancialItems(
-              reportData.expenditures,
-              expenditureEntryTypeMap,
-              expenditureFundTypeMap
-            ) as Expenditure[]
-          };
+          const processedReport = processReport(reportData, state);
           
           // Store the raw and processed reports in the maps
           state.comparisonReports[year] = reportData;
@@ -544,27 +433,28 @@ export const financeSlice = createSlice({
 // Export actions
 export const { clearFinancialData } = financeSlice.actions;
 
-// Selectors
+// --- Selector Helper Functions ---
 
-// Select the processed expenditures, grouped by entry type
-export const selectExpendituresByEntryType = (state: RootState) => {
-  if (!state.finance.processedReport) return [];
-  
-  // Group by entry type and sum values
-  const groupedByEntryType = state.finance.processedReport.expenditures.reduce((acc, expenditure) => {
-    const typeName = expenditure.entry_type.name;
-    if (!acc[typeName]) {
-      acc[typeName] = {
-        name: typeName,
+// Helper function for calculating group totals by attribute
+const calculateGroupTotals = <T extends FinancialItem>(
+  items: T[],
+  groupByFn: (item: T) => string
+) => {
+  // Group by attribute and sum values
+  const grouped = items.reduce((acc, item) => {
+    const key = groupByFn(item);
+    if (!acc[key]) {
+      acc[key] = {
+        name: key,
         value: 0,
       };
     }
-    acc[typeName].value += expenditure.value;
+    acc[key].value += item.value;
     return acc;
   }, {} as Record<string, { name: string; value: number }>);
   
   // Convert to array and calculate percentages
-  const result = Object.values(groupedByEntryType);
+  const result = Object.values(grouped);
   const total = result.reduce((sum, item) => sum + item.value, 0);
   
   return result.map(item => ({
@@ -573,181 +463,160 @@ export const selectExpendituresByEntryType = (state: RootState) => {
   })).sort((a, b) => b.value - a.value);
 };
 
-// Select the processed expenditures, grouped by fund type
-export const selectExpendituresByFundType = (state: RootState) => {
-  if (!state.finance.processedReport) return [];
-  
-  // Group by fund type and sum values
-  const groupedByFundType = state.finance.processedReport.expenditures.reduce((acc, expenditure) => {
-    const typeName = expenditure.fund_type.state_name;
-    if (!acc[typeName]) {
-      acc[typeName] = {
-        name: typeName,
-        value: 0,
-      };
-    }
-    acc[typeName].value += expenditure.value;
-    return acc;
-  }, {} as Record<string, { name: string; value: number }>);
-  
-  // Convert to array and calculate percentages
-  const result = Object.values(groupedByFundType);
-  const total = result.reduce((sum, item) => sum + item.value, 0);
-  
-  return result.map(item => ({
-    ...item,
-    percentage: (item.value / total) * 100
-  })).sort((a, b) => b.value - a.value);
+// Filter balance sheet items by asset type (assets or liabilities)
+const filterBalanceItems = (items: BalanceSheet[], isAsset: boolean): BalanceSheet[] => {
+  return items.filter(item => {
+    const superCategoryId = item.entry_type.category?.super_category?.id;
+    return isAsset 
+      ? (superCategoryId === 1 || superCategoryId === 3) // Assets
+      : (superCategoryId === 2); // Liabilities
+  });
 };
 
-// Calculate total expenditures
-export const selectTotalExpenditures = (state: RootState) => {
-  if (!state.finance.processedReport) return 0;
-  return state.finance.processedReport.expenditures.reduce((sum, item) => sum + item.value, 0);
+// Helper to get total for financial items
+const calculateTotal = (items: FinancialItem[]): number => {
+  return items.reduce((sum, item) => sum + item.value, 0);
 };
 
-// Select the processed revenues, grouped by entry type
-export const selectRevenuesByEntryType = (state: RootState) => {
-  if (!state.finance.processedReport) return [];
-  
-  // Group by entry type and sum values
-  const groupedByEntryType = state.finance.processedReport.revenues.reduce((acc, revenue) => {
-    const typeName = revenue.entry_type.name;
-    if (!acc[typeName]) {
-      acc[typeName] = {
-        name: typeName,
-        value: 0,
-      };
-    }
-    acc[typeName].value += revenue.value;
-    return acc;
-  }, {} as Record<string, { name: string; value: number }>);
-  
-  // Convert to array and calculate percentages
-  const result = Object.values(groupedByEntryType);
-  const total = result.reduce((sum, item) => sum + item.value, 0);
-  
-  return result.map(item => ({
-    ...item,
-    percentage: (item.value / total) * 100
-  })).sort((a, b) => b.value - a.value);
-};
+// --- SELECTORS ---
 
-// Select the processed revenues, grouped by fund type
-export const selectRevenuesByFundType = (state: RootState) => {
-  if (!state.finance.processedReport) return [];
-  
-  // Group by fund type and sum values
-  const groupedByFundType = state.finance.processedReport.revenues.reduce((acc, revenue) => {
-    const typeName = revenue.fund_type.state_name;
-    if (!acc[typeName]) {
-      acc[typeName] = {
-        name: typeName,
-        value: 0,
-      };
-    }
-    acc[typeName].value += revenue.value;
-    return acc;
-  }, {} as Record<string, { name: string; value: number }>);
-  
-  // Convert to array and calculate percentages
-  const result = Object.values(groupedByFundType);
-  const total = result.reduce((sum, item) => sum + item.value, 0);
-  
-  return result.map(item => ({
-    ...item,
-    percentage: (item.value / total) * 100
-  })).sort((a, b) => b.value - a.value);
-};
-
-// Calculate total revenues
-export const selectTotalRevenues = (state: RootState) => {
-  if (!state.finance.processedReport) return 0;
-  return state.finance.processedReport.revenues.reduce((sum, item) => sum + item.value, 0);
-};
-
-// Calculate total balance sheet value
-export const selectTotalAssets = (state: RootState) => {
-  if (!state.finance.processedReport) return 0;
-  return state.finance.processedReport.balance_sheets.reduce((sum, item) => sum + item.value, 0);
-};
-
-// Select assets only (super category 1 & 3)
-export const selectTotalAssetsOnly = (state: RootState) => {
-  if (!state.finance.processedReport) return 0;
-  return state.finance.processedReport.balance_sheets
-    .filter(item => {
-      const superCategoryId = item.entry_type.category?.super_category?.id;
-      return superCategoryId === 1 || superCategoryId === 3;
-    })
-    .reduce((sum, item) => sum + item.value, 0);
-};
-
-// Select liabilities only (super category 2)
-export const selectTotalLiabilities = (state: RootState) => {
-  if (!state.finance.processedReport) return 0;
-  return state.finance.processedReport.balance_sheets
-    .filter(item => {
-      const superCategoryId = item.entry_type.category?.super_category?.id;
-      return superCategoryId === 2;
-    })
-    .reduce((sum, item) => sum + item.value, 0);
-};
-
-// Select the financial report
+// Basic Selectors
 export const selectFinancialReport = (state: RootState) => state.finance.currentFinancialReport;
-
-// Select the processed report
 export const selectProcessedReport = (state: RootState) => state.finance.processedReport;
-
-// Select loading status
 export const selectFinanceLoading = (state: RootState) => state.finance.loading;
-
-// Select error status
 export const selectFinanceError = (state: RootState) => state.finance.error;
 
-// Comparison year selectors
-export const selectComparisonYearFinancialReport = (state: RootState) => state.finance.comparisonFinancialReport;
-export const selectComparisonYearProcessedReport = (state: RootState) => state.finance.comparisonProcessedReport;
+// Expenditure Selectors
+export const selectExpendituresByEntryType = (state: RootState) => {
+  if (!state.finance.processedReport) return [];
+  return calculateGroupTotals(
+    state.finance.processedReport.expenditures,
+    item => item.entry_type.name
+  );
+};
 
-// Calculate total expenditures for comparison year
+export const selectExpendituresByFundType = (state: RootState) => {
+  if (!state.finance.processedReport) return [];
+  return calculateGroupTotals(
+    state.finance.processedReport.expenditures,
+    item => item.fund_type.state_name
+  );
+};
+
+export const selectTotalExpenditures = (state: RootState) => {
+  if (!state.finance.processedReport) return 0;
+  return calculateTotal(state.finance.processedReport.expenditures);
+};
+
+// Revenue Selectors
+export const selectRevenuesByEntryType = (state: RootState) => {
+  if (!state.finance.processedReport) return [];
+  return calculateGroupTotals(
+    state.finance.processedReport.revenues,
+    item => item.entry_type.name
+  );
+};
+
+export const selectRevenuesByFundType = (state: RootState) => {
+  if (!state.finance.processedReport) return [];
+  return calculateGroupTotals(
+    state.finance.processedReport.revenues,
+    item => item.fund_type.state_name
+  );
+};
+
+export const selectTotalRevenues = (state: RootState) => {
+  if (!state.finance.processedReport) return 0;
+  return calculateTotal(state.finance.processedReport.revenues);
+};
+
+// Balance Sheet Selectors
+export const selectTotalAssets = (state: RootState) => {
+  if (!state.finance.processedReport) return 0;
+  return calculateTotal(state.finance.processedReport.balance_sheets);
+};
+
+export const selectTotalAssetsOnly = (state: RootState) => {
+  if (!state.finance.processedReport) return 0;
+  return calculateTotal(
+    filterBalanceItems(state.finance.processedReport.balance_sheets, true)
+  );
+};
+
+export const selectTotalLiabilities = (state: RootState) => {
+  if (!state.finance.processedReport) return 0;
+  return calculateTotal(
+    filterBalanceItems(state.finance.processedReport.balance_sheets, false)
+  );
+};
+
+// Comparison/Previous Year Selectors
+export const selectComparisonYearFinancialReport = (state: RootState) => 
+  state.finance.comparisonFinancialReport;
+
+export const selectComparisonYearProcessedReport = (state: RootState) => 
+  state.finance.comparisonProcessedReport;
+
 export const selectComparisonYearTotalExpenditures = (state: RootState) => {
   if (!state.finance.comparisonProcessedReport) return 0;
-  return state.finance.comparisonProcessedReport.expenditures.reduce((sum, item) => sum + item.value, 0);
+  return calculateTotal(state.finance.comparisonProcessedReport.expenditures);
 };
 
-// Calculate total revenues for comparison year
 export const selectComparisonYearTotalRevenues = (state: RootState) => {
   if (!state.finance.comparisonProcessedReport) return 0;
-  return state.finance.comparisonProcessedReport.revenues.reduce((sum, item) => sum + item.value, 0);
+  return calculateTotal(state.finance.comparisonProcessedReport.revenues);
 };
 
-// Calculate total balance sheet value for comparison year
 export const selectComparisonYearTotalAssets = (state: RootState) => {
   if (!state.finance.comparisonProcessedReport) return 0;
-  return state.finance.comparisonProcessedReport.balance_sheets.reduce((sum, item) => sum + item.value, 0);
+  return calculateTotal(
+    filterBalanceItems(state.finance.comparisonProcessedReport.balance_sheets, true)
+  );
 };
 
-// Select comparison year assets only (super category 1 & 3)
 export const selectComparisonYearTotalAssetsOnly = (state: RootState) => {
   if (!state.finance.comparisonProcessedReport) return 0;
-  return state.finance.comparisonProcessedReport.balance_sheets
-    .filter(item => {
-      const superCategoryId = item.entry_type.category?.super_category?.id;
-      return superCategoryId === 1 || superCategoryId === 3;
-    })
-    .reduce((sum, item) => sum + item.value, 0);
+  return calculateTotal(
+    filterBalanceItems(state.finance.comparisonProcessedReport.balance_sheets, true)
+  );
 };
 
-// Select comparison year liabilities only (super category 2)
 export const selectComparisonYearTotalLiabilities = (state: RootState) => {
   if (!state.finance.comparisonProcessedReport) return 0;
-  return state.finance.comparisonProcessedReport.balance_sheets
-    .filter(item => {
-      const superCategoryId = item.entry_type.category?.super_category?.id;
-      return superCategoryId === 2;
-    })
-    .reduce((sum, item) => sum + item.value, 0);
+  return calculateTotal(
+    filterBalanceItems(state.finance.comparisonProcessedReport.balance_sheets, false)
+  );
+};
+
+// Multi-Year Comparison Selectors
+export const selectComparisonReportByYear = (state: RootState, year: string) => 
+  state.finance.comparisonReports[year] || null;
+
+export const selectProcessedComparisonReportByYear = (state: RootState, year: string) => 
+  state.finance.processedComparisonReports[year] || null;
+
+export const selectTotalExpendituresByYear = (state: RootState, year: string) => {
+  const report = state.finance.processedComparisonReports[year];
+  if (!report) return 0;
+  return calculateTotal(report.expenditures);
+};
+
+export const selectTotalRevenuesByYear = (state: RootState, year: string) => {
+  const report = state.finance.processedComparisonReports[year];
+  if (!report) return 0;
+  return calculateTotal(report.revenues);
+};
+
+export const selectTotalAssetsByYear = (state: RootState, year: string) => {
+  const report = state.finance.processedComparisonReports[year];
+  if (!report) return 0;
+  return calculateTotal(filterBalanceItems(report.balance_sheets, true));
+};
+
+export const selectTotalLiabilitiesByYear = (state: RootState, year: string) => {
+  const report = state.finance.processedComparisonReports[year];
+  if (!report) return 0;
+  return calculateTotal(filterBalanceItems(report.balance_sheets, false));
 };
 
 // For backward compatibility, keep the previous selectors with the same names
@@ -756,51 +625,6 @@ export const selectPreviousYearProcessedReport = selectComparisonYearProcessedRe
 export const selectPreviousYearTotalExpenditures = selectComparisonYearTotalExpenditures;
 export const selectPreviousYearTotalRevenues = selectComparisonYearTotalRevenues;
 export const selectPreviousYearTotalAssets = selectComparisonYearTotalAssets;
-
-// New selectors for multi-year comparison
-export const selectComparisonReportByYear = (state: RootState, year: string) => 
-  state.finance.comparisonReports[year] || null;
-
-export const selectProcessedComparisonReportByYear = (state: RootState, year: string) => 
-  state.finance.processedComparisonReports[year] || null;
-
-// Function to get total expenditures for a specific year
-export const selectTotalExpendituresByYear = (state: RootState, year: string) => {
-  const report = state.finance.processedComparisonReports[year];
-  if (!report) return 0;
-  return report.expenditures.reduce((sum, item) => sum + item.value, 0);
-};
-
-// Function to get total revenues for a specific year
-export const selectTotalRevenuesByYear = (state: RootState, year: string) => {
-  const report = state.finance.processedComparisonReports[year];
-  if (!report) return 0;
-  return report.revenues.reduce((sum, item) => sum + item.value, 0);
-};
-
-// Function to get total assets for a specific year
-export const selectTotalAssetsByYear = (state: RootState, year: string) => {
-  const report = state.finance.processedComparisonReports[year];
-  if (!report) return 0;
-  return report.balance_sheets
-    .filter(item => {
-      const superCategoryId = item.entry_type.category?.super_category?.id;
-      return superCategoryId === 1 || superCategoryId === 3;
-    })
-    .reduce((sum, item) => sum + item.value, 0);
-};
-
-// Function to get total liabilities for a specific year
-export const selectTotalLiabilitiesByYear = (state: RootState, year: string) => {
-  const report = state.finance.processedComparisonReports[year];
-  if (!report) return 0;
-  return report.balance_sheets
-    .filter(item => {
-      const superCategoryId = item.entry_type.category?.super_category?.id;
-      return superCategoryId === 2;
-    })
-    .reduce((sum, item) => sum + item.value, 0);
-};
 
 // Export the reducer
 export default financeSlice.reducer; 
