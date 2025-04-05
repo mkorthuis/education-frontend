@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { Typography, Box, CircularProgress, Tabs, Tab, SelectChangeEvent, Paper, useMediaQuery, useTheme, Divider } from '@mui/material';
+import { Typography, Box, CircularProgress, Tabs, Tab, Paper, useMediaQuery, useTheme, Divider } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentDistrict,
@@ -14,15 +14,9 @@ import {
   selectTotalRevenues,
   selectFinanceLoading,
   selectFinanceError,
-  selectTotalAssets,
   selectTotalAssetsOnly,
   selectTotalLiabilities,
   selectFinancialReport,
-  selectComparisonYearTotalExpenditures,
-  selectComparisonYearTotalRevenues,
-  selectComparisonYearTotalAssets,
-  selectComparisonYearTotalAssetsOnly,
-  selectComparisonYearTotalLiabilities,
   selectProcessedComparisonReportByYear,
   selectTotalExpendituresByYear,
   selectTotalRevenuesByYear,
@@ -40,6 +34,14 @@ import {
   prepareDetailedLiabilitiesComparisonData
 } from '../utils/financialDataProcessing';
 import { store } from '@/store/store';
+
+// Define comparison year configuration
+interface ComparisonConfig {
+  year: string;
+  setYear: (year: string) => void;
+  formattedYear: string | null;
+  isLoading: boolean;
+}
 
 /**
  * Financials component displays district financial data with yearly comparisons
@@ -65,7 +67,7 @@ const Financials: React.FC = () => {
   // Track loading state for specific comparison year data
   const [yearsBeingLoaded, setYearsBeingLoaded] = useState<Record<string, boolean>>({});
   
-  // Current year financial data selectors
+  // Current year financial data
   const totalExpenditures = useAppSelector(selectTotalExpenditures);
   const totalRevenues = useAppSelector(selectTotalRevenues);
   const totalAssetsOnly = useAppSelector(selectTotalAssetsOnly);
@@ -77,37 +79,59 @@ const Financials: React.FC = () => {
   // Get the current year from the financial report
   const currentYear = financialReport?.doe_form?.year || null;
   
-  // Format years as fiscal year (YY/YY)
-  const formattedCurrentYear = useMemo(() => {
-    if (!currentYear) return null;
-    return `${(currentYear - 1).toString().slice(-2)}/${currentYear.toString().slice(-2)}`;
-  }, [currentYear]);
-  
-  // Helper to format any year as fiscal year (YY/YY)
-  const formatFiscalYear = useCallback((year: string | null): string | null => {
+  // Format a year as fiscal year (YY/YY)
+  const formatFiscalYear = useCallback((year: string | number | null): string | null => {
     if (!year) return null;
-    const numYear = parseInt(year);
+    const numYear = typeof year === 'string' ? parseInt(year) : year;
     return `${(numYear - 1).toString().slice(-2)}/${numYear.toString().slice(-2)}`;
   }, []);
   
-  // Format comparison years for each specific table
-  const formattedExpendituresComparisonYear = formatFiscalYear(expendituresComparisonYear);
-  const formattedRevenuesComparisonYear = formatFiscalYear(revenuesComparisonYear);
-  const formattedAssetsComparisonYear = formatFiscalYear(assetsComparisonYear);
-  const formattedLiabilitiesComparisonYear = formatFiscalYear(liabilitiesComparisonYear);
-  const formattedOverallComparisonYear = formatFiscalYear(overallComparisonYear);
+  // Format current year as fiscal year
+  const formattedCurrentYear = useMemo(() => formatFiscalYear(currentYear), [currentYear, formatFiscalYear]);
+  
+  // Create comparison year configurations
+  const comparisonConfigs = useMemo(() => {
+    return {
+      overall: {
+        year: overallComparisonYear,
+        setYear: setOverallComparisonYear,
+        formattedYear: formatFiscalYear(overallComparisonYear),
+        isLoading: yearsBeingLoaded[overallComparisonYear] || false
+      },
+      expenditures: {
+        year: expendituresComparisonYear,
+        setYear: setExpendituresComparisonYear,
+        formattedYear: formatFiscalYear(expendituresComparisonYear),
+        isLoading: yearsBeingLoaded[expendituresComparisonYear] || false
+      },
+      revenues: {
+        year: revenuesComparisonYear,
+        setYear: setRevenuesComparisonYear,
+        formattedYear: formatFiscalYear(revenuesComparisonYear),
+        isLoading: yearsBeingLoaded[revenuesComparisonYear] || false
+      },
+      assets: {
+        year: assetsComparisonYear,
+        setYear: setAssetsComparisonYear,
+        formattedYear: formatFiscalYear(assetsComparisonYear),
+        isLoading: yearsBeingLoaded[assetsComparisonYear] || false
+      },
+      liabilities: {
+        year: liabilitiesComparisonYear,
+        setYear: setLiabilitiesComparisonYear,
+        formattedYear: formatFiscalYear(liabilitiesComparisonYear),
+        isLoading: yearsBeingLoaded[liabilitiesComparisonYear] || false
+      }
+    };
+  }, [
+    overallComparisonYear, expendituresComparisonYear, revenuesComparisonYear, 
+    assetsComparisonYear, liabilitiesComparisonYear, yearsBeingLoaded, formatFiscalYear
+  ]);
 
   // Get comparison data from Redux store
-  const expendituresComparisonData = useAppSelector(state => 
-    selectProcessedComparisonReportByYear(state, expendituresComparisonYear));
-  const revenuesComparisonData = useAppSelector(state => 
-    selectProcessedComparisonReportByYear(state, revenuesComparisonYear));
-  const assetsComparisonData = useAppSelector(state => 
-    selectProcessedComparisonReportByYear(state, assetsComparisonYear));
-  const liabilitiesComparisonData = useAppSelector(state => 
-    selectProcessedComparisonReportByYear(state, liabilitiesComparisonYear));
-  const overallComparisonData = useAppSelector(state => 
-    selectProcessedComparisonReportByYear(state, overallComparisonYear));
+  const getComparisonData = useCallback((year: string) => {
+    return useAppSelector(state => selectProcessedComparisonReportByYear(state, year));
+  }, []);
   
   // Get totals for overview
   const comparisonTotalExpenditures = useAppSelector(state => 
@@ -135,7 +159,17 @@ const Financials: React.FC = () => {
   // Get processed report from Redux
   const processedReport = useAppSelector(state => state.finance.processedReport);
   
-  // Pre-process comparison data
+  // Get comparison data for each tab
+  const expendituresComparisonData = useAppSelector(state => 
+    selectProcessedComparisonReportByYear(state, expendituresComparisonYear));
+  const revenuesComparisonData = useAppSelector(state => 
+    selectProcessedComparisonReportByYear(state, revenuesComparisonYear));
+  const assetsComparisonData = useAppSelector(state => 
+    selectProcessedComparisonReportByYear(state, assetsComparisonYear));
+  const liabilitiesComparisonData = useAppSelector(state => 
+    selectProcessedComparisonReportByYear(state, liabilitiesComparisonYear));
+  
+  // Pre-process comparison data for tables
   const expenditureComparisonItems = useMemo(() => 
     prepareDetailedExpenditureComparisonData(processedReport, expendituresComparisonData),
     [processedReport, expendituresComparisonData]
@@ -146,44 +180,16 @@ const Financials: React.FC = () => {
     [processedReport, revenuesComparisonData]
   );
   
-  // For assets table data
   const assetsComparisonItems = useMemo(() => 
     prepareDetailedAssetsComparisonData(processedReport, assetsComparisonData),
     [processedReport, assetsComparisonData]
   );
   
-  // For liabilities table data
   const liabilitiesComparisonItems = useMemo(() => 
     prepareDetailedLiabilitiesComparisonData(processedReport, liabilitiesComparisonData),
     [processedReport, liabilitiesComparisonData]
   );
 
-  // Handle comparison year changes
-  const handleOverallComparisonYearChange = (year: string) => {
-    setOverallComparisonYear(year);
-    loadComparisonYearData(year);
-  };
-
-  const handleExpendituresComparisonYearChange = (year: string) => {
-    setExpendituresComparisonYear(year);
-    loadComparisonYearData(year);
-  };
-
-  const handleRevenuesComparisonYearChange = (year: string) => {
-    setRevenuesComparisonYear(year);
-    loadComparisonYearData(year);
-  };
-  
-  const handleAssetsComparisonYearChange = (year: string) => {
-    setAssetsComparisonYear(year);
-    loadComparisonYearData(year);
-  };
-  
-  const handleLiabilitiesComparisonYearChange = (year: string) => {
-    setLiabilitiesComparisonYear(year);
-    loadComparisonYearData(year);
-  };
-  
   // Helper to load comparison year data
   const loadComparisonYearData = useCallback((year: string) => {
     if (!id) return;
@@ -204,6 +210,41 @@ const Financials: React.FC = () => {
       setYearsBeingLoaded(prev => ({...prev, [year]: false}));
     });
   }, [id, dispatch, yearsBeingLoaded]);
+  
+  // Create handler functions for year changes
+  const createYearChangeHandler = useCallback((setYearFn: (year: string) => void) => {
+    return (year: string) => {
+      setYearFn(year);
+      loadComparisonYearData(year);
+    };
+  }, [loadComparisonYearData]);
+  
+  // Year change handler functions
+  const handleOverallComparisonYearChange = useCallback((year: string) => {
+    setOverallComparisonYear(year);
+    loadComparisonYearData(year);
+  }, [loadComparisonYearData]);
+
+  // Initialize handlers with the factory function
+  const handleExpendituresComparisonYearChange = useCallback(
+    createYearChangeHandler(setExpendituresComparisonYear), 
+    [createYearChangeHandler]
+  );
+  
+  const handleRevenuesComparisonYearChange = useCallback(
+    createYearChangeHandler(setRevenuesComparisonYear),
+    [createYearChangeHandler]
+  );
+  
+  const handleAssetsComparisonYearChange = useCallback(
+    createYearChangeHandler(setAssetsComparisonYear),
+    [createYearChangeHandler]
+  );
+  
+  const handleLiabilitiesComparisonYearChange = useCallback(
+    createYearChangeHandler(setLiabilitiesComparisonYear),
+    [createYearChangeHandler]
+  );
   
   // Initial data loading
   useEffect(() => {
@@ -263,12 +304,6 @@ const Financials: React.FC = () => {
     (processedReport.expenditures.length === 0 && 
      processedReport.revenues.length === 0 && 
      processedReport.balance_sheets.length === 0);
-
-  // Check if specific comparison data is loading
-  const isExpenditureComparisonLoading = yearsBeingLoaded[expendituresComparisonYear] || false;
-  const isRevenueComparisonLoading = yearsBeingLoaded[revenuesComparisonYear] || false;
-  const isAssetsComparisonLoading = yearsBeingLoaded[assetsComparisonYear] || false;
-  const isLiabilitiesComparisonLoading = yearsBeingLoaded[liabilitiesComparisonYear] || false;
 
   return (
     <>
@@ -338,7 +373,7 @@ const Financials: React.FC = () => {
             <FinancialComparisonTable 
               items={expenditureComparisonItems}
               currentYear={formattedCurrentYear}
-              previousYear={formattedExpendituresComparisonYear}
+              previousYear={comparisonConfigs.expenditures.formattedYear}
               headers={{
                 category: 'Category',
                 subCategory: 'Sub Category',
@@ -350,7 +385,7 @@ const Financials: React.FC = () => {
               availableComparisonYears={availableComparisonYears}
               selectedComparisonYear={expendituresComparisonYear}
               onComparisonYearChange={handleExpendituresComparisonYearChange}
-              isLoading={isExpenditureComparisonLoading}
+              isLoading={comparisonConfigs.expenditures.isLoading}
             />
           )}
           
@@ -359,7 +394,7 @@ const Financials: React.FC = () => {
             <FinancialComparisonTable 
               items={revenueComparisonItems}
               currentYear={formattedCurrentYear}
-              previousYear={formattedRevenuesComparisonYear}
+              previousYear={comparisonConfigs.revenues.formattedYear}
               headers={{
                 category: 'Category',
                 subCategory: 'Sub Category',
@@ -371,7 +406,7 @@ const Financials: React.FC = () => {
               availableComparisonYears={availableComparisonYears}
               selectedComparisonYear={revenuesComparisonYear}
               onComparisonYearChange={handleRevenuesComparisonYearChange}
-              isLoading={isRevenueComparisonLoading}
+              isLoading={comparisonConfigs.revenues.isLoading}
             />
           )}
           
@@ -382,7 +417,7 @@ const Financials: React.FC = () => {
               <FinancialComparisonTable 
                 items={assetsComparisonItems}
                 currentYear={formattedCurrentYear}
-                previousYear={formattedAssetsComparisonYear}
+                previousYear={comparisonConfigs.assets.formattedYear}
                 headers={{
                   category: 'Category',
                   subCategory: 'Type',
@@ -394,7 +429,7 @@ const Financials: React.FC = () => {
                 availableComparisonYears={availableComparisonYears}
                 selectedComparisonYear={assetsComparisonYear}
                 onComparisonYearChange={handleAssetsComparisonYearChange}
-                isLoading={isAssetsComparisonLoading}
+                isLoading={comparisonConfigs.assets.isLoading}
                 valueType="Assets"
                 totalRowLabel="Total Assets"
               />
@@ -404,7 +439,7 @@ const Financials: React.FC = () => {
                 <FinancialComparisonTable 
                   items={liabilitiesComparisonItems}
                   currentYear={formattedCurrentYear}
-                  previousYear={formattedLiabilitiesComparisonYear}
+                  previousYear={comparisonConfigs.liabilities.formattedYear}
                   headers={{
                     category: 'Category',
                     subCategory: 'Type',
@@ -416,7 +451,7 @@ const Financials: React.FC = () => {
                   availableComparisonYears={availableComparisonYears}
                   selectedComparisonYear={liabilitiesComparisonYear}
                   onComparisonYearChange={handleLiabilitiesComparisonYearChange}
-                  isLoading={isLiabilitiesComparisonLoading}
+                  isLoading={comparisonConfigs.liabilities.isLoading}
                   valueType="Debts"
                   totalRowLabel="Total Liabilities"
                 />
