@@ -80,7 +80,11 @@ export interface FinanceState {
   currentFinancialReport: FinancialReport | null;
   processedReport: ProcessedReport | null;
   
-  // For comparison year financial report (previously named "previous")
+  // For comparison year financial reports (multiple years support)
+  comparisonReports: Record<string, FinancialReport>;
+  processedComparisonReports: Record<string, ProcessedReport>;
+  
+  // For backward compatibility
   comparisonFinancialReport: FinancialReport | null;
   comparisonProcessedReport: ProcessedReport | null;
   
@@ -100,6 +104,8 @@ const initialState: FinanceState = {
   expenditureFundTypes: [],
   currentFinancialReport: null,
   processedReport: null,
+  comparisonReports: {},
+  processedComparisonReports: {},
   comparisonFinancialReport: null,
   comparisonProcessedReport: null,
   loading: false,
@@ -181,9 +187,49 @@ export const fetchFinancialReport = createAsyncThunk(
         }
       }
       
-      return { currentYearData, comparisonYearData };
+      return { currentYearData, comparisonYearData, comparisonYear };
     } catch (error) {
       return rejectWithValue(handleApiError(error, 'Failed to fetch financial report'));
+    }
+  }
+);
+
+// New thunk to fetch a specific comparison year
+export const fetchComparisonYearReport = createAsyncThunk(
+  'finance/fetchComparisonYearReport',
+  async ({ 
+    districtId, 
+    year,
+    forceRefresh = false
+  }: { 
+    districtId: string; 
+    year: string;
+    forceRefresh?: boolean;
+  }, { rejectWithValue, getState, dispatch }) => {
+    try {
+      // Check if entry types and fund types are loaded, if not fetch them first
+      const state = getState() as RootState;
+      const { entryTypesLoaded, fundTypesLoaded, processedComparisonReports } = state.finance;
+      
+      // Return early if we already have this year in the store and not forcing refresh
+      if (!forceRefresh && processedComparisonReports[year]) {
+        return { year, reportData: null, alreadyExists: true };
+      }
+      
+      if (!entryTypesLoaded) {
+        await dispatch(fetchEntryTypes());
+      }
+      
+      if (!fundTypesLoaded) {
+        await dispatch(fetchFundTypes());
+      }
+      
+      // Fetch the comparison year data
+      const reportData = await financeApi.getFinanceData(districtId, year, forceRefresh);
+      
+      return { year, reportData, alreadyExists: false };
+    } catch (error) {
+      return rejectWithValue(handleApiError(error, `Failed to fetch year ${year} financial report`));
     }
   }
 );
@@ -221,6 +267,8 @@ export const financeSlice = createSlice({
       state.processedReport = null;
       state.comparisonFinancialReport = null;
       state.comparisonProcessedReport = null;
+      state.comparisonReports = {};
+      state.processedComparisonReports = {};
       state.error = null;
     },
   },
@@ -266,7 +314,7 @@ export const financeSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchFinancialReport.fulfilled, (state, action) => {
-        const { currentYearData, comparisonYearData } = action.payload;
+        const { currentYearData, comparisonYearData, comparisonYear } = action.payload;
         
         // Process current year data
         state.currentFinancialReport = currentYearData;
@@ -389,11 +437,104 @@ export const financeSlice = createSlice({
           };
           
           state.comparisonProcessedReport = comparisonProcessedReport;
+          
+          // Store in the multi-year map as well
+          if (comparisonYear) {
+            state.comparisonReports[comparisonYear] = comparisonYearData;
+            state.processedComparisonReports[comparisonYear] = comparisonProcessedReport;
+          } else if (comparisonYearData.doe_form?.year) {
+            const year = comparisonYearData.doe_form.year.toString();
+            state.comparisonReports[year] = comparisonYearData;
+            state.processedComparisonReports[year] = comparisonProcessedReport;
+          }
         }
         
         state.loading = false;
       })
       .addCase(fetchFinancialReport.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      
+      // Handle fetchComparisonYearReport
+      .addCase(fetchComparisonYearReport.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchComparisonYearReport.fulfilled, (state, action) => {
+        const { year, reportData, alreadyExists } = action.payload;
+        
+        // If the report already exists in the store and we're not refreshing, skip processing
+        if (alreadyExists) {
+          state.loading = false;
+          return;
+        }
+        
+        // Process the report data
+        if (reportData) {
+          // Create lookup maps for all entry types and fund types
+          const balanceEntryTypeMap = new Map<number, EntryType>();
+          const revenueEntryTypeMap = new Map<number, EntryType>();
+          const expenditureEntryTypeMap = new Map<number, EntryType>();
+          
+          const balanceFundTypeMap = new Map<number, FundType>();
+          const revenueFundTypeMap = new Map<number, FundType>();
+          const expenditureFundTypeMap = new Map<number, FundType>();
+          
+          // Populate entry type maps
+          state.balanceEntryTypes.forEach(entryType => {
+            balanceEntryTypeMap.set(entryType.id, entryType);
+          });
+          
+          state.revenueEntryTypes.forEach(entryType => {
+            revenueEntryTypeMap.set(entryType.id, entryType);
+          });
+          
+          state.expenditureEntryTypes.forEach(entryType => {
+            expenditureEntryTypeMap.set(entryType.id, entryType);
+          });
+          
+          // Populate fund type maps
+          state.balanceFundTypes.forEach(fundType => {
+            balanceFundTypeMap.set(fundType.id, fundType);
+          });
+          
+          state.revenueFundTypes.forEach(fundType => {
+            revenueFundTypeMap.set(fundType.id, fundType);
+          });
+          
+          state.expenditureFundTypes.forEach(fundType => {
+            expenditureFundTypeMap.set(fundType.id, fundType);
+          });
+          
+          const processedReport: ProcessedReport = {
+            balance_sheets: processFinancialItems(
+              reportData.balance_sheets,
+              balanceEntryTypeMap,
+              balanceFundTypeMap
+            ) as BalanceSheet[],
+            
+            revenues: processFinancialItems(
+              reportData.revenues,
+              revenueEntryTypeMap,
+              revenueFundTypeMap
+            ) as Revenue[],
+            
+            expenditures: processFinancialItems(
+              reportData.expenditures,
+              expenditureEntryTypeMap,
+              expenditureFundTypeMap
+            ) as Expenditure[]
+          };
+          
+          // Store the raw and processed reports in the maps
+          state.comparisonReports[year] = reportData;
+          state.processedComparisonReports[year] = processedReport;
+        }
+        
+        state.loading = false;
+      })
+      .addCase(fetchComparisonYearReport.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
@@ -531,6 +672,28 @@ export const selectTotalAssets = (state: RootState) => {
   return state.finance.processedReport.balance_sheets.reduce((sum, item) => sum + item.value, 0);
 };
 
+// Select assets only (super category 1 & 3)
+export const selectTotalAssetsOnly = (state: RootState) => {
+  if (!state.finance.processedReport) return 0;
+  return state.finance.processedReport.balance_sheets
+    .filter(item => {
+      const superCategoryId = item.entry_type.category?.super_category?.id;
+      return superCategoryId === 1 || superCategoryId === 3;
+    })
+    .reduce((sum, item) => sum + item.value, 0);
+};
+
+// Select liabilities only (super category 2)
+export const selectTotalLiabilities = (state: RootState) => {
+  if (!state.finance.processedReport) return 0;
+  return state.finance.processedReport.balance_sheets
+    .filter(item => {
+      const superCategoryId = item.entry_type.category?.super_category?.id;
+      return superCategoryId === 2;
+    })
+    .reduce((sum, item) => sum + item.value, 0);
+};
+
 // Select the financial report
 export const selectFinancialReport = (state: RootState) => state.finance.currentFinancialReport;
 
@@ -565,12 +728,79 @@ export const selectComparisonYearTotalAssets = (state: RootState) => {
   return state.finance.comparisonProcessedReport.balance_sheets.reduce((sum, item) => sum + item.value, 0);
 };
 
+// Select comparison year assets only (super category 1 & 3)
+export const selectComparisonYearTotalAssetsOnly = (state: RootState) => {
+  if (!state.finance.comparisonProcessedReport) return 0;
+  return state.finance.comparisonProcessedReport.balance_sheets
+    .filter(item => {
+      const superCategoryId = item.entry_type.category?.super_category?.id;
+      return superCategoryId === 1 || superCategoryId === 3;
+    })
+    .reduce((sum, item) => sum + item.value, 0);
+};
+
+// Select comparison year liabilities only (super category 2)
+export const selectComparisonYearTotalLiabilities = (state: RootState) => {
+  if (!state.finance.comparisonProcessedReport) return 0;
+  return state.finance.comparisonProcessedReport.balance_sheets
+    .filter(item => {
+      const superCategoryId = item.entry_type.category?.super_category?.id;
+      return superCategoryId === 2;
+    })
+    .reduce((sum, item) => sum + item.value, 0);
+};
+
 // For backward compatibility, keep the previous selectors with the same names
 export const selectPreviousYearFinancialReport = selectComparisonYearFinancialReport;
 export const selectPreviousYearProcessedReport = selectComparisonYearProcessedReport;
 export const selectPreviousYearTotalExpenditures = selectComparisonYearTotalExpenditures;
 export const selectPreviousYearTotalRevenues = selectComparisonYearTotalRevenues;
 export const selectPreviousYearTotalAssets = selectComparisonYearTotalAssets;
+
+// New selectors for multi-year comparison
+export const selectComparisonReportByYear = (state: RootState, year: string) => 
+  state.finance.comparisonReports[year] || null;
+
+export const selectProcessedComparisonReportByYear = (state: RootState, year: string) => 
+  state.finance.processedComparisonReports[year] || null;
+
+// Function to get total expenditures for a specific year
+export const selectTotalExpendituresByYear = (state: RootState, year: string) => {
+  const report = state.finance.processedComparisonReports[year];
+  if (!report) return 0;
+  return report.expenditures.reduce((sum, item) => sum + item.value, 0);
+};
+
+// Function to get total revenues for a specific year
+export const selectTotalRevenuesByYear = (state: RootState, year: string) => {
+  const report = state.finance.processedComparisonReports[year];
+  if (!report) return 0;
+  return report.revenues.reduce((sum, item) => sum + item.value, 0);
+};
+
+// Function to get total assets for a specific year
+export const selectTotalAssetsByYear = (state: RootState, year: string) => {
+  const report = state.finance.processedComparisonReports[year];
+  if (!report) return 0;
+  return report.balance_sheets
+    .filter(item => {
+      const superCategoryId = item.entry_type.category?.super_category?.id;
+      return superCategoryId === 1 || superCategoryId === 3;
+    })
+    .reduce((sum, item) => sum + item.value, 0);
+};
+
+// Function to get total liabilities for a specific year
+export const selectTotalLiabilitiesByYear = (state: RootState, year: string) => {
+  const report = state.finance.processedComparisonReports[year];
+  if (!report) return 0;
+  return report.balance_sheets
+    .filter(item => {
+      const superCategoryId = item.entry_type.category?.super_category?.id;
+      return superCategoryId === 2;
+    })
+    .reduce((sum, item) => sum + item.value, 0);
+};
 
 // Export the reducer
 export default financeSlice.reducer; 
