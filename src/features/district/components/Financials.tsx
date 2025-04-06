@@ -472,9 +472,6 @@ const Financials: React.FC = () => {
         
         {renderCostBreakdownTable()}
         
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-          FY {FISCAL_YEAR} school year
-        </Typography>
       </Box>
     );
   };
@@ -486,7 +483,7 @@ const Financials: React.FC = () => {
     return (
       <>
         <Typography component="li" variant="body2">
-          Over 10 Years, {' '}
+          Over 10 Years, Costs {' '}
           <Typography
             component="span"
             variant="body2"
@@ -535,28 +532,28 @@ const Financials: React.FC = () => {
               <TableRow>
                 <TableCell>Elementary</TableCell>
                 <TableCell align="right">
-                  {formatCompactNumber(latestPerPupilExpenditureDetails.elementary)}
+                  {formatCompactNumber(latestPerPupilExpenditureDetails?.elementary)}
                 </TableCell>
                 <TableCell align="right">
-                  {formatCompactNumber(latestStatePerPupilExpenditureDetails.elementary)}
+                  {formatCompactNumber(latestStatePerPupilExpenditureDetails?.elementary)}
                 </TableCell>
               </TableRow>
               <TableRow>
                 <TableCell>Middle</TableCell>
                 <TableCell align="right">
-                  {formatCompactNumber(latestPerPupilExpenditureDetails.middle)}
+                  {formatCompactNumber(latestPerPupilExpenditureDetails?.middle)}
                 </TableCell>
                 <TableCell align="right">
-                  {formatCompactNumber(latestStatePerPupilExpenditureDetails.middle)}
+                  {formatCompactNumber(latestStatePerPupilExpenditureDetails?.middle)}
                 </TableCell>
               </TableRow>
               <TableRow>
                 <TableCell>High</TableCell>
                 <TableCell align="right">
-                  {formatCompactNumber(latestPerPupilExpenditureDetails.high)}
+                  {formatCompactNumber(latestPerPupilExpenditureDetails?.high)}
                 </TableCell>
                 <TableCell align="right">
-                  {formatCompactNumber(latestStatePerPupilExpenditureDetails.high)}
+                  {formatCompactNumber(latestStatePerPupilExpenditureDetails?.high)}
                 </TableCell>
               </TableRow>
             </TableBody>
