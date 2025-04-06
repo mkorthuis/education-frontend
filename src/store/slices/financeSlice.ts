@@ -103,9 +103,8 @@ export interface FinanceState {
   comparisonProcessedReport: ProcessedReport | null;
   
   // Per pupil expenditure data
-  perPupilExpenditure: number | null;
-  perPupilExpenditureDetails: PerPupilExpenditure | null;
-  statePerPupilExpenditureDetails: PerPupilExpenditure | null;
+  perPupilExpenditureAllData: PerPupilExpenditure[];
+  statePerPupilExpenditureAllData: PerPupilExpenditure[];
   
   // Status
   loading: boolean;
@@ -127,9 +126,8 @@ const initialState: FinanceState = {
   processedComparisonReports: {},
   comparisonFinancialReport: null,
   comparisonProcessedReport: null,
-  perPupilExpenditure: null,
-  perPupilExpenditureDetails: null,
-  statePerPupilExpenditureDetails: null,
+  perPupilExpenditureAllData: [],
+  statePerPupilExpenditureAllData: [],
   loading: false,
   entryTypesLoaded: false,
   fundTypesLoaded: false,
@@ -346,7 +344,7 @@ export const fetchPerPupilExpenditure = createAsyncThunk(
     forceRefresh?: boolean;
   }, { rejectWithValue }) => {
     try {
-      // Don't specify year parameter to get the most recent data
+      // Don't specify year parameter to get all data
       const perPupilData = await financeApi.getPerPupilExpendituresForDistrict(districtId, year, forceRefresh);
       return perPupilData;
     } catch (error) {
@@ -366,7 +364,7 @@ export const fetchStatePerPupilExpenditure = createAsyncThunk(
     forceRefresh?: boolean;
   }, { rejectWithValue }) => {
     try {
-      // Don't specify year parameter to get the most recent data
+      // Don't specify year parameter to get the all data
       const statePerPupilData = await financeApi.getPerPupilExpendituresForState(year, forceRefresh);
       return statePerPupilData;
     } catch (error) {
@@ -386,9 +384,6 @@ export const financeSlice = createSlice({
       state.comparisonProcessedReport = null;
       state.comparisonReports = {};
       state.processedComparisonReports = {};
-      state.perPupilExpenditure = null;
-      state.perPupilExpenditureDetails = null;
-      state.statePerPupilExpenditureDetails = null;
       state.error = null;
     },
   },
@@ -503,14 +498,10 @@ export const financeSlice = createSlice({
       .addCase(fetchPerPupilExpenditure.fulfilled, (state, action) => {
         // API returns an array with objects containing per pupil expenditure data
         if (Array.isArray(action.payload) && action.payload.length > 0) {
-          const perPupilData = action.payload[0];
-          // Use the 'total' property from the first item in the array
-          state.perPupilExpenditure = perPupilData.total;
-          // Store all details for potential use
-          state.perPupilExpenditureDetails = perPupilData;
+          // Store all data
+          state.perPupilExpenditureAllData = action.payload;
         } else {
-          state.perPupilExpenditure = null;
-          state.perPupilExpenditureDetails = null;
+          state.perPupilExpenditureAllData = [];
         }
         state.loading = false;
       })
@@ -527,10 +518,9 @@ export const financeSlice = createSlice({
       .addCase(fetchStatePerPupilExpenditure.fulfilled, (state, action) => {
         // API returns an array with objects containing state per pupil expenditure data
         if (Array.isArray(action.payload) && action.payload.length > 0) {
-          // Store the first item in the array
-          state.statePerPupilExpenditureDetails = action.payload[0];
+          state.statePerPupilExpenditureAllData = action.payload;
         } else {
-          state.statePerPupilExpenditureDetails = null;
+          state.statePerPupilExpenditureAllData = [];
         }
         state.loading = false;
       })
@@ -596,46 +586,16 @@ export const selectFinancialReport = (state: RootState) => state.finance.current
 export const selectProcessedReport = (state: RootState) => state.finance.processedReport;
 export const selectFinanceLoading = (state: RootState) => state.finance.loading;
 export const selectFinanceError = (state: RootState) => state.finance.error;
+export const selectPerPupilExpenditureAllData = (state: RootState) => state.finance.perPupilExpenditureAllData;
+export const selectStatePerPupilExpenditureAllData = (state: RootState) => state.finance.statePerPupilExpenditureAllData;
 
 // Expenditure Selectors
-export const selectExpendituresByEntryType = (state: RootState) => {
-  if (!state.finance.processedReport) return [];
-  return calculateGroupTotals(
-    state.finance.processedReport.expenditures,
-    item => item.entry_type.name
-  );
-};
-
-export const selectExpendituresByFundType = (state: RootState) => {
-  if (!state.finance.processedReport) return [];
-  return calculateGroupTotals(
-    state.finance.processedReport.expenditures,
-    item => item.fund_type.state_name
-  );
-};
-
 export const selectTotalExpenditures = (state: RootState) => {
   if (!state.finance.processedReport) return 0;
   return calculateTotal(state.finance.processedReport.expenditures);
 };
 
 // Revenue Selectors
-export const selectRevenuesByEntryType = (state: RootState) => {
-  if (!state.finance.processedReport) return [];
-  return calculateGroupTotals(
-    state.finance.processedReport.revenues,
-    item => item.entry_type.name
-  );
-};
-
-export const selectRevenuesByFundType = (state: RootState) => {
-  if (!state.finance.processedReport) return [];
-  return calculateGroupTotals(
-    state.finance.processedReport.revenues,
-    item => item.fund_type.state_name
-  );
-};
-
 export const selectTotalRevenues = (state: RootState) => {
   if (!state.finance.processedReport) return 0;
   return calculateTotal(state.finance.processedReport.revenues);
@@ -661,48 +621,7 @@ export const selectTotalLiabilities = (state: RootState) => {
   );
 };
 
-// Comparison/Previous Year Selectors
-export const selectComparisonYearFinancialReport = (state: RootState) => 
-  state.finance.comparisonFinancialReport;
-
-export const selectComparisonYearProcessedReport = (state: RootState) => 
-  state.finance.comparisonProcessedReport;
-
-export const selectComparisonYearTotalExpenditures = (state: RootState) => {
-  if (!state.finance.comparisonProcessedReport) return 0;
-  return calculateTotal(state.finance.comparisonProcessedReport.expenditures);
-};
-
-export const selectComparisonYearTotalRevenues = (state: RootState) => {
-  if (!state.finance.comparisonProcessedReport) return 0;
-  return calculateTotal(state.finance.comparisonProcessedReport.revenues);
-};
-
-export const selectComparisonYearTotalAssets = (state: RootState) => {
-  if (!state.finance.comparisonProcessedReport) return 0;
-  return calculateTotal(
-    filterBalanceItems(state.finance.comparisonProcessedReport.balance_sheets, true)
-  );
-};
-
-export const selectComparisonYearTotalAssetsOnly = (state: RootState) => {
-  if (!state.finance.comparisonProcessedReport) return 0;
-  return calculateTotal(
-    filterBalanceItems(state.finance.comparisonProcessedReport.balance_sheets, true)
-  );
-};
-
-export const selectComparisonYearTotalLiabilities = (state: RootState) => {
-  if (!state.finance.comparisonProcessedReport) return 0;
-  return calculateTotal(
-    filterBalanceItems(state.finance.comparisonProcessedReport.balance_sheets, false)
-  );
-};
-
 // Multi-Year Comparison Selectors
-export const selectComparisonReportByYear = (state: RootState, year: string) => 
-  state.finance.comparisonReports[year] || null;
-
 export const selectProcessedComparisonReportByYear = (state: RootState, year: string) => 
   state.finance.processedComparisonReports[year] || null;
 
@@ -730,17 +649,39 @@ export const selectTotalLiabilitiesByYear = (state: RootState, year: string) => 
   return calculateTotal(filterBalanceItems(report.balance_sheets, false));
 };
 
-// For backward compatibility, keep the previous selectors with the same names
-export const selectPreviousYearFinancialReport = selectComparisonYearFinancialReport;
-export const selectPreviousYearProcessedReport = selectComparisonYearProcessedReport;
-export const selectPreviousYearTotalExpenditures = selectComparisonYearTotalExpenditures;
-export const selectPreviousYearTotalRevenues = selectComparisonYearTotalRevenues;
-export const selectPreviousYearTotalAssets = selectComparisonYearTotalAssets;
-
 // Per Pupil Expenditure Selectors
-export const selectPerPupilExpenditure = (state: RootState) => state.finance.perPupilExpenditure;
-export const selectPerPupilExpenditureDetails = (state: RootState) => state.finance.perPupilExpenditureDetails;
-export const selectStatePerPupilExpenditureDetails = (state: RootState) => state.finance.statePerPupilExpenditureDetails;
+export const selectLatestPerPupilExpenditure = (state: RootState) => {
+  const allData = state.finance.perPupilExpenditureAllData;
+  if (!allData || allData.length === 0) return null;
+  
+  // Find the entry with the highest year value
+  const latest = allData.reduce((latest, current) => {
+    return current.year > latest.year ? current : latest;
+  }, allData[0]);
+  
+  return latest.total;
+};
+
+export const selectLatestPerPupilExpenditureDetails = (state: RootState) => {
+  const allData = state.finance.perPupilExpenditureAllData;
+  if (!allData || allData.length === 0) return null;
+  
+  // Find the entry with the highest year value
+  return allData.reduce((latest, current) => {
+    return current.year > latest.year ? current : latest;
+  }, allData[0]);
+};
+
+
+export const selectLatestStatePerPupilExpenditureDetails = (state: RootState) => {
+  const allData = state.finance.statePerPupilExpenditureAllData;
+  if (!allData || allData.length === 0) return null;
+  
+  // Find the entry with the highest year value
+  return allData.reduce((latest, current) => {
+    return current.year > latest.year ? current : latest;
+  }, allData[0]);
+};
 
 // Export the reducer
 export default financeSlice.reducer; 
