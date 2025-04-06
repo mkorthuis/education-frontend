@@ -24,9 +24,8 @@ import {
   selectTotalRevenuesByYear,
   selectTotalAssetsByYear,
   selectTotalLiabilitiesByYear,
-  selectPerPupilExpenditure,
-  selectPerPupilExpenditureDetails,
-  selectStatePerPupilExpenditureDetails
+  selectLatestPerPupilExpenditureDetails,
+  selectLatestStatePerPupilExpenditureDetails
 } from '@/store/slices/financeSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
 import { FinancialComparisonTable } from '@/components/ui/tables';
@@ -84,9 +83,8 @@ const Financials: React.FC = () => {
   const financeLoading = useAppSelector(selectFinanceLoading);
   const financeError = useAppSelector(selectFinanceError);
   const financialReport = useAppSelector(selectFinancialReport);
-  const perPupilExpenditure = useAppSelector(selectPerPupilExpenditure);
-  const perPupilExpenditureDetails = useAppSelector(selectPerPupilExpenditureDetails);
-  const statePerPupilExpenditureDetails = useAppSelector(selectStatePerPupilExpenditureDetails);
+  const latestPerPupilExpenditureDetails = useAppSelector(selectLatestPerPupilExpenditureDetails);
+  const latestStatePerPupilExpenditureDetails = useAppSelector(selectLatestStatePerPupilExpenditureDetails);
   
   // Get the current year from the financial report
   const currentYear = financialReport?.doe_form?.year || null;
@@ -388,11 +386,11 @@ const Financials: React.FC = () => {
                 <CardContent>
                   <Tooltip title="Per pupil expenditure represents the average amount spent per student in this district">
                     <Typography variant="h6">
-                      Cost Per Pupil: {perPupilExpenditure ? formatCompactNumber(perPupilExpenditure) : 'Loading...'}
+                      Cost Per Pupil: {latestPerPupilExpenditureDetails?.total ? formatCompactNumber(latestPerPupilExpenditureDetails.total) : 'Loading...'}
                     </Typography>
                   </Tooltip>
                   
-                  {perPupilExpenditureDetails && statePerPupilExpenditureDetails && (
+                  {latestPerPupilExpenditureDetails && latestStatePerPupilExpenditureDetails && (
                     <>
                       <Typography variant="body2">
                         <Typography
@@ -400,15 +398,15 @@ const Financials: React.FC = () => {
                           variant="body2"
                           sx={{ 
                             display: 'inline',
-                            color: perPupilExpenditureDetails.total > statePerPupilExpenditureDetails.total ? 'error.main' : 'success.main',
+                            color: latestPerPupilExpenditureDetails.total > latestStatePerPupilExpenditureDetails.total ? 'error.main' : 'success.main',
                             fontWeight: 'bold'
                           }}
                         >
-                          {Math.abs(calculateDifference(perPupilExpenditureDetails.total, statePerPupilExpenditureDetails.total)).toFixed(1)}% 
-                          {perPupilExpenditureDetails.total > statePerPupilExpenditureDetails.total ? ' higher' : ' lower'} 
+                          {Math.abs(calculateDifference(latestPerPupilExpenditureDetails.total, latestStatePerPupilExpenditureDetails.total)).toFixed(1)}% 
+                          {latestPerPupilExpenditureDetails.total > latestStatePerPupilExpenditureDetails.total ? ' higher' : ' lower'} 
                         </Typography>
                         {' than the state average ('}
-                        {formatCompactNumber(statePerPupilExpenditureDetails.total)}
+                        {formatCompactNumber(latestStatePerPupilExpenditureDetails.total)}
                         {')'}
                       </Typography>
                       
@@ -426,18 +424,18 @@ const Financials: React.FC = () => {
                             <TableBody>
                               <TableRow>
                                 <TableCell>Elementary</TableCell>
-                                <TableCell align="right">{formatCompactNumber(perPupilExpenditureDetails.elementary)}</TableCell>
-                                <TableCell align="right">{formatCompactNumber(statePerPupilExpenditureDetails.elementary)}</TableCell>
+                                <TableCell align="right">{formatCompactNumber(latestPerPupilExpenditureDetails.elementary)}</TableCell>
+                                <TableCell align="right">{formatCompactNumber(latestStatePerPupilExpenditureDetails.elementary)}</TableCell>
                               </TableRow>
                               <TableRow>
                                 <TableCell>Middle</TableCell>
-                                <TableCell align="right">{formatCompactNumber(perPupilExpenditureDetails.middle)}</TableCell>
-                                <TableCell align="right">{formatCompactNumber(statePerPupilExpenditureDetails.middle)}</TableCell>
+                                <TableCell align="right">{formatCompactNumber(latestPerPupilExpenditureDetails.middle)}</TableCell>
+                                <TableCell align="right">{formatCompactNumber(latestStatePerPupilExpenditureDetails.middle)}</TableCell>
                               </TableRow>
                               <TableRow>
                                 <TableCell>High</TableCell>
-                                <TableCell align="right">{formatCompactNumber(perPupilExpenditureDetails.high)}</TableCell>
-                                <TableCell align="right">{formatCompactNumber(statePerPupilExpenditureDetails.high)}</TableCell>
+                                <TableCell align="right">{formatCompactNumber(latestPerPupilExpenditureDetails.high)}</TableCell>
+                                <TableCell align="right">{formatCompactNumber(latestStatePerPupilExpenditureDetails.high)}</TableCell>
                               </TableRow>
                             </TableBody>
                           </Table>
