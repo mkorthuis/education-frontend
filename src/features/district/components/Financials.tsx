@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { Typography, Box, CircularProgress, Tabs, Tab, Paper, useMediaQuery, useTheme, Divider } from '@mui/material';
+import { Typography, Box, Card, CardContent, CircularProgress, Tabs, Tab, Paper, useMediaQuery, useTheme, Divider, Tooltip } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentDistrict,
@@ -10,6 +10,8 @@ import {
 import {
   fetchFinancialReport,
   fetchComparisonYearReport,
+  fetchPerPupilExpenditure,
+  fetchStatePerPupilExpenditure,
   selectTotalExpenditures,
   selectTotalRevenues,
   selectFinanceLoading,
@@ -21,7 +23,10 @@ import {
   selectTotalExpendituresByYear,
   selectTotalRevenuesByYear,
   selectTotalAssetsByYear,
-  selectTotalLiabilitiesByYear
+  selectTotalLiabilitiesByYear,
+  selectPerPupilExpenditure,
+  selectPerPupilExpenditureDetails,
+  selectStatePerPupilExpenditureDetails
 } from '@/store/slices/financeSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
 import { FinancialComparisonTable } from '@/components/ui/tables';
@@ -35,6 +40,8 @@ import {
 } from '../utils/financialDataProcessing';
 import { store } from '@/store/store';
 import { FISCAL_YEAR, FISCAL_START_YEAR } from '@/utils/environment';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 
 // Define comparison year configuration
 interface ComparisonConfig {
@@ -79,6 +86,9 @@ const Financials: React.FC = () => {
   const financeLoading = useAppSelector(selectFinanceLoading);
   const financeError = useAppSelector(selectFinanceError);
   const financialReport = useAppSelector(selectFinancialReport);
+  const perPupilExpenditure = useAppSelector(selectPerPupilExpenditure);
+  const perPupilExpenditureDetails = useAppSelector(selectPerPupilExpenditureDetails);
+  const statePerPupilExpenditureDetails = useAppSelector(selectStatePerPupilExpenditureDetails);
   
   // Get the current year from the financial report
   const currentYear = financialReport?.doe_form?.year || null;
@@ -263,6 +273,14 @@ const Financials: React.FC = () => {
         includeComparisonYear: true,
         comparisonYear: overallComparisonYear
       }));
+      
+      // Fetch per pupil expenditure data
+      dispatch(fetchPerPupilExpenditure({
+        districtId: id
+      }));
+      
+      // Fetch state average per pupil expenditure data
+      dispatch(fetchStatePerPupilExpenditure({}));
     }
   }, [dispatch, id, district, districtLoading, overallComparisonYear]);
   
@@ -309,6 +327,36 @@ const Financials: React.FC = () => {
      processedReport.revenues.length === 0 && 
      processedReport.balance_sheets.length === 0);
 
+  // Calculate percentage difference between district and state values
+  const calculateDifference = useCallback((districtValue: number, stateValue: number): number => {
+    if (!stateValue) return 0;
+    return ((districtValue - stateValue) / stateValue) * 100;
+  }, []);
+  
+  // Generate comparison element with appropriate styling
+  const renderComparison = useCallback((districtValue: number | undefined, stateValue: number | undefined, label: string) => {
+    if (!districtValue || !stateValue) return null;
+    
+    const difference = calculateDifference(districtValue, stateValue);
+    const isHigher = difference > 0;
+    const formattedDiff = Math.abs(difference).toFixed(1);
+    
+    return (
+      <Tooltip title={`${label} is ${formattedDiff}% ${isHigher ? 'higher' : 'lower'} than state average`}>
+        <Box component="span" sx={{ 
+          display: 'inline-flex', 
+          alignItems: 'center',
+          color: isHigher ? 'error.main' : 'success.main',
+          ml: 1,
+          fontSize: '0.875rem'
+        }}>
+          {isHigher ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />}
+          {formattedDiff}%
+        </Box>
+      </Tooltip>
+    );
+  }, [calculateDifference]);
+
   return (
     <>
       <SectionTitle>
@@ -347,29 +395,72 @@ const Financials: React.FC = () => {
         <>
           {/* Overall Tab */}
           {mainTabValue === 0 && (
-            <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
-              <Typography variant="h6" gutterBottom>Financial Summary</Typography>
-              
-              <Typography variant="body1" gutterBottom>
-                {formattedCurrentYear ? `${formattedCurrentYear} ` : ''}Expenditures: {formatCompactNumber(totalExpenditures)}
-                <FinancialChange current={totalExpenditures} previous={comparisonTotalExpenditures} />
-              </Typography>
-              
-              <Typography variant="body1" gutterBottom>
-                {formattedCurrentYear ? `${formattedCurrentYear} ` : ''}Revenues: {formatCompactNumber(totalRevenues)}
-                <FinancialChange current={totalRevenues} previous={comparisonTotalRevenues} />
-              </Typography>
-              
-              <Typography variant="body1" gutterBottom>
-                {formattedCurrentYear ? `${formattedCurrentYear} ` : ''}Assets: {formatCompactNumber(totalAssetsOnly)}
-                <FinancialChange current={totalAssetsOnly} previous={comparisonTotalAssets} />
-              </Typography>
-              
-              <Typography variant="body1" gutterBottom>
-                {formattedCurrentYear ? `${formattedCurrentYear} ` : ''}Liabilities: {formatCompactNumber(totalLiabilities)}
-                <FinancialChange current={totalLiabilities} previous={comparisonTotalLiabilities} />
-              </Typography>
-            </Paper>
+            <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 3, mb: 4 }}>
+              <Card sx={{flex: 1 }}>
+                <CardContent>
+                  <Typography variant="h6">23/24 Expenditures: {formatCompactNumber(totalExpenditures)}</Typography>
+                  <FinancialChange current={totalExpenditures} previous={comparisonTotalExpenditures} />
+                </CardContent>
+              </Card>
+              <Card sx={{flex: 1 }}>
+                <CardContent>
+                  <Typography variant="h6">23/24 Revenue: {formatCompactNumber(totalRevenues)}</Typography>
+                  <FinancialChange current={totalRevenues} previous={comparisonTotalRevenues} />
+                </CardContent>
+              </Card>
+              <Card sx={{flex: 1 }}>
+                <CardContent>
+                  <Typography variant="h6">
+                    Cost Per Pupil: {perPupilExpenditure ? formatCompactNumber(perPupilExpenditure) : 'Loading...'}
+                    {perPupilExpenditureDetails && statePerPupilExpenditureDetails && 
+                      renderComparison(perPupilExpenditureDetails.total, statePerPupilExpenditureDetails.total, 'District cost')}
+                  </Typography>
+                  
+                  {/* District data */}
+                  {perPupilExpenditureDetails && (
+                    <Box sx={{ mt: 1 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Elementary: {formatCompactNumber(perPupilExpenditureDetails.elementary)}
+                        {statePerPupilExpenditureDetails && 
+                          renderComparison(perPupilExpenditureDetails.elementary, statePerPupilExpenditureDetails.elementary, 'Elementary cost')}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Middle: {formatCompactNumber(perPupilExpenditureDetails.middle)}
+                        {statePerPupilExpenditureDetails && 
+                          renderComparison(perPupilExpenditureDetails.middle, statePerPupilExpenditureDetails.middle, 'Middle school cost')}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        High: {formatCompactNumber(perPupilExpenditureDetails.high)}
+                        {statePerPupilExpenditureDetails && 
+                          renderComparison(perPupilExpenditureDetails.high, statePerPupilExpenditureDetails.high, 'High school cost')}
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {/* State average data */}
+                  {statePerPupilExpenditureDetails && (
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="subtitle2" color="text.primary">
+                        State Average: {formatCompactNumber(statePerPupilExpenditureDetails.total)}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Elementary: {formatCompactNumber(statePerPupilExpenditureDetails.elementary)}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Middle: {formatCompactNumber(statePerPupilExpenditureDetails.middle)}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        High: {formatCompactNumber(statePerPupilExpenditureDetails.high)}
+                      </Typography>
+                    </Box>
+                  )}
+                  
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    FY {FISCAL_YEAR} school year
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
           )}
           
           {/* Expenditures Tab */}

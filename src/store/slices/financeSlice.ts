@@ -68,6 +68,19 @@ export interface ProcessedReport {
   expenditures: Expenditure[];
 }
 
+// New interface for per pupil expenditure data
+export interface PerPupilExpenditure {
+  id: number;
+  year: number;
+  elementary: number;
+  middle: number;
+  high: number;
+  total: number;
+  district_id?: number; // Optional since state averages don't have a district_id
+  date_created: string;
+  date_updated: string;
+}
+
 export interface FinanceState {
   // Entry and fund type collections
   balanceEntryTypes: EntryType[];
@@ -89,6 +102,11 @@ export interface FinanceState {
   comparisonFinancialReport: FinancialReport | null;
   comparisonProcessedReport: ProcessedReport | null;
   
+  // Per pupil expenditure data
+  perPupilExpenditure: number | null;
+  perPupilExpenditureDetails: PerPupilExpenditure | null;
+  statePerPupilExpenditureDetails: PerPupilExpenditure | null;
+  
   // Status
   loading: boolean;
   entryTypesLoaded: boolean;
@@ -109,6 +127,9 @@ const initialState: FinanceState = {
   processedComparisonReports: {},
   comparisonFinancialReport: null,
   comparisonProcessedReport: null,
+  perPupilExpenditure: null,
+  perPupilExpenditureDetails: null,
+  statePerPupilExpenditureDetails: null,
   loading: false,
   entryTypesLoaded: false,
   fundTypesLoaded: false,
@@ -312,6 +333,46 @@ export const fetchComparisonYearReport = createAsyncThunk(
   }
 );
 
+// New thunk to fetch per pupil expenditure data
+export const fetchPerPupilExpenditure = createAsyncThunk(
+  'finance/fetchPerPupilExpenditure',
+  async ({ 
+    districtId, 
+    year = FISCAL_YEAR,
+    forceRefresh = false
+  }: { 
+    districtId: string; 
+    year?: string;
+    forceRefresh?: boolean;
+  }, { rejectWithValue }) => {
+    try {
+      const perPupilData = await financeApi.getPerPupilExpendituresForDistrict(districtId, year, forceRefresh);
+      return perPupilData;
+    } catch (error) {
+      return rejectWithValue(handleApiError(error, 'Failed to fetch per pupil expenditure data'));
+    }
+  }
+);
+
+// New thunk to fetch state average per pupil expenditure data
+export const fetchStatePerPupilExpenditure = createAsyncThunk(
+  'finance/fetchStatePerPupilExpenditure',
+  async ({ 
+    year = FISCAL_YEAR,
+    forceRefresh = false
+  }: { 
+    year?: string;
+    forceRefresh?: boolean;
+  }, { rejectWithValue }) => {
+    try {
+      const statePerPupilData = await financeApi.getPerPupilExpendituresForState(year, forceRefresh);
+      return statePerPupilData;
+    } catch (error) {
+      return rejectWithValue(handleApiError(error, 'Failed to fetch state average per pupil expenditure data'));
+    }
+  }
+);
+
 export const financeSlice = createSlice({
   name: 'finance',
   initialState,
@@ -323,6 +384,9 @@ export const financeSlice = createSlice({
       state.comparisonProcessedReport = null;
       state.comparisonReports = {};
       state.processedComparisonReports = {};
+      state.perPupilExpenditure = null;
+      state.perPupilExpenditureDetails = null;
+      state.statePerPupilExpenditureDetails = null;
       state.error = null;
     },
   },
@@ -425,6 +489,50 @@ export const financeSlice = createSlice({
         state.loading = false;
       })
       .addCase(fetchComparisonYearReport.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      
+      // Handle fetchPerPupilExpenditure
+      .addCase(fetchPerPupilExpenditure.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchPerPupilExpenditure.fulfilled, (state, action) => {
+        // API returns an array with objects containing per pupil expenditure data
+        if (Array.isArray(action.payload) && action.payload.length > 0) {
+          const perPupilData = action.payload[0];
+          // Use the 'total' property from the first item in the array
+          state.perPupilExpenditure = perPupilData.total;
+          // Store all details for potential use
+          state.perPupilExpenditureDetails = perPupilData;
+        } else {
+          state.perPupilExpenditure = null;
+          state.perPupilExpenditureDetails = null;
+        }
+        state.loading = false;
+      })
+      .addCase(fetchPerPupilExpenditure.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      
+      // Handle fetchStatePerPupilExpenditure
+      .addCase(fetchStatePerPupilExpenditure.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchStatePerPupilExpenditure.fulfilled, (state, action) => {
+        // API returns an array with objects containing state per pupil expenditure data
+        if (Array.isArray(action.payload) && action.payload.length > 0) {
+          // Store the first item in the array
+          state.statePerPupilExpenditureDetails = action.payload[0];
+        } else {
+          state.statePerPupilExpenditureDetails = null;
+        }
+        state.loading = false;
+      })
+      .addCase(fetchStatePerPupilExpenditure.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
@@ -626,6 +734,11 @@ export const selectPreviousYearProcessedReport = selectComparisonYearProcessedRe
 export const selectPreviousYearTotalExpenditures = selectComparisonYearTotalExpenditures;
 export const selectPreviousYearTotalRevenues = selectComparisonYearTotalRevenues;
 export const selectPreviousYearTotalAssets = selectComparisonYearTotalAssets;
+
+// Per Pupil Expenditure Selectors
+export const selectPerPupilExpenditure = (state: RootState) => state.finance.perPupilExpenditure;
+export const selectPerPupilExpenditureDetails = (state: RootState) => state.finance.perPupilExpenditureDetails;
+export const selectStatePerPupilExpenditureDetails = (state: RootState) => state.finance.statePerPupilExpenditureDetails;
 
 // Export the reducer
 export default financeSlice.reducer; 
