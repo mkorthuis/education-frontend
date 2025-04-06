@@ -414,15 +414,11 @@ const Financials: React.FC = () => {
     if (!latestPerPupilExpenditureDetails || !latestStatePerPupilExpenditureDetails) return null;
     
     return (
-      <Box sx={{ mt: 2 }}>
-        <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-          {district?.name || 'District'} Per Pupil Costs:
-        </Typography>
+      <Box>
         
         <Box component="ul" sx={{ mt: 1, pl: 2 }}>
           {/* Comparison to state average */}
           <Typography component="li" variant="body2">
-            Are{' '}
             <Typography
               component="span"
               variant="body2"
@@ -449,7 +445,6 @@ const Financials: React.FC = () => {
           {/* Year over year change */}
           {perPupilYearOverYearChange && (
             <Typography component="li" variant="body2">
-              Have{' '}
               <Typography
                 component="span"
                 variant="body2"
@@ -483,7 +478,7 @@ const Financials: React.FC = () => {
     return (
       <>
         <Typography component="li" variant="body2">
-          Over 10 Years, Costs {' '}
+          Over 10 Years,{' '}
           <Typography
             component="span"
             variant="body2"
