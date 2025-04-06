@@ -7,6 +7,11 @@ import { School, Staff } from '@/store/slices/locationSlice';
  * @returns A string with the compact representation including dollar sign
  */
 export const formatCompactNumber = (value: number): string => {
+  // Handle null, undefined, or NaN values
+  if (value === null || value === undefined || isNaN(value)) {
+    return 'N/A';
+  }
+  
   const absValue = Math.abs(value);
   
   if (absValue >= 1000000000) {
