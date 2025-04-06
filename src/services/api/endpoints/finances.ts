@@ -32,6 +32,23 @@ export const financeApi = {
             forceRefresh ? skipCache() : undefined
         );
         return response.data;
+    },
+
+    getPerPupilExpendituresForDistrict: async (districtId: string, year: string, forceRefresh = false) => {
+        const url = BASE_ENDPOINT_URL + `per-pupil/district?district_id=${districtId}&year=${year}`;
+        const response = await axiosInstance.get(
+            url, 
+            forceRefresh ? skipCache() : undefined
+        );
+        return response.data;
+    },
+
+    getPerPupilExpendituresForState: async (year: string, forceRefresh = false) => {
+        const url = BASE_ENDPOINT_URL + `per-pupil/state?year=${year}`;
+        const response = await axiosInstance.get(
+            url, 
+            forceRefresh ? skipCache() : undefined
+        );
+        return response.data;
     }
-        
-};
+};  
