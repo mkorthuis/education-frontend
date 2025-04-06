@@ -337,8 +337,8 @@ export const fetchComparisonYearReport = createAsyncThunk(
 export const fetchPerPupilExpenditure = createAsyncThunk(
   'finance/fetchPerPupilExpenditure',
   async ({ 
-    districtId, 
-    year = FISCAL_YEAR,
+    districtId,
+    year,
     forceRefresh = false
   }: { 
     districtId: string; 
@@ -346,6 +346,7 @@ export const fetchPerPupilExpenditure = createAsyncThunk(
     forceRefresh?: boolean;
   }, { rejectWithValue }) => {
     try {
+      // Don't specify year parameter to get the most recent data
       const perPupilData = await financeApi.getPerPupilExpendituresForDistrict(districtId, year, forceRefresh);
       return perPupilData;
     } catch (error) {
@@ -358,13 +359,14 @@ export const fetchPerPupilExpenditure = createAsyncThunk(
 export const fetchStatePerPupilExpenditure = createAsyncThunk(
   'finance/fetchStatePerPupilExpenditure',
   async ({ 
-    year = FISCAL_YEAR,
+    year,
     forceRefresh = false
   }: { 
     year?: string;
     forceRefresh?: boolean;
   }, { rejectWithValue }) => {
     try {
+      // Don't specify year parameter to get the most recent data
       const statePerPupilData = await financeApi.getPerPupilExpendituresForState(year, forceRefresh);
       return statePerPupilData;
     } catch (error) {

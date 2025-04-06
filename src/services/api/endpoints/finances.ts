@@ -34,8 +34,14 @@ export const financeApi = {
         return response.data;
     },
 
-    getPerPupilExpendituresForDistrict: async (districtId: string, year: string, forceRefresh = false) => {
-        const url = BASE_ENDPOINT_URL + `per-pupil/district?district_id=${districtId}&year=${year}`;
+    getPerPupilExpendituresForDistrict: async (districtId: string, year?: string, forceRefresh = false) => {
+        const queryParams = new URLSearchParams();
+        queryParams.append('district_id', districtId);
+        if (year) {
+            queryParams.append('year', year);
+        }
+        
+        const url = BASE_ENDPOINT_URL + `per-pupil/district?${queryParams.toString()}`;
         const response = await axiosInstance.get(
             url, 
             forceRefresh ? skipCache() : undefined
@@ -43,8 +49,13 @@ export const financeApi = {
         return response.data;
     },
 
-    getPerPupilExpendituresForState: async (year: string, forceRefresh = false) => {
-        const url = BASE_ENDPOINT_URL + `per-pupil/state?year=${year}`;
+    getPerPupilExpendituresForState: async (year?: string, forceRefresh = false) => {
+        const queryParams = new URLSearchParams();
+        if (year) {
+            queryParams.append('year', year);
+        }
+        
+        const url = BASE_ENDPOINT_URL + `per-pupil/state?${queryParams.toString()}`;
         const response = await axiosInstance.get(
             url, 
             forceRefresh ? skipCache() : undefined
