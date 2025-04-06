@@ -438,8 +438,8 @@ const Financials: React.FC = () => {
                 latestStatePerPupilExpenditureDetails.total
               )).toFixed(1)}%
               {latestPerPupilExpenditureDetails.total > latestStatePerPupilExpenditureDetails.total 
-                ? ' higher' 
-                : ' lower'}
+                ? ' Higher' 
+                : ' Lower'}
             </Typography>
             {' than the State\'s '}
             {formatCompactNumber(latestStatePerPupilExpenditureDetails.total)}
