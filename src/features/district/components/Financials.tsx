@@ -25,7 +25,9 @@ import {
   selectTotalAssetsByYear,
   selectTotalLiabilitiesByYear,
   selectLatestPerPupilExpenditureDetails,
-  selectLatestStatePerPupilExpenditureDetails
+  selectLatestStatePerPupilExpenditureDetails,
+  selectPerPupilExpenditureByYear,
+  selectStatePerPupilExpenditureByYear
 } from '@/store/slices/financeSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
 import { FinancialComparisonTable } from '@/components/ui/tables';
@@ -50,6 +52,64 @@ interface ComparisonConfig {
 
 // Calculate default comparison year (previous fiscal year)
 const DEFAULT_COMPARISON_YEAR = (parseInt(FISCAL_YEAR) - 1).toString();
+
+// Define the structure for change data
+interface ChangeData {
+  difference: number;
+  percentChange: number;
+  previousValue: number;
+}
+
+// Component for displaying financial changes with consistent styling
+interface ExpenditureChangeProps {
+  change: ChangeData | null;
+  label: string;
+  tooltipTitle?: string;
+  showPrevious?: boolean;
+}
+
+const ExpenditureChange: React.FC<ExpenditureChangeProps> = ({ 
+  change, 
+  label, 
+  tooltipTitle,
+  showPrevious = true
+}) => {
+  if (!change) return null;
+  
+  const content = (
+    <span>
+      <Typography
+        component="span"
+        variant="body2"
+        sx={{ 
+          display: 'inline',
+          color: change.difference > 0 ? 'error.main' : 'success.main',
+          fontWeight: 'bold'
+        }}
+      >
+        {label}: {change.difference > 0 ? '+' : ''}
+        {formatCompactNumber(change.difference)} ({Math.abs(change.percentChange).toFixed(1)}% 
+        {change.difference > 0 ? ' increase' : ' decrease'})
+      </Typography>
+      {showPrevious && (
+        <>
+          {' from '}
+          {formatCompactNumber(change.previousValue)}
+        </>
+      )}
+    </span>
+  );
+  
+  return (
+    <Typography variant="body2" sx={{ mt: 1 }}>
+      {tooltipTitle ? (
+        <Tooltip title={tooltipTitle}>
+          {content}
+        </Tooltip>
+      ) : content}
+    </Typography>
+  );
+};
 
 /**
  * Financials component displays district financial data with yearly comparisons
@@ -331,6 +391,65 @@ const Financials: React.FC = () => {
     return ((districtValue - stateValue) / stateValue) * 100;
   }, []);
   
+  // Helper to calculate change between two values
+  const calculateChange = useCallback((currentValue: number, previousValue: number) => {
+    if (!previousValue) return null;
+    
+    const difference = currentValue - previousValue;
+    const percentChange = (difference / previousValue) * 100;
+    
+    return {
+      difference,
+      percentChange,
+      previousValue
+    };
+  }, []);
+  
+  // Get the per pupil expenditure data for various time periods
+  const perPupilExpenditureData = useAppSelector(state => {
+    if (!latestPerPupilExpenditureDetails) return { current: null, previousYear: null, tenYearsAgo: null };
+    
+    return {
+      current: latestPerPupilExpenditureDetails,
+      previousYear: selectPerPupilExpenditureByYear(state, latestPerPupilExpenditureDetails.year - 1),
+      tenYearsAgo: selectPerPupilExpenditureByYear(state, latestPerPupilExpenditureDetails.year - 10)
+    };
+  });
+  
+  // Get the state per pupil expenditure data for various time periods
+  const statePerPupilExpenditureData = useAppSelector(state => {
+    if (!latestStatePerPupilExpenditureDetails) return { current: null, tenYearsAgo: null };
+    
+    return {
+      current: latestStatePerPupilExpenditureDetails,
+      tenYearsAgo: selectStatePerPupilExpenditureByYear(state, latestStatePerPupilExpenditureDetails.year - 10)
+    };
+  });
+  
+  // Calculate year-over-year change for district per pupil expenditure
+  const perPupilYearOverYearChange = useMemo(() => {
+    const { current, previousYear } = perPupilExpenditureData;
+    if (!current || !previousYear) return null;
+    
+    return calculateChange(current.total, previousYear.total);
+  }, [perPupilExpenditureData, calculateChange]);
+  
+  // Calculate 10-year change for district per pupil expenditure
+  const perPupilTenYearChange = useMemo(() => {
+    const { current, tenYearsAgo } = perPupilExpenditureData;
+    if (!current || !tenYearsAgo) return null;
+    
+    return calculateChange(current.total, tenYearsAgo.total);
+  }, [perPupilExpenditureData, calculateChange]);
+  
+  // Calculate 10-year change for state average per pupil expenditure
+  const statePerPupilTenYearChange = useMemo(() => {
+    const { current, tenYearsAgo } = statePerPupilExpenditureData;
+    if (!current || !tenYearsAgo) return null;
+    
+    return calculateChange(current.total, tenYearsAgo.total);
+  }, [statePerPupilExpenditureData, calculateChange]);
+  
   return (
     <>
       <SectionTitle>
@@ -389,6 +508,26 @@ const Financials: React.FC = () => {
                       Cost Per Pupil: {latestPerPupilExpenditureDetails?.total ? formatCompactNumber(latestPerPupilExpenditureDetails.total) : 'Loading...'}
                     </Typography>
                   </Tooltip>
+                  
+                  <ExpenditureChange
+                    change={perPupilYearOverYearChange}
+                    label="Annual change"
+                    showPrevious={true}
+                  />
+                  
+                  <ExpenditureChange
+                    change={perPupilTenYearChange}
+                    label="10-year district change"
+                    tooltipTitle={`Comparing current costs to those from ${perPupilExpenditureData.current?.year ? (perPupilExpenditureData.current.year - 10) : 'ten years ago'}`}
+                    showPrevious={true}
+                  />
+                  
+                  <ExpenditureChange
+                    change={statePerPupilTenYearChange}
+                    label="10-year state average"
+                    tooltipTitle={`Comparing current state average to that from ${statePerPupilExpenditureData.current?.year ? (statePerPupilExpenditureData.current.year - 10) : 'ten years ago'}`}
+                    showPrevious={true}
+                  />
                   
                   {latestPerPupilExpenditureDetails && latestStatePerPupilExpenditureDetails && (
                     <>

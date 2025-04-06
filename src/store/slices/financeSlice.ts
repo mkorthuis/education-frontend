@@ -536,34 +536,6 @@ export const { clearFinancialData } = financeSlice.actions;
 
 // --- Selector Helper Functions ---
 
-// Helper function for calculating group totals by attribute
-const calculateGroupTotals = <T extends FinancialItem>(
-  items: T[],
-  groupByFn: (item: T) => string
-) => {
-  // Group by attribute and sum values
-  const grouped = items.reduce((acc, item) => {
-    const key = groupByFn(item);
-    if (!acc[key]) {
-      acc[key] = {
-        name: key,
-        value: 0,
-      };
-    }
-    acc[key].value += item.value;
-    return acc;
-  }, {} as Record<string, { name: string; value: number }>);
-  
-  // Convert to array and calculate percentages
-  const result = Object.values(grouped);
-  const total = result.reduce((sum, item) => sum + item.value, 0);
-  
-  return result.map(item => ({
-    ...item,
-    percentage: (item.value / total) * 100
-  })).sort((a, b) => b.value - a.value);
-};
-
 // Filter balance sheet items by asset type (assets or liabilities)
 const filterBalanceItems = (items: BalanceSheet[], isAsset: boolean): BalanceSheet[] => {
   return items.filter(item => {
@@ -681,6 +653,23 @@ export const selectLatestStatePerPupilExpenditureDetails = (state: RootState) =>
   return allData.reduce((latest, current) => {
     return current.year > latest.year ? current : latest;
   }, allData[0]);
+};
+
+// Per Pupil Expenditure Selectors by Year
+export const selectPerPupilExpenditureByYear = (state: RootState, year: number) => {
+  const allData = state.finance.perPupilExpenditureAllData;
+  if (!allData || allData.length === 0) return null;
+  
+  // Find the entry matching the requested year
+  return allData.find(item => item.year === year) || null;
+};
+
+export const selectStatePerPupilExpenditureByYear = (state: RootState, year: number) => {
+  const allData = state.finance.statePerPupilExpenditureAllData;
+  if (!allData || allData.length === 0) return null;
+  
+  // Find the entry matching the requested year
+  return allData.find(item => item.year === year) || null;
 };
 
 // Export the reducer
