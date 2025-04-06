@@ -1,10 +1,8 @@
 import axios, { AxiosResponse } from 'axios';
 import { logout } from '@features/auth/services/auth';
 import { cache } from './requestInterceptors';
-
-// URL for refresh token endpoint
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const BASE_API_URL = '/api/v1/';
+import { API_BASE_URL, IS_DEV } from '@/utils/environment';
+import { BASE_API_URL } from '../constants';
 
 /**
  * Success response interceptor - handles caching successful responses
@@ -20,7 +18,7 @@ export const responseSuccessInterceptor = (response: AxiosResponse) => {
   }
   
   // Log response in development
-  if (import.meta.env.DEV) {
+  if (IS_DEV) {
     console.log(`Response: ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url}`, {
       data: response.data
     });
@@ -39,7 +37,7 @@ export const responseErrorInterceptor = async (error: any) => {
   }
   
   // Log error in development
-  if (import.meta.env.DEV) {
+  if (IS_DEV) {
     console.error('API Error:', {
       url: error.config?.url,
       method: error.config?.method,
@@ -57,7 +55,7 @@ export const responseErrorInterceptor = async (error: any) => {
     try {
       // Try to refresh the token
       const response = await axios.post(
-        `${BASE_URL}${BASE_API_URL}user/login/refresh-token`,
+        `${API_BASE_URL}${BASE_API_URL}user/login/refresh-token`,
         {},
         { withCredentials: true }
       );

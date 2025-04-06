@@ -34,6 +34,7 @@ import {
   prepareDetailedLiabilitiesComparisonData
 } from '../utils/financialDataProcessing';
 import { store } from '@/store/store';
+import { FISCAL_YEAR, FISCAL_START_YEAR } from '@/utils/environment';
 
 // Define comparison year configuration
 interface ComparisonConfig {
@@ -42,6 +43,9 @@ interface ComparisonConfig {
   formattedYear: string | null;
   isLoading: boolean;
 }
+
+// Calculate default comparison year (previous fiscal year)
+const DEFAULT_COMPARISON_YEAR = (parseInt(FISCAL_YEAR) - 1).toString();
 
 /**
  * Financials component displays district financial data with yearly comparisons
@@ -58,11 +62,11 @@ const Financials: React.FC = () => {
   const [mainTabValue, setMainTabValue] = useState(0);
   
   // Comparison year selection states
-  const [overallComparisonYear, setOverallComparisonYear] = useState<string>('2023');
-  const [expendituresComparisonYear, setExpendituresComparisonYear] = useState<string>('2023');
-  const [revenuesComparisonYear, setRevenuesComparisonYear] = useState<string>('2023');
-  const [assetsComparisonYear, setAssetsComparisonYear] = useState<string>('2023');
-  const [liabilitiesComparisonYear, setLiabilitiesComparisonYear] = useState<string>('2023');
+  const [overallComparisonYear, setOverallComparisonYear] = useState<string>(DEFAULT_COMPARISON_YEAR);
+  const [expendituresComparisonYear, setExpendituresComparisonYear] = useState<string>(DEFAULT_COMPARISON_YEAR);
+  const [revenuesComparisonYear, setRevenuesComparisonYear] = useState<string>(DEFAULT_COMPARISON_YEAR);
+  const [assetsComparisonYear, setAssetsComparisonYear] = useState<string>(DEFAULT_COMPARISON_YEAR);
+  const [liabilitiesComparisonYear, setLiabilitiesComparisonYear] = useState<string>(DEFAULT_COMPARISON_YEAR);
   
   // Track loading state for specific comparison year data
   const [yearsBeingLoaded, setYearsBeingLoaded] = useState<Record<string, boolean>>({});
@@ -143,11 +147,11 @@ const Financials: React.FC = () => {
   const comparisonTotalLiabilities = useAppSelector(state => 
     selectTotalLiabilitiesByYear(state, overallComparisonYear));
   
-  // Generate an array of available years (from 2010 to current year - 1)
+  // Generate an array of available years (from FISCAL_START_YEAR to current year - 1)
   const availableComparisonYears = useMemo(() => {
     const years = [];
-    const endYear = currentYear ? currentYear - 1 : 2023;
-    const startYear = 2010;
+    const endYear = currentYear ? currentYear - 1 : parseInt(DEFAULT_COMPARISON_YEAR);
+    const startYear = parseInt(FISCAL_START_YEAR);
     
     for (let year = endYear; year >= startYear; year--) {
       years.push(year.toString());

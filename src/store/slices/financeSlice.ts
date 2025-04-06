@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { financeApi } from '@/services/api/endpoints/finances';
+import { FISCAL_YEAR } from '@/utils/environment';
 
 // Define types for the financial data
 export interface FundType {
@@ -240,7 +241,7 @@ export const fetchFinancialReport = createAsyncThunk(
   'finance/fetchFinancialReport',
   async ({ 
     districtId, 
-    year = '2024', 
+    year = FISCAL_YEAR, 
     forceRefresh = false,
     includeComparisonYear = true,
     comparisonYear = null
