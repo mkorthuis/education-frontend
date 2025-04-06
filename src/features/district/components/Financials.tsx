@@ -42,74 +42,16 @@ import {
 import { store } from '@/store/store';
 import { FISCAL_YEAR, FISCAL_START_YEAR } from '@/utils/environment';
 
-// Define comparison year configuration
-interface ComparisonConfig {
-  year: string;
-  setYear: (year: string) => void;
-  formattedYear: string | null;
-  isLoading: boolean;
-}
-
 // Calculate default comparison year (previous fiscal year)
 const DEFAULT_COMPARISON_YEAR = (parseInt(FISCAL_YEAR) - 1).toString();
 
-// Define the structure for change data
-interface ChangeData {
-  difference: number;
-  percentChange: number;
-  previousValue: number;
-}
-
-// Component for displaying financial changes with consistent styling
-interface ExpenditureChangeProps {
-  change: ChangeData | null;
-  label: string;
-  tooltipTitle?: string;
-  showPrevious?: boolean;
-}
-
-const ExpenditureChange: React.FC<ExpenditureChangeProps> = ({ 
-  change, 
-  label, 
-  tooltipTitle,
-  showPrevious = true
-}) => {
-  if (!change) return null;
-  
-  const content = (
-    <span>
-      <Typography
-        component="span"
-        variant="body2"
-        sx={{ 
-          display: 'inline',
-          color: change.difference > 0 ? 'error.main' : 'success.main',
-          fontWeight: 'bold'
-        }}
-      >
-        {label}: {change.difference > 0 ? '+' : ''}
-        {formatCompactNumber(change.difference)} ({Math.abs(change.percentChange).toFixed(1)}% 
-        {change.difference > 0 ? ' increase' : ' decrease'})
-      </Typography>
-      {showPrevious && (
-        <>
-          {' from '}
-          {formatCompactNumber(change.previousValue)}
-        </>
-      )}
-    </span>
-  );
-  
-  return (
-    <Typography variant="body2" sx={{ mt: 1 }}>
-      {tooltipTitle ? (
-        <Tooltip title={tooltipTitle}>
-          {content}
-        </Tooltip>
-      ) : content}
-    </Typography>
-  );
-};
+// Tabs configuration
+const TABS = [
+  { value: 0, label: 'Overall', mobileLabel: 'Summary' },
+  { value: 1, label: 'Expenditures', mobileLabel: 'Spend' },
+  { value: 2, label: 'Revenues', mobileLabel: 'Income' },
+  { value: 3, label: 'Balance Sheet', mobileLabel: 'Capital' }
+];
 
 /**
  * Financials component displays district financial data with yearly comparisons
@@ -125,12 +67,14 @@ const Financials: React.FC = () => {
   // Tab state
   const [mainTabValue, setMainTabValue] = useState(0);
   
-  // Comparison year selection states
-  const [overallComparisonYear, setOverallComparisonYear] = useState<string>(DEFAULT_COMPARISON_YEAR);
-  const [expendituresComparisonYear, setExpendituresComparisonYear] = useState<string>(DEFAULT_COMPARISON_YEAR);
-  const [revenuesComparisonYear, setRevenuesComparisonYear] = useState<string>(DEFAULT_COMPARISON_YEAR);
-  const [assetsComparisonYear, setAssetsComparisonYear] = useState<string>(DEFAULT_COMPARISON_YEAR);
-  const [liabilitiesComparisonYear, setLiabilitiesComparisonYear] = useState<string>(DEFAULT_COMPARISON_YEAR);
+  // Combined state for all comparison years
+  const [comparisonYears, setComparisonYears] = useState({
+    overall: DEFAULT_COMPARISON_YEAR,
+    expenditures: DEFAULT_COMPARISON_YEAR,
+    revenues: DEFAULT_COMPARISON_YEAR,
+    assets: DEFAULT_COMPARISON_YEAR, 
+    liabilities: DEFAULT_COMPARISON_YEAR
+  });
   
   // Track loading state for specific comparison year data
   const [yearsBeingLoaded, setYearsBeingLoaded] = useState<Record<string, boolean>>({});
@@ -138,13 +82,14 @@ const Financials: React.FC = () => {
   // Current year financial data
   const totalExpenditures = useAppSelector(selectTotalExpenditures);
   const totalRevenues = useAppSelector(selectTotalRevenues);
-  const totalAssetsOnly = useAppSelector(selectTotalAssetsOnly);
-  const totalLiabilities = useAppSelector(selectTotalLiabilities);
   const financeLoading = useAppSelector(selectFinanceLoading);
   const financeError = useAppSelector(selectFinanceError);
   const financialReport = useAppSelector(selectFinancialReport);
   const latestPerPupilExpenditureDetails = useAppSelector(selectLatestPerPupilExpenditureDetails);
   const latestStatePerPupilExpenditureDetails = useAppSelector(selectLatestStatePerPupilExpenditureDetails);
+  
+  // Get processed report from Redux
+  const processedReport = useAppSelector(state => state.finance.processedReport);
   
   // Get the current year from the financial report
   const currentYear = financialReport?.doe_form?.year || null;
@@ -159,60 +104,6 @@ const Financials: React.FC = () => {
   // Format current year as fiscal year
   const formattedCurrentYear = useMemo(() => formatFiscalYear(currentYear), [currentYear, formatFiscalYear]);
   
-  // Create comparison year configurations
-  const comparisonConfigs = useMemo(() => {
-    return {
-      overall: {
-        year: overallComparisonYear,
-        setYear: setOverallComparisonYear,
-        formattedYear: formatFiscalYear(overallComparisonYear),
-        isLoading: yearsBeingLoaded[overallComparisonYear] || false
-      },
-      expenditures: {
-        year: expendituresComparisonYear,
-        setYear: setExpendituresComparisonYear,
-        formattedYear: formatFiscalYear(expendituresComparisonYear),
-        isLoading: yearsBeingLoaded[expendituresComparisonYear] || false
-      },
-      revenues: {
-        year: revenuesComparisonYear,
-        setYear: setRevenuesComparisonYear,
-        formattedYear: formatFiscalYear(revenuesComparisonYear),
-        isLoading: yearsBeingLoaded[revenuesComparisonYear] || false
-      },
-      assets: {
-        year: assetsComparisonYear,
-        setYear: setAssetsComparisonYear,
-        formattedYear: formatFiscalYear(assetsComparisonYear),
-        isLoading: yearsBeingLoaded[assetsComparisonYear] || false
-      },
-      liabilities: {
-        year: liabilitiesComparisonYear,
-        setYear: setLiabilitiesComparisonYear,
-        formattedYear: formatFiscalYear(liabilitiesComparisonYear),
-        isLoading: yearsBeingLoaded[liabilitiesComparisonYear] || false
-      }
-    };
-  }, [
-    overallComparisonYear, expendituresComparisonYear, revenuesComparisonYear, 
-    assetsComparisonYear, liabilitiesComparisonYear, yearsBeingLoaded, formatFiscalYear
-  ]);
-
-  // Get comparison data from Redux store
-  const getComparisonData = useCallback((year: string) => {
-    return useAppSelector(state => selectProcessedComparisonReportByYear(state, year));
-  }, []);
-  
-  // Get totals for overview
-  const comparisonTotalExpenditures = useAppSelector(state => 
-    selectTotalExpendituresByYear(state, overallComparisonYear));
-  const comparisonTotalRevenues = useAppSelector(state => 
-    selectTotalRevenuesByYear(state, overallComparisonYear));
-  const comparisonTotalAssets = useAppSelector(state => 
-    selectTotalAssetsByYear(state, overallComparisonYear));
-  const comparisonTotalLiabilities = useAppSelector(state => 
-    selectTotalLiabilitiesByYear(state, overallComparisonYear));
-  
   // Generate an array of available years (from FISCAL_START_YEAR to current year - 1)
   const availableComparisonYears = useMemo(() => {
     const years = [];
@@ -226,18 +117,21 @@ const Financials: React.FC = () => {
     return years;
   }, [currentYear]);
   
-  // Get processed report from Redux
-  const processedReport = useAppSelector(state => state.finance.processedReport);
+  // Get totals for overview
+  const comparisonTotalExpenditures = useAppSelector(state => 
+    selectTotalExpendituresByYear(state, comparisonYears.overall));
+  const comparisonTotalRevenues = useAppSelector(state => 
+    selectTotalRevenuesByYear(state, comparisonYears.overall));
   
   // Get comparison data for each tab
   const expendituresComparisonData = useAppSelector(state => 
-    selectProcessedComparisonReportByYear(state, expendituresComparisonYear));
+    selectProcessedComparisonReportByYear(state, comparisonYears.expenditures));
   const revenuesComparisonData = useAppSelector(state => 
-    selectProcessedComparisonReportByYear(state, revenuesComparisonYear));
+    selectProcessedComparisonReportByYear(state, comparisonYears.revenues));
   const assetsComparisonData = useAppSelector(state => 
-    selectProcessedComparisonReportByYear(state, assetsComparisonYear));
+    selectProcessedComparisonReportByYear(state, comparisonYears.assets));
   const liabilitiesComparisonData = useAppSelector(state => 
-    selectProcessedComparisonReportByYear(state, liabilitiesComparisonYear));
+    selectProcessedComparisonReportByYear(state, comparisonYears.liabilities));
   
   // Pre-process comparison data for tables
   const expenditureComparisonItems = useMemo(() => 
@@ -281,40 +175,11 @@ const Financials: React.FC = () => {
     });
   }, [id, dispatch, yearsBeingLoaded]);
   
-  // Create handler functions for year changes
-  const createYearChangeHandler = useCallback((setYearFn: (year: string) => void) => {
-    return (year: string) => {
-      setYearFn(year);
-      loadComparisonYearData(year);
-    };
-  }, [loadComparisonYearData]);
-  
-  // Year change handler functions
-  const handleOverallComparisonYearChange = useCallback((year: string) => {
-    setOverallComparisonYear(year);
+  // Unified comparison year change handler
+  const handleComparisonYearChange = useCallback((type: keyof typeof comparisonYears, year: string) => {
+    setComparisonYears(prev => ({ ...prev, [type]: year }));
     loadComparisonYearData(year);
   }, [loadComparisonYearData]);
-
-  // Initialize handlers with the factory function
-  const handleExpendituresComparisonYearChange = useCallback(
-    createYearChangeHandler(setExpendituresComparisonYear), 
-    [createYearChangeHandler]
-  );
-  
-  const handleRevenuesComparisonYearChange = useCallback(
-    createYearChangeHandler(setRevenuesComparisonYear),
-    [createYearChangeHandler]
-  );
-  
-  const handleAssetsComparisonYearChange = useCallback(
-    createYearChangeHandler(setAssetsComparisonYear),
-    [createYearChangeHandler]
-  );
-  
-  const handleLiabilitiesComparisonYearChange = useCallback(
-    createYearChangeHandler(setLiabilitiesComparisonYear),
-    [createYearChangeHandler]
-  );
   
   // Initial data loading
   useEffect(() => {
@@ -327,54 +192,46 @@ const Financials: React.FC = () => {
       dispatch(fetchFinancialReport({ 
         districtId: id,
         includeComparisonYear: true,
-        comparisonYear: overallComparisonYear
+        comparisonYear: comparisonYears.overall
       }));
       
-      // Fetch per pupil expenditure data - don't specify year
-      dispatch(fetchPerPupilExpenditure({
-        districtId: id
-      }));
+      // Fetch per pupil expenditure data
+      dispatch(fetchPerPupilExpenditure({ districtId: id }));
       
-      // Fetch state average per pupil expenditure data - don't specify year
+      // Fetch state average per pupil expenditure data
       dispatch(fetchStatePerPupilExpenditure({}));
     }
-  }, [dispatch, id, district, districtLoading, overallComparisonYear]);
+  }, [dispatch, id, district, districtLoading, comparisonYears.overall]);
   
   // Load needed comparison years when tabs change
   useEffect(() => {
     if (!id) return;
     
     // Determine which comparison years to load based on active tab
-    switch (Number(mainTabValue)) {
+    switch (mainTabValue) {
       case 0: // Overall tab
-        loadComparisonYearData(overallComparisonYear);
+        loadComparisonYearData(comparisonYears.overall);
         break;
       case 1: // Expenditures tab
-        loadComparisonYearData(expendituresComparisonYear);
+        loadComparisonYearData(comparisonYears.expenditures);
         break;
       case 2: // Revenue tab
-        loadComparisonYearData(revenuesComparisonYear);
+        loadComparisonYearData(comparisonYears.revenues);
         break;
       case 3: // Balance Sheet tab - load both assets and liabilities years
-        loadComparisonYearData(assetsComparisonYear);
-        loadComparisonYearData(liabilitiesComparisonYear);
-        break;
-      default:
+        loadComparisonYearData(comparisonYears.assets);
+        loadComparisonYearData(comparisonYears.liabilities);
         break;
     }
   }, [
     id,
     mainTabValue,
     loadComparisonYearData,
-    overallComparisonYear,
-    expendituresComparisonYear,
-    revenuesComparisonYear,
-    assetsComparisonYear,
-    liabilitiesComparisonYear
+    comparisonYears
   ]);
 
-  // Tab change handlers
-  const handleMainTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  // Tab change handler
+  const handleMainTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setMainTabValue(newValue);
   };
 
@@ -391,6 +248,27 @@ const Financials: React.FC = () => {
     return ((districtValue - stateValue) / stateValue) * 100;
   }, []);
   
+  // Get the per pupil expenditure data
+  const perPupilExpenditureData = useAppSelector(state => {
+    if (!latestPerPupilExpenditureDetails) return { current: null, previousYear: null, tenYearsAgo: null };
+    
+    return {
+      current: latestPerPupilExpenditureDetails,
+      previousYear: selectPerPupilExpenditureByYear(state, latestPerPupilExpenditureDetails.year - 1),
+      tenYearsAgo: selectPerPupilExpenditureByYear(state, latestPerPupilExpenditureDetails.year - 10)
+    };
+  });
+  
+  // Get the state per pupil expenditure data
+  const statePerPupilExpenditureData = useAppSelector(state => {
+    if (!latestStatePerPupilExpenditureDetails) return { current: null, tenYearsAgo: null };
+    
+    return {
+      current: latestStatePerPupilExpenditureDetails,
+      tenYearsAgo: selectStatePerPupilExpenditureByYear(state, latestStatePerPupilExpenditureDetails.year - 10)
+    };
+  });
+  
   // Helper to calculate change between two values
   const calculateChange = useCallback((currentValue: number, previousValue: number) => {
     if (!previousValue) return null;
@@ -404,27 +282,6 @@ const Financials: React.FC = () => {
       previousValue
     };
   }, []);
-  
-  // Get the per pupil expenditure data for various time periods
-  const perPupilExpenditureData = useAppSelector(state => {
-    if (!latestPerPupilExpenditureDetails) return { current: null, previousYear: null, tenYearsAgo: null };
-    
-    return {
-      current: latestPerPupilExpenditureDetails,
-      previousYear: selectPerPupilExpenditureByYear(state, latestPerPupilExpenditureDetails.year - 1),
-      tenYearsAgo: selectPerPupilExpenditureByYear(state, latestPerPupilExpenditureDetails.year - 10)
-    };
-  });
-  
-  // Get the state per pupil expenditure data for various time periods
-  const statePerPupilExpenditureData = useAppSelector(state => {
-    if (!latestStatePerPupilExpenditureDetails) return { current: null, tenYearsAgo: null };
-    
-    return {
-      current: latestStatePerPupilExpenditureDetails,
-      tenYearsAgo: selectStatePerPupilExpenditureByYear(state, latestStatePerPupilExpenditureDetails.year - 10)
-    };
-  });
   
   // Calculate year-over-year change for district per pupil expenditure
   const perPupilYearOverYearChange = useMemo(() => {
@@ -450,13 +307,321 @@ const Financials: React.FC = () => {
     return calculateChange(current.total, tenYearsAgo.total);
   }, [statePerPupilExpenditureData, calculateChange]);
   
+  // Format the comparison year for each section
+  const formattedComparisonYears = useMemo(() => ({
+    overall: formatFiscalYear(comparisonYears.overall),
+    expenditures: formatFiscalYear(comparisonYears.expenditures),
+    revenues: formatFiscalYear(comparisonYears.revenues),
+    assets: formatFiscalYear(comparisonYears.assets),
+    liabilities: formatFiscalYear(comparisonYears.liabilities)
+  }), [formatFiscalYear, comparisonYears]);
+  
+  // Loading states for comparison years
+  const comparisonLoading = useMemo(() => ({
+    expenditures: yearsBeingLoaded[comparisonYears.expenditures] || false,
+    revenues: yearsBeingLoaded[comparisonYears.revenues] || false,
+    assets: yearsBeingLoaded[comparisonYears.assets] || false,
+    liabilities: yearsBeingLoaded[comparisonYears.liabilities] || false
+  }), [yearsBeingLoaded, comparisonYears]);
+  
+  // Render tab content based on selected tab
+  const renderTabContent = () => {
+    switch (mainTabValue) {
+      case 0: // Overall Tab
+        return renderOverallTab();
+      case 1: // Expenditures Tab
+        return (
+          <FinancialComparisonTable 
+            items={expenditureComparisonItems}
+            currentYear={formattedCurrentYear}
+            previousYear={formattedComparisonYears.expenditures}
+            headers={{
+              category: 'Category',
+              subCategory: 'Sub Category',
+              itemName: 'Expenditure Type'
+            }}
+            title="Expenditure Breakdown"
+            formatValue={formatCompactNumber}
+            initialViewMode="comparison"
+            availableComparisonYears={availableComparisonYears}
+            selectedComparisonYear={comparisonYears.expenditures}
+            onComparisonYearChange={(year) => handleComparisonYearChange('expenditures', year)}
+            isLoading={comparisonLoading.expenditures}
+          />
+        );
+      case 2: // Revenues Tab
+        return (
+          <FinancialComparisonTable 
+            items={revenueComparisonItems}
+            currentYear={formattedCurrentYear}
+            previousYear={formattedComparisonYears.revenues}
+            headers={{
+              category: 'Category',
+              subCategory: 'Sub Category',
+              itemName: 'Revenue Source'
+            }}
+            title="Revenue Breakdown"
+            formatValue={formatCompactNumber}
+            initialViewMode="comparison"
+            availableComparisonYears={availableComparisonYears}
+            selectedComparisonYear={comparisonYears.revenues}
+            onComparisonYearChange={(year) => handleComparisonYearChange('revenues', year)}
+            isLoading={comparisonLoading.revenues}
+          />
+        );
+      case 3: // Balance Sheet Tab
+        return renderBalanceSheetTab();
+      default:
+        return null;
+    }
+  };
+  
+  // Render Overall Tab content
+  const renderOverallTab = () => (
+    <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 3, mb: 4 }}>
+      <Card sx={{flex: 1 }}>
+        <CardContent>
+          <Typography variant="h6">
+            {formattedCurrentYear || '23/24'} Expenditures: {formatCompactNumber(totalExpenditures)}
+          </Typography>
+          <FinancialChange current={totalExpenditures} previous={comparisonTotalExpenditures} />
+        </CardContent>
+      </Card>
+      <Card sx={{flex: 1 }}>
+        <CardContent>
+          <Typography variant="h6">
+            {formattedCurrentYear || '23/24'} Revenue: {formatCompactNumber(totalRevenues)}
+          </Typography>
+          <FinancialChange current={totalRevenues} previous={comparisonTotalRevenues} />
+        </CardContent>
+      </Card>
+      <Card sx={{flex: isMobile ? 1 : 2 }}>
+        <CardContent>
+          <Typography variant="h6">
+            Cost Per Pupil: {latestPerPupilExpenditureDetails?.total 
+              ? formatCompactNumber(latestPerPupilExpenditureDetails.total) 
+              : 'Loading...'}
+          </Typography>
+          
+          {renderPerPupilDetails()}
+        </CardContent>
+      </Card>
+    </Box>
+  );
+  
+  // Render Per Pupil Cost details
+  const renderPerPupilDetails = () => {
+    if (!latestPerPupilExpenditureDetails || !latestStatePerPupilExpenditureDetails) return null;
+    
+    return (
+      <Box sx={{ mt: 2 }}>
+        <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+          {district?.name || 'District'} Per Pupil Costs:
+        </Typography>
+        
+        <Box component="ul" sx={{ mt: 1, pl: 2 }}>
+          {/* Comparison to state average */}
+          <Typography component="li" variant="body2">
+            Are{' '}
+            <Typography
+              component="span"
+              variant="body2"
+              sx={{ 
+                fontWeight: 'bold',
+                color: latestPerPupilExpenditureDetails.total > latestStatePerPupilExpenditureDetails.total 
+                  ? 'error.main' 
+                  : 'success.main' 
+              }}
+            >
+              {Math.abs(calculateDifference(
+                latestPerPupilExpenditureDetails.total, 
+                latestStatePerPupilExpenditureDetails.total
+              )).toFixed(1)}%
+              {latestPerPupilExpenditureDetails.total > latestStatePerPupilExpenditureDetails.total 
+                ? ' higher' 
+                : ' lower'}
+            </Typography>
+            {' than the State\'s '}
+            {formatCompactNumber(latestStatePerPupilExpenditureDetails.total)}
+            {' Avg.'}
+          </Typography>
+          
+          {/* Year over year change */}
+          {perPupilYearOverYearChange && (
+            <Typography component="li" variant="body2">
+              Have{' '}
+              <Typography
+                component="span"
+                variant="body2"
+                sx={{ 
+                  fontWeight: 'bold',
+                  color: perPupilYearOverYearChange.difference > 0 ? 'error.main' : 'success.main' 
+                }}
+              >
+                {perPupilYearOverYearChange.difference > 0 ? 'Increased' : 'Decreased'} {Math.abs(perPupilYearOverYearChange.percentChange).toFixed(1)}%
+              </Typography>
+              {' Year over Year ('}
+              {formatCompactNumber(perPupilYearOverYearChange.previousValue)}
+              {').'}
+            </Typography>
+          )}
+          
+          {/* 10-year changes */}
+          {renderTenYearComparison()}
+        </Box>
+        
+        {renderCostBreakdownTable()}
+        
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+          FY {FISCAL_YEAR} school year
+        </Typography>
+      </Box>
+    );
+  };
+  
+  // Render 10-year comparison
+  const renderTenYearComparison = () => {
+    if (!perPupilTenYearChange || !statePerPupilTenYearChange) return null;
+    
+    return (
+      <>
+        <Typography component="li" variant="body2">
+          Over 10 Years, {' '}
+          <Typography
+            component="span"
+            variant="body2"
+            sx={{ 
+              fontWeight: 'bold',
+              color: Math.abs(perPupilTenYearChange.difference) > Math.abs(statePerPupilTenYearChange.difference) 
+                ? 'error.main' 
+                : 'success.main' 
+            }}
+          >
+            {perPupilTenYearChange.difference > 0 ? 'Increased' : 'Decreased'}
+            {Math.abs(perPupilTenYearChange.difference) > Math.abs(statePerPupilTenYearChange.difference) 
+              ? ' Faster' 
+              : ' Slower'} than the State Average
+          </Typography>
+          .
+        </Typography>
+        <Box component="li" sx={{ ml: 3, listStyleType: 'circle' }}>
+          <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
+            {formatCompactNumber(Math.abs(perPupilTenYearChange.difference))} District 
+            {perPupilTenYearChange.difference > 0 ? ' Increase' : ' Decrease'} vs. {' '} 
+            {formatCompactNumber(Math.abs(statePerPupilTenYearChange.difference))} State 
+            {statePerPupilTenYearChange.difference > 0 ? ' Increase' : ' Decrease'}
+          </Typography>
+        </Box>
+      </>
+    );
+  };
+  
+  // Render Cost Breakdown table
+  const renderCostBreakdownTable = () => {
+    if (!latestPerPupilExpenditureDetails || !latestStatePerPupilExpenditureDetails) return null;
+    
+    return (
+      <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', mt: 2, gap: 2 }}>
+        <TableContainer component={Paper} elevation={0} sx={{ flex: 1 }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell></TableCell>
+                <TableCell align="right">District</TableCell>
+                <TableCell align="right">State</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              <TableRow>
+                <TableCell>Elementary</TableCell>
+                <TableCell align="right">
+                  {formatCompactNumber(latestPerPupilExpenditureDetails.elementary)}
+                </TableCell>
+                <TableCell align="right">
+                  {formatCompactNumber(latestStatePerPupilExpenditureDetails.elementary)}
+                </TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>Middle</TableCell>
+                <TableCell align="right">
+                  {formatCompactNumber(latestPerPupilExpenditureDetails.middle)}
+                </TableCell>
+                <TableCell align="right">
+                  {formatCompactNumber(latestStatePerPupilExpenditureDetails.middle)}
+                </TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>High</TableCell>
+                <TableCell align="right">
+                  {formatCompactNumber(latestPerPupilExpenditureDetails.high)}
+                </TableCell>
+                <TableCell align="right">
+                  {formatCompactNumber(latestStatePerPupilExpenditureDetails.high)}
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
+    );
+  };
+  
+  // Render Balance Sheet Tab content
+  const renderBalanceSheetTab = () => (
+    <>
+      {/* Assets Table */}
+      <FinancialComparisonTable 
+        items={assetsComparisonItems}
+        currentYear={formattedCurrentYear}
+        previousYear={formattedComparisonYears.assets}
+        headers={{
+          category: 'Category',
+          subCategory: 'Type',
+          itemName: 'Asset'
+        }}
+        title="Assets Breakdown"
+        formatValue={formatCompactNumber}
+        initialViewMode="comparison"
+        availableComparisonYears={availableComparisonYears}
+        selectedComparisonYear={comparisonYears.assets}
+        onComparisonYearChange={(year) => handleComparisonYearChange('assets', year)}
+        isLoading={comparisonLoading.assets}
+        valueType="Assets"
+        totalRowLabel="Total Assets"
+      />
+      
+      {/* Liabilities Table */}
+      <Box sx={{ mt: 4 }}>
+        <FinancialComparisonTable 
+          items={liabilitiesComparisonItems}
+          currentYear={formattedCurrentYear}
+          previousYear={formattedComparisonYears.liabilities}
+          headers={{
+            category: 'Category',
+            subCategory: 'Type',
+            itemName: 'Liability'
+          }}
+          title="Liabilities Breakdown"
+          formatValue={formatCompactNumber}
+          initialViewMode="comparison"
+          availableComparisonYears={availableComparisonYears}
+          selectedComparisonYear={comparisonYears.liabilities}
+          onComparisonYearChange={(year) => handleComparisonYearChange('liabilities', year)}
+          isLoading={comparisonLoading.liabilities}
+          valueType="Debts"
+          totalRowLabel="Total Liabilities"
+        />
+      </Box>
+    </>
+  );
+  
   return (
     <>
       <SectionTitle>
         {district?.name || 'District'} School District
       </SectionTitle>
 
-      {/* Main Tabs - responsive labels for mobile */}
+      {/* Main Tabs */}
       <Box sx={{ position: 'relative', mb: isMobile ? 2 : 3 }}>
         <Tabs 
           value={mainTabValue} 
@@ -465,10 +630,13 @@ const Financials: React.FC = () => {
           variant={isMobile ? "scrollable" : "standard"}
           scrollButtons={isMobile ? "auto" : false}
         >
-          <Tab label={isMobile ? "Summary" : "Overall"} sx={isMobile ? { px: 0 } : undefined} />
-          <Tab label={isMobile ? "Spend" : "Expenditures"} sx={isMobile ? { px: 0 } : undefined} />
-          <Tab label={isMobile ? "Income" : "Revenues"} sx={isMobile ? { px: 0 } : undefined} />
-          <Tab label={isMobile ? "Capital" : "Balance Sheet"} sx={isMobile ? { px: 0 } : undefined} />
+          {TABS.map(tab => (
+            <Tab 
+              key={tab.value}
+              label={isMobile ? tab.mobileLabel : tab.label} 
+              sx={isMobile ? { px: 0 } : undefined} 
+            />
+          ))}
         </Tabs>
         
         {/* Full-width divider line */}
@@ -485,203 +653,7 @@ const Financials: React.FC = () => {
       ) : hasNoData ? (
         <Typography>No financial data available for this district.</Typography>
       ) : (
-        <>
-          {/* Overall Tab */}
-          {Number(mainTabValue) === 0 && (
-            <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 3, mb: 4 }}>
-              <Card sx={{flex: 1 }}>
-                <CardContent>
-                  <Typography variant="h6">23/24 Expenditures: {formatCompactNumber(totalExpenditures)}</Typography>
-                  <FinancialChange current={totalExpenditures} previous={comparisonTotalExpenditures} />
-                </CardContent>
-              </Card>
-              <Card sx={{flex: 1 }}>
-                <CardContent>
-                  <Typography variant="h6">23/24 Revenue: {formatCompactNumber(totalRevenues)}</Typography>
-                  <FinancialChange current={totalRevenues} previous={comparisonTotalRevenues} />
-                </CardContent>
-              </Card>
-              <Card sx={{flex: isMobile ? 1 : 2 }}>
-                <CardContent>
-                  <Tooltip title="Per pupil expenditure represents the average amount spent per student in this district">
-                    <Typography variant="h6">
-                      Cost Per Pupil: {latestPerPupilExpenditureDetails?.total ? formatCompactNumber(latestPerPupilExpenditureDetails.total) : 'Loading...'}
-                    </Typography>
-                  </Tooltip>
-                  
-                  <ExpenditureChange
-                    change={perPupilYearOverYearChange}
-                    label="Annual change"
-                    showPrevious={true}
-                  />
-                  
-                  <ExpenditureChange
-                    change={perPupilTenYearChange}
-                    label="10-year district change"
-                    tooltipTitle={`Comparing current costs to those from ${perPupilExpenditureData.current?.year ? (perPupilExpenditureData.current.year - 10) : 'ten years ago'}`}
-                    showPrevious={true}
-                  />
-                  
-                  <ExpenditureChange
-                    change={statePerPupilTenYearChange}
-                    label="10-year state average"
-                    tooltipTitle={`Comparing current state average to that from ${statePerPupilExpenditureData.current?.year ? (statePerPupilExpenditureData.current.year - 10) : 'ten years ago'}`}
-                    showPrevious={true}
-                  />
-                  
-                  {latestPerPupilExpenditureDetails && latestStatePerPupilExpenditureDetails && (
-                    <>
-                      <Typography variant="body2">
-                        <Typography
-                          component="span"
-                          variant="body2"
-                          sx={{ 
-                            display: 'inline',
-                            color: latestPerPupilExpenditureDetails.total > latestStatePerPupilExpenditureDetails.total ? 'error.main' : 'success.main',
-                            fontWeight: 'bold'
-                          }}
-                        >
-                          {Math.abs(calculateDifference(latestPerPupilExpenditureDetails.total, latestStatePerPupilExpenditureDetails.total)).toFixed(1)}% 
-                          {latestPerPupilExpenditureDetails.total > latestStatePerPupilExpenditureDetails.total ? ' higher' : ' lower'} 
-                        </Typography>
-                        {' than the state average ('}
-                        {formatCompactNumber(latestStatePerPupilExpenditureDetails.total)}
-                        {')'}
-                      </Typography>
-                      
-                      <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', mt: 2, gap: 2 }}>
-                        {/* Cost breakdown table */}
-                        <TableContainer component={Paper} elevation={0} sx={{ flex: 1 }}>
-                          <Table size="small">
-                            <TableHead>
-                              <TableRow>
-                                <TableCell></TableCell>
-                                <TableCell align="right">District</TableCell>
-                                <TableCell align="right">State</TableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              <TableRow>
-                                <TableCell>Elementary</TableCell>
-                                <TableCell align="right">{formatCompactNumber(latestPerPupilExpenditureDetails.elementary)}</TableCell>
-                                <TableCell align="right">{formatCompactNumber(latestStatePerPupilExpenditureDetails.elementary)}</TableCell>
-                              </TableRow>
-                              <TableRow>
-                                <TableCell>Middle</TableCell>
-                                <TableCell align="right">{formatCompactNumber(latestPerPupilExpenditureDetails.middle)}</TableCell>
-                                <TableCell align="right">{formatCompactNumber(latestStatePerPupilExpenditureDetails.middle)}</TableCell>
-                              </TableRow>
-                              <TableRow>
-                                <TableCell>High</TableCell>
-                                <TableCell align="right">{formatCompactNumber(latestPerPupilExpenditureDetails.high)}</TableCell>
-                                <TableCell align="right">{formatCompactNumber(latestStatePerPupilExpenditureDetails.high)}</TableCell>
-                              </TableRow>
-                            </TableBody>
-                          </Table>
-                        </TableContainer>
-                      </Box>
-                      
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                        FY {FISCAL_YEAR} school year
-                      </Typography>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </Box>
-          )}
-          
-          {/* Expenditures Tab */}
-          {Number(mainTabValue) === 1 && (
-            <FinancialComparisonTable 
-              items={expenditureComparisonItems}
-              currentYear={formattedCurrentYear}
-              previousYear={comparisonConfigs.expenditures.formattedYear}
-              headers={{
-                category: 'Category',
-                subCategory: 'Sub Category',
-                itemName: 'Expenditure Type'
-              }}
-              title="Expenditure Breakdown"
-              formatValue={formatCompactNumber}
-              initialViewMode="comparison"
-              availableComparisonYears={availableComparisonYears}
-              selectedComparisonYear={expendituresComparisonYear}
-              onComparisonYearChange={handleExpendituresComparisonYearChange}
-              isLoading={comparisonConfigs.expenditures.isLoading}
-            />
-          )}
-          
-          {/* Revenues Tab */}
-          {Number(mainTabValue) === 2 && (
-            <FinancialComparisonTable 
-              items={revenueComparisonItems}
-              currentYear={formattedCurrentYear}
-              previousYear={comparisonConfigs.revenues.formattedYear}
-              headers={{
-                category: 'Category',
-                subCategory: 'Sub Category',
-                itemName: 'Revenue Source'
-              }}
-              title="Revenue Breakdown"
-              formatValue={formatCompactNumber}
-              initialViewMode="comparison"
-              availableComparisonYears={availableComparisonYears}
-              selectedComparisonYear={revenuesComparisonYear}
-              onComparisonYearChange={handleRevenuesComparisonYearChange}
-              isLoading={comparisonConfigs.revenues.isLoading}
-            />
-          )}
-          
-          {/* Balance Sheet Tab */}
-          {Number(mainTabValue) === 3 && (
-            <>
-              {/* Assets Table */}
-              <FinancialComparisonTable 
-                items={assetsComparisonItems}
-                currentYear={formattedCurrentYear}
-                previousYear={comparisonConfigs.assets.formattedYear}
-                headers={{
-                  category: 'Category',
-                  subCategory: 'Type',
-                  itemName: 'Asset'
-                }}
-                title="Assets Breakdown"
-                formatValue={formatCompactNumber}
-                initialViewMode="comparison"
-                availableComparisonYears={availableComparisonYears}
-                selectedComparisonYear={assetsComparisonYear}
-                onComparisonYearChange={handleAssetsComparisonYearChange}
-                isLoading={comparisonConfigs.assets.isLoading}
-                valueType="Assets"
-                totalRowLabel="Total Assets"
-              />
-              
-              {/* Liabilities Table */}
-              <Box sx={{ mt: 4 }}>
-                <FinancialComparisonTable 
-                  items={liabilitiesComparisonItems}
-                  currentYear={formattedCurrentYear}
-                  previousYear={comparisonConfigs.liabilities.formattedYear}
-                  headers={{
-                    category: 'Category',
-                    subCategory: 'Type',
-                    itemName: 'Liability'
-                  }}
-                  title="Liabilities Breakdown"
-                  formatValue={formatCompactNumber}
-                  initialViewMode="comparison"
-                  availableComparisonYears={availableComparisonYears}
-                  selectedComparisonYear={liabilitiesComparisonYear}
-                  onComparisonYearChange={handleLiabilitiesComparisonYearChange}
-                  isLoading={comparisonConfigs.liabilities.isLoading}
-                  valueType="Debts"
-                  totalRowLabel="Total Liabilities"
-                />
-              </Box>
-            </>
-          )}
-        </>
+        renderTabContent()
       )}
     </>
   );
