@@ -21,8 +21,7 @@ import {
 } from './interceptors/cacheUtils';
 import { logout } from '@features/auth/services/auth';
 import { BASE_API_URL } from './constants';
-
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import { API_BASE_URL } from '@/utils/environment';
 
 // Extend Axios types to include our custom properties
 declare module 'axios' {
@@ -33,7 +32,7 @@ declare module 'axios' {
 
 // Create Axios instance
 const axiosInstance = axios.create({
-  baseURL: BASE_URL,
+  baseURL: API_BASE_URL,
   withCredentials: true,
   timeout: 30000, // 30 seconds timeout
   headers: {
