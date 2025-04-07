@@ -732,39 +732,34 @@ export const selectStateExpenditureRollupsByYear = (state: RootState, year: numb
 // State Revenue Selectors
 export const selectLatestStateRevenueDetails = (state: RootState) => {
   const allData = state.finance.stateRevenueAllData;
-  if (!allData || allData.length === 0) return null;
-
-  // Find the entry with the highest year value
-  return allData.reduce((latest, current) => {
-    return current.year > latest.year ? current : latest;
-  }, allData[0]);
+  if (!allData || allData.length === 0) return [];
+  // Find all entries for the current fiscal year
+  return allData.filter(item => item.year === parseInt(FISCAL_YEAR));
 };
 
 export const selectStateRevenueByYear = (state: RootState, year: number) => {
   const allData = state.finance.stateRevenueAllData;
-  if (!allData || allData.length === 0) return null;
+  if (!allData || allData.length === 0) return [];
   
-  // Find the entry matching the requested year
-  return allData.find(item => item.year === year) || null;
+  // Find all entries matching the requested year
+  return allData.filter(item => item.year === year);
 };
 
 // State Expenditure Selectors
 export const selectLatestStateExpenditureDetails = (state: RootState) => {
   const allData = state.finance.stateExpenditureAllData;
-  if (!allData || allData.length === 0) return null;
-
-  // Find the entry with the highest year value
-  return allData.reduce((latest, current) => {
-    return current.year > latest.year ? current : latest;
-  }, allData[0]);
+  if (!allData || allData.length === 0) return [];
+  
+  // Find all entries for the current fiscal year
+  return allData.filter(item => item.year === parseInt(FISCAL_YEAR));
 };
 
 export const selectStateExpenditureByYear = (state: RootState, year: number) => {
   const allData = state.finance.stateExpenditureAllData;
-  if (!allData || allData.length === 0) return null;
+  if (!allData || allData.length === 0) return [];
 
-  // Find the entry matching the requested year
-  return allData.find(item => item.year === year) || null;
+  // Find all entries matching the requested year
+  return allData.filter(item => item.year === year);
 };
 
 // Export reducer

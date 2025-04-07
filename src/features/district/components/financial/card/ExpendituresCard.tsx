@@ -138,7 +138,7 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className, district
             >
               {changeDirection} {Math.abs(percentageChange).toFixed(1)}%
             </Typography>
-            {' Year over Year ('}
+            {' Last Year ('}
             {formatCompactNumber(totalPreviousExpenditures || 0)}
             {').'}
           </Typography>

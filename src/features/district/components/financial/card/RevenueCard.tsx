@@ -230,7 +230,7 @@ const RevenueCard: React.FC<RevenueCardProps> = ({ className }) => {
             >
               {changeDirection} {Math.abs(percentageChange).toFixed(1)}%
             </Typography>
-            {' Year over Year ('}
+            {' Last Year ('}
             {formatCompactNumber(totalPreviousRevenues || 0)}
             {').'}
           </Typography>
