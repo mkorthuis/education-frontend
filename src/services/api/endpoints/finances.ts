@@ -69,12 +69,12 @@ export const financeApi = {
         return response.data;
     },
 
-    getStateExpenditures: async (year?: string, forceRefresh = false) => {
+    getStateExpenditureRollups: async (year?: string, forceRefresh = false) => {
         const queryParams = new URLSearchParams();
         if (year) {
             queryParams.append('year', year);
         }
-        const url = BASE_ENDPOINT_URL + `state-expenditure?${queryParams.toString()}`;
+        const url = BASE_ENDPOINT_URL + `state-expenditure-rollup?${queryParams.toString()}`;
         const response = await axiosInstance.get(
             url, 
             forceRefresh ? skipCache() : undefined
@@ -87,11 +87,30 @@ export const financeApi = {
         if (year) {
             queryParams.append('year', year);
         }
+        if (revenueEntryTypeId) {
+            queryParams.append('revenue_entry_type_id', revenueEntryTypeId);
+        }
         const url = BASE_ENDPOINT_URL + `state-revenue?${queryParams.toString()}`;
         const response = await axiosInstance.get(
             url, 
             forceRefresh ? skipCache() : undefined
         );
         return response.data;
-    }   
+    },   
+
+    getStateExpenditure: async (year?: string, expenditureEntryTypeId?: string, forceRefresh = false) => {
+        const queryParams = new URLSearchParams();
+        if (year) {
+            queryParams.append('year', year);
+        }
+        if (expenditureEntryTypeId) {
+            queryParams.append('expenditure_entry_type_id', expenditureEntryTypeId);
+        }
+        const url = BASE_ENDPOINT_URL + `state-expenditure?${queryParams.toString()}`;
+        const response = await axiosInstance.get(
+            url, 
+            forceRefresh ? skipCache() : undefined
+        );
+        return response.data;
+    }
 };  

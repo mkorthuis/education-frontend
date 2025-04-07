@@ -81,7 +81,13 @@ const RevenueFundingComparisonTable: React.FC<RevenueFundingComparisonTableProps
           }}
         >
           <Table size="small">
-            <TableHead sx={{ backgroundColor: 'grey.200' }}>
+            <TableHead sx={{ 
+              backgroundColor: 'grey.200',
+              '& th': {
+                borderBottom: '2px solid',
+                borderColor: 'grey.400',
+              }
+            }}>
               <TableRow>
                 <TableCell>Source</TableCell>
                 <TableCell align="right">District</TableCell>
@@ -89,9 +95,20 @@ const RevenueFundingComparisonTable: React.FC<RevenueFundingComparisonTableProps
               </TableRow>
             </TableHead>
             <TableBody>
-              {FUNDING_SOURCES.map(({ key, label }) => (
-                <TableRow key={key}>
-                  <TableCell>{label}</TableCell>
+              {FUNDING_SOURCES.map(({ key, label }, index) => (
+                <TableRow 
+                  key={key}
+                  sx={{ 
+                    '&:last-child td, &:last-child th': { border: 0 },
+                    ...(index < FUNDING_SOURCES.length - 1 && {
+                      '& td, & th': {
+                        borderBottom: '2px solid',
+                        borderColor: 'grey.300',
+                      }
+                    })
+                  }}
+                >
+                  <TableCell component="th" scope="row" sx={{ fontWeight: 'normal' }}>{label}</TableCell>
                   <TableCell align="right">
                     {calculatePercentage(districtData[key], districtTotal)}%
                   </TableCell>

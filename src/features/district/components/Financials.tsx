@@ -16,14 +16,16 @@ import {
   fetchStatePerPupilExpenditure,
   selectFinancialReports,
   fetchFinancialReports,
-  selectFinanceLoading,
+  selectAnyLoading,
   selectFinanceError,
   clearFinanceState,
   selectProcessedReportDistrictId,
-  selectLatestStateExpenditureDetails,
-  fetchStateExpenditures,
+  selectLatestStateExpenditureRollupDetails,
+  fetchStateExpenditureRollups,
   selectLatestStateRevenueDetails,
-  fetchStateRevenue
+  fetchStateRevenue,
+  fetchStateExpenditure,
+  selectLatestStateExpenditureDetails
 } from '@/store/slices/financeSlice';
 
 // Import tab components
@@ -48,12 +50,13 @@ function useDistrictFinancialData(districtId?: string) {
   const dispatch = useAppDispatch();
   const processedReportDistrictId = useAppSelector(selectProcessedReportDistrictId);
   const financialReports = useAppSelector(selectFinancialReports);
-  const loading = useAppSelector(selectFinanceLoading);
+  const loading = useAppSelector(selectAnyLoading);
   const error = useAppSelector(selectFinanceError);
   const latestPerPupilData = useAppSelector(selectLatestPerPupilExpenditureDetails);
   const latestStatePerPupilData = useAppSelector(selectLatestStatePerPupilExpenditureDetails);
-  const latestStateExpenditureData = useAppSelector(selectLatestStateExpenditureDetails);
+  const latestStateRollupData = useAppSelector(selectLatestStateExpenditureRollupDetails);
   const latestStateRevenueData = useAppSelector(selectLatestStateRevenueDetails);
+  const latestStateExpenditureData = useAppSelector(selectLatestStateExpenditureDetails);
   // Initial load state tracking
   const [hasInitiatedLoads, setHasInitiatedLoads] = useState(false);
   
@@ -93,12 +96,16 @@ function useDistrictFinancialData(districtId?: string) {
     }
 
     // State revenue data
-    if (!latestStateRevenueData) {
+    if (!latestStateRevenueData || !latestStateRevenueData.length) {
       dispatch(fetchStateRevenue({}));
     }
+    // State expenditure rollup data
+    if (!latestStateRollupData) {
+      dispatch(fetchStateExpenditureRollups({}));
+    }
     // State expenditure data
-    if (!latestStateExpenditureData) {
-      dispatch(fetchStateExpenditures({}));
+    if (!latestStateExpenditureData || !latestStateRevenueData.length) {
+      dispatch(fetchStateExpenditure({}));
     }
 
 

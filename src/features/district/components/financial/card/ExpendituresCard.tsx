@@ -1,27 +1,30 @@
 import React, { useMemo, useState } from 'react';
 import { Typography, Card, CardContent, Box, Divider, Button, useTheme, useMediaQuery } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
-import { selectLatestStateExpenditureDetails, selectStateExpenditureByYear, selectTotalExpendituresByYear } from '@/store/slices/financeSlice';
+import { selectLatestStateExpenditureRollupDetails, selectStateExpenditureRollupsByYear, selectTotalExpendituresByYear } from '@/store/slices/financeSlice';
 import { formatCompactNumber } from '@/utils/formatting';
 import { formatFiscalYear } from '../../../utils/financialDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
 import InstructionalVsSupportTrendChart from './InstructionalVsSupportTrendChart';
+import CostBreakdownTable from './CostBreakdownTable';
 
 interface ExpendituresCardProps {
   className?: string;
+  districtName?: string;
 }
 
-const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
+const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className, districtName = 'District' }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [showTrendChart, setShowTrendChart] = useState(false);
+  const [showCostTable, setShowCostTable] = useState(false);
 
   const TEN_YEARS_AGO = parseInt(FISCAL_YEAR) - 10;
   // Get the total expenditures for the current fiscal year
   const totalCurrentExpenditures = useAppSelector(state => selectTotalExpendituresByYear(state, FISCAL_YEAR));
   const totalPreviousExpenditures = useAppSelector(state => selectTotalExpendituresByYear(state, (parseInt(FISCAL_YEAR) - 1).toString()));
-  const latestStateExpenditureData = useAppSelector(selectLatestStateExpenditureDetails);
-  const previousStateExpenditureData = useAppSelector(state => selectStateExpenditureByYear(state, TEN_YEARS_AGO));
+  const latestStateExpenditureRollupData = useAppSelector(selectLatestStateExpenditureRollupDetails);
+  const previousStateExpenditureRollupData = useAppSelector(state => selectStateExpenditureRollupsByYear(state, TEN_YEARS_AGO));
   
   // Calculate year-over-year percentage change
   const percentageChange = totalPreviousExpenditures 
@@ -60,14 +63,14 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
   
   // Calculate state average change over 10 years
   const stateComparisonText = useMemo(() => {
-    if (!latestStateExpenditureData?.total || !previousStateExpenditureData?.total || 
-        !tenYearChange || latestStateExpenditureData.total === 0 || previousStateExpenditureData.total === 0) {
+    if (!latestStateExpenditureRollupData?.total || !previousStateExpenditureRollupData?.total || 
+        !tenYearChange || latestStateExpenditureRollupData.total === 0 || previousStateExpenditureRollupData.total === 0) {
       return null;
     }
     
     // Calculate state average annual change over 10 years
     const stateAverageAnnualChange = (Math.pow(
-      latestStateExpenditureData.total / previousStateExpenditureData.total, 
+      latestStateExpenditureRollupData.total / previousStateExpenditureRollupData.total, 
       1/10
     ) - 1) * 100;
     
@@ -82,15 +85,24 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
       districtRate,
       stateRate
     };
-  }, [latestStateExpenditureData, previousStateExpenditureData, tenYearChange]);
+  }, [latestStateExpenditureRollupData, previousStateExpenditureRollupData, tenYearChange]);
 
   // Handle chart toggle for mobile view
   const handleToggleChart = () => {
-    setShowTrendChart(prevState => !prevState);
+    setShowTrendChart((prevState: boolean) => {
+      return !prevState;
+    });
+  };
+
+  // Handle cost table toggle for mobile view
+  const handleToggleCostTable = () => {
+    setShowCostTable((prevState: boolean) => {
+      return !prevState;
+    });
   };
 
   // Common button style to ensure consistent width
-  const toggleButtonStyle = { minWidth: 320 };
+  const toggleButtonStyle = { minWidth: 320, mb: 1 };
   
   return (
     <Card 
@@ -118,7 +130,7 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
             >
               {changeDirection} {Math.abs(percentageChange).toFixed(1)}%
             </Typography>
-            {' Year over Year ('}
+            {' Last Year ('}
             {formatCompactNumber(totalPreviousExpenditures || 0)}
             {').'}
           </Typography>
@@ -172,26 +184,36 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
         <Box sx={{ mt: 2 }}>
           {isMobile ? (
             <>
-              {showTrendChart ? (
-                <>
-                  <Divider sx={{ my: 2 }} />
-                  <InstructionalVsSupportTrendChart />
-                </>
-              ) : (
-                <Box sx={{ textAlign: 'center' }}>
+              <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {!showTrendChart ?(
                   <Button 
                     variant="outlined" 
                     size="small"
                     onClick={handleToggleChart}
                     sx={toggleButtonStyle}
-                  >
-                     Instructional & Support Costs Chart
-                  </Button>
-                </Box>
-              )}
+                >
+                  Instructional & Support Costs Chart
+                </Button>) : (<InstructionalVsSupportTrendChart />)
+                }
+
+                {!showCostTable ?(
+                <Button 
+                  variant="outlined" 
+                  size="small"
+                  onClick={handleToggleCostTable}
+                  sx={toggleButtonStyle}
+                >
+                  District Costs Breakdown Table'
+                </Button>) : (<CostBreakdownTable districtName={districtName} />)
+                }
+              </Box>
             </>
           ) : (
-            <InstructionalVsSupportTrendChart />
+            <>
+              <InstructionalVsSupportTrendChart />
+              <Divider sx={{ my: 2 }} />
+              <CostBreakdownTable districtName={districtName} />
+            </>
           )}
         </Box>
       </CardContent>
