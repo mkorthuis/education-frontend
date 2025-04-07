@@ -210,7 +210,7 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
             {formatCompactNumber(Math.abs(perPupilTenYearChange.difference))} District 
             {perPupilTenYearChange.difference > 0 ? ' Increase' : ' Decrease'} vs. {' '} 
             {formatCompactNumber(Math.abs(statePerPupilTenYearChange.difference))} State 
-            {statePerPupilTenYearChange.difference > 0 ? ' Increase' : ' Decrease'}
+            {statePerPupilTenYearChange.difference > 0 ? ' Increase' : ' Decrease'}.
           </Typography>
         </Typography>
       </>
@@ -254,7 +254,15 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
   };
   
   return (
-    <Card sx={{ flex: isMobile ? 1 : 2 }} className={className}>
+    <Card 
+      sx={{ 
+        flex: isMobile ? 1 : 2,
+        border: '1px solid',
+        borderColor: 'divider',
+        boxShadow: 3
+      }} 
+      className={className}
+    >
       <CardContent>
         <Typography variant="h6">
           Cost Per Pupil: {latestPerPupilExpenditureDetails?.total 

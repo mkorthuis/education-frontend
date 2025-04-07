@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Typography, Card, CardContent, Box } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
-import { selectTotalRevenuesByYear } from '@/store/slices/financeSlice';
+import { selectTotalRevenuesByYear, selectFinancialReports, ProcessedReport, Revenue } from '@/store/slices/financeSlice';
 import { formatCompactNumber } from '@/utils/formatting';
 import { formatFiscalYear } from '../../../utils/financialDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
@@ -49,8 +49,53 @@ const RevenueCard: React.FC<RevenueCardProps> = ({ className }) => {
     };
   }, [totalCurrentRevenues, revenuesTenYearsAgo]);
   
+  // Get all financial reports
+  const financialReports = useAppSelector(state => selectFinancialReports(state));
+
+  // Get current year and 10 years ago processed reports
+  const currentYearReport = financialReports[FISCAL_YEAR];
+  const tenYearsAgoReport = financialReports[tenYearsAgo.toString()];
+
+  // Calculate local funding proportion for each year
+  const calculateLocalFundingProportion = (report: ProcessedReport | undefined): number | null => {
+    if (!report) return null;
+    
+    // Get total revenue
+    const totalRevenue = report.revenues.reduce((sum: number, rev: Revenue) => sum + rev.value, 0);
+    
+    // Get local revenue (filter by category)
+    const localRevenue = report.revenues
+      .filter((rev: Revenue) => 
+        rev.entry_type.category?.super_category?.name === "Revenue from Local Sources"
+      )
+      .reduce((sum: number, rev: Revenue) => sum + rev.value, 0);
+    
+    // Calculate proportion
+    return totalRevenue > 0 ? (localRevenue / totalRevenue) * 100 : 0;
+  };
+
+  const currentLocalProportion = calculateLocalFundingProportion(currentYearReport);
+  const historicalLocalProportion = calculateLocalFundingProportion(tenYearsAgoReport);
+
+  // Determine if local funding proportion has increased or decreased
+  const hasIncreased = (currentLocalProportion ?? 0) > (historicalLocalProportion ?? 0);
+  const localFundingChangeDirection = hasIncreased ? "Increased" : "Decreased";
+  
+  // Calculate percentage change in local funding proportion
+  const localFundingPercentageChange = historicalLocalProportion && historicalLocalProportion > 0
+    ? ((currentLocalProportion ?? 0) - (historicalLocalProportion ?? 0)) / historicalLocalProportion * 100
+    : 0;
+  
   return (
-    <Card sx={{ flex: 1 }} className={className}>
+    <Card 
+      sx={{ 
+        flex: 1,
+        border: '1px solid',
+        borderColor: 'divider',
+        boxShadow: 3
+      }} 
+      className={className}
+    >
       <CardContent>
         <Typography variant="h6">
           {formatFiscalYear(FISCAL_YEAR)} Revenue: {formatCompactNumber(totalCurrentRevenues || 0)}
@@ -63,7 +108,7 @@ const RevenueCard: React.FC<RevenueCardProps> = ({ className }) => {
               variant="body2"
               sx={{ 
                 fontWeight: 'bold',
-                color: percentageChange > 0 ? 'success.main' : 'error.main' 
+                color: percentageChange > 0 ? 'success.main' : 'error.main'
               }}
             >
               {changeDirection} {Math.abs(percentageChange).toFixed(1)}%
@@ -92,6 +137,31 @@ const RevenueCard: React.FC<RevenueCardProps> = ({ className }) => {
               {').'}
             </Typography>
           )}
+          
+          <Typography component="li" variant="body2">
+            Over 10 years, Local Funding {" "}
+            <Typography 
+              component="span" 
+              variant="body2" 
+              sx={{ 
+                fontWeight: 'bold',
+                color: hasIncreased ? 'error.main': 'success.main'
+              }}
+            >
+              {localFundingChangeDirection} {Math.abs(localFundingPercentageChange).toFixed(1)}%
+            </Typography>
+            {" "}as % of Revenue.
+          </Typography>
+
+          <Typography component="li" sx={{ ml: 3, listStyleType: 'circle' }}>
+          <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
+            Local Funding: {" "}
+              {(currentLocalProportion ?? 0).toFixed(1)}%
+            {" Today vs "}
+              {(historicalLocalProportion ?? 0).toFixed(1)}%
+            {" Ten Years Ago."}
+            </Typography>
+          </Typography>
         </Box>
       </CardContent>
     </Card>

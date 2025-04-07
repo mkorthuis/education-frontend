@@ -81,7 +81,14 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
   }, [latestStateExpenditureData, previousStateExpenditureData, tenYearChange]);
   
   return (
-    <Card sx={{ flex: 1 }} className={className}>
+    <Card 
+      sx={{ 
+        flex: 1,
+        border: '1px solid',
+        borderColor: 'divider',
+      }} 
+      className={className}
+    >
       <CardContent>
         <Typography variant="h6">
           {formatFiscalYear(FISCAL_YEAR)} Expenditures: {formatCompactNumber(totalCurrentExpenditures || 0)}
@@ -142,7 +149,7 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
               </Typography>
               <Typography component="li" sx={{ ml: 3, listStyleType: 'circle' }}>
                 <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
-                  District Annual Increase is {stateComparisonText.districtRate}% v. State's {stateComparisonText.stateRate}%
+                  District Annual Increase of {stateComparisonText.districtRate}% vs. State Avg. {stateComparisonText.stateRate}%.
                 </Typography>
               </Typography>
             </>
