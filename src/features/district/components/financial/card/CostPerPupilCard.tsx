@@ -259,39 +259,50 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
         <Typography variant="h6">
           Cost Per Pupil: {latestPerPupilExpenditureDetails?.total 
             ? formatCompactNumber(latestPerPupilExpenditureDetails.total) 
-            : 'Loading...'}
+            : ''}
         </Typography>
         
-        {renderPerPupilDetails()}
-        
-        {!isMobile && <Divider sx={{ my: 1 }} />}
-
-        <Box sx={{ mt: 2 }}>
-          {isMobile ? (
+        {latestPerPupilExpenditureDetails?.total 
+          ? (
             <>
-              {showTrendChart ? (
+              {renderPerPupilDetails()}
+              
+              {!isMobile && <Divider sx={{ my: 1 }} />}
+
+              <Box sx={{ mt: 2 }}>
+                {isMobile ? (
+                  <>
+                    {showTrendChart ? (
+                        <PerPupilExpenditureTrendChart />
+                    ) : (
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Button 
+                          variant="outlined" 
+                          size="small"
+                          onClick={handleToggleChart}
+                          sx={toggleButtonStyle}
+                        >
+                          See Cost Per Pupil Trend Chart
+                        </Button>
+                      </Box>
+                    )}
+                  </>
+                ) : (
                   <PerPupilExpenditureTrendChart />
-              ) : (
-                <Box sx={{ textAlign: 'center' }}>
-                  <Button 
-                    variant="outlined" 
-                    size="small"
-                    onClick={handleToggleChart}
-                    sx={toggleButtonStyle}
-                  >
-                    See Cost Per Pupil Trend Chart
-                  </Button>
-                </Box>
-              )}
+                )}
+              </Box>
+              
+              {!isMobile && <Divider sx={{ my: 1 }} />}
+              
+              {renderCostBreakdownTable()}
             </>
-          ) : (
-            <PerPupilExpenditureTrendChart />
-          )}
-        </Box>
-        
-        {!isMobile && <Divider sx={{ my: 1 }} />}
-        
-        {renderCostBreakdownTable()}
+          ) 
+          : (
+            <Typography variant="body1">
+              This school district does not have cost per pupil data
+            </Typography>
+          )
+        }
       </CardContent>
     </Card>
   );
