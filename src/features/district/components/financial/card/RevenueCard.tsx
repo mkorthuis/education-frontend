@@ -23,17 +23,15 @@ const RevenueCard: React.FC<RevenueCardProps> = ({ className }) => {
   // Determine if it's an increase or decrease
   const changeDirection = percentageChange >= 0 ? 'Increased' : 'Decreased';
   
+  // Get revenues for 10 years ago
+  const currentYear = parseInt(FISCAL_YEAR);
+  const tenYearsAgo = currentYear - 10;
+  const revenuesTenYearsAgo = useAppSelector(state => 
+    selectTotalRevenuesByYear(state, tenYearsAgo.toString())
+  );
+  
   // Calculate 10-year average change
   const tenYearChange = useMemo(() => {
-    // Get data for the past 10 years
-    const currentYear = parseInt(FISCAL_YEAR);
-    const tenYearsAgo = currentYear - 10;
-    
-    // Get revenues for 10 years ago
-    const revenuesTenYearsAgo = useAppSelector(state => 
-      selectTotalRevenuesByYear(state, tenYearsAgo.toString())
-    );
-    
     if (!revenuesTenYearsAgo || revenuesTenYearsAgo === 0) return null;
     
     // Calculate total percentage change over 10 years
@@ -49,7 +47,7 @@ const RevenueCard: React.FC<RevenueCardProps> = ({ className }) => {
       direction: averageAnnualChange >= 0 ? 'Increased' : 'Decreased',
       tenYearValue: revenuesTenYearsAgo
     };
-  }, [totalCurrentRevenues, FISCAL_YEAR]);
+  }, [totalCurrentRevenues, revenuesTenYearsAgo]);
   
   return (
     <Card sx={{ flex: 1 }} className={className}>

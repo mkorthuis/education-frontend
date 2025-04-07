@@ -23,17 +23,17 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
   // Determine if it's an increase or decrease
   const changeDirection = percentageChange >= 0 ? 'Increased' : 'Decreased';
   
+  // Get data for the past 10 years
+  const currentYear = parseInt(FISCAL_YEAR);
+  const tenYearsAgo = currentYear - 10;
+  
+  // Get expenditures for 10 years ago
+  const expendituresTenYearsAgo = useAppSelector(state => 
+    selectTotalExpendituresByYear(state, tenYearsAgo.toString())
+  );
+  
   // Calculate 10-year average change
   const tenYearChange = useMemo(() => {
-    // Get data for the past 10 years
-    const currentYear = parseInt(FISCAL_YEAR);
-    const tenYearsAgo = currentYear - 10;
-    
-    // Get expenditures for 10 years ago
-    const expendituresTenYearsAgo = useAppSelector(state => 
-      selectTotalExpendituresByYear(state, tenYearsAgo.toString())
-    );
-    
     if (!expendituresTenYearsAgo || expendituresTenYearsAgo === 0) return null;
     
     // Calculate total percentage change over 10 years
@@ -49,7 +49,7 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
       direction: averageAnnualChange >= 0 ? 'Increased' : 'Decreased',
       tenYearValue: expendituresTenYearsAgo
     };
-  }, [totalCurrentExpenditures, FISCAL_YEAR]);
+  }, [totalCurrentExpenditures, expendituresTenYearsAgo]);
   
   return (
     <Card sx={{ flex: 1 }} className={className}>
