@@ -1,7 +1,7 @@
 import { ProcessedReport, Expenditure, Revenue, BalanceSheet } from '@/store/slices/financeSlice';
 import { FinancialComparisonItem } from '@/components/ui/tables';
 import { EXPENDITURE_CATEGORY_ORDER, REVENUE_CATEGORY_ORDER } from '@/utils/categoryOrdering';
-import { financeApi } from '@/services/api/endpoints/finances';
+import { FISCAL_YEAR, FISCAL_START_YEAR } from '@/utils/environment';
 
 /**
  * Normalizes category names based on specified rules for expenditure categories
@@ -618,3 +618,17 @@ export const prepareDetailedLiabilitiesComparisonData = (
     return b.currentValue - a.currentValue;
   });
 }; 
+
+export const formatFiscalYear = (year: string | number | null): string | null => {
+  if (!year) return null;
+  const numYear = typeof year === 'string' ? parseInt(year) : year;
+  return `${(numYear - 1).toString().slice(-2)}/${numYear.toString().slice(-2)}`;
+};
+
+export const availableComparisonYears = () : string[] => {
+  const years = [];    
+  for (let year = parseInt(FISCAL_YEAR); year >= parseInt(FISCAL_START_YEAR); year--) {
+    years.push(year.toString());
+  }
+  return years;
+}

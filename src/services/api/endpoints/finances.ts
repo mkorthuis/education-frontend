@@ -7,8 +7,14 @@ const BASE_ENDPOINT_URL = BASE_API_URL + 'finance/';
 
 export const financeApi = {
 
-    getFinanceData: async (districtId: string, year: string, forceRefresh = false) => {
-        const url = BASE_ENDPOINT_URL + `report?district_id=${districtId}&year=${year}`;
+    getFinanceData: async (districtId: string, year?: string, forceRefresh = false) => {
+        const queryParams = new URLSearchParams();
+        queryParams.append('district_id', districtId);
+        if (year) {
+            queryParams.append('year', year);
+        }
+        
+        const url = BASE_ENDPOINT_URL + `report?${queryParams.toString()}`;
         const response = await axiosInstance.get(
             url, 
             forceRefresh ? skipCache() : undefined
