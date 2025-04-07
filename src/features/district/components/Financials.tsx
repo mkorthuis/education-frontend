@@ -16,7 +16,7 @@ import {
   fetchStatePerPupilExpenditure,
   selectFinancialReports,
   fetchFinancialReports,
-  selectFinanceLoading,
+  selectAnyLoading,
   selectFinanceError,
   clearFinanceState,
   selectProcessedReportDistrictId,
@@ -49,7 +49,7 @@ function useDistrictFinancialData(districtId?: string) {
   const dispatch = useAppDispatch();
   const processedReportDistrictId = useAppSelector(selectProcessedReportDistrictId);
   const financialReports = useAppSelector(selectFinancialReports);
-  const loading = useAppSelector(selectFinanceLoading);
+  const loading = useAppSelector(selectAnyLoading);
   const error = useAppSelector(selectFinanceError);
   const latestPerPupilData = useAppSelector(selectLatestPerPupilExpenditureDetails);
   const latestStatePerPupilData = useAppSelector(selectLatestStatePerPupilExpenditureDetails);

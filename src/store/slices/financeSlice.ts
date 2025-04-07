@@ -145,11 +145,20 @@ export interface FinanceState {
   stateExpenditureAllData: StateExpenditure[];
 
   // Status
-  loading: boolean;
+  loading: boolean; // Keep for backward compatibility or general loading state
+  loadingStates: {
+    entryTypes: boolean;
+    fundTypes: boolean;
+    financialReports: boolean;
+    perPupilExpenditure: boolean;
+    statePerPupilExpenditure: boolean;
+    stateExpenditureRollups: boolean;
+    stateRevenue: boolean;
+    stateExpenditure: boolean;
+  };
   entryTypesLoaded: boolean;
   fundTypesLoaded: boolean;
   error: string | null;
-
 }
 
 const initialState: FinanceState = {
@@ -168,6 +177,16 @@ const initialState: FinanceState = {
   stateRevenueAllData: [],
   stateExpenditureAllData: [],
   loading: false,
+  loadingStates: {
+    entryTypes: false,
+    fundTypes: false,
+    financialReports: false,
+    perPupilExpenditure: false,
+    statePerPupilExpenditure: false,
+    stateExpenditureRollups: false,
+    stateRevenue: false,
+    stateExpenditure: false,
+  },
   entryTypesLoaded: false,
   fundTypesLoaded: false,
   error: null,
@@ -447,7 +466,8 @@ export const financeSlice = createSlice({
     builder
       // Handle fetchEntryTypes
       .addCase(fetchEntryTypes.pending, (state) => {
-        state.loading = true;
+        state.loading = true; // Keep for backward compatibility
+        state.loadingStates.entryTypes = true;
         state.error = null;
       })
       .addCase(fetchEntryTypes.fulfilled, (state, action) => {
@@ -456,15 +476,18 @@ export const financeSlice = createSlice({
         state.expenditureEntryTypes = action.payload.expenditure_entry_types;
         state.entryTypesLoaded = true;
         state.loading = false;
+        state.loadingStates.entryTypes = false;
       })
       .addCase(fetchEntryTypes.rejected, (state, action) => {
         state.loading = false;
+        state.loadingStates.entryTypes = false;
         state.error = action.payload as string;
       })
       
       // Handle fetchFundTypes
       .addCase(fetchFundTypes.pending, (state) => {
         state.loading = true;
+        state.loadingStates.fundTypes = true;
         state.error = null;
       })
       .addCase(fetchFundTypes.fulfilled, (state, action) => {
@@ -473,15 +496,18 @@ export const financeSlice = createSlice({
         state.expenditureFundTypes = action.payload.expenditure_fund_types;
         state.fundTypesLoaded = true;
         state.loading = false;
+        state.loadingStates.fundTypes = false;
       })
       .addCase(fetchFundTypes.rejected, (state, action) => {
         state.loading = false;
+        state.loadingStates.fundTypes = false;
         state.error = action.payload as string;
       })
       
       // Handle fetchFinancialReport
       .addCase(fetchFinancialReports.pending, (state) => {
         state.loading = true;
+        state.loadingStates.financialReports = true;
         state.error = null;
       })
       .addCase(fetchFinancialReports.fulfilled, (state, action) => {
@@ -505,15 +531,18 @@ export const financeSlice = createSlice({
         }
         
         state.loading = false;
+        state.loadingStates.financialReports = false;
       })
       .addCase(fetchFinancialReports.rejected, (state, action) => {
         state.loading = false;
+        state.loadingStates.financialReports = false;
         state.error = action.payload as string;
       })
 
       // Handle fetchPerPupilExpenditure
       .addCase(fetchPerPupilExpenditure.pending, (state) => {
         state.loading = true;
+        state.loadingStates.perPupilExpenditure = true;
         state.error = null;
       })
       .addCase(fetchPerPupilExpenditure.fulfilled, (state, action) => {
@@ -525,15 +554,18 @@ export const financeSlice = createSlice({
           state.perPupilExpenditureAllData = [];
         }
         state.loading = false;
+        state.loadingStates.perPupilExpenditure = false;
       })
       .addCase(fetchPerPupilExpenditure.rejected, (state, action) => {
         state.loading = false;
+        state.loadingStates.perPupilExpenditure = false;
         state.error = action.payload as string;
       })
       
       // Handle fetchStatePerPupilExpenditure
       .addCase(fetchStatePerPupilExpenditure.pending, (state) => {
         state.loading = true;
+        state.loadingStates.statePerPupilExpenditure = true;
         state.error = null;
       })
       .addCase(fetchStatePerPupilExpenditure.fulfilled, (state, action) => {
@@ -544,15 +576,18 @@ export const financeSlice = createSlice({
           state.statePerPupilExpenditureAllData = [];
         }
         state.loading = false;
+        state.loadingStates.statePerPupilExpenditure = false;
       })
       .addCase(fetchStatePerPupilExpenditure.rejected, (state, action) => {
         state.loading = false;
+        state.loadingStates.statePerPupilExpenditure = false;
         state.error = action.payload as string;
       })
       
       // Handle fetchStateExpenditureRollups
       .addCase(fetchStateExpenditureRollups.pending, (state) => {
         state.loading = true;
+        state.loadingStates.stateExpenditureRollups = true;
         state.error = null;
       })
       .addCase(fetchStateExpenditureRollups.fulfilled, (state, action) => {
@@ -563,15 +598,18 @@ export const financeSlice = createSlice({
           state.stateExpenditureRollupData = [];
         }
         state.loading = false;
+        state.loadingStates.stateExpenditureRollups = false;
       })
       .addCase(fetchStateExpenditureRollups.rejected, (state, action) => {
         state.loading = false;
+        state.loadingStates.stateExpenditureRollups = false;
         state.error = action.payload as string;
       })
       
       // Handle fetchStateRevenue
       .addCase(fetchStateRevenue.pending, (state) => {
         state.loading = true;
+        state.loadingStates.stateRevenue = true;
         state.error = null;
       })
       .addCase(fetchStateRevenue.fulfilled, (state, action) => {
@@ -582,15 +620,18 @@ export const financeSlice = createSlice({
           state.stateRevenueAllData = [];
         }
         state.loading = false;
+        state.loadingStates.stateRevenue = false;
       })
       .addCase(fetchStateRevenue.rejected, (state, action) => {
         state.loading = false;
+        state.loadingStates.stateRevenue = false;
         state.error = action.payload as string;
       })
 
       // Handle fetchStateExpenditure
       .addCase(fetchStateExpenditure.pending, (state) => {
         state.loading = true;
+        state.loadingStates.stateExpenditure = true;
         state.error = null;
       })
       .addCase(fetchStateExpenditure.fulfilled, (state, action) => {
@@ -601,9 +642,11 @@ export const financeSlice = createSlice({
           state.stateExpenditureAllData = [];
         }
         state.loading = false;
+        state.loadingStates.stateExpenditure = false;
       })
       .addCase(fetchStateExpenditure.rejected, (state, action) => {
         state.loading = false;
+        state.loadingStates.stateExpenditure = false;
         state.error = action.payload as string;
       });
   },
@@ -630,6 +673,22 @@ const filterBalanceItems = (items: BalanceSheet[], isAsset: boolean): BalanceShe
 // Export selectors
 export const selectFinanceLoading = (state: RootState) => state.finance.loading;
 export const selectFinanceError = (state: RootState) => state.finance.error;
+
+// Specific loading state selectors
+export const selectEntryTypesLoading = (state: RootState) => state.finance.loadingStates.entryTypes;
+export const selectFundTypesLoading = (state: RootState) => state.finance.loadingStates.fundTypes;
+export const selectFinancialReportsLoading = (state: RootState) => state.finance.loadingStates.financialReports;
+export const selectPerPupilExpenditureLoading = (state: RootState) => state.finance.loadingStates.perPupilExpenditure;
+export const selectStatePerPupilExpenditureLoading = (state: RootState) => state.finance.loadingStates.statePerPupilExpenditure;
+export const selectStateExpenditureRollupsLoading = (state: RootState) => state.finance.loadingStates.stateExpenditureRollups;
+export const selectStateRevenueLoading = (state: RootState) => state.finance.loadingStates.stateRevenue;
+export const selectStateExpenditureLoading = (state: RootState) => state.finance.loadingStates.stateExpenditure;
+
+// Check if any data is currently loading
+export const selectAnyLoading = (state: RootState) => {
+  const loadingStates = state.finance.loadingStates;
+  return Object.values(loadingStates).some(isLoading => isLoading);
+};
 
 export const selectFinancialReports = (state: RootState) => state.finance.processedReports;
 
