@@ -20,6 +20,7 @@ import {
   selectLatestStateExpenditureDetails, 
   selectExpenditureEntryTypes,
   selectTotalExpendituresByYear,
+  selectFinancialReports,
 } from '@/store/slices/financeSlice';
 import { FISCAL_YEAR } from '@/utils/environment';
 
@@ -29,18 +30,50 @@ interface ExpenditureItem {
   value: number;
 }
 
+interface FinancialReport {
+  year: number;
+  expenditure_details: ExpenditureItem[];
+}
+
 // Interface for the table data structure
 interface CostCategory {
   name: string;
   isSubcategory?: boolean;
-  district: number; // Now represents percentage
-  state: number; // Now represents percentage
+  district: number; // Represents percentage
+  state: number; // Represents percentage
   parent?: string; // Parent category name for subcategories
 }
 
 interface CostBreakdownTableProps {
   data?: CostCategory[];
   districtName?: string;
+}
+
+// Category total structure for data accumulation
+interface CategoryTotals {
+  instruction: { 
+    total: number; 
+    regular: number; 
+    special: number; 
+    vocational: number; 
+    otherPrograms: number;
+  };
+  supportServices: { 
+    total: number; 
+    student: number; 
+    building: number; 
+    administration: number; 
+    transportation: number; 
+    instructionalStaff: number; 
+    other: number; 
+    foodService: number;
+  };
+  other: { 
+    total: number; 
+    facilities: number; 
+    debtService: number; 
+    miscellaneous: number;
+  };
 }
 
 const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtName = 'District' }) => {
@@ -60,36 +93,104 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
   };
 
   // Fallback dummy data function
-  const getDummyData = (): CostCategory[] => {
-    return [
-      { name: 'Instruction', district: 49.2, state: 48.3 },
-      { name: 'Regular', isSubcategory: true, district: 33.5, state: 32.0, parent: 'Instruction' },
-      { name: 'Special', isSubcategory: true, district: 9.8, state: 10.6, parent: 'Instruction' },
-      { name: 'Vocational', isSubcategory: true, district: 3.9, state: 3.9, parent: 'Instruction' },
-      { name: 'Other Programs', isSubcategory: true, district: 2.0, state: 1.8, parent: 'Instruction' },
-      { name: 'Support Services', district: 38.4, state: 37.5 },
-      { name: 'Student', isSubcategory: true, district: 8.2, state: 8.2, parent: 'Support Services' },
-      { name: 'Instructional Staff', isSubcategory: true, district: 7.0, state: 6.8, parent: 'Support Services' },
-      { name: 'Building', isSubcategory: true, district: 9.0, state: 8.6, parent: 'Support Services' },
-      { name: 'Administration', isSubcategory: true, district: 7.1, state: 6.5, parent: 'Support Services' },
-      { name: 'Transportation', isSubcategory: true, district: 5.6, state: 6.3, parent: 'Support Services' },
-      { name: 'Other', isSubcategory: true, district: 1.5, state: 1.1, parent: 'Support Services' },
-      { name: 'Other', district: 12.4, state: 14.2 },
-      { name: 'Facilities', isSubcategory: true, district: 7.1, state: 8.2, parent: 'Other' },
-      { name: 'Debt Service', isSubcategory: true, district: 3.9, state: 4.9, parent: 'Other' },
-      { name: 'Miscellaneous', isSubcategory: true, district: 1.4, state: 1.1, parent: 'Other' },
-    ];
-  };
+  const getDummyData = (): CostCategory[] => [
+    { name: 'Instruction', district: 49.2, state: 48.3 },
+    { name: 'Regular', isSubcategory: true, district: 33.5, state: 32.0, parent: 'Instruction' },
+    { name: 'Special', isSubcategory: true, district: 9.8, state: 10.6, parent: 'Instruction' },
+    { name: 'Vocational', isSubcategory: true, district: 3.9, state: 3.9, parent: 'Instruction' },
+    { name: 'Other Programs', isSubcategory: true, district: 2.0, state: 1.8, parent: 'Instruction' },
+    { name: 'Support Services', district: 38.4, state: 37.5 },
+    { name: 'Student', isSubcategory: true, district: 8.2, state: 8.2, parent: 'Support Services' },
+    { name: 'Instructional Staff', isSubcategory: true, district: 7.0, state: 6.8, parent: 'Support Services' },
+    { name: 'Building', isSubcategory: true, district: 9.0, state: 8.6, parent: 'Support Services' },
+    { name: 'Administration', isSubcategory: true, district: 7.1, state: 6.5, parent: 'Support Services' },
+    { name: 'Transportation', isSubcategory: true, district: 5.6, state: 6.3, parent: 'Support Services' },
+    { name: 'Other', isSubcategory: true, district: 1.5, state: 1.1, parent: 'Support Services' },
+    { name: 'Other', district: 12.4, state: 14.2 },
+    { name: 'Facilities', isSubcategory: true, district: 7.1, state: 8.2, parent: 'Other' },
+    { name: 'Debt Service', isSubcategory: true, district: 3.9, state: 4.9, parent: 'Other' },
+    { name: 'Miscellaneous', isSubcategory: true, district: 1.4, state: 1.1, parent: 'Other' },
+  ];
   
   // Get data from Redux store
   const stateExpenditureDetails = useAppSelector(selectLatestStateExpenditureDetails);
   const entryTypes = useAppSelector(selectExpenditureEntryTypes);
+  const districtFinancialReports = useAppSelector(selectFinancialReports);
   const districtExpenditureTotal = useAppSelector(state => 
     selectTotalExpendituresByYear(state, FISCAL_YEAR)
   );
   
+  // Helper function to process an expenditure item and update the appropriate category
+  const processExpenditureItem = (
+    categoryName: string, 
+    entryTypeName: string, 
+    percentage: number, 
+    totals: CategoryTotals
+  ): void => {
+    if (categoryName === 'Instruction') {
+      totals.instruction.total += percentage;
+      
+      if (entryTypeName === 'Regular Programs') {
+        totals.instruction.regular += percentage;
+      } else if (entryTypeName === 'Special Programs') {
+        totals.instruction.special += percentage;
+      } else if (entryTypeName === 'Vocational Programs') {
+        totals.instruction.vocational += percentage;
+      } else if (entryTypeName === 'Other Instructional Programs') {
+        totals.instruction.otherPrograms += percentage;
+      } else {
+        // Any other instruction-related programs
+        totals.instruction.otherPrograms += percentage;
+      }
+    } else if (categoryName === 'Support Services') {
+      totals.supportServices.total += percentage;
+      
+      if (entryTypeName === 'Student') {
+        totals.supportServices.student += percentage;
+      } else if (entryTypeName === 'Operation/Maintenance of Plant') {
+        totals.supportServices.building += percentage;
+      } else if (
+        entryTypeName === 'General Administration' || 
+        entryTypeName === 'School Administration' ||
+        entryTypeName === 'Business' || 
+        entryTypeName === 'Central'
+      ) {
+        totals.supportServices.administration += percentage;
+      } else if (entryTypeName === 'Student Transportation') {
+        totals.supportServices.transportation += percentage;
+      } else if (entryTypeName === 'Instructional Staff') {
+        totals.supportServices.instructionalStaff += percentage;
+      } else {
+        // Any other support service
+        totals.supportServices.other += percentage;
+      }
+    } else if (categoryName === 'Operations') {
+      if (
+        entryTypeName === 'Elementary' || 
+        entryTypeName === 'Middle/Junior High' || 
+        entryTypeName === 'High'
+      ) {
+        totals.supportServices.total += percentage;
+        totals.supportServices.foodService += percentage;
+      } else {
+        totals.other.total += percentage;
+        totals.other.miscellaneous += percentage;
+      }
+    } else {
+      totals.other.total += percentage;
+      
+      if (entryTypeName === 'Facilities Acquisition & Construction') {
+        totals.other.facilities += percentage;
+      } else if (categoryName === 'Debt Service') {
+        totals.other.debtService += percentage;
+      } else {
+        totals.other.miscellaneous += percentage;
+      }
+    }
+  };
+  
   // Process the data to create our cost categories
-  const processedData = useMemo(() => {
+  const processedData = useMemo((): CostCategory[] => {
     if (!stateExpenditureDetails || !entryTypes) {
       // Fallback to dummy data if real data is not available
       return getDummyData();
@@ -101,7 +202,7 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
         instruction: { total: 0, regular: 0, special: 0, vocational: 0, otherPrograms: 0 },
         supportServices: { 
           total: 0, student: 0, building: 0, administration: 0, 
-          transportation: 0, instructionalStaff: 0, other: 0 
+          transportation: 0, instructionalStaff: 0, other: 0, foodService: 0
         },
         other: { total: 0, facilities: 0, debtService: 0, miscellaneous: 0 }
       },
@@ -109,7 +210,7 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
         instruction: { total: 0, regular: 0, special: 0, vocational: 0, otherPrograms: 0 },
         supportServices: { 
           total: 0, student: 0, building: 0, administration: 0, 
-          transportation: 0, instructionalStaff: 0, other: 0 
+          transportation: 0, instructionalStaff: 0, other: 0, foodService: 0
         },
         other: { total: 0, facilities: 0, debtService: 0, miscellaneous: 0 }
       }
@@ -119,14 +220,17 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
     const stateItems = Array.isArray(stateExpenditureDetails) ? stateExpenditureDetails : [];
     const stateTotal = stateItems.reduce((sum: number, item: any) => sum + (item.value || 0), 0);
     
-    // Process state data only since we don't have accurate district data at this point
+    // Find district expenditure report for the current fiscal year
+    const districtExpenditures = districtFinancialReports[parseInt(FISCAL_YEAR)]?.expenditures;
+    
+    // Process state data
     stateItems.forEach((item: any) => {
       if (!item.entry_type_id) return;
       
-      // Find the entry type by ID instead of using ID as array index
+      // Find the entry type by ID
       const entryType = Array.isArray(entryTypes) 
         ? entryTypes.find(type => type.id === item.entry_type_id)
-        : entryTypes[item.entry_type_id]; // Fallback to original approach if entryTypes is an object
+        : entryTypes[item.entry_type_id]; // Fallback if entryTypes is an object
       
       if (!entryType) return; // Skip if entry type not found
       
@@ -135,57 +239,26 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
       const value = item.value || 0;
       const percentage = (value / stateTotal) * 100;
       
-      console.log(item.entry_type_id, categoryName, entryTypeName, percentage);
-      if (categoryName === 'Instruction') {
-        categoryTotals.state.instruction.total += percentage;
-        
-        if (entryTypeName === 'Regular Programs') {
-          categoryTotals.state.instruction.regular += percentage;
-        } else if (entryTypeName === 'Special Programs') {
-          categoryTotals.state.instruction.special += percentage;
-        } else if (entryTypeName === 'Vocational Programs') {
-          categoryTotals.state.instruction.vocational += percentage;
-        } else if (entryTypeName === 'Other Instructional Programs') {
-          categoryTotals.state.instruction.otherPrograms += percentage;
-        } else {
-          // Any other instruction-related programs
-          categoryTotals.state.instruction.otherPrograms += percentage;
-        }
-      } else if (categoryName === 'Support Services') {
-        categoryTotals.state.supportServices.total += percentage;
-        
-        if (entryTypeName.includes('Student')) {
-          categoryTotals.state.supportServices.student += percentage;
-        } else if (entryTypeName === 'Operation/Maintenance of Plant') {
-          categoryTotals.state.supportServices.building += percentage;
-        } else if (entryTypeName.includes('Administration') || 
-                  entryTypeName === 'Business' || 
-                  entryTypeName === 'Central') {
-          categoryTotals.state.supportServices.administration += percentage;
-        } else if (entryTypeName === 'Student Transportation') {
-          categoryTotals.state.supportServices.transportation += percentage;
-        } else if (entryTypeName === 'Instructional Staff') {
-          categoryTotals.state.supportServices.instructionalStaff += percentage;
-        } else {
-          // Any other support service
-          categoryTotals.state.supportServices.other += percentage;
-        }
-      } else {
-        categoryTotals.state.other.total += percentage;
-        
-        if (entryTypeName.includes('Facilities')) {
-          categoryTotals.state.other.facilities += percentage;
-        } else if (entryTypeName.includes('Debt')) {
-          categoryTotals.state.other.debtService += percentage;
-        } else {
-          categoryTotals.state.other.miscellaneous += percentage;
-        }
-      }
+      processExpenditureItem(categoryName, entryTypeName, percentage, categoryTotals.state);
     });
     
-    // For now, use the same percentages for district as state (dummy data)
-    // In a real implementation, you would process district data here
-    categoryTotals.district = { ...categoryTotals.state };
+    // Process district data
+    if (districtExpenditures && districtExpenditures.length > 0) {
+      districtExpenditures.forEach((item: any) => {
+        if (!item.entry_type.id) return;
+        
+        const entryType = item.entry_type;
+        const categoryName = entryType?.category?.name || '';
+        const entryTypeName = entryType?.name || '';
+        const value = item.value || 0;
+        const percentage = (value / districtExpenditureTotal) * 100;
+        
+        processExpenditureItem(categoryName, entryTypeName, percentage, categoryTotals.district);
+      });
+    } else {
+      // If no district data, use state data as placeholder
+      categoryTotals.district = { ...categoryTotals.state };
+    }
     
     // Transform processed data into the format needed for rendering
     return [
@@ -245,7 +318,7 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
         parent: 'Support Services' 
       },
       { 
-        name: 'Facilities', 
+        name: 'Facilities Mgmt', 
         isSubcategory: true, 
         district: categoryTotals.district.supportServices.building, 
         state: categoryTotals.state.supportServices.building, 
@@ -266,6 +339,13 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
         parent: 'Support Services' 
       },
       { 
+        name: 'Food Service', 
+        isSubcategory: true, 
+        district: categoryTotals.district.supportServices.foodService, 
+        state: categoryTotals.state.supportServices.foodService, 
+        parent: 'Support Services' 
+      },
+      { 
         name: 'Other', 
         isSubcategory: true, 
         district: categoryTotals.district.supportServices.other, 
@@ -280,7 +360,7 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
         state: categoryTotals.state.other.total 
       },
       { 
-        name: 'Facilities', 
+        name: 'New Facilities', 
         isSubcategory: true, 
         district: categoryTotals.district.other.facilities, 
         state: categoryTotals.state.other.facilities, 
@@ -301,10 +381,15 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
         parent: 'Other' 
       },
     ];
-  }, [stateExpenditureDetails, entryTypes, districtExpenditureTotal]);
+  }, [stateExpenditureDetails, entryTypes, districtFinancialReports, districtExpenditureTotal]);
   
+  // Check if real data is loaded (not using dummy data)
+  const isRealDataLoaded = useMemo((): boolean => {
+    return !!(stateExpenditureDetails && entryTypes);
+  }, [stateExpenditureDetails, entryTypes]);
+
   // Filter data based on expanded categories
-  const tableData = useMemo(() => {
+  const tableData = useMemo((): CostCategory[] => {
     return processedData.filter(row => 
       !row.isSubcategory || // Always show main categories
       (row.parent && expandedCategories.includes(row.parent)) // Show subcategories only if parent is expanded
@@ -312,13 +397,21 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
   }, [processedData, expandedCategories]);
   
   // Check if a category has subcategories
-  const hasSubcategories = (categoryName: string) => {
+  const hasSubcategories = (categoryName: string): boolean => {
     return processedData.some(row => row.isSubcategory && row.parent === categoryName);
   };
 
   // Format percentage with 1 decimal place and % sign
   const formatPercentage = (value: number): string => {
     return `${value.toFixed(1)}%`;
+  };
+
+  // Display cell data based on loading state
+  const displayCellData = (value: number): string => {
+    if (!isRealDataLoaded) {
+      return 'N/A';
+    }
+    return formatPercentage(value);
   };
 
   return (
@@ -331,7 +424,7 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
           mb: 1
         }}
       >
-        Select Costs Relative to State Avg.
+        District Costs Relative to State Avg.
       </Typography>
       
       <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 2 }}>
@@ -419,7 +512,7 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
                       fontStyle: row.isSubcategory ? 'italic' : 'normal',
                     }}
                   >
-                    {formatPercentage(row.district)}
+                    {displayCellData(row.district)}
                   </TableCell>
                   <TableCell 
                     align="right"
@@ -427,7 +520,7 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
                       fontStyle: row.isSubcategory ? 'italic' : 'normal',
                     }}
                   >
-                    {formatPercentage(row.state)}
+                    {displayCellData(row.state)}
                   </TableCell>
                 </TableRow>
               ))}

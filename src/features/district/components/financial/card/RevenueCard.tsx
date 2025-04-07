@@ -286,8 +286,8 @@ const RevenueCard: React.FC<RevenueCardProps> = ({ className }) => {
         <Box sx={{ mt: 2 }}>
           {isMobile ? (
             <>
-              <Box sx={{ textAlign: 'center', mb: 2 }}>
-                {!showPieChart && (
+              <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {!showPieChart ? (
                   <Button 
                     variant="outlined" 
                     size="small"
@@ -296,9 +296,10 @@ const RevenueCard: React.FC<RevenueCardProps> = ({ className }) => {
                   >
                     See Funding Breakdown
                   </Button>
-                )}
-                
-                {!showFundingTable && (
+                ) : (<RevenuePieChart />)
+                }
+
+                {!showFundingTable ? (
                   <Button 
                     variant="outlined" 
                     size="small"
@@ -307,19 +308,14 @@ const RevenueCard: React.FC<RevenueCardProps> = ({ className }) => {
                   >
                     See State Comparison
                   </Button>
-                )}
-              </Box>
-              
-              {showPieChart && (<RevenuePieChart />)}
-              
-              {showFundingTable && (
-                  <RevenueFundingComparisonTable 
+                ) : (<RevenueFundingComparisonTable 
                     districtData={districtFundingData}
                     stateData={stateFundingData}
                     showStateNA={showStateNA}
                     districtName={district?.name}
-                  />
-              )}
+                  />)
+                }
+              </Box>
             </>
           ) : (
             <>

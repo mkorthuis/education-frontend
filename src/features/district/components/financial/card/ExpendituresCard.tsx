@@ -90,22 +90,14 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className, district
   // Handle chart toggle for mobile view
   const handleToggleChart = () => {
     setShowTrendChart((prevState: boolean) => {
-      const newState = !prevState;
-      if (newState) {
-        setShowCostTable(false);
-      }
-      return newState;
+      return !prevState;
     });
   };
 
   // Handle cost table toggle for mobile view
   const handleToggleCostTable = () => {
     setShowCostTable((prevState: boolean) => {
-      const newState = !prevState;
-      if (newState) {
-        setShowTrendChart(false);
-      }
-      return newState;
+      return !prevState;
     });
   };
 
@@ -193,37 +185,28 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className, district
           {isMobile ? (
             <>
               <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Button 
-                  variant="outlined" 
-                  size="small"
-                  onClick={handleToggleChart}
-                  sx={toggleButtonStyle}
+                {!showTrendChart ?(
+                  <Button 
+                    variant="outlined" 
+                    size="small"
+                    onClick={handleToggleChart}
+                    sx={toggleButtonStyle}
                 >
-                  {showTrendChart ? 'Hide Chart' : 'Instructional & Support Costs Chart'}
-                </Button>
+                  Instructional & Support Costs Chart
+                </Button>) : (<InstructionalVsSupportTrendChart />)
+                }
+
+                {!showCostTable ?(
                 <Button 
                   variant="outlined" 
                   size="small"
                   onClick={handleToggleCostTable}
                   sx={toggleButtonStyle}
                 >
-                  {showCostTable ? 'Hide Table' : 'District Costs Breakdown Table'}
-                </Button>
+                  District Costs Breakdown Table'
+                </Button>) : (<CostBreakdownTable districtName={districtName} />)
+                }
               </Box>
-              
-              {showTrendChart && (
-                <>
-                  <Divider sx={{ my: 2 }} />
-                  <InstructionalVsSupportTrendChart />
-                </>
-              )}
-              
-              {showCostTable && (
-                <>
-                  <Divider sx={{ my: 2 }} />
-                  <CostBreakdownTable districtName={districtName} />
-                </>
-              )}
             </>
           ) : (
             <>
