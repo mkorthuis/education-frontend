@@ -87,9 +87,7 @@ const RevenueCard: React.FC<RevenueCardProps> = ({ className }) => {
   const localFundingChangeDirection = hasIncreased ? "Increased" : "Decreased";
   
   // Calculate percentage change in local funding proportion
-  const localFundingPercentageChange = historicalLocalProportion && historicalLocalProportion > 0
-    ? ((currentLocalProportion ?? 0) - (historicalLocalProportion ?? 0)) / historicalLocalProportion * 100
-    : 0;
+  const localFundingPercentageChange = (currentLocalProportion ?? 0) - (historicalLocalProportion ?? 0);
   
   // Handle toggle for pie chart in mobile view
   const handleTogglePieChart = () => {
@@ -201,6 +199,7 @@ const RevenueCard: React.FC<RevenueCardProps> = ({ className }) => {
             <RevenuePieChart />
           )}
         </Box>
+        TODO: INCLUDE TABLE THAT SHOWS REVENUE % COMPARED TO STATE AVERAGE
       </CardContent>
     </Card>
   );
