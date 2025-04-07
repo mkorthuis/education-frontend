@@ -48,7 +48,13 @@ const PerPupilCostBreakdownTable: React.FC<PerPupilCostBreakdownTableProps> = ({
           }}
         >
           <Table size="small">
-            <TableHead sx={{ backgroundColor: 'grey.200' }}>
+            <TableHead sx={{ 
+              backgroundColor: 'grey.200',
+              '& th': {
+                borderBottom: '2px solid',
+                borderColor: 'grey.400',
+              }
+            }}>
               <TableRow>
                 <TableCell></TableCell>
                 <TableCell align="right">District</TableCell>
@@ -57,25 +63,25 @@ const PerPupilCostBreakdownTable: React.FC<PerPupilCostBreakdownTableProps> = ({
             </TableHead>
             <TableBody>
               <TableRow>
-                <TableCell>Elementary</TableCell>
-                <TableCell align="right">
+                <TableCell component="th" scope="row" sx={{ borderBottom: '2px solid', borderColor: 'grey.300' }}>Elementary</TableCell>
+                <TableCell align="right" sx={{ borderBottom: '2px solid', borderColor: 'grey.300' }}>
                   {formatCompactNumber(districtData.elementary)}
                 </TableCell>
-                <TableCell align="right">
+                <TableCell align="right" sx={{ borderBottom: '2px solid', borderColor: 'grey.300' }}>
                   {formatCompactNumber(stateData.elementary)}
                 </TableCell>
               </TableRow>
               <TableRow>
-                <TableCell>Middle</TableCell>
-                <TableCell align="right">
+                <TableCell component="th" scope="row" sx={{ borderBottom: '2px solid', borderColor: 'grey.300' }}>Middle</TableCell>
+                <TableCell align="right" sx={{ borderBottom: '2px solid', borderColor: 'grey.300' }}>
                   {formatCompactNumber(districtData.middle)}
                 </TableCell>
-                <TableCell align="right">
+                <TableCell align="right" sx={{ borderBottom: '2px solid', borderColor: 'grey.300' }}>
                   {formatCompactNumber(stateData.middle)}
                 </TableCell>
               </TableRow>
               <TableRow>
-                <TableCell>High</TableCell>
+                <TableCell component="th" scope="row">High</TableCell>
                 <TableCell align="right">
                   {formatCompactNumber(districtData.high)}
                 </TableCell>

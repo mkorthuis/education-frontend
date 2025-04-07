@@ -6,15 +6,18 @@ import { formatCompactNumber } from '@/utils/formatting';
 import { formatFiscalYear } from '../../../utils/financialDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
 import InstructionalVsSupportTrendChart from './InstructionalVsSupportTrendChart';
+import CostBreakdownTable from './CostBreakdownTable';
 
 interface ExpendituresCardProps {
   className?: string;
+  districtName?: string;
 }
 
-const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
+const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className, districtName = 'District' }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [showTrendChart, setShowTrendChart] = useState(false);
+  const [showCostTable, setShowCostTable] = useState(false);
 
   const TEN_YEARS_AGO = parseInt(FISCAL_YEAR) - 10;
   // Get the total expenditures for the current fiscal year
@@ -86,11 +89,28 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
 
   // Handle chart toggle for mobile view
   const handleToggleChart = () => {
-    setShowTrendChart(prevState => !prevState);
+    setShowTrendChart((prevState: boolean) => {
+      const newState = !prevState;
+      if (newState) {
+        setShowCostTable(false);
+      }
+      return newState;
+    });
+  };
+
+  // Handle cost table toggle for mobile view
+  const handleToggleCostTable = () => {
+    setShowCostTable((prevState: boolean) => {
+      const newState = !prevState;
+      if (newState) {
+        setShowTrendChart(false);
+      }
+      return newState;
+    });
   };
 
   // Common button style to ensure consistent width
-  const toggleButtonStyle = { minWidth: 320 };
+  const toggleButtonStyle = { minWidth: 320, mb: 1 };
   
   return (
     <Card 
@@ -172,26 +192,45 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
         <Box sx={{ mt: 2 }}>
           {isMobile ? (
             <>
-              {showTrendChart ? (
+              <Box sx={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Button 
+                  variant="outlined" 
+                  size="small"
+                  onClick={handleToggleChart}
+                  sx={toggleButtonStyle}
+                >
+                  {showTrendChart ? 'Hide Chart' : 'Instructional & Support Costs Chart'}
+                </Button>
+                <Button 
+                  variant="outlined" 
+                  size="small"
+                  onClick={handleToggleCostTable}
+                  sx={toggleButtonStyle}
+                >
+                  {showCostTable ? 'Hide Table' : 'District Costs Breakdown Table'}
+                </Button>
+              </Box>
+              
+              {showTrendChart && (
                 <>
                   <Divider sx={{ my: 2 }} />
                   <InstructionalVsSupportTrendChart />
                 </>
-              ) : (
-                <Box sx={{ textAlign: 'center' }}>
-                  <Button 
-                    variant="outlined" 
-                    size="small"
-                    onClick={handleToggleChart}
-                    sx={toggleButtonStyle}
-                  >
-                     Instructional & Support Costs Chart
-                  </Button>
-                </Box>
+              )}
+              
+              {showCostTable && (
+                <>
+                  <Divider sx={{ my: 2 }} />
+                  <CostBreakdownTable districtName={districtName} />
+                </>
               )}
             </>
           ) : (
-            <InstructionalVsSupportTrendChart />
+            <>
+              <InstructionalVsSupportTrendChart />
+              <Divider sx={{ my: 2 }} />
+              <CostBreakdownTable districtName={districtName} />
+            </>
           )}
         </Box>
       </CardContent>

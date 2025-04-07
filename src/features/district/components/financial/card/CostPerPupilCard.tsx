@@ -151,7 +151,7 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
             </Typography>
             {' than the State\'s '}
             {formatCompactNumber(latestStatePerPupilExpenditureDetails.total)}
-            {' Avg.'}
+            {' Average'}
           </Typography>
           
           {/* Year over year change */}
