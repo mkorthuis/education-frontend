@@ -187,7 +187,7 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
     return (
       <>
         <Typography component="li" variant="body2">
-          Over 10 Years,{' '}
+          Over 10 Years, it {' '}
           <Typography
             component="span"
             variant="body2"
@@ -200,10 +200,10 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
           >
             {perPupilTenYearChange.difference > 0 ? 'Increased' : 'Decreased'}
             {Math.abs(perPupilTenYearChange.difference) > Math.abs(statePerPupilTenYearChange.difference) 
-              ? ' Faster' 
-              : ' Slower'} than the State Average
+              ? ' Faster ' 
+              : ' Slower '} 
           </Typography>
-          .
+          than the State Average.
         </Typography>
         <Typography component="li" sx={{ ml: 3, listStyleType: 'circle' }}>
           <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
