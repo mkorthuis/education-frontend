@@ -101,7 +101,7 @@ export interface FinanceState {
   // Financial reports
   financialReports: Record<string, FinancialReport>;
   processedReports: Record<string, ProcessedReport>;
-  
+  processedReportDistrictId: string | null;
   // Per pupil expenditure data
   perPupilExpenditureAllData: PerPupilExpenditure[];
   statePerPupilExpenditureAllData: PerPupilExpenditure[];
@@ -123,6 +123,7 @@ const initialState: FinanceState = {
   expenditureFundTypes: [],
   financialReports: {},
   processedReports: {},
+  processedReportDistrictId: null,
   perPupilExpenditureAllData: [],
   statePerPupilExpenditureAllData: [],
   loading: false,
@@ -323,7 +324,17 @@ export const financeSlice = createSlice({
   name: 'finance',
   initialState,
   reducers: {
-    // Reducers will be added here
+    // Add a reducer to clear finance state when district changes
+    clearFinanceState: (state) => {
+      // Reset district-specific data but keep entry types and fund types
+      state.financialReports = {};
+      state.processedReports = {};
+      state.processedReportDistrictId = null;
+      state.perPupilExpenditureAllData = [];
+      state.error = null;
+      // Don't reset statePerPupilExpenditureAllData as it's not district specific
+      // Don't reset loading state as it will be managed by subsequent fetch actions
+    }
   },
   extraReducers: (builder) => {
     builder
@@ -370,6 +381,8 @@ export const financeSlice = createSlice({
         const { reportData } = action.payload;
         
         if (reportData && Array.isArray(reportData)) {
+          // Store the district ID from the first report
+          state.processedReportDistrictId = reportData[0].doe_form.district_id;
           // Process each report in the array
           reportData.forEach(report => {
             if (report && report.doe_form && report.doe_form.year) {
@@ -432,6 +445,9 @@ export const financeSlice = createSlice({
   },
 });
 
+// Export the new action
+export const { clearFinanceState } = financeSlice.actions;
+
 // Helper to get total for financial items
 const calculateTotal = (items: FinancialItem[]): number => {
   return items.reduce((sum, item) => sum + item.value, 0);
@@ -463,7 +479,7 @@ export const selectEntryTypesLoaded = (state: RootState) => state.finance.entryT
 export const selectFundTypesLoaded = (state: RootState) => state.finance.fundTypesLoaded;
 export const selectPerPupilExpenditureAllData = (state: RootState) => state.finance.perPupilExpenditureAllData;
 export const selectStatePerPupilExpenditureAllData = (state: RootState) => state.finance.statePerPupilExpenditureAllData;
-
+export const selectProcessedReportDistrictId = (state: RootState) => state.finance.processedReportDistrictId;
 
 
 export const selectTotalExpendituresByYear = (state: RootState, year: string) => {
