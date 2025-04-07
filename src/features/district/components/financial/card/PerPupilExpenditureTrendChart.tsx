@@ -5,6 +5,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { useAppSelector } from '@/store/hooks';
 import { selectPerPupilExpenditureAllData, selectStatePerPupilExpenditureAllData } from '@/store/slices/financeSlice';
 import { formatCompactNumber } from '@/utils/formatting';
+import { formatFiscalYear } from '../../../utils/financialDataProcessing';
 
 interface PerPupilExpenditureTrendChartProps {
   className?: string;
@@ -54,6 +55,7 @@ const PerPupilExpenditureTrendChart: React.FC<PerPupilExpenditureTrendChartProps
         
         return {
           year: districtItem.year.toString(),
+          formattedYear: formatFiscalYear(districtItem.year) || districtItem.year.toString(),
           district: districtItem.total,
           state: stateItem ? stateItem.total : null
         };
@@ -102,7 +104,7 @@ const PerPupilExpenditureTrendChart: React.FC<PerPupilExpenditureTrendChartProps
           }}
         >
           <Typography variant="subtitle2" gutterBottom>
-            Fiscal Year {label}
+            Fiscal Year {formatFiscalYear(label) || label}
           </Typography>
           {payload.map((entry: any, index: number) => (
             <Typography
@@ -120,88 +122,83 @@ const PerPupilExpenditureTrendChart: React.FC<PerPupilExpenditureTrendChartProps
   };
   
   return (
-    <Card className={className}>
-      <CardContent>
-        <Typography variant="h6" gutterBottom>
-          Cost Per Pupil Trend
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          {chartData.length > 0 
-            ? `Fiscal Years ${chartData[0].year} - ${chartData[chartData.length - 1].year}` 
-            : 'Loading data...'}
+    <>
+        <Typography 
+          variant="body1" 
+          sx={{ 
+            textAlign: "center",
+            width: "100%"
+          }} 
+          gutterBottom
+        >
+            Cost Per Pupil Trend
         </Typography>
         
         <Box sx={{ height: isMobile ? 300 : 400, width: '100%' }}>
-          {chartData.length > 0 ? (
+            {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart
+                <LineChart
                 data={chartData}
                 margin={{
-                  top: 5,
-                  right: 20,
-                  left: 10,
-                  bottom: 5,
+                    top: 5,
+                    right: 20,
+                    left: 10,
+                    bottom: 5,
                 }}
-              >
+                >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
-                  dataKey="year"
-                  label={{ 
-                    value: 'Fiscal Year',
-                    position: 'insideBottomRight',
-                    offset: -10
-                  }}
+                    dataKey="formattedYear"
+                    tick={{ fontSize: theme.typography.body2.fontSize }}
                 />
                 <YAxis
-                  domain={[minValue, 'auto']}
-                  tickFormatter={(value) => formatCompactNumber(value)}
-                  label={{ 
-                    value: 'Cost Per Pupil',
-                    angle: -90,
-                    position: 'insideLeft',
-                    style: { textAnchor: 'middle' }
-                  }}
+                    domain={[minValue, 'auto']}
+                    tickFormatter={(value) => formatCompactNumber(value)}
+                    tick={{ fontSize: theme.typography.body2.fontSize }}
                 />
                 <Tooltip content={<CustomTooltip />} />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="district"
-                  name="District"
-                  stroke={theme.palette.primary.main}
-                  strokeWidth={2}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
+                <Legend 
+                  wrapperStyle={{ 
+                    fontSize: theme.typography.body2.fontSize 
+                  }} 
                 />
                 <Line
-                  type="monotone"
-                  dataKey="state"
-                  name="State Average"
-                  stroke={theme.palette.secondary.main}
-                  strokeWidth={2}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
-                  connectNulls // Keep the line connected when there are null values
+                    type="monotone"
+                    dataKey="district"
+                    name="District"
+                    stroke={theme.palette.primary.main}
+                    strokeWidth={2}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
                 />
-              </LineChart>
+                <Line
+                    type="monotone"
+                    dataKey="state"
+                    name="State Average"
+                    stroke={theme.palette.secondary.main}
+                    strokeWidth={2}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                    connectNulls // Keep the line connected when there are null values
+                />
+                </LineChart>
             </ResponsiveContainer>
-          ) : (
+            ) : (
             <Box
-              sx={{
+                sx={{
                 height: '100%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-              }}
+                }}
             >
-              <Typography variant="body1" color="text.secondary">
+                <Typography variant="body1" color="text.secondary">
                 No data available
-              </Typography>
+                </Typography>
             </Box>
-          )}
+            )}
         </Box>
-      </CardContent>
-    </Card>
+    </>
   );
 };
 

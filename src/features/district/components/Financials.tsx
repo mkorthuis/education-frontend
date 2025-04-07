@@ -5,9 +5,9 @@ import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentDistrict,
   selectLocationLoading,
+  fetchDistrictById
 } from '@/store/slices/locationSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
-import { FISCAL_YEAR } from '@/utils/environment';
 
 import {
   selectLatestPerPupilExpenditureDetails,
@@ -49,6 +49,7 @@ function useDistrictFinancialData(districtId?: string) {
   
   // Initial load state tracking
   const [hasInitiatedLoads, setHasInitiatedLoads] = useState(false);
+  
   
   useEffect(() => {
     // Only proceed if we have a district ID and haven't already initiated loads
@@ -99,11 +100,19 @@ const Financials: React.FC = () => {
   const district = useAppSelector(selectCurrentDistrict);
   const districtLoading = useAppSelector(selectLocationLoading);
   const theme = useTheme();
+  const dispatch = useAppDispatch();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   // Tab state
   const [mainTabValue, setMainTabValue] = useState(0);
   
+  // Fetch district data on component mount
+  useEffect(() => {
+    if (id && !district) {
+      dispatch(fetchDistrictById(id));
+    }
+  }, [id, district, dispatch]);
+
   // Use the custom hook to handle data fetching
   const { 
     loading: financeLoading, 
@@ -147,39 +156,49 @@ const Financials: React.FC = () => {
   
   return (
     <>
-      <SectionTitle>
-        {district?.name || 'District'} School District
-      </SectionTitle>
+      {district && (
+        <>
+          <SectionTitle>
+            {district.name} School District
+          </SectionTitle>
 
-      {/* Main Tabs */}
-      <Box sx={{ position: 'relative', mb: isMobile ? 2 : 3 }}>
-        <Tabs 
-          value={mainTabValue} 
-          onChange={handleMainTabChange} 
-          sx={{ mb: 0 }}
-          variant={isMobile ? "scrollable" : "standard"}
-          scrollButtons={isMobile ? "auto" : false}
-        >
-          {TABS.map(tab => (
-            <Tab 
-              key={tab.value}
-              label={isMobile ? tab.mobileLabel : tab.label} 
-              sx={isMobile ? { px: 0 } : undefined} 
-            />
-          ))}
-        </Tabs>
-        
-        {/* Full-width divider line */}
-        <Divider sx={{ width: '100%', position: 'absolute', bottom: 0, left: 0, right: 0 }} />
-      </Box>
+          {/* Main Tabs */}
+          <Box sx={{ position: 'relative', mb: isMobile ? 2 : 3 }}>
+            <Tabs 
+              value={mainTabValue} 
+              onChange={handleMainTabChange} 
+              sx={{ mb: 0 }}
+              variant={isMobile ? "scrollable" : "standard"}
+              scrollButtons={isMobile ? "auto" : false}
+            >
+              {TABS.map(tab => (
+                <Tab 
+                  key={tab.value}
+                  label={isMobile ? tab.mobileLabel : tab.label} 
+                  sx={isMobile ? { px: 0 } : undefined} 
+                />
+              ))}
+            </Tabs>
+            
+            {/* Full-width divider line */}
+            <Divider sx={{ width: '100%', position: 'absolute', bottom: 0, left: 0, right: 0 }} />
+          </Box>
 
-      {/* Loading, Error and No Data States */}
-      {isLoading ? (
+          {/* Loading, Error and No Data States */}
+          {isLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            renderTabContent()
+          )}
+        </>
+      )}
+      
+      {!district && isLoading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
           <CircularProgress />
         </Box>
-      ) : (
-        renderTabContent()
       )}
     </>
   );
