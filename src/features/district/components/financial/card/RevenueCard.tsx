@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from 'react';
 import { Typography, Card, CardContent, Box, useMediaQuery, useTheme, Button, Divider } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
@@ -195,12 +194,10 @@ const RevenueCard: React.FC<RevenueCardProps> = ({ className }) => {
   // Handle toggle for pie chart and funding table in mobile view
   const handleTogglePieChart = () => {
     setShowPieChart(prev => !prev);
-    setShowFundingTable(false); // Close funding table when showing pie chart
   };
   
   const handleToggleFundingTable = () => {
     setShowFundingTable(prev => !prev);
-    setShowPieChart(false); // Close pie chart when showing funding table
   };
   
   // Common button style 
@@ -290,36 +287,38 @@ const RevenueCard: React.FC<RevenueCardProps> = ({ className }) => {
           {isMobile ? (
             <>
               <Box sx={{ textAlign: 'center', mb: 2 }}>
-                <Button 
-                  variant="outlined" 
-                  size="small"
-                  onClick={handleTogglePieChart}
-                  sx={toggleButtonStyle}
-                >
-                  {showPieChart ? 'Hide Funding Breakdown' : 'See Funding Breakdown'}
-                </Button>
+                {!showPieChart && (
+                  <Button 
+                    variant="outlined" 
+                    size="small"
+                    onClick={handleTogglePieChart}
+                    sx={toggleButtonStyle}
+                  >
+                    See Funding Breakdown
+                  </Button>
+                )}
                 
-                <Button 
-                  variant="outlined" 
-                  size="small"
-                  onClick={handleToggleFundingTable}
-                  sx={toggleButtonStyle}
-                >
-                  {showFundingTable ? 'Hide State Comparison' : 'See State Comparison'}
-                </Button>
+                {!showFundingTable && (
+                  <Button 
+                    variant="outlined" 
+                    size="small"
+                    onClick={handleToggleFundingTable}
+                    sx={toggleButtonStyle}
+                  >
+                    See State Comparison
+                  </Button>
+                )}
               </Box>
               
-              {showPieChart && <RevenuePieChart />}
+              {showPieChart && (<RevenuePieChart />)}
+              
               {showFundingTable && (
-                <>
-                  <Divider sx={{ my: 2 }} />
                   <RevenueFundingComparisonTable 
                     districtData={districtFundingData}
                     stateData={stateFundingData}
                     showStateNA={showStateNA}
                     districtName={district?.name}
                   />
-                </>
               )}
             </>
           ) : (

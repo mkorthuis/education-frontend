@@ -2,7 +2,7 @@ import React from 'react';
 import { Typography, Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, useMediaQuery, useTheme } from '@mui/material';
 import { formatCompactNumber } from '@/utils/formatting';
 
-interface CostBreakdownTableProps {
+interface PerPupilCostBreakdownTableProps {
   districtData: {
     elementary: number;
     middle: number;
@@ -15,7 +15,7 @@ interface CostBreakdownTableProps {
   } | null;
 }
 
-const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ districtData, stateData }) => {
+const PerPupilCostBreakdownTable: React.FC<PerPupilCostBreakdownTableProps> = ({ districtData, stateData }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
@@ -91,4 +91,4 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ districtData, s
   );
 };
 
-export default CostBreakdownTable; 
+export default PerPupilCostBreakdownTable; 

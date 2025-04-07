@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Typography, Card, CardContent, Box, Divider, Button, useTheme, useMediaQuery } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
-import { selectLatestStateExpenditureDetails, selectStateExpenditureByYear, selectTotalExpendituresByYear } from '@/store/slices/financeSlice';
+import { selectLatestStateExpenditureRollupDetails, selectStateExpenditureRollupsByYear, selectTotalExpendituresByYear } from '@/store/slices/financeSlice';
 import { formatCompactNumber } from '@/utils/formatting';
 import { formatFiscalYear } from '../../../utils/financialDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
@@ -20,8 +20,8 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
   // Get the total expenditures for the current fiscal year
   const totalCurrentExpenditures = useAppSelector(state => selectTotalExpendituresByYear(state, FISCAL_YEAR));
   const totalPreviousExpenditures = useAppSelector(state => selectTotalExpendituresByYear(state, (parseInt(FISCAL_YEAR) - 1).toString()));
-  const latestStateExpenditureData = useAppSelector(selectLatestStateExpenditureDetails);
-  const previousStateExpenditureData = useAppSelector(state => selectStateExpenditureByYear(state, TEN_YEARS_AGO));
+  const latestStateExpenditureRollupData = useAppSelector(selectLatestStateExpenditureRollupDetails);
+  const previousStateExpenditureRollupData = useAppSelector(state => selectStateExpenditureRollupsByYear(state, TEN_YEARS_AGO));
   
   // Calculate year-over-year percentage change
   const percentageChange = totalPreviousExpenditures 
@@ -60,14 +60,14 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
   
   // Calculate state average change over 10 years
   const stateComparisonText = useMemo(() => {
-    if (!latestStateExpenditureData?.total || !previousStateExpenditureData?.total || 
-        !tenYearChange || latestStateExpenditureData.total === 0 || previousStateExpenditureData.total === 0) {
+    if (!latestStateExpenditureRollupData?.total || !previousStateExpenditureRollupData?.total || 
+        !tenYearChange || latestStateExpenditureRollupData.total === 0 || previousStateExpenditureRollupData.total === 0) {
       return null;
     }
     
     // Calculate state average annual change over 10 years
     const stateAverageAnnualChange = (Math.pow(
-      latestStateExpenditureData.total / previousStateExpenditureData.total, 
+      latestStateExpenditureRollupData.total / previousStateExpenditureRollupData.total, 
       1/10
     ) - 1) * 100;
     
@@ -82,7 +82,7 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
       districtRate,
       stateRate
     };
-  }, [latestStateExpenditureData, previousStateExpenditureData, tenYearChange]);
+  }, [latestStateExpenditureRollupData, previousStateExpenditureRollupData, tenYearChange]);
 
   // Handle chart toggle for mobile view
   const handleToggleChart = () => {

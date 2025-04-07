@@ -11,7 +11,7 @@ import { formatCompactNumber } from '@/utils/formatting';
 import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import PerPupilExpenditureTrendChart from './PerPupilExpenditureTrendChart';
-import CostBreakdownTable from './CostBreakdownTable';
+import PerPupilCostBreakdownTable from './PerPupilCostBreakdownTable';
 
 interface CostPerPupilCardProps {
   className?: string;
@@ -225,7 +225,7 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
       return (
         <Box sx={{ mt: 3 }}>
           {showCostBreakdown ? (
-              <CostBreakdownTable
+              <PerPupilCostBreakdownTable
                 districtData={latestPerPupilExpenditureDetails}
                 stateData={latestStatePerPupilExpenditureDetails}
               />
@@ -246,7 +246,7 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
     }
     
     return (
-      <CostBreakdownTable
+      <PerPupilCostBreakdownTable
         districtData={latestPerPupilExpenditureDetails}
         stateData={latestStatePerPupilExpenditureDetails}
       />
