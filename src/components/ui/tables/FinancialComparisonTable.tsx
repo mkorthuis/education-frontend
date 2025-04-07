@@ -27,10 +27,9 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
-import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
-import PieChartIcon from '@mui/icons-material/PieChart';
 import { formatCompactNumber } from '@/utils/formatting';
 import { compareCategoryOrder } from '@/utils/categoryOrdering';
+import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
 
 export interface FinancialComparisonItem {
   name: string;
@@ -54,11 +53,6 @@ export interface FinancialComparisonTableProps {
    * Current year label
    */
   currentYear: string | null;
-  
-  /**
-   * Previous year label
-   */
-  previousYear: string | null;
   
   /**
    * Column headers for categorical fields
@@ -100,19 +94,9 @@ export interface FinancialComparisonTableProps {
   availableComparisonYears?: string[];
   
   /**
-   * Current comparison year
-   */
-  selectedComparisonYear?: string;
-  
-  /**
    * Handler for comparison year change
    */
   onComparisonYearChange?: (year: string) => void;
-
-  /**
-   * Whether data is currently loading
-   */
-  isLoading?: boolean;
   
   /**
    * Type of value being displayed (Cost, Assets, Debts)
@@ -145,7 +129,6 @@ type ViewMode = 'comparison' | 'percentage';
 const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> = ({
   items,
   currentYear,
-  previousYear,
   headers = {
     category: 'Entry',
     subCategory: 'Sub Category',
@@ -157,9 +140,7 @@ const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> = ({
   size = 'small',
   initialViewMode = 'comparison',
   availableComparisonYears = [],
-  selectedComparisonYear,
   onComparisonYearChange,
-  isLoading = false,
   valueType,
   totalRowLabel
 }) => {
@@ -179,6 +160,32 @@ const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> = ({
 
   // State to track view mode (comparison or percentage)
   const [viewMode, setViewMode] = useState<ViewMode>(initialViewMode);
+
+  // Initial comparison year is the previous fiscal year if available
+  const [selectedComparisonYear, setSelectedComparisonYear] = useState(() => {
+    // Default to previous year if available, otherwise use the most recent available year
+    const previousYear = currentYear ? (parseInt(currentYear) - 1).toString() : '';
+    return availableComparisonYears.includes(previousYear) 
+      ? previousYear  
+      : (availableComparisonYears.length > 0 ? availableComparisonYears[0] : '');
+  });
+
+  const formattedCurrentYear = formatFiscalYear(currentYear);
+  const formattedPreviousYear = formatFiscalYear(selectedComparisonYear);
+
+  // Handle comparison year change internally before calling external handler
+  const handleComparisonYearChange = (event: SelectChangeEvent<string>) => {
+    const newYear = event.target.value;
+    setSelectedComparisonYear(newYear);
+    
+    // Set view mode to comparison when changing comparison year
+    setViewMode('comparison');
+    
+    // Call external handler if provided
+    if (onComparisonYearChange) {
+      onComparisonYearChange(newYear);
+    }
+  };
 
   // Toggle category expansion
   const toggleCategory = (category: string) => {
@@ -207,16 +214,6 @@ const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> = ({
       setViewMode('comparison');
     } else {
       setViewMode(newViewMode);
-    }
-  };
-
-  // Handle comparison year change
-  const handleComparisonYearChange = (event: SelectChangeEvent<string>) => {
-    // Set view mode to comparison when changing comparison year
-    setViewMode('comparison');
-    
-    if (onComparisonYearChange) {
-      onComparisonYearChange(event.target.value);
     }
   };
 
@@ -302,6 +299,49 @@ const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> = ({
   // Determine appropriate column headers based on data type
   const valueColumnHeader = valueType || (isRevenueData ? "Revenue" : "Cost");
 
+  // Reusable components
+  const renderCellWithChangeColor = (value: number, changeValue: number, formatter = formatValue) => (
+    <TableCell align="right" sx={{ 
+      color: changeValue > 0 ? 'success.main' : changeValue < 0 ? 'error.main' : 'text.primary' 
+    }}>
+      {changeValue > 0 ? '+' : ''}{formatter(value)}
+    </TableCell>
+  );
+
+  const renderPercentChangeCell = (difference: number, percentChange: number) => (
+    <TableCell align="right" sx={{ 
+      color: percentChange > 0 ? 'success.main' : percentChange < 0 ? 'error.main' : 'text.primary' 
+    }}>
+      {difference === 0 ? '0%' : (
+        <>
+          {percentChange > 0 ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />}
+          {Math.abs(percentChange).toFixed(1)}%
+        </>
+      )}
+    </TableCell>
+  );
+
+  const renderProgressBar = (
+    percentage: number, 
+    height: number = 20, 
+    color: string = 'primary.main'
+  ) => (
+    <Box sx={{ 
+      width: '100%', 
+      height: `${height}px`, 
+      border: '1px solid #ddd',
+      borderRadius: '4px',
+      overflow: 'hidden'
+    }}>
+      <Box sx={{ 
+        width: `${percentage}%`, 
+        height: '100%',
+        bgcolor: color,
+        transition: 'width 0.5s ease-in-out'
+      }} />
+    </Box>
+  );
+
   return (
     <Box>
       <Box sx={{ 
@@ -327,7 +367,7 @@ const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> = ({
           justifyContent: isMobile ? 'space-between' : 'flex-end'
         }}>
           {/* Comparison Year Dropdown */}
-          {availableComparisonYears.length > 0 && selectedComparisonYear && onComparisonYearChange && (
+          {availableComparisonYears.length > 0 && selectedComparisonYear && (
             <FormControl sx={{ 
               flex: isMobile ? 1 : 'unset',
               mr: 2,
@@ -377,8 +417,6 @@ const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> = ({
             </FormControl>
           )}
           
-          {/* Loading indicator */}
-          {isLoading && <CircularProgress size={isMobile ? 20 : 24} sx={{ mr: 2 }} />}
           
           {/* % Budget Button */}
           <ToggleButtonGroup
@@ -423,10 +461,14 @@ const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> = ({
               <TableCell width={isMobile ? "20px" : "30px"} padding={isMobile ? "none" : "normal"}></TableCell>
               <TableCell width={isMobile ? "50%" : "35%"}><strong>{headers.category}</strong></TableCell>
               <TableCell align="right" width={isMobile ? "25%" : "15%"}>
-                <strong>{viewMode === 'comparison' ? `${currentYear || 'Current'} ${valueColumnHeader}` : `${currentYear || 'Current'} ${valueColumnHeader}`}</strong>
+                <strong>{`${formattedCurrentYear || 'Current'} ${valueColumnHeader}`}</strong>
               </TableCell>
               <TableCell align="right" width={isMobile ? "25%" : "15%"}>
-                <strong>{viewMode === 'comparison' ? `${previousYear || 'Previous'} ${valueColumnHeader}` : isMobile ? `% of Budget` : `% of Total Budget`}</strong>
+                <strong>
+                  {viewMode === 'comparison' 
+                    ? `${formattedPreviousYear || 'Previous'} ${valueColumnHeader}` 
+                    : isMobile ? `% of Budget` : `% of Total Budget`}
+                </strong>
               </TableCell>
               {!isMobile && viewMode === 'comparison' && (
                 <>
@@ -435,9 +477,7 @@ const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> = ({
                 </>
               )}
               {!isMobile && viewMode === 'percentage' && (
-                <>
-                  <TableCell align="right" width="30%"><strong>Breakdown</strong></TableCell>
-                </>
+                <TableCell align="right" width="30%"><strong>Breakdown</strong></TableCell>
               )}
             </TableRow>
           </TableHead>
@@ -480,39 +520,13 @@ const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> = ({
                   )}
                   {!isMobile && viewMode === 'comparison' && (
                     <>
-                      <TableCell align="right" sx={{ 
-                        color: summary.difference > 0 ? 'success.main' : summary.difference < 0 ? 'error.main' : 'text.primary' 
-                      }}>
-                        {summary.difference > 0 ? '+' : ''}{formatValue(summary.difference)}
-                      </TableCell>
-                      <TableCell align="right" sx={{ 
-                        color: summary.percentChange > 0 ? 'success.main' : summary.percentChange < 0 ? 'error.main' : 'text.primary' 
-                      }}>
-                        {summary.difference === 0 ? '0%' : (
-                          <>
-                            {summary.percentChange > 0 ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />}
-                            {Math.abs(summary.percentChange).toFixed(1)}%
-                          </>
-                        )}
-                      </TableCell>
+                      {renderCellWithChangeColor(summary.difference, summary.difference)}
+                      {renderPercentChangeCell(summary.difference, summary.percentChange)}
                     </>
                   )}
                   {!isMobile && viewMode === 'percentage' && (
                     <TableCell align="right" width="30%">
-                      <Box sx={{ 
-                        width: '100%', 
-                        height: '20px', 
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        overflow: 'hidden'
-                      }}>
-                        <Box sx={{ 
-                          width: `${summary.budgetPercentage}%`, 
-                          height: '100%',
-                          bgcolor: 'primary.main',
-                          transition: 'width 0.5s ease-in-out'
-                        }} />
-                      </Box>
+                      {renderProgressBar(summary.budgetPercentage)}
                     </TableCell>
                   )}
                 </TableRow>
@@ -634,49 +648,22 @@ const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> = ({
                                         </TableCell>
                                       ) : (
                                         <TableCell align="right" width={isMobile ? "25%" : "15%"}>
-                                          <Tooltip title={`${formatPercentage(subCategoryBudgetPercentage)} of total ${currentYear || 'current'} budget, ${formatPercentage(subCategoryCategoryPercentage)} of ${getFirstWord(summary.category)}`}>
+                                          <Tooltip title={`${formatPercentage(subCategoryBudgetPercentage)} of total ${formattedCurrentYear || 'current'} budget, ${formatPercentage(subCategoryCategoryPercentage)} of ${getFirstWord(summary.category)}`}>
                                             <span>{formatPercentage(subCategoryBudgetPercentage)}</span>
                                           </Tooltip>
                                         </TableCell>
                                       )}
                                       {!isMobile && viewMode === 'comparison' && (
                                         <>
-                                          <TableCell align="right" width="15%" sx={{ 
-                                            color: subCategoryDifference > 0 ? 'success.main' : subCategoryDifference < 0 ? 'error.main' : 'text.primary' 
-                                          }}>
-                                            {subCategoryDifference > 0 ? '+' : ''}{formatValue(subCategoryDifference)}
-                                          </TableCell>
-                                          <TableCell align="right" width="15%" sx={{ 
-                                            color: subCategoryPercentChange > 0 ? 'success.main' : subCategoryPercentChange < 0 ? 'error.main' : 'text.primary' 
-                                          }}>
-                                            {subCategoryDifference === 0 ? '0%' : (
-                                              <>
-                                                {subCategoryPercentChange > 0 ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />}
-                                                {Math.abs(subCategoryPercentChange).toFixed(1)}%
-                                              </>
-                                            )}
-                                          </TableCell>
+                                          {renderCellWithChangeColor(subCategoryDifference, subCategoryDifference)}
+                                          {renderPercentChangeCell(subCategoryDifference, subCategoryPercentChange)}
                                         </>
                                       )}
                                       {!isMobile && viewMode === 'percentage' && (
                                         <TableCell align="right" width="30%">
                                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                            <Box sx={{ 
-                                              width: '100%', 
-                                              height: '12px', 
-                                              border: '1px solid #ddd',
-                                              borderRadius: '4px',
-                                              overflow: 'hidden',
-                                              mr: 1
-                                            }}>
-                                              <Box sx={{ 
-                                                width: `${subCategoryCategoryPercentage}%`, 
-                                                height: '100%',
-                                                bgcolor: 'secondary.main',
-                                                transition: 'width 0.5s ease-in-out'
-                                              }} />
-                                            </Box>
-                                            <Typography variant="caption">
+                                            {renderProgressBar(subCategoryCategoryPercentage, 12, 'secondary.main')}
+                                            <Typography variant="caption" sx={{ ml: 1 }}>
                                               {formatPercentage(subCategoryCategoryPercentage)} of {getFirstWord(summary.category)}
                                             </Typography>
                                           </Box>
@@ -721,49 +708,22 @@ const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> = ({
                                                         </TableCell>
                                                       ) : (
                                                         <TableCell align="right" width={isMobile ? "25%" : "15%"}>
-                                                          <Tooltip title={`${formatPercentage(itemBudgetPercentage)} of total ${currentYear || 'current'} budget, ${formatPercentage(itemSubCategoryPercentage)} of ${getFirstWord(subCategory)}`}>
+                                                          <Tooltip title={`${formatPercentage(itemBudgetPercentage)} of total ${formattedCurrentYear || 'current'} budget, ${formatPercentage(itemSubCategoryPercentage)} of ${getFirstWord(subCategory)}`}>
                                                             <span>{formatPercentage(itemBudgetPercentage)}</span>
                                                           </Tooltip>
                                                         </TableCell>
                                                       )}
                                                       {!isMobile && viewMode === 'comparison' && (
                                                         <>
-                                                          <TableCell align="right" width="15%" sx={{ 
-                                                            color: (row.difference ?? 0) > 0 ? 'success.main' : (row.difference ?? 0) < 0 ? 'error.main' : 'text.primary' 
-                                                          }}>
-                                                            {(row.difference ?? 0) > 0 ? '+' : ''}{formatValue(row.difference ?? 0)}
-                                                          </TableCell>
-                                                          <TableCell align="right" width="15%" sx={{ 
-                                                            color: (row.percentChange ?? 0) > 0 ? 'success.main' : (row.percentChange ?? 0) < 0 ? 'error.main' : 'text.primary' 
-                                                          }}>
-                                                            {(row.difference ?? 0) === 0 ? '0%' : (
-                                                              <>
-                                                                {(row.percentChange ?? 0) > 0 ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />}
-                                                                {Math.abs(row.percentChange ?? 0).toFixed(1)}%
-                                                              </>
-                                                            )}
-                                                          </TableCell>
+                                                          {renderCellWithChangeColor(row.difference ?? 0, row.difference ?? 0)}
+                                                          {renderPercentChangeCell(row.difference ?? 0, row.percentChange ?? 0)}
                                                         </>
                                                       )}
                                                       {!isMobile && viewMode === 'percentage' && (
                                                         <TableCell align="right" width="30%">
                                                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                            <Box sx={{ 
-                                                              width: '100%', 
-                                                              height: '8px', 
-                                                              border: '1px solid #ddd',
-                                                              borderRadius: '4px',
-                                                              overflow: 'hidden',
-                                                              mr: 1
-                                                            }}>
-                                                              <Box sx={{ 
-                                                                width: `${itemSubCategoryPercentage}%`, 
-                                                                height: '100%',
-                                                                bgcolor: 'info.main',
-                                                                transition: 'width 0.5s ease-in-out'
-                                                              }} />
-                                                            </Box>
-                                                            <Typography variant="caption">
+                                                            {renderProgressBar(itemSubCategoryPercentage, 8, 'info.main')}
+                                                            <Typography variant="caption" sx={{ ml: 1 }}>
                                                               {formatPercentage(itemSubCategoryPercentage)} of {getFirstWord(subCategory)}
                                                             </Typography>
                                                           </Box>
@@ -809,38 +769,13 @@ const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> = ({
               )}
               {!isMobile && viewMode === 'comparison' && (
                 <>
-                  <TableCell align="right" sx={{ 
-                    color: totalDifference > 0 ? 'success.main' : totalDifference < 0 ? 'error.main' : 'text.primary' 
-                  }}>
-                    {totalDifference > 0 ? '+' : ''}{formatValue(totalDifference)}
-                  </TableCell>
-                  <TableCell align="right" sx={{ 
-                    color: totalPercentChange > 0 ? 'success.main' : totalPercentChange < 0 ? 'error.main' : 'text.primary' 
-                  }}>
-                    {totalDifference === 0 ? '0%' : (
-                      <>
-                        {totalPercentChange > 0 ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />}
-                        {Math.abs(totalPercentChange).toFixed(1)}%
-                      </>
-                    )}
-                  </TableCell>
+                  {renderCellWithChangeColor(totalDifference, totalDifference)}
+                  {renderPercentChangeCell(totalDifference, totalPercentChange)}
                 </>
               )}
               {!isMobile && viewMode === 'percentage' && (
                 <TableCell align="right">
-                  <Box sx={{ 
-                    width: '100%', 
-                    height: '20px', 
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    overflow: 'hidden'
-                  }}>
-                    <Box sx={{ 
-                      width: '100%', 
-                      height: '100%',
-                      bgcolor: 'primary.main',
-                    }} />
-                  </Box>
+                  {renderProgressBar(100)}
                 </TableCell>
               )}
             </TableRow>
