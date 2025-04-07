@@ -60,7 +60,7 @@ export const financeApi = {
         if (year) {
             queryParams.append('year', year);
         }
-        
+       
         const url = BASE_ENDPOINT_URL + `per-pupil/state?${queryParams.toString()}`;
         const response = await axiosInstance.get(
             url, 

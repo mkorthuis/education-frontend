@@ -139,6 +139,7 @@ export interface FinanceState {
   entryTypesLoaded: boolean;
   fundTypesLoaded: boolean;
   error: string | null;
+
 }
 
 const initialState: FinanceState = {
@@ -688,7 +689,7 @@ export const selectLatestStateRevenueDetails = (state: RootState) => {
 export const selectStateRevenueByYear = (state: RootState, year: number) => {
   const allData = state.finance.stateRevenueAllData;
   if (!allData || allData.length === 0) return null;
-
+  
   // Find the entry matching the requested year
   return allData.find(item => item.year === year) || null;
 };

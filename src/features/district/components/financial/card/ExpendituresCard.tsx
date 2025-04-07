@@ -142,7 +142,6 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
               {').'}
             </Typography>
           )}
-          
           {stateComparisonText && (
             <>
               <Typography component="li" variant="body2">

@@ -827,21 +827,8 @@ const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> = ({
                                                       )}
                                                       {!isMobile && viewMode === 'comparison' && (
                                                         <>
-                                                          <TableCell align="right" width="15%" sx={{ 
-                                                            color: (row.difference ?? 0) > 0 ? 'success.main' : (row.difference ?? 0) < 0 ? 'error.main' : 'text.primary' 
-                                                          }}>
-                                                            {(row.difference ?? 0) > 0 ? '+' : ''}{formatValue(row.difference ?? 0)}
-                                                          </TableCell>
-                                                          <TableCell align="right" width="15%" sx={{ 
-                                                            color: (row.percentChange ?? 0) > 0 ? 'success.main' : (row.percentChange ?? 0) < 0 ? 'error.main' : 'text.primary' 
-                                                          }}>
-                                                            {(row.difference ?? 0) === 0 ? '0%' : (
-                                                              <>
-                                                                {(row.percentChange ?? 0) > 0 ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />}
-                                                                {Math.abs(row.percentChange ?? 0).toFixed(1)}%
-                                                              </>
-                                                            )}
-                                                          </TableCell>
+                                                          {renderCellWithChangeColor(row.difference ?? 0, row.difference ?? 0)}
+                                                          {renderPercentChangeCell(row.difference ?? 0, row.percentChange ?? 0)}
                                                         </>
                                                       )}
                                                       {!isMobile && viewMode === 'percentage' && (
