@@ -134,7 +134,7 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
           {stateComparisonText && (
             <>
               <Typography component="li" variant="body2">
-                Over 10 years, Costs{' '}
+                Over 10 Years, Costs{' '}
                 <Typography
                   component="span"
                   variant="body2"

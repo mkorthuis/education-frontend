@@ -1,16 +1,21 @@
-import React, { useMemo } from 'react';
-import { Typography, Card, CardContent, Box } from '@mui/material';
+import React, { useMemo, useState } from 'react';
+import { Typography, Card, CardContent, Box, useMediaQuery, useTheme, Button, Divider } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
 import { selectTotalRevenuesByYear, selectFinancialReports, ProcessedReport, Revenue } from '@/store/slices/financeSlice';
 import { formatCompactNumber } from '@/utils/formatting';
 import { formatFiscalYear } from '../../../utils/financialDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
+import RevenuePieChart from './RevenuePieChart';
 
 interface RevenueCardProps {
   className?: string;
 }
 
 const RevenueCard: React.FC<RevenueCardProps> = ({ className }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [showPieChart, setShowPieChart] = useState(false);
+  
   // Get the total revenues for the current fiscal year
   const totalCurrentRevenues = useAppSelector(state => selectTotalRevenuesByYear(state, FISCAL_YEAR));
   const totalPreviousRevenues = useAppSelector(state => selectTotalRevenuesByYear(state, (parseInt(FISCAL_YEAR) - 1).toString()));
@@ -85,6 +90,14 @@ const RevenueCard: React.FC<RevenueCardProps> = ({ className }) => {
   const localFundingPercentageChange = historicalLocalProportion && historicalLocalProportion > 0
     ? ((currentLocalProportion ?? 0) - (historicalLocalProportion ?? 0)) / historicalLocalProportion * 100
     : 0;
+  
+  // Handle toggle for pie chart in mobile view
+  const handleTogglePieChart = () => {
+    setShowPieChart(prevState => !prevState);
+  };
+  
+  // Common button style to ensure consistent width, matching CostPerPupilCard
+  const toggleButtonStyle = { minWidth: 320 };
   
   return (
     <Card 
@@ -162,6 +175,31 @@ const RevenueCard: React.FC<RevenueCardProps> = ({ className }) => {
             {" Ten Years Ago."}
             </Typography>
           </Typography>
+        </Box>
+        
+        {!isMobile && <Divider sx={{ my: 1 }} />}
+        
+        <Box sx={{ mt: 2 }}>
+          {isMobile ? (
+            <>
+              {showPieChart ? (
+                <RevenuePieChart />
+              ) : (
+                <Box sx={{ textAlign: 'center' }}>
+                  <Button 
+                    variant="outlined" 
+                    size="small"
+                    onClick={handleTogglePieChart}
+                    sx={toggleButtonStyle}
+                  >
+                    See Funding Sources Breakdown
+                  </Button>
+                </Box>
+              )}
+            </>
+          ) : (
+            <RevenuePieChart />
+          )}
         </Box>
       </CardContent>
     </Card>
