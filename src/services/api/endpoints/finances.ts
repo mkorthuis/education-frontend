@@ -80,5 +80,18 @@ export const financeApi = {
             forceRefresh ? skipCache() : undefined
         );
         return response.data;
-    }
+    },
+
+    getStateRevenue: async (year?: string, revenueEntryTypeId?: string, forceRefresh = false) => {
+        const queryParams = new URLSearchParams();
+        if (year) {
+            queryParams.append('year', year);
+        }
+        const url = BASE_ENDPOINT_URL + `state-revenue?${queryParams.toString()}`;
+        const response = await axiosInstance.get(
+            url, 
+            forceRefresh ? skipCache() : undefined
+        );
+        return response.data;
+    }   
 };  

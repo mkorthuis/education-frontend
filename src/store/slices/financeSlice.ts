@@ -58,6 +58,13 @@ export interface StateExpenditure {
   date_updated: string;
 }
 
+// Define type for state revenue data
+export interface StateRevenue {
+  id: number;
+  entry_type_id: number;
+  year: number;
+  value: number;
+}
 // Define types for financial items
 export interface FinancialItemRaw {
   id: number;
@@ -124,7 +131,9 @@ export interface FinanceState {
   statePerPupilExpenditureAllData: PerPupilExpenditure[];
   // State expenditure data
   stateExpenditureAllData: StateExpenditure[];
-  
+  // State revenue data
+  stateRevenueAllData: StateRevenue[];
+
   // Status
   loading: boolean;
   entryTypesLoaded: boolean;
@@ -145,6 +154,7 @@ const initialState: FinanceState = {
   perPupilExpenditureAllData: [],
   statePerPupilExpenditureAllData: [],
   stateExpenditureAllData: [],
+  stateRevenueAllData: [],
   loading: false,
   entryTypesLoaded: false,
   fundTypesLoaded: false,
@@ -340,6 +350,29 @@ export const fetchStateExpenditures = createAsyncThunk(
   }
 );
 
+
+// Async thunk for fetching state revenue data
+export const fetchStateRevenue = createAsyncThunk(
+  'finance/fetchStateRevenue',
+  async ({ 
+    year,
+    revenueEntryTypeId,
+    forceRefresh = false
+  }: { 
+    year?: string;
+    revenueEntryTypeId?: string;
+    forceRefresh?: boolean;
+  }, { rejectWithValue }) => {
+    try {
+      // Don't specify year parameter to get all data
+      const stateRevenueData = await financeApi.getStateRevenue(year, revenueEntryTypeId, forceRefresh);
+      return stateRevenueData;
+    } catch (error) {
+      return rejectWithValue(handleApiError(error, 'Failed to fetch state revenue data'));
+    }
+  }
+);
+
 // Helper to ensure entry types and fund types are loaded
 export const ensureTypesLoaded = async (state: RootState, dispatch: any) => {
   const { entryTypesLoaded, fundTypesLoaded } = state.finance;
@@ -500,6 +533,25 @@ export const financeSlice = createSlice({
       .addCase(fetchStateExpenditures.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
+      })
+      
+      // Handle fetchStateRevenue
+      .addCase(fetchStateRevenue.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchStateRevenue.fulfilled, (state, action) => {
+        // API returns an array with objects containing state revenue data
+        if (Array.isArray(action.payload) && action.payload.length > 0) {
+          state.stateRevenueAllData = action.payload;
+        } else {
+          state.stateRevenueAllData = [];
+        }
+        state.loading = false;
+      })
+      .addCase(fetchStateRevenue.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
       });
   },
 });
@@ -540,7 +592,7 @@ export const selectPerPupilExpenditureAllData = (state: RootState) => state.fina
 export const selectStatePerPupilExpenditureAllData = (state: RootState) => state.finance.statePerPupilExpenditureAllData;
 export const selectProcessedReportDistrictId = (state: RootState) => state.finance.processedReportDistrictId;
 export const selectStateExpenditureAllData = (state: RootState) => state.finance.stateExpenditureAllData;
-
+export const selectStateRevenueAllData = (state: RootState) => state.finance.stateRevenueAllData;
 export const selectTotalExpendituresByYear = (state: RootState, year: string) => {
   const report = state.finance.processedReports[year];
   if (!report) return 0;
@@ -618,6 +670,25 @@ export const selectStateExpenditureByYear = (state: RootState, year: number) => 
   const allData = state.finance.stateExpenditureAllData;
   if (!allData || allData.length === 0) return null;
   
+  // Find the entry matching the requested year
+  return allData.find(item => item.year === year) || null;
+};
+
+// State Revenue Selectors
+export const selectLatestStateRevenueDetails = (state: RootState) => {
+  const allData = state.finance.stateRevenueAllData;
+  if (!allData || allData.length === 0) return null;
+
+  // Find the entry with the highest year value
+  return allData.reduce((latest, current) => {
+    return current.year > latest.year ? current : latest;
+  }, allData[0]);
+};
+
+export const selectStateRevenueByYear = (state: RootState, year: number) => {
+  const allData = state.finance.stateRevenueAllData;
+  if (!allData || allData.length === 0) return null;
+
   // Find the entry matching the requested year
   return allData.find(item => item.year === year) || null;
 };
