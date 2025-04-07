@@ -1,16 +1,20 @@
-import React, { useMemo } from 'react';
-import { Typography, Card, CardContent, Box } from '@mui/material';
+import React, { useMemo, useState } from 'react';
+import { Typography, Card, CardContent, Box, Divider, Button, useTheme, useMediaQuery } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
 import { selectLatestStateExpenditureDetails, selectStateExpenditureByYear, selectTotalExpendituresByYear } from '@/store/slices/financeSlice';
 import { formatCompactNumber } from '@/utils/formatting';
 import { formatFiscalYear } from '../../../utils/financialDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
+import InstructionalVsSupportTrendChart from './InstructionalVsSupportTrendChart';
 
 interface ExpendituresCardProps {
   className?: string;
 }
 
 const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [showTrendChart, setShowTrendChart] = useState(false);
 
   const TEN_YEARS_AGO = parseInt(FISCAL_YEAR) - 10;
   // Get the total expenditures for the current fiscal year
@@ -79,6 +83,14 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
       stateRate
     };
   }, [latestStateExpenditureData, previousStateExpenditureData, tenYearChange]);
+
+  // Handle chart toggle for mobile view
+  const handleToggleChart = () => {
+    setShowTrendChart(prevState => !prevState);
+  };
+
+  // Common button style to ensure consistent width
+  const toggleButtonStyle = { minWidth: 320 };
   
   return (
     <Card 
@@ -153,6 +165,34 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
                 </Typography>
               </Typography>
             </>
+          )}
+        </Box>
+        
+        {!isMobile && <Divider sx={{ my: 2 }} />}
+        
+        <Box sx={{ mt: 2 }}>
+          {isMobile ? (
+            <>
+              {showTrendChart ? (
+                <>
+                  <Divider sx={{ my: 2 }} />
+                  <InstructionalVsSupportTrendChart />
+                </>
+              ) : (
+                <Box sx={{ textAlign: 'center' }}>
+                  <Button 
+                    variant="outlined" 
+                    size="small"
+                    onClick={handleToggleChart}
+                    sx={toggleButtonStyle}
+                  >
+                     Instructional & Support Costs Chart
+                  </Button>
+                </Box>
+              )}
+            </>
+          ) : (
+            <InstructionalVsSupportTrendChart />
           )}
         </Box>
       </CardContent>
