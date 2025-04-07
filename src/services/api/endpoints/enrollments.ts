@@ -15,6 +15,14 @@ export const enrollmentApi = {
         );
         return response.data;
     },
-    
+
+    getStateEnrollment: async (forceRefresh = false) => {
+        const url = BASE_ENDPOINT_URL + `state`;
+        const response = await axiosInstance.get(
+            url, 
+            forceRefresh ? skipCache() : undefined
+        );
+        return response.data;
+    },
         
 };

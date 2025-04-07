@@ -19,7 +19,9 @@ import {
   selectFinanceLoading,
   selectFinanceError,
   clearFinanceState,
-  selectProcessedReportDistrictId
+  selectProcessedReportDistrictId,
+  selectLatestStateExpenditureDetails,
+  fetchStateExpenditures
 } from '@/store/slices/financeSlice';
 
 // Import tab components
@@ -48,6 +50,7 @@ function useDistrictFinancialData(districtId?: string) {
   const error = useAppSelector(selectFinanceError);
   const latestPerPupilData = useAppSelector(selectLatestPerPupilExpenditureDetails);
   const latestStatePerPupilData = useAppSelector(selectLatestStatePerPupilExpenditureDetails);
+  const latestStateExpenditureData = useAppSelector(selectLatestStateExpenditureDetails);
   
   // Initial load state tracking
   const [hasInitiatedLoads, setHasInitiatedLoads] = useState(false);
@@ -85,6 +88,11 @@ function useDistrictFinancialData(districtId?: string) {
     // State per pupil expenditure data
     if (!latestStatePerPupilData) {
       dispatch(fetchStatePerPupilExpenditure({}));
+    }
+
+    // State expenditure data
+    if (!latestStateExpenditureData) {
+      dispatch(fetchStateExpenditures({}));
     }
   }, [
     districtId, 

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Typography, Card, CardContent, Box } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
-import { selectTotalExpendituresByYear } from '@/store/slices/financeSlice';
+import { selectLatestStateExpenditureDetails, selectStateExpenditureByYear, selectTotalExpendituresByYear } from '@/store/slices/financeSlice';
 import { formatCompactNumber } from '@/utils/formatting';
 import { formatFiscalYear } from '../../../utils/financialDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
@@ -11,9 +11,13 @@ interface ExpendituresCardProps {
 }
 
 const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
+
+  const TEN_YEARS_AGO = parseInt(FISCAL_YEAR) - 10;
   // Get the total expenditures for the current fiscal year
   const totalCurrentExpenditures = useAppSelector(state => selectTotalExpendituresByYear(state, FISCAL_YEAR));
   const totalPreviousExpenditures = useAppSelector(state => selectTotalExpendituresByYear(state, (parseInt(FISCAL_YEAR) - 1).toString()));
+  const latestStateExpenditureData = useAppSelector(selectLatestStateExpenditureDetails);
+  const previousStateExpenditureData = useAppSelector(state => selectStateExpenditureByYear(state, TEN_YEARS_AGO));
   
   // Calculate year-over-year percentage change
   const percentageChange = totalPreviousExpenditures 
@@ -24,8 +28,7 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
   const changeDirection = percentageChange >= 0 ? 'Increased' : 'Decreased';
   
   // Get data for the past 10 years
-  const currentYear = parseInt(FISCAL_YEAR);
-  const tenYearsAgo = currentYear - 10;
+  const tenYearsAgo = TEN_YEARS_AGO;
   
   // Get expenditures for 10 years ago
   const expendituresTenYearsAgo = useAppSelector(state => 
@@ -50,6 +53,32 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
       tenYearValue: expendituresTenYearsAgo
     };
   }, [totalCurrentExpenditures, expendituresTenYearsAgo]);
+  
+  // Calculate state average change over 10 years
+  const stateComparisonText = useMemo(() => {
+    if (!latestStateExpenditureData?.total || !previousStateExpenditureData?.total || 
+        !tenYearChange || latestStateExpenditureData.total === 0 || previousStateExpenditureData.total === 0) {
+      return null;
+    }
+    
+    // Calculate state average annual change over 10 years
+    const stateAverageAnnualChange = (Math.pow(
+      latestStateExpenditureData.total / previousStateExpenditureData.total, 
+      1/10
+    ) - 1) * 100;
+    
+    // Compare district growth to state growth
+    const comparison = tenYearChange.averageAnnualChange > stateAverageAnnualChange ? 'Faster' : 'Slower';
+    const districtRate = Math.abs(tenYearChange.averageAnnualChange).toFixed(1);
+    const stateRate = Math.abs(stateAverageAnnualChange).toFixed(1);
+    
+    return {
+      comparison,
+      isFaster: comparison === 'Faster',
+      districtRate,
+      stateRate
+    };
+  }, [latestStateExpenditureData, previousStateExpenditureData, tenYearChange]);
   
   return (
     <Card sx={{ flex: 1 }} className={className}>
@@ -93,6 +122,30 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
               {formatCompactNumber(totalCurrentExpenditures || 0)}
               {').'}
             </Typography>
+          )}
+          
+          {stateComparisonText && (
+            <>
+              <Typography component="li" variant="body2">
+                Over 10 years, Costs{' '}
+                <Typography
+                  component="span"
+                  variant="body2"
+                  sx={{ 
+                    fontWeight: 'bold',
+                    color: stateComparisonText.isFaster ? 'error.main' : 'success.main' 
+                  }}
+                >
+                  Increased {stateComparisonText.comparison}
+                </Typography>
+                {' than the State Average.'}
+              </Typography>
+              <Typography component="li" sx={{ ml: 3, listStyleType: 'circle' }}>
+                <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
+                  District Annual Increase is {stateComparisonText.districtRate}% v. State's {stateComparisonText.stateRate}%
+                </Typography>
+              </Typography>
+            </>
           )}
         </Box>
       </CardContent>

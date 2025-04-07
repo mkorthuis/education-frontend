@@ -41,6 +41,23 @@ export interface PerPupilExpenditure {
   date_updated: string;
 }
 
+// Define type for state expenditure data
+export interface StateExpenditure {
+  id: number;
+  year: number;
+  operating_elementary: number;
+  operating_middle: number;
+  operating_high: number;
+  operating_total: number;
+  current_elementary: number;
+  current_middle: number;
+  current_high: number;
+  current_total: number;
+  total: number;
+  date_created: string;
+  date_updated: string;
+}
+
 // Define types for financial items
 export interface FinancialItemRaw {
   id: number;
@@ -105,13 +122,14 @@ export interface FinanceState {
   // Per pupil expenditure data
   perPupilExpenditureAllData: PerPupilExpenditure[];
   statePerPupilExpenditureAllData: PerPupilExpenditure[];
+  // State expenditure data
+  stateExpenditureAllData: StateExpenditure[];
   
   // Status
   loading: boolean;
   entryTypesLoaded: boolean;
   fundTypesLoaded: boolean;
   error: string | null;
-
 }
 
 const initialState: FinanceState = {
@@ -126,6 +144,7 @@ const initialState: FinanceState = {
   processedReportDistrictId: null,
   perPupilExpenditureAllData: [],
   statePerPupilExpenditureAllData: [],
+  stateExpenditureAllData: [],
   loading: false,
   entryTypesLoaded: false,
   fundTypesLoaded: false,
@@ -301,6 +320,26 @@ export const fetchStatePerPupilExpenditure = createAsyncThunk(
   }
 );
 
+// Async thunk for fetching state expenditure data
+export const fetchStateExpenditures = createAsyncThunk(
+  'finance/fetchStateExpenditures',
+  async ({ 
+    year,
+    forceRefresh = false
+  }: { 
+    year?: string;
+    forceRefresh?: boolean;
+  }, { rejectWithValue }) => {
+    try {
+      // Don't specify year parameter to get all data
+      const stateExpenditureData = await financeApi.getStateExpenditures(year, forceRefresh);
+      return stateExpenditureData;
+    } catch (error) {
+      return rejectWithValue(handleApiError(error, 'Failed to fetch state expenditure data'));
+    }
+  }
+);
+
 // Helper to ensure entry types and fund types are loaded
 export const ensureTypesLoaded = async (state: RootState, dispatch: any) => {
   const { entryTypesLoaded, fundTypesLoaded } = state.finance;
@@ -333,6 +372,7 @@ export const financeSlice = createSlice({
       state.perPupilExpenditureAllData = [];
       state.error = null;
       // Don't reset statePerPupilExpenditureAllData as it's not district specific
+      // Don't reset stateExpenditureAllData as it's not district specific
       // Don't reset loading state as it will be managed by subsequent fetch actions
     }
   },
@@ -441,6 +481,25 @@ export const financeSlice = createSlice({
       .addCase(fetchStatePerPupilExpenditure.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
+      })
+      
+      // Handle fetchStateExpenditures
+      .addCase(fetchStateExpenditures.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchStateExpenditures.fulfilled, (state, action) => {
+        // API returns an array with objects containing state expenditure data
+        if (Array.isArray(action.payload) && action.payload.length > 0) {
+          state.stateExpenditureAllData = action.payload;
+        } else {
+          state.stateExpenditureAllData = [];
+        }
+        state.loading = false;
+      })
+      .addCase(fetchStateExpenditures.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
       });
   },
 });
@@ -480,7 +539,7 @@ export const selectFundTypesLoaded = (state: RootState) => state.finance.fundTyp
 export const selectPerPupilExpenditureAllData = (state: RootState) => state.finance.perPupilExpenditureAllData;
 export const selectStatePerPupilExpenditureAllData = (state: RootState) => state.finance.statePerPupilExpenditureAllData;
 export const selectProcessedReportDistrictId = (state: RootState) => state.finance.processedReportDistrictId;
-
+export const selectStateExpenditureAllData = (state: RootState) => state.finance.stateExpenditureAllData;
 
 export const selectTotalExpendituresByYear = (state: RootState, year: string) => {
   const report = state.finance.processedReports[year];
@@ -538,6 +597,25 @@ export const selectPerPupilExpenditureByYear = (state: RootState, year: number) 
 
 export const selectStatePerPupilExpenditureByYear = (state: RootState, year: number) => {
   const allData = state.finance.statePerPupilExpenditureAllData;
+  if (!allData || allData.length === 0) return null;
+  
+  // Find the entry matching the requested year
+  return allData.find(item => item.year === year) || null;
+};
+
+// State Expenditure Selectors
+export const selectLatestStateExpenditureDetails = (state: RootState) => {
+  const allData = state.finance.stateExpenditureAllData;
+  if (!allData || allData.length === 0) return null;
+  
+  // Find the entry with the highest year value
+  return allData.reduce((latest, current) => {
+    return current.year > latest.year ? current : latest;
+  }, allData[0]);
+};
+
+export const selectStateExpenditureByYear = (state: RootState, year: number) => {
+  const allData = state.finance.stateExpenditureAllData;
   if (!allData || allData.length === 0) return null;
   
   // Find the entry matching the requested year

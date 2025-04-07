@@ -205,14 +205,14 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
           </Typography>
           .
         </Typography>
-        <Box component="li" sx={{ ml: 3, listStyleType: 'circle' }}>
+        <Typography component="li" sx={{ ml: 3, listStyleType: 'circle' }}>
           <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
             {formatCompactNumber(Math.abs(perPupilTenYearChange.difference))} District 
             {perPupilTenYearChange.difference > 0 ? ' Increase' : ' Decrease'} vs. {' '} 
             {formatCompactNumber(Math.abs(statePerPupilTenYearChange.difference))} State 
             {statePerPupilTenYearChange.difference > 0 ? ' Increase' : ' Decrease'}
           </Typography>
-        </Box>
+        </Typography>
       </>
     );
   };
