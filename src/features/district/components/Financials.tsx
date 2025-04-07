@@ -17,7 +17,9 @@ import {
   selectFinancialReports,
   fetchFinancialReports,
   selectFinanceLoading,
-  selectFinanceError
+  selectFinanceError,
+  clearFinanceState,
+  selectProcessedReportDistrictId
 } from '@/store/slices/financeSlice';
 
 // Import tab components
@@ -37,10 +39,10 @@ const TABS = [
 
 /**
  * Custom hook to fetch and manage district financial data
- * This ensures data is only fetched once and properly tracked
  */
 function useDistrictFinancialData(districtId?: string) {
   const dispatch = useAppDispatch();
+  const processedReportDistrictId = useAppSelector(selectProcessedReportDistrictId);
   const financialReports = useAppSelector(selectFinancialReports);
   const loading = useAppSelector(selectFinanceLoading);
   const error = useAppSelector(selectFinanceError);
@@ -52,9 +54,20 @@ function useDistrictFinancialData(districtId?: string) {
   
   
   useEffect(() => {
-    // Only proceed if we have a district ID and haven't already initiated loads
-    if (!districtId || hasInitiatedLoads || loading) return;
     
+    // Check if we need to reload the data because district has changed
+    const needsReload = districtId && processedReportDistrictId && districtId !== processedReportDistrictId;
+    
+    // Clear previous state if we're loading a different district
+    if (needsReload) {
+      console.log('District changed, clearing financial state');
+      dispatch(clearFinanceState());
+      setHasInitiatedLoads(false);
+    }
+    
+    // Only proceed if we have a district ID and haven't already initiated loads
+    if (!districtId || (hasInitiatedLoads && !needsReload) || loading) return;
+  
     // Mark that we've initiated loads to prevent duplicate requests
     setHasInitiatedLoads(true);
     
@@ -75,11 +88,12 @@ function useDistrictFinancialData(districtId?: string) {
     }
   }, [
     districtId, 
-    hasInitiatedLoads, 
-    loading, 
-    dispatch, 
-    financialReports, 
-    latestPerPupilData, 
+    dispatch,
+    processedReportDistrictId,
+    hasInitiatedLoads,
+    loading,
+    financialReports,
+    latestPerPupilData,
     latestStatePerPupilData
   ]);
   
@@ -106,18 +120,21 @@ const Financials: React.FC = () => {
   // Tab state
   const [mainTabValue, setMainTabValue] = useState(0);
   
-  // Fetch district data on component mount
+  // Fetch district data on component mount - only use URL param if district is not set
   useEffect(() => {
-    if (id && !district) {
+    if (!district && id) {
       dispatch(fetchDistrictById(id));
     }
   }, [id, district, dispatch]);
 
-  // Use the custom hook to handle data fetching
+  // Get the district ID to use for financial data - use district.id if available, otherwise URL param
+  const districtId = district?.id || id;
+  
+  // Use the custom hook to handle data fetching with the determined district ID
   const { 
     loading: financeLoading, 
     error: financeError
-  } = useDistrictFinancialData(id);
+  } = useDistrictFinancialData(districtId);
   
   // Tab change handler
   const handleMainTabChange = (_: React.SyntheticEvent, newValue: number) => {
@@ -131,13 +148,13 @@ const Financials: React.FC = () => {
   const renderTabContent = () => {
     switch (mainTabValue) {
       case 0: 
-        return ( <OverallTab districtId={id} /> );
+        return ( <OverallTab districtId={districtId} /> );
       case 1: 
-        return ( <ExpendituresTab districtId={id} />);
+        return ( <ExpendituresTab districtId={districtId} />);
       case 2: 
-        return ( <RevenuesTab districtId={id} /> );
+        return ( <RevenuesTab districtId={districtId} /> );
       case 3: 
-        return ( <BalanceSheetTab districtId={id} /> );
+        return ( <BalanceSheetTab districtId={districtId} /> );
       default:
         return null;
     }
