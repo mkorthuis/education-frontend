@@ -34,7 +34,7 @@ const OverallTab: React.FC<OverallTabProps> = ({
       flexDirection: isMobile || isMedium ? 'column' : 'row', 
       gap: 3, 
       mb: 4,
-      height: isMobile || isMedium ? 'auto' : '100%
+      height: isMobile || isMedium ? 'auto' : '100%'
     }}>
       <CardWrapper>
         <ExpendituresCard />

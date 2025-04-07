@@ -59,6 +59,7 @@ function useDistrictFinancialData(districtId?: string) {
   
   
   useEffect(() => {
+    
     // Check if we need to reload the data because district has changed
     const needsReload = districtId && processedReportDistrictId && districtId !== processedReportDistrictId;
     
@@ -71,7 +72,7 @@ function useDistrictFinancialData(districtId?: string) {
     
     // Only proceed if we have a district ID and haven't already initiated loads
     if (!districtId || (hasInitiatedLoads && !needsReload) || loading) return;
-
+  
     // Mark that we've initiated loads to prevent duplicate requests
     setHasInitiatedLoads(true);
     
@@ -101,64 +102,6 @@ function useDistrictFinancialData(districtId?: string) {
     }
 
 
-  }, [
-    districtId, 
-    dispatch,
-    processedReportDistrictId,
-    hasInitiatedLoads,
-    loading,
-    financialReports,
-    latestPerPupilData,
-    latestStatePerPupilData
-  ]);
-  
-  return {
-    financialReports,
-    latestPerPupilData,
-    latestStatePerPupilData,
-    loading,
-    error
-  };
-}
-
-/**
- * Financials component displays district financial data with yearly comparisons
- */
-const Financials: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const district = useAppSelector(selectCurrentDistrict);
-  const districtLoading = useAppSelector(selectLocationLoading);
-  const theme = useTheme();
-  const dispatch = useAppDispatch();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
-  // Tab state
-  const [mainTabValue, setMainTabValue] = useState(0);
-  
-  // Fetch district data on component mount - only use URL param if district is not set
-  useEffect(() => {
-    if (!district && id) {
-      dispatch(fetchDistrictById(id));
-    }
-  
-    // Mark that we've initiated loads to prevent duplicate requests
-    setHasInitiatedLoads(true);
-    
-    // Financial reports
-    const reportsExist = Object.keys(financialReports).length > 0;
-    if (!reportsExist) {
-      dispatch(fetchFinancialReports({ districtId }));
-    }
-    
-    // Per pupil expenditure data
-    if (!latestPerPupilData) {
-      dispatch(fetchPerPupilExpenditure({ districtId }));
-    }
-    
-    // State per pupil expenditure data
-    if (!latestStatePerPupilData) {
-      dispatch(fetchStatePerPupilExpenditure({}));
-    }
   }, [
     districtId, 
     dispatch,
