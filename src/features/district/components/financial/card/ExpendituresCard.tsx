@@ -1,19 +1,27 @@
-import React, { useMemo } from 'react';
-import { Typography, Card, CardContent, Box } from '@mui/material';
+import React, { useMemo, useState } from 'react';
+import { Typography, Card, CardContent, Box, Divider, Button, useTheme, useMediaQuery } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
-import { selectTotalExpendituresByYear } from '@/store/slices/financeSlice';
+import { selectLatestStateExpenditureDetails, selectStateExpenditureByYear, selectTotalExpendituresByYear } from '@/store/slices/financeSlice';
 import { formatCompactNumber } from '@/utils/formatting';
 import { formatFiscalYear } from '../../../utils/financialDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
+import InstructionalVsSupportTrendChart from './InstructionalVsSupportTrendChart';
 
 interface ExpendituresCardProps {
   className?: string;
 }
 
 const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [showTrendChart, setShowTrendChart] = useState(false);
+
+  const TEN_YEARS_AGO = parseInt(FISCAL_YEAR) - 10;
   // Get the total expenditures for the current fiscal year
   const totalCurrentExpenditures = useAppSelector(state => selectTotalExpendituresByYear(state, FISCAL_YEAR));
   const totalPreviousExpenditures = useAppSelector(state => selectTotalExpendituresByYear(state, (parseInt(FISCAL_YEAR) - 1).toString()));
+  const latestStateExpenditureData = useAppSelector(selectLatestStateExpenditureDetails);
+  const previousStateExpenditureData = useAppSelector(state => selectStateExpenditureByYear(state, TEN_YEARS_AGO));
   
   // Calculate year-over-year percentage change
   const percentageChange = totalPreviousExpenditures 
@@ -23,17 +31,16 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
   // Determine if it's an increase or decrease
   const changeDirection = percentageChange >= 0 ? 'Increased' : 'Decreased';
   
+  // Get data for the past 10 years
+  const tenYearsAgo = TEN_YEARS_AGO;
+  
+  // Get expenditures for 10 years ago
+  const expendituresTenYearsAgo = useAppSelector(state => 
+    selectTotalExpendituresByYear(state, tenYearsAgo.toString())
+  );
+  
   // Calculate 10-year average change
   const tenYearChange = useMemo(() => {
-    // Get data for the past 10 years
-    const currentYear = parseInt(FISCAL_YEAR);
-    const tenYearsAgo = currentYear - 10;
-    
-    // Get expenditures for 10 years ago
-    const expendituresTenYearsAgo = useAppSelector(state => 
-      selectTotalExpendituresByYear(state, tenYearsAgo.toString())
-    );
-    
     if (!expendituresTenYearsAgo || expendituresTenYearsAgo === 0) return null;
     
     // Calculate total percentage change over 10 years
@@ -49,10 +56,51 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
       direction: averageAnnualChange >= 0 ? 'Increased' : 'Decreased',
       tenYearValue: expendituresTenYearsAgo
     };
-  }, [totalCurrentExpenditures, FISCAL_YEAR]);
+  }, [totalCurrentExpenditures, expendituresTenYearsAgo]);
+  
+  // Calculate state average change over 10 years
+  const stateComparisonText = useMemo(() => {
+    if (!latestStateExpenditureData?.total || !previousStateExpenditureData?.total || 
+        !tenYearChange || latestStateExpenditureData.total === 0 || previousStateExpenditureData.total === 0) {
+      return null;
+    }
+    
+    // Calculate state average annual change over 10 years
+    const stateAverageAnnualChange = (Math.pow(
+      latestStateExpenditureData.total / previousStateExpenditureData.total, 
+      1/10
+    ) - 1) * 100;
+    
+    // Compare district growth to state growth
+    const comparison = tenYearChange.averageAnnualChange > stateAverageAnnualChange ? 'Faster' : 'Slower';
+    const districtRate = Math.abs(tenYearChange.averageAnnualChange).toFixed(1);
+    const stateRate = Math.abs(stateAverageAnnualChange).toFixed(1);
+    
+    return {
+      comparison,
+      isFaster: comparison === 'Faster',
+      districtRate,
+      stateRate
+    };
+  }, [latestStateExpenditureData, previousStateExpenditureData, tenYearChange]);
+
+  // Handle chart toggle for mobile view
+  const handleToggleChart = () => {
+    setShowTrendChart(prevState => !prevState);
+  };
+
+  // Common button style to ensure consistent width
+  const toggleButtonStyle = { minWidth: 320 };
   
   return (
-    <Card sx={{ flex: 1 }} className={className}>
+    <Card 
+      sx={{ 
+        flex: 1,
+        border: '1px solid',
+        borderColor: 'divider',
+      }} 
+      className={className}
+    >
       <CardContent>
         <Typography variant="h6">
           {formatFiscalYear(FISCAL_YEAR)} Expenditures: {formatCompactNumber(totalCurrentExpenditures || 0)}
@@ -93,6 +141,57 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className }) => {
               {formatCompactNumber(totalCurrentExpenditures || 0)}
               {').'}
             </Typography>
+          )}
+          {stateComparisonText && (
+            <>
+              <Typography component="li" variant="body2">
+                Over 10 Years, Costs{' '}
+                <Typography
+                  component="span"
+                  variant="body2"
+                  sx={{ 
+                    fontWeight: 'bold',
+                    color: stateComparisonText.isFaster ? 'error.main' : 'success.main' 
+                  }}
+                >
+                  Increased {stateComparisonText.comparison}
+                </Typography>
+                {' than the State Average.'}
+              </Typography>
+              <Typography component="li" sx={{ ml: 3, listStyleType: 'circle' }}>
+                <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
+                  District Annual Increase of {stateComparisonText.districtRate}% vs. State Avg. {stateComparisonText.stateRate}%.
+                </Typography>
+              </Typography>
+            </>
+          )}
+        </Box>
+        
+        {!isMobile && <Divider sx={{ my: 2 }} />}
+        
+        <Box sx={{ mt: 2 }}>
+          {isMobile ? (
+            <>
+              {showTrendChart ? (
+                <>
+                  <Divider sx={{ my: 2 }} />
+                  <InstructionalVsSupportTrendChart />
+                </>
+              ) : (
+                <Box sx={{ textAlign: 'center' }}>
+                  <Button 
+                    variant="outlined" 
+                    size="small"
+                    onClick={handleToggleChart}
+                    sx={toggleButtonStyle}
+                  >
+                     Instructional & Support Costs Chart
+                  </Button>
+                </Box>
+              )}
+            </>
+          ) : (
+            <InstructionalVsSupportTrendChart />
           )}
         </Box>
       </CardContent>

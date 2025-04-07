@@ -187,7 +187,7 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
     return (
       <>
         <Typography component="li" variant="body2">
-          Over 10 Years,{' '}
+          Over 10 Years, it {' '}
           <Typography
             component="span"
             variant="body2"
@@ -200,19 +200,19 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
           >
             {perPupilTenYearChange.difference > 0 ? 'Increased' : 'Decreased'}
             {Math.abs(perPupilTenYearChange.difference) > Math.abs(statePerPupilTenYearChange.difference) 
-              ? ' Faster' 
-              : ' Slower'} than the State Average
+              ? ' Faster ' 
+              : ' Slower '} 
           </Typography>
-          .
+          than the State Average.
         </Typography>
-        <Box component="li" sx={{ ml: 3, listStyleType: 'circle' }}>
+        <Typography component="li" sx={{ ml: 3, listStyleType: 'circle' }}>
           <Typography variant="body2" sx={{ fontStyle: 'italic' }}>
             {formatCompactNumber(Math.abs(perPupilTenYearChange.difference))} District 
             {perPupilTenYearChange.difference > 0 ? ' Increase' : ' Decrease'} vs. {' '} 
             {formatCompactNumber(Math.abs(statePerPupilTenYearChange.difference))} State 
-            {statePerPupilTenYearChange.difference > 0 ? ' Increase' : ' Decrease'}
+            {statePerPupilTenYearChange.difference > 0 ? ' Increase' : ' Decrease'}.
           </Typography>
-        </Box>
+        </Typography>
       </>
     );
   };
@@ -254,7 +254,15 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
   };
   
   return (
-    <Card sx={{ flex: isMobile ? 1 : 2 }} className={className}>
+    <Card 
+      sx={{ 
+        flex: isMobile ? 1 : 2,
+        border: '1px solid',
+        borderColor: 'divider',
+        boxShadow: 3
+      }} 
+      className={className}
+    >
       <CardContent>
         <Typography variant="h6">
           Cost Per Pupil: {latestPerPupilExpenditureDetails?.total 

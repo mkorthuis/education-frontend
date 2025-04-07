@@ -60,12 +60,38 @@ export const financeApi = {
         if (year) {
             queryParams.append('year', year);
         }
-        
+       
         const url = BASE_ENDPOINT_URL + `per-pupil/state?${queryParams.toString()}`;
         const response = await axiosInstance.get(
             url, 
             forceRefresh ? skipCache() : undefined
         );
         return response.data;
-    }
+    },
+
+    getStateExpenditures: async (year?: string, forceRefresh = false) => {
+        const queryParams = new URLSearchParams();
+        if (year) {
+            queryParams.append('year', year);
+        }
+        const url = BASE_ENDPOINT_URL + `state-expenditure?${queryParams.toString()}`;
+        const response = await axiosInstance.get(
+            url, 
+            forceRefresh ? skipCache() : undefined
+        );
+        return response.data;
+    },
+
+    getStateRevenue: async (year?: string, revenueEntryTypeId?: string, forceRefresh = false) => {
+        const queryParams = new URLSearchParams();
+        if (year) {
+            queryParams.append('year', year);
+        }
+        const url = BASE_ENDPOINT_URL + `state-revenue?${queryParams.toString()}`;
+        const response = await axiosInstance.get(
+            url, 
+            forceRefresh ? skipCache() : undefined
+        );
+        return response.data;
+    }   
 };  

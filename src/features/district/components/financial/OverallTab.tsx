@@ -26,14 +26,15 @@ const OverallTab: React.FC<OverallTabProps> = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMedium = useMediaQuery(theme.breakpoints.down('md'));
   
   return (
     <Box sx={{ 
       display: 'flex', 
-      flexDirection: isMobile ? 'column' : 'row', 
+      flexDirection: isMobile || isMedium ? 'column' : 'row', 
       gap: 3, 
       mb: 4,
-      height: isMobile ? 'auto' : '100%'
+      height: isMobile || isMedium ? 'auto' : '100%
     }}>
       <CardWrapper>
         <ExpendituresCard />
