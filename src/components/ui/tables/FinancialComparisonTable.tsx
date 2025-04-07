@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Typography, 
   Box, 
@@ -30,6 +30,14 @@ import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import { formatCompactNumber } from '@/utils/formatting';
 import { compareCategoryOrder } from '@/utils/categoryOrdering';
 import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
+import { useAppSelector } from '@/store/hooks';
+import { selectFinancialReports } from '@/store/slices/financeSlice';
+import { 
+  prepareDetailedRevenueComparisonData,
+  prepareDetailedExpenditureComparisonData,
+  prepareDetailedAssetsComparisonData,
+  prepareDetailedLiabilitiesComparisonData
+} from '@/features/district/utils/financialDataProcessing';
 
 export interface FinancialComparisonItem {
   name: string;
@@ -127,7 +135,7 @@ type ViewMode = 'comparison' | 'percentage';
  * Can be used for various financial data types like expenditures, revenues, assets, etc.
  */
 const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> = ({
-  items,
+  items: initialItems,
   currentYear,
   headers = {
     category: 'Entry',
@@ -144,7 +152,10 @@ const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> = ({
   valueType,
   totalRowLabel
 }) => {
-  if (!items || items.length === 0) {
+  // Access all financial reports from Redux
+  const financialReports = useAppSelector(selectFinancialReports);
+
+  if (!initialItems || initialItems.length === 0) {
     return <Typography>No data available for comparison.</Typography>;
   }
 
@@ -169,6 +180,56 @@ const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> = ({
       ? previousYear  
       : (availableComparisonYears.length > 0 ? availableComparisonYears[0] : '');
   });
+
+  // Update selectedComparisonYear when availableComparisonYears changes
+  useEffect(() => {
+    // If current selection is not in the available years, reset to the default
+    if (selectedComparisonYear && !availableComparisonYears.includes(selectedComparisonYear)) {
+      const previousYear = currentYear ? (parseInt(currentYear) - 1).toString() : '';
+      const newYear = availableComparisonYears.includes(previousYear)
+        ? previousYear
+        : (availableComparisonYears.length > 0 ? availableComparisonYears[0] : '');
+      
+      setSelectedComparisonYear(newYear);
+    }
+  }, [availableComparisonYears, currentYear, selectedComparisonYear]);
+
+  // Generate updated items based on the selected comparison year
+  const items = useMemo(() => {
+    if (
+      financialReports && 
+      currentYear && 
+      selectedComparisonYear && 
+      financialReports[currentYear] && 
+      financialReports[selectedComparisonYear]
+    ) {
+      // Get the right preparation function based on the table title
+      if (title.includes('Revenue')) {
+        return prepareDetailedRevenueComparisonData(
+          financialReports[currentYear],
+          financialReports[selectedComparisonYear]
+        );
+      } else if (title.includes('Expenditure')) {
+        return prepareDetailedExpenditureComparisonData(
+          financialReports[currentYear],
+          financialReports[selectedComparisonYear]
+        );
+      } else if (title.includes('Assets')) {
+        return prepareDetailedAssetsComparisonData(
+          financialReports[currentYear],
+          financialReports[selectedComparisonYear]
+        );
+      } else if (title.includes('Liabilities')) {
+        return prepareDetailedLiabilitiesComparisonData(
+          financialReports[currentYear],
+          financialReports[selectedComparisonYear]
+        );
+      }
+    }
+    
+    // If we can't recalculate, use the initial items
+    return initialItems;
+  }, [initialItems, financialReports, currentYear, selectedComparisonYear, title]);
 
   const formattedCurrentYear = formatFiscalYear(currentYear);
   const formattedPreviousYear = formatFiscalYear(selectedComparisonYear);
