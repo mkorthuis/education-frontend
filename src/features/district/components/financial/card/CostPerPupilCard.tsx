@@ -1,5 +1,5 @@
 import React, { useMemo, useCallback, useState } from 'react';
-import { Typography, Box, Card, CardContent, useMediaQuery, useTheme, Button } from '@mui/material';
+import { Typography, Box, Card, CardContent, useMediaQuery, useTheme, Button, Divider } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
 import {
   selectLatestPerPupilExpenditureDetails,
@@ -264,7 +264,9 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
         
         {renderPerPupilDetails()}
         
-        <Box sx={{ mt: 3 }}>
+        {!isMobile && <Divider sx={{ my: 1 }} />}
+
+        <Box sx={{ mt: 2 }}>
           {isMobile ? (
             <>
               {showTrendChart ? (
@@ -286,6 +288,8 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
             <PerPupilExpenditureTrendChart />
           )}
         </Box>
+        
+        {!isMobile && <Divider sx={{ my: 1 }} />}
         
         {renderCostBreakdownTable()}
       </CardContent>
