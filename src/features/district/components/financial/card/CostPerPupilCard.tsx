@@ -1,5 +1,5 @@
-import React, { useMemo, useCallback } from 'react';
-import { Typography, Box, Card, CardContent, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, useMediaQuery, useTheme } from '@mui/material';
+import React, { useMemo, useCallback, useState } from 'react';
+import { Typography, Box, Card, CardContent, useMediaQuery, useTheme, Button } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
 import {
   selectLatestPerPupilExpenditureDetails,
@@ -10,6 +10,8 @@ import {
 import { formatCompactNumber } from '@/utils/formatting';
 import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
+import PerPupilExpenditureTrendChart from './PerPupilExpenditureTrendChart';
+import CostBreakdownTable from './CostBreakdownTable';
 
 interface CostPerPupilCardProps {
   className?: string;
@@ -50,6 +52,8 @@ const selectStatePerPupilExpenditureData = createSelector(
 const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [showTrendChart, setShowTrendChart] = useState(false);
+  const [showCostBreakdown, setShowCostBreakdown] = useState(false);
   
   // Finance data from Redux
   const latestPerPupilExpenditureDetails = useAppSelector(selectLatestPerPupilExpenditureDetails);
@@ -105,6 +109,19 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
     return ((districtValue - stateValue) / stateValue) * 100;
   }, []);
 
+  // Handle chart toggle for mobile view
+  const handleToggleChart = () => {
+    setShowTrendChart(prevState => !prevState);
+  };
+
+  // Handle cost breakdown toggle for mobile view
+  const handleToggleCostBreakdown = () => {
+    setShowCostBreakdown(prevState => !prevState);
+  };
+
+  // Common button style to ensure consistent width
+  const toggleButtonStyle = { minWidth: 320 };
+
   // Render Per Pupil Cost details
   const renderPerPupilDetails = () => {
     if (!latestPerPupilExpenditureDetails || !latestStatePerPupilExpenditureDetails) return null;
@@ -159,8 +176,6 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
           {/* 10-year changes */}
           {renderTenYearComparison()}
         </Box>
-        
-        {renderCostBreakdownTable()}
       </Box>
     );
   };
@@ -206,49 +221,35 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
   const renderCostBreakdownTable = () => {
     if (!latestPerPupilExpenditureDetails || !latestStatePerPupilExpenditureDetails) return null;
     
+    if (isMobile) {
+      return (
+        <Box sx={{ mt: 3 }}>
+          {showCostBreakdown ? (
+              <CostBreakdownTable
+                districtData={latestPerPupilExpenditureDetails}
+                stateData={latestStatePerPupilExpenditureDetails}
+              />
+          ) : (
+            <Box sx={{ textAlign: 'center' }}>
+              <Button 
+                variant="outlined" 
+                size="small"
+                onClick={handleToggleCostBreakdown}
+                sx={toggleButtonStyle}
+              >
+                See Cost Breakdown By School Level
+              </Button>
+            </Box>
+          )}
+        </Box>
+      );
+    }
+    
     return (
-      <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', mt: 2, gap: 2 }}>
-        <TableContainer component={Paper} elevation={0} sx={{ flex: 1 }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell></TableCell>
-                <TableCell align="right">District</TableCell>
-                <TableCell align="right">State</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              <TableRow>
-                <TableCell>Elementary</TableCell>
-                <TableCell align="right">
-                  {formatCompactNumber(latestPerPupilExpenditureDetails?.elementary)}
-                </TableCell>
-                <TableCell align="right">
-                  {formatCompactNumber(latestStatePerPupilExpenditureDetails?.elementary)}
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Middle</TableCell>
-                <TableCell align="right">
-                  {formatCompactNumber(latestPerPupilExpenditureDetails?.middle)}
-                </TableCell>
-                <TableCell align="right">
-                  {formatCompactNumber(latestStatePerPupilExpenditureDetails?.middle)}
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>High</TableCell>
-                <TableCell align="right">
-                  {formatCompactNumber(latestPerPupilExpenditureDetails?.high)}
-                </TableCell>
-                <TableCell align="right">
-                  {formatCompactNumber(latestStatePerPupilExpenditureDetails?.high)}
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Box>
+      <CostBreakdownTable
+        districtData={latestPerPupilExpenditureDetails}
+        stateData={latestStatePerPupilExpenditureDetails}
+      />
     );
   };
   
@@ -262,6 +263,31 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
         </Typography>
         
         {renderPerPupilDetails()}
+        
+        <Box sx={{ mt: 3 }}>
+          {isMobile ? (
+            <>
+              {showTrendChart ? (
+                  <PerPupilExpenditureTrendChart />
+              ) : (
+                <Box sx={{ textAlign: 'center' }}>
+                  <Button 
+                    variant="outlined" 
+                    size="small"
+                    onClick={handleToggleChart}
+                    sx={toggleButtonStyle}
+                  >
+                    See Cost Per Pupil Trend Chart
+                  </Button>
+                </Box>
+              )}
+            </>
+          ) : (
+            <PerPupilExpenditureTrendChart />
+          )}
+        </Box>
+        
+        {renderCostBreakdownTable()}
       </CardContent>
     </Card>
   );
