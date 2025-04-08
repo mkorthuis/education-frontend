@@ -6,13 +6,11 @@ import { locationApi } from '@/services/api/endpoints/locations';
 export interface District {
   id: string;
   name: string;
-  [key: string]: any;
 }
 
 export interface Grade {
   id: string;
   name: string;
-  [key: string]: any;
 }
 
 export interface School {
@@ -20,13 +18,11 @@ export interface School {
   name: string;
   grades?: Grade[];
   enrollment?: Record<string, number>;
-  [key: string]: any;
 }
 
 export interface Town {
   id: string;
   name: string;
-  [key: string]: any;
 }
 
 export interface Staff {
@@ -51,11 +47,11 @@ export interface Sau {
   fax?: string | null;
   webpage?: string | null;
   staff?: Staff[];
-  [key: string]: any;
 }
 
 export interface LocationState {
   districts: District[];
+  grades: Grade[];
   currentDistrict: District | null;
   currentSchools: School[];
   currentTowns: Town[];
@@ -64,6 +60,7 @@ export interface LocationState {
   loading: boolean;
   loadingStates: {
     districts: boolean;
+    grades: boolean;
     district: boolean;
     schools: boolean;
     towns: boolean;
@@ -75,6 +72,7 @@ export interface LocationState {
 
 const initialState: LocationState = {
   districts: [],
+  grades: [],
   currentDistrict: null,
   currentSchools: [],
   currentTowns: [],
@@ -83,6 +81,7 @@ const initialState: LocationState = {
   loading: false,
   loadingStates: {
     districts: false,
+    grades: false,
     district: false,
     schools: false,
     towns: false,
@@ -218,6 +217,18 @@ export const fetchAllSchoolData = createAsyncThunk(
   }
 );
 
+// Add new async thunk for fetching grades
+export const fetchGrades = createAsyncThunk(
+  'location/fetchGrades',
+  async (forceRefresh: boolean = false, { rejectWithValue }) => {
+    try {
+      return await locationApi.getGrades(forceRefresh);
+    } catch (error) {
+      return rejectWithValue(handleApiError(error, 'Failed to fetch grades'));
+    }
+  }
+);
+
 // Create the location slice
 export const locationSlice = createSlice({
   name: 'location',
@@ -239,6 +250,10 @@ export const locationSlice = createSlice({
       state.loadingStates.schools = false;
       state.loadingStates.towns = false;
       state.loadingStates.sau = false;
+    },
+    clearGradesData: (state) => {
+      state.grades = [];
+      state.loadingStates.grades = false;
     },
   },
   extraReducers: (builder) => {
@@ -363,12 +378,29 @@ export const locationSlice = createSlice({
         state.loading = false;
         state.loadingStates.district = false;
         state.error = action.payload as string;
-      });
+      })
+      
+      // Handle fetchGrades
+      .addCase(fetchGrades.pending, (state) => {
+        state.loading = true;
+        state.loadingStates.grades = true;
+        state.error = null;
+      })
+      .addCase(fetchGrades.fulfilled, (state, action) => {
+        state.grades = action.payload;
+        state.loading = false;
+        state.loadingStates.grades = false;
+      })
+      .addCase(fetchGrades.rejected, (state, action) => {
+        state.loading = false;
+        state.loadingStates.grades = false;
+        state.error = action.payload as string;
+      })
   },
 });
 
 // Export actions
-export const { clearSchoolData, clearDistrictData } = locationSlice.actions;
+export const { clearSchoolData, clearDistrictData, clearGradesData } = locationSlice.actions;
 
 // Export selectors
 export const selectDistricts = (state: RootState) => state.location.districts;
@@ -387,6 +419,7 @@ export const selectSchoolsLoading = (state: RootState) => state.location.loading
 export const selectTownsLoading = (state: RootState) => state.location.loadingStates.towns;
 export const selectSauLoading = (state: RootState) => state.location.loadingStates.sau;
 export const selectSchoolLoading = (state: RootState) => state.location.loadingStates.school;
+export const selectGradesLoading = (state: RootState) => state.location.loadingStates.grades;
 
 // Check if any location data is currently loading
 export const selectAnyLocationLoading = (state: RootState) => {

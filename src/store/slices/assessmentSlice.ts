@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { assessmentsApi } from '@/services/api/endpoints/assessments';
+import { fetchGrades, Grade } from '@/store/slices/locationSlice';
 
 // ================ TYPE DEFINITIONS ================
 
@@ -23,7 +24,10 @@ interface BaseAssessmentData {
   year: number;
   assessment_subgroup_id: number;
   assessment_subject_id: number;
+  assessment_subgroup?: AssessmentSubgroup;
+  assessment_subject?: AssessmentSubject;
   grade_id: number | null;
+  grade?: Grade | null;
   total_fay_students_low: number;
   total_fay_students_high: number;
   level_1_percentage: number | null;
@@ -172,6 +176,45 @@ const handleApiError = (error: any, errorMessage: string) => {
   return errorMessage;
 };
 
+// Helper function to enrich assessment data with related objects
+const enrichAssessmentData = <T extends BaseAssessmentData>(
+  data: T[], 
+  subjects: AssessmentSubject[], 
+  subgroups: AssessmentSubgroup[],
+  grades: Grade[]
+): T[] => {
+  // Create lookup maps for subjects and subgroups
+  const subjectsMap = subjects.reduce((acc, subject) => {
+    acc[subject.id] = subject;
+    return acc;
+  }, {} as Record<number, AssessmentSubject>);
+  
+  const subgroupsMap = subgroups.reduce((acc, subgroup) => {
+    acc[subgroup.id] = subgroup;
+    return acc;
+  }, {} as Record<number, AssessmentSubgroup>);
+  
+  // Create lookup map for grades
+  const gradesMap = grades.reduce((acc, grade) => {
+    // Convert string id to number for mapping
+    acc[Number(grade.id)] = grade;
+    return acc;
+  }, {} as Record<number, Grade>);
+  
+  // Enrich each item with its related objects
+  return data.map(item => {
+    // Create a new object that preserves all original properties
+    return {
+      ...item,
+      // Add the related objects
+      assessment_subject: subjectsMap[item.assessment_subject_id],
+      assessment_subgroup: subgroupsMap[item.assessment_subgroup_id],
+      // Add grade if grade_id exists
+      grade: item.grade_id !== null ? gradesMap[item.grade_id] : null
+    } as T; // Cast back to the original type
+  });
+};
+
 // ================ ASYNC THUNKS ================
 
 // Async thunk for fetching assessment subjects
@@ -203,17 +246,26 @@ export const fetchAssessmentSubgroups = createAsyncThunk(
 // Helper to ensure assessment reference data is loaded
 export const ensureAssessmentDataLoaded = async (state: RootState, dispatch: any) => {
   const { subjectsLoaded, subgroupsLoaded } = state.assessment;
+  const { grades } = state.location;
   
   const promises = [];
   
   if (!subjectsLoaded) promises.push(dispatch(fetchAssessmentSubjects(false)));
   if (!subgroupsLoaded) promises.push(dispatch(fetchAssessmentSubgroups(false)));
   
+  // Also ensure grades are loaded from location slice
+  if (!grades || grades.length === 0) {
+    promises.push(dispatch(fetchGrades(false)));
+  }
+  
   if (promises.length > 0) await Promise.all(promises);
 };
 
 // Async thunk for fetching assessment district data
-export const fetchAssessmentDistrictData = createAsyncThunk(
+export const fetchAssessmentDistrictData = createAsyncThunk<
+  { key: string; params: Omit<FetchAssessmentDistrictDataParams, 'forceRefresh'>; data: AssessmentDistrictData[] },
+  FetchAssessmentDistrictDataParams
+>(
   'assessment/fetchAssessmentDistrictData',
   async (params: FetchAssessmentDistrictDataParams, { rejectWithValue, dispatch, getState }) => {
     try {
@@ -223,10 +275,19 @@ export const fetchAssessmentDistrictData = createAsyncThunk(
       const districtData = await assessmentsApi.getAssessmentDistrictData(forceRefresh, queryParams);
       const queryKey = createQueryKey(queryParams);
       
+      // Type-safe access to state
+      const state = getState() as RootState;
+      const enrichedData = enrichAssessmentData(
+        districtData as unknown as BaseAssessmentData[], 
+        state.assessment.subjects, 
+        state.assessment.subgroups,
+        state.location.grades
+      ) as unknown as AssessmentDistrictData[];
+      
       return {
         key: queryKey,
         params: queryParams,
-        data: districtData
+        data: enrichedData
       };
     } catch (error) {
       return rejectWithValue(handleApiError(error, 'Failed to fetch assessment district data'));
@@ -235,7 +296,10 @@ export const fetchAssessmentDistrictData = createAsyncThunk(
 );
 
 // Async thunk for fetching assessment state data
-export const fetchAssessmentStateData = createAsyncThunk(
+export const fetchAssessmentStateData = createAsyncThunk<
+  { key: string; params: Omit<FetchAssessmentStateDataParams, 'forceRefresh'>; data: AssessmentStateData[] },
+  FetchAssessmentStateDataParams
+>(
   'assessment/fetchAssessmentStateData',
   async (params: FetchAssessmentStateDataParams, { rejectWithValue, dispatch, getState }) => {
     try {
@@ -245,10 +309,19 @@ export const fetchAssessmentStateData = createAsyncThunk(
       const stateData = await assessmentsApi.getAssessmentStateData(forceRefresh, queryParams);
       const queryKey = createQueryKey(queryParams);
       
+      // Type-safe access to state
+      const state = getState() as RootState;
+      const enrichedData = enrichAssessmentData(
+        stateData as unknown as BaseAssessmentData[], 
+        state.assessment.subjects, 
+        state.assessment.subgroups,
+        state.location.grades
+      ) as unknown as AssessmentStateData[];
+      
       return {
         key: queryKey,
         params: queryParams,
-        data: stateData
+        data: enrichedData
       };
     } catch (error) {
       return rejectWithValue(handleApiError(error, 'Failed to fetch assessment state data'));
@@ -257,7 +330,10 @@ export const fetchAssessmentStateData = createAsyncThunk(
 );
 
 // Async thunk for fetching assessment school data
-export const fetchAssessmentSchoolData = createAsyncThunk(
+export const fetchAssessmentSchoolData = createAsyncThunk<
+  { key: string; params: Omit<FetchAssessmentSchoolDataParams, 'forceRefresh'>; data: AssessmentSchoolData[] },
+  FetchAssessmentSchoolDataParams
+>(
   'assessment/fetchAssessmentSchoolData',
   async (params: FetchAssessmentSchoolDataParams, { rejectWithValue, dispatch, getState }) => {
     try {
@@ -267,10 +343,19 @@ export const fetchAssessmentSchoolData = createAsyncThunk(
       const schoolData = await assessmentsApi.getAssessmentSchoolData(forceRefresh, queryParams);
       const queryKey = createQueryKey(queryParams);
       
+      // Type-safe access to state
+      const state = getState() as RootState;
+      const enrichedData = enrichAssessmentData(
+        schoolData as unknown as BaseAssessmentData[], 
+        state.assessment.subjects, 
+        state.assessment.subgroups,
+        state.location.grades
+      ) as unknown as AssessmentSchoolData[];
+      
       return {
         key: queryKey,
         params: queryParams,
-        data: schoolData
+        data: enrichedData
       };
     } catch (error) {
       return rejectWithValue(handleApiError(error, 'Failed to fetch assessment school data'));

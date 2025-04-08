@@ -70,4 +70,22 @@ export const locationApi = {
         return response.data;
     },
 
+    getGrades: async (forceRefresh = false) => {
+        const url = BASE_ENDPOINT_URL + 'grade';
+        const response = await axiosInstance.get(
+            url,
+            forceRefresh ? skipCache() : undefined
+        );
+        return response.data;
+    },
+
+    getGradeById: async (id: string, forceRefresh = false) => {
+        const url = BASE_ENDPOINT_URL + `grade/${id}`;
+        const response = await axiosInstance.get(
+            url,
+            forceRefresh ? skipCache() : undefined
+        );
+        return response.data;
+    },
+    
 };
