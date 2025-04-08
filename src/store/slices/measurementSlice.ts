@@ -9,10 +9,7 @@ export interface Measurement {
   year: string;
   district_id?: string;
   school_id?: string;
-  measurement_type_id: string;
-  category?: string; // Category from measurement type
-  measurementType?: string; // Name of the measurement type
-  measurementCategoryName?: string; // Name of the category
+  measurement_type: MeasurementType;
   [key: string]: any;
 }
 
@@ -39,14 +36,26 @@ export enum MeasurementCategory {
 interface MeasurementState {
   measurements: Measurement[]; // Array of all measurements
   measurementTypes: MeasurementType[]; // Add measurement types to state
+  measurementTypeByIdMap: Record<string, MeasurementType>; // Add measurement types to state
   loading: boolean;
+  measurementTypesLoaded: boolean; // Track if measurement types have been loaded
+  loadingStates: {
+    measurementTypes: boolean;
+    measurements: boolean;
+  };
   error: string | null;
 }
 
 const initialState: MeasurementState = {
   measurements: [], // Initialize as empty array
   measurementTypes: [], // Initialize measurement types as empty array
+  measurementTypeByIdMap: {}, // Initialize measurement types by id to state
   loading: false,
+  measurementTypesLoaded: false,
+  loadingStates: {
+    measurementTypes: false,
+    measurements: false
+  },
   error: null
 };
 
@@ -62,81 +71,73 @@ export interface FetchMeasurementsParams {
   entityType: 'district' | 'school';
 }
 
-// Async thunk for fetching all measurements at once
-export const fetchAllMeasurements = createAsyncThunk(
-  'measurement/fetchAllMeasurements',
-  async (params: string | FetchMeasurementsParams, { rejectWithValue, getState }) => {
+// Async thunk for fetching measurement types
+export const fetchMeasurementTypes = createAsyncThunk(
+  'measurement/fetchMeasurementTypes',
+  async (_, { rejectWithValue }) => {
     try {
-      // Handle backward compatibility: if params is a string, it's a district ID
-      const entityId = typeof params === 'string' ? params : params.entityId;
-      const entityType = typeof params === 'string' ? 'district' : params.entityType;
-      
-      if (!entityId) return { measurements: [], measurementTypes: [] };
-      
-      // Check if measurement types are already loaded
-      const state = getState() as RootState;
-      let measurementTypes = state.measurement.measurementTypes;
-      
-      // Fetch measurement types if not already loaded
-      if (!measurementTypes.length) {
-        try {
-          measurementTypes = await measurementApi.getMeasurementTypes();
-        } catch (error) {
-          console.error('Failed to fetch measurement types', error);
-        }
-      }
-      
+      const measurementTypes = await measurementApi.getMeasurementTypes();
       // Create lookup map for measurement types
-      const typeMap = measurementTypes.reduce((acc, type) => {
+      const measurementTypeByIdMap = measurementTypes.reduce((acc: Record<string, MeasurementType>, type: MeasurementType) => {
         acc[type.id] = type;
         return acc;
       }, {} as Record<string, MeasurementType>);
       
+      return {measurementTypes, measurementTypeByIdMap} ;
+      
+    } catch (error) {
+      return rejectWithValue(handleApiError(error, 'Failed to fetch measurement types'));
+    }
+  }
+);
+
+// Helper to ensure measurement types are loaded
+export const ensureMeasurementTypesLoaded = async (state: RootState, dispatch: any) => {
+  const { measurementTypesLoaded } = state.measurement;
+  
+  if (!measurementTypesLoaded) {
+    await dispatch(fetchMeasurementTypes());
+  }
+};
+
+// Async thunk for fetching all measurements at once
+export const fetchAllMeasurements = createAsyncThunk(
+  'measurement/fetchAllMeasurements',
+  async (params: FetchMeasurementsParams, { rejectWithValue, getState, dispatch }) => {
+    try {
+      // Ensure measurement types are loaded first
+      await ensureMeasurementTypesLoaded(getState() as RootState, dispatch);
+      
+      // Get the loaded measurement types
+      const state = getState() as RootState;
+      
       // Fetch measurements based on entity type
       let measurementsArray;
-      if (entityType === 'district') {
-        measurementsArray = await measurementApi.getLatestDistrictMeasurements(entityId);
+      if (params.entityType === 'district') {
+        measurementsArray = await measurementApi.getLatestDistrictMeasurements(params.entityId);
       } else {
-        measurementsArray = await measurementApi.getLatestSchoolMeasurements(entityId);
+        measurementsArray = await measurementApi.getLatestSchoolMeasurements(params.entityId);
       }
       
       // Make sure we have an array of measurements
       if (!Array.isArray(measurementsArray)) {
         console.error('Expected array of measurements but got:', measurementsArray);
-        return { measurements: [], measurementTypes };
+        return [] as Measurement[]; // Return empty array of the expected type
       }
-      
-      // Process each measurement and add measurement type info
-      const processedMeasurements = measurementsArray.map(rawMeasurement => {
-        // Adapt field names from API to our internal model
+
+      const measurements = measurementsArray.map(rawMeasurement => {
         const measurement: Measurement = {
           id: String(rawMeasurement.id),
           value: rawMeasurement.field, // API returns 'field' for the value
           year: String(rawMeasurement.year),
           district_id: String(rawMeasurement.district_id),
           school_id: rawMeasurement.school_id ? String(rawMeasurement.school_id) : undefined,
-          measurement_type_id: String(rawMeasurement.measurement_type_id)
+          measurement_type: state.measurement.measurementTypeByIdMap[rawMeasurement.measurement_type_id]
         };
-        
-        // Find the measurement type
-        const measurementType = typeMap[measurement.measurement_type_id];
-        
-        if (measurementType) {
-          // Add the measurement type name to the measurement
-          measurement.measurementType = measurementType.name;
-          measurement.category = measurementType.category;
-          measurement.measurementCategoryName = measurementType.category;
-        } else {
-          console.warn(`No measurement type found for id: ${measurement.measurement_type_id}`);
-        }
-        
         return measurement;
       });
-      
-      return {
-        measurements: processedMeasurements,
-        measurementTypes
-      };
+
+      return measurements;
     } catch (error) {
       return rejectWithValue(handleApiError(error, 'Failed to fetch measurements'));
     }
@@ -155,25 +156,40 @@ export const measurementSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // Handle fetchMeasurementTypes
+      .addCase(fetchMeasurementTypes.pending, (state) => {
+        state.loading = true;
+        state.loadingStates.measurementTypes = true;
+        state.error = null;
+      })
+      .addCase(fetchMeasurementTypes.fulfilled, (state, action) => {
+        state.measurementTypes = action.payload.measurementTypes;
+        state.measurementTypeByIdMap = action.payload.measurementTypeByIdMap;
+        state.measurementTypesLoaded = true;
+        state.loadingStates.measurementTypes = false;
+        state.loading = state.loadingStates.measurements; // Only keep loading true if measurements are still loading
+      })
+      .addCase(fetchMeasurementTypes.rejected, (state, action) => {
+        state.loadingStates.measurementTypes = false;
+        state.loading = state.loadingStates.measurements;
+        state.error = action.payload as string;
+      })
+      
       // Handle fetchAllMeasurements
       .addCase(fetchAllMeasurements.pending, (state) => {
         state.loading = true;
+        state.loadingStates.measurements = true;
         state.error = null;
       })
       .addCase(fetchAllMeasurements.fulfilled, (state, action) => {
-        // If payload has both measurements and measurementTypes
-        if (action.payload) {
-          if (action.payload.measurements) {
-            state.measurements = action.payload.measurements;
-          }
-          if (action.payload.measurementTypes) {
-            state.measurementTypes = action.payload.measurementTypes;
-          }
-        }
-        state.loading = false;
+        // Update measurements from payload
+        state.measurements = action.payload;
+        state.loadingStates.measurements = false;
+        state.loading = state.loadingStates.measurementTypes; // Only keep loading true if measurement types are still loading
       })
       .addCase(fetchAllMeasurements.rejected, (state, action) => {
-        state.loading = false;
+        state.loadingStates.measurements = false;
+        state.loading = state.loadingStates.measurementTypes;
         state.error = action.payload as string;
       });
   },
@@ -192,10 +208,19 @@ export const selectMeasurementsByCategory = (category: string) =>
   );
 
 export const selectMeasurementsLoading = (state: RootState) => state.measurement.loading;
+export const selectMeasurementTypesLoading = (state: RootState) => state.measurement.loadingStates.measurementTypes;
+export const selectMeasurementsDataLoading = (state: RootState) => state.measurement.loadingStates.measurements;
 export const selectMeasurementsError = (state: RootState) => state.measurement.error;
+export const selectMeasurementTypesLoaded = (state: RootState) => state.measurement.measurementTypesLoaded;
 
 // Add selector for measurement types
 export const selectMeasurementTypes = (state: RootState) => state.measurement.measurementTypes;
+
+// Check if any data is currently loading
+export const selectAnyMeasurementLoading = (state: RootState) => {
+  const loadingStates = state.measurement.loadingStates;
+  return Object.values(loadingStates).some(isLoading => isLoading);
+};
 
 // Export reducer
 export default measurementSlice.reducer; 

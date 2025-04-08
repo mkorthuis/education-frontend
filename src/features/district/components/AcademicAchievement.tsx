@@ -1,35 +1,31 @@
 import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Box, Typography, CircularProgress, Divider } from '@mui/material';
+import { Box, CircularProgress, Typography } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentDistrict,
-  selectLocationLoading,
+  selectAnyLocationLoading,
   fetchAllDistrictData
 } from '@/store/slices/locationSlice';
 import { 
-  selectAllMeasurements, 
+  fetchAllMeasurements, 
+  fetchMeasurementTypes,
   selectMeasurementsLoading,
-  selectMeasurementsError,
-  Measurement
+  selectAllMeasurements,
+  selectMeasurementTypesLoaded,
+  MeasurementCategory
 } from '@/store/slices/measurementSlice';
-import MeasurementTable from '@/components/ui/tables/MeasurementTable';
 import SectionTitle from '@/components/ui/SectionTitle';
+import MeasurementCard from '@/features/district/components/academic/MeasurementCard';
 
 const AcademicAchievement: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const district = useAppSelector(selectCurrentDistrict);
-  const districtLoading = useAppSelector(selectLocationLoading);
-  const dispatch = useAppDispatch();
-  const measurements = useAppSelector(selectAllMeasurements);
+  const districtLoading = useAppSelector(selectAnyLocationLoading);
   const measurementsLoading = useAppSelector(selectMeasurementsLoading);
-  const measurementsError = useAppSelector(selectMeasurementsError);
-
-  // List of measurement type IDs to display
-  const targetMeasurementTypeIds = [
-    '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 
-    '34', '35', '36', '37', '38'
-  ];
+  const measurements = useAppSelector(selectAllMeasurements);
+  const measurementTypesLoaded = useAppSelector(selectMeasurementTypesLoaded);
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     if (id) {
@@ -37,45 +33,56 @@ const AcademicAchievement: React.FC = () => {
       if (!district && !districtLoading) {
         dispatch(fetchAllDistrictData(id));
       }
+      
+      // If measurement types are not loaded, fetch them
+      if (!measurementTypesLoaded) {
+        dispatch(fetchMeasurementTypes());
+      }
+      
+      // If we have the district but no measurements, fetch them
+      if (district && !measurementsLoading && measurements.length === 0) {
+        dispatch(fetchAllMeasurements({ entityId: id, entityType: 'district' }));
+      }
     }
-  }, [dispatch, id, district, districtLoading]);
+  }, [dispatch, id, district, districtLoading, measurementsLoading, measurements.length, measurementTypesLoaded]);
 
-  // Filter measurements to only include the specified measurement type IDs
-  const filteredMeasurements = measurements.filter(
-    measurement => targetMeasurementTypeIds.includes(measurement.measurement_type_id)
-  );
 
   // Show loading when either district data or measurement data is loading
   const isLoading = districtLoading || measurementsLoading;
 
-  // Loading and error handling component
-  const LoadingErrorHandler = ({ data, label }: { data: Measurement[], label: string }) => {
-    if (isLoading) {
-      return (
-        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-          <CircularProgress />
-        </Box>
-      );
-    }
-    
-    if (measurementsError) {
-      return <Typography color="error">Error loading measurement data: {measurementsError}</Typography>;
-    }
-    
-    if (data.length === 0) {
-      return <Typography>No {label} data available for the specified measurement types.</Typography>;
-    }
-    
-    return <MeasurementTable data={data} />;
-  };
+  // Placeholder data for measurement cards if no real data is available
+  const placeholderData = [
+    { title: 'Math Proficiency', value: '82%', type: 'Academic Performance' },
+    { title: 'Reading Proficiency', value: '78%', type: 'Academic Performance' },
+    { title: 'Science Proficiency', value: '75%', type: 'Academic Performance' }
+  ];
 
   return (
     <>
-      <SectionTitle>
-        {district?.name} School District
-      </SectionTitle>
-      
-      <LoadingErrorHandler data={filteredMeasurements} label="academic achievement" />
+      <SectionTitle>{district?.name} School District</SectionTitle>    
+        {isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }}}>
+            <Box sx={{display: 'flex', flexDirection: 'column', width: { xs: '100%', md: '300px' }, flexShrink: 0}}>
+              {placeholderData.map((item, index) => (
+                <MeasurementCard
+                  key={index}
+                  title={item.title}
+                  value={item.value}
+                  type={item.type}
+                />
+              ))}
+            </Box>
+            <Box sx={{flex: 1, display: 'flex', flexDirection: 'column'}}>
+                <Typography variant="h5" gutterBottom>
+                  District Performance Overview
+                </Typography>
+            </Box>
+          </Box>
+        )}
     </>
   );
 };

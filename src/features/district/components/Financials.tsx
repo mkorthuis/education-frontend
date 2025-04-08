@@ -107,8 +107,6 @@ function useDistrictFinancialData(districtId?: string) {
     if (!latestStateExpenditureData || !latestStateRevenueData.length) {
       dispatch(fetchStateExpenditure({}));
     }
-
-
   }, [
     districtId, 
     dispatch,
