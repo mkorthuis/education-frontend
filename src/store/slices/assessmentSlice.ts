@@ -490,7 +490,6 @@ export const assessmentSlice = createSlice({
       .addCase(fetchAssessmentDistrictData.fulfilled, (state, action) => {
         const { key, params, data } = action.payload;
         state.districtDataMap[key] = { params, data };
-        state.currentDistrictDataKey = key;
         state.loadingStates.districtData = false;
         updateLoadingState(state);
       })

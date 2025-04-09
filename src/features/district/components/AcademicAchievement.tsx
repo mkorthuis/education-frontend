@@ -23,7 +23,10 @@ import {
   selectSelectedSubject,
   fetchAssessmentStateData,
   selectCurrentAssessmentStateData,
-  selectAssessmentStateDataLoading
+  selectAssessmentStateDataLoading,
+  setCurrentDistrictDataKey,
+  AssessmentDistrictData,
+  AssessmentDataQueryKey
 } from '@/store/slices/assessmentSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
 import MeasurementCard from '@/features/district/components/academic/MeasurementCard';
@@ -87,7 +90,18 @@ const AcademicAchievement: React.FC = () => {
       if ((district && !assessmentLoading && assessmentData.length === 0)) {
         dispatch(fetchAssessmentDistrictData({
           district_id: id
-        }));
+        })).then((action) => {
+          // After fetching is complete, set the current district data key manually
+          if (action.meta.requestStatus === 'fulfilled') {
+            // Type assertion to access the payload properly
+            const payload = action.payload as { 
+              key: AssessmentDataQueryKey; 
+              params: any; 
+              data: AssessmentDistrictData[] 
+            };
+            dispatch(setCurrentDistrictDataKey(payload.key));
+          }
+        });
       }
     }
   }, [dispatch, id, district, districtLoading, measurementsLoading, measurements.length, measurementTypesLoaded, assessmentLoading, assessmentData.length]);
