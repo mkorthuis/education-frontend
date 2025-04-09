@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { assessmentsApi } from '@/services/api/endpoints/assessments';
 import { fetchGrades, Grade } from '@/store/slices/locationSlice';
+import { ALL_GRADES_ID, ALL_STUDENTS_SUBGROUP_ID } from '@/features/district/utils/assessmentDataProcessing';
 
 // ================ TYPE DEFINITIONS ================
 
@@ -70,9 +71,9 @@ export interface AssessmentSchoolData extends BaseAssessmentData {
 // Parameter Interfaces
 export interface BaseAssessmentParams {
   year?: string;
-  assessment_subgroup_id?: string;
-  assessment_subject_id?: string;
-  grade_id?: string;
+  assessment_subgroup_id?: number;
+  assessment_subject_id?: number;
+  grade_id?: number;
   forceRefresh?: boolean;
 }
 
@@ -117,6 +118,11 @@ export interface AssessmentState {
   currentStateDataKey: AssessmentDataQueryKey | null;
   currentSchoolDataKey: AssessmentDataQueryKey | null;
   
+  // Selected IDs
+  selectedSubjectId: number | null;
+  selectedGradeId: number | null;
+  selectedSubgroupId: number | null;
+  
   // Loading States
   loading: boolean;
   loadingStates: {
@@ -146,6 +152,9 @@ const initialState: AssessmentState = {
   currentDistrictDataKey: null,
   currentStateDataKey: null,
   currentSchoolDataKey: null,
+  selectedSubjectId: null,
+  selectedGradeId: ALL_GRADES_ID,
+  selectedSubgroupId: ALL_STUDENTS_SUBGROUP_ID,
   loading: false,
   loadingStates: {
     subjects: false,
@@ -188,7 +197,7 @@ const enrichAssessmentData = <T extends BaseAssessmentData>(
     acc[subject.id] = subject;
     return acc;
   }, {} as Record<number, AssessmentSubject>);
-  
+
   const subgroupsMap = subgroups.reduce((acc, subgroup) => {
     acc[subgroup.id] = subgroup;
     return acc;
@@ -203,14 +212,22 @@ const enrichAssessmentData = <T extends BaseAssessmentData>(
   
   // Enrich each item with its related objects
   return data.map(item => {
-    // Create a new object that preserves all original properties
+    // Create a new object with all properties except the specified IDs
+    const { 
+      grade_id, 
+      assessment_subgroup_id, 
+      assessment_subject_id, 
+      ...rest 
+    } = item;
+    
+    // Return new object with related objects added but without the ID fields
     return {
-      ...item,
+      ...rest,
       // Add the related objects
-      assessment_subject: subjectsMap[item.assessment_subject_id],
-      assessment_subgroup: subgroupsMap[item.assessment_subgroup_id],
+      assessment_subject: subjectsMap[assessment_subject_id],
+      assessment_subgroup: subgroupsMap[assessment_subgroup_id],
       // Add grade if grade_id exists
-      grade: item.grade_id !== null ? gradesMap[item.grade_id] : null
+      grade: grade_id !== null ? gradesMap[grade_id] : null
     } as T; // Cast back to the original type
   });
 };
@@ -378,6 +395,9 @@ export const assessmentSlice = createSlice({
       state.currentDistrictDataKey = null;
       state.currentStateDataKey = null;
       state.currentSchoolDataKey = null;
+      state.selectedSubjectId = null;
+      state.selectedGradeId = ALL_GRADES_ID;
+      state.selectedSubgroupId = ALL_STUDENTS_SUBGROUP_ID;
       state.error = null;
     },
     clearDistrictData: (state) => {
@@ -400,6 +420,20 @@ export const assessmentSlice = createSlice({
     },
     setCurrentSchoolDataKey: (state, action: PayloadAction<AssessmentDataQueryKey>) => {
       state.currentSchoolDataKey = action.payload;
+    },
+    setSelectedSubjectId: (state, action: PayloadAction<number | null>) => {
+      state.selectedSubjectId = action.payload;
+    },
+    setSelectedGradeId: (state, action: PayloadAction<number | null>) => {
+      state.selectedGradeId = action.payload;
+    },
+    setSelectedSubgroupId: (state, action: PayloadAction<number | null>) => {
+      state.selectedSubgroupId = action.payload;
+    },
+    // Add new action to reset all filters
+    resetFilters: (state) => {
+      state.selectedGradeId = ALL_GRADES_ID;
+      state.selectedSubgroupId = ALL_STUDENTS_SUBGROUP_ID;
     },
   },
   extraReducers: (builder) => {
@@ -514,7 +548,11 @@ export const {
   clearSchoolData,
   setCurrentDistrictDataKey,
   setCurrentStateDataKey,
-  setCurrentSchoolDataKey
+  setCurrentSchoolDataKey,
+  setSelectedSubjectId,
+  setSelectedGradeId,
+  setSelectedSubgroupId,
+  resetFilters
 } = assessmentSlice.actions;
 
 // ================ SELECTORS ================
@@ -591,6 +629,19 @@ export const selectAssessmentError = (state: RootState) => state.assessment.erro
 // General loading state
 export const selectAnyAssessmentLoading = (state: RootState) => 
   Object.values(state.assessment.loadingStates).some(isLoading => isLoading);
+
+// Selected subject selectors
+export const selectSelectedSubjectId = (state: RootState) => state.assessment.selectedSubjectId;
+
+export const selectSelectedSubject = (state: RootState) => {
+  const selectedId = state.assessment.selectedSubjectId;
+  if (selectedId === null) return null;
+  return state.assessment.subjects.find(subject => subject.id === selectedId) || null;
+};
+
+// Selected grade and subgroup selectors
+export const selectSelectedGradeId = (state: RootState) => state.assessment.selectedGradeId;
+export const selectSelectedSubgroupId = (state: RootState) => state.assessment.selectedSubgroupId;
 
 // Export reducer
 export default assessmentSlice.reducer;

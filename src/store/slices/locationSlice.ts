@@ -4,24 +4,24 @@ import { locationApi } from '@/services/api/endpoints/locations';
 
 // Define types for the slice state
 export interface District {
-  id: string;
+  id: number;
   name: string;
 }
 
 export interface Grade {
-  id: string;
+  id: number;
   name: string;
 }
 
 export interface School {
-  id: string;
+  id: number;
   name: string;
   grades?: Grade[];
   enrollment?: Record<string, number>;
 }
 
 export interface Town {
-  id: string;
+  id: number;
   name: string;
 }
 
@@ -111,7 +111,7 @@ export const fetchDistricts = createAsyncThunk(
 
 export const fetchDistrictById = createAsyncThunk(
   'location/fetchDistrictById',
-  async (id: string, { rejectWithValue }) => {
+  async (id: number, { rejectWithValue }) => {
     try {
       return await locationApi.getDistrictById(id);
     } catch (error) {
@@ -122,7 +122,7 @@ export const fetchDistrictById = createAsyncThunk(
 
 export const fetchSchoolsByDistrictId = createAsyncThunk(
   'location/fetchSchoolsByDistrictId',
-  async (id: string, { rejectWithValue }) => {
+  async (id: number, { rejectWithValue }) => {
     try {
       return await locationApi.getSchoolsByDistrictId(id);
     } catch (error) {
@@ -133,7 +133,7 @@ export const fetchSchoolsByDistrictId = createAsyncThunk(
 
 export const fetchTownsByDistrictId = createAsyncThunk(
   'location/fetchTownsByDistrictId',
-  async (id: string, { rejectWithValue }) => {
+  async (id: number, { rejectWithValue }) => {
     try {
       return await locationApi.getTownsByDistrictId(id);
     } catch (error) {
@@ -144,7 +144,7 @@ export const fetchTownsByDistrictId = createAsyncThunk(
 
 export const fetchSauByDistrictId = createAsyncThunk(
   'location/fetchSauByDistrictId',
-  async (id: string, { rejectWithValue }) => {
+  async (id: number, { rejectWithValue }) => {
     try {
       const data = await locationApi.getSauByDistrictId(id);
       return data[0]; // Get the first SAU from the array
@@ -156,7 +156,7 @@ export const fetchSauByDistrictId = createAsyncThunk(
 
 export const fetchAllDistrictData = createAsyncThunk(
   'location/fetchAllDistrictData',
-  async (id: string, { dispatch }) => {
+  async (id: number, { dispatch }) => {
     if (!id) return;
     
     // Fetch all district data in parallel
@@ -173,7 +173,7 @@ export const fetchAllDistrictData = createAsyncThunk(
 
 export const fetchSchoolById = createAsyncThunk(
   'location/fetchSchoolById',
-  async (id: string, { rejectWithValue }) => {
+  async (id: number, { rejectWithValue }) => {
     try {
       return await locationApi.getSchoolById(id);
     } catch (error) {
@@ -184,7 +184,7 @@ export const fetchSchoolById = createAsyncThunk(
 
 export const fetchDistrictBySchoolId = createAsyncThunk(
   'location/fetchDistrictBySchoolId',
-  async (id: string, { rejectWithValue }) => {
+  async (id: number, { rejectWithValue }) => {
     try {
       const districts = await locationApi.getDistrictBySchoolId(id);
       return districts; // Return the entire array
@@ -196,7 +196,7 @@ export const fetchDistrictBySchoolId = createAsyncThunk(
 
 export const fetchAllSchoolData = createAsyncThunk(
   'location/fetchAllSchoolData',
-  async (id: string, { dispatch, getState }) => {
+  async (id: number, { dispatch, getState }) => {
     if (!id) return;
     
     // Fetch all school data in parallel

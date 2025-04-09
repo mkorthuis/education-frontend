@@ -37,7 +37,7 @@ const AcademicAchievement: React.FC = () => {
     if (id) {
       // If school data isn't loaded yet, fetch it
       if (!school && !schoolLoading) {
-        dispatch(fetchAllSchoolData(id));
+        dispatch(fetchAllSchoolData(parseInt(id)));
       }
     }
   }, [dispatch, id, school, schoolLoading]);

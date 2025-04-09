@@ -133,7 +133,7 @@ export interface FinanceState {
   // Financial reports
   financialReports: Record<string, FinancialReport>;
   processedReports: Record<string, ProcessedReport>;
-  processedReportDistrictId: string | null;
+  processedReportDistrictId: number | null;
   // Per pupil expenditure data
   perPupilExpenditureAllData: PerPupilExpenditure[];
   statePerPupilExpenditureAllData: PerPupilExpenditure[];
@@ -303,7 +303,7 @@ export const fetchFinancialReports = createAsyncThunk(
   async ({ 
     districtId
   }: { 
-    districtId: string; 
+    districtId: number; 
   }, { rejectWithValue, getState, dispatch }) => {
     try {
       // Ensure entry types and fund types are loaded first
@@ -327,7 +327,7 @@ export const fetchPerPupilExpenditure = createAsyncThunk(
     year,
     forceRefresh = false
   }: { 
-    districtId: string; 
+    districtId: number; 
     year?: string;
     forceRefresh?: boolean;
   }, { rejectWithValue }) => {

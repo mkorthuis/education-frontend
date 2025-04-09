@@ -2,7 +2,7 @@ import axiosInstance from '../config/axios';
 import { BASE_API_URL } from '../config/constants';
 import { skipCache, invalidateCache } from '../../../utils/cacheUtils';
 
-const BASE_ENDPOINT_URL = BASE_API_URL + 'assessments/';
+const BASE_ENDPOINT_URL = BASE_API_URL + 'assessment/';
 
 
 export const assessmentsApi = {
@@ -29,9 +29,9 @@ export const assessmentsApi = {
         forceRefresh = false,
         options?: {
             year?: string;
-            assessment_subgroup_id?: string;
-            assessment_subject_id?: string;
-            grade_id?: string;
+            assessment_subgroup_id?: number;
+            assessment_subject_id?: number;
+            grade_id?: number;
         }
     ) => {
         const url = BASE_ENDPOINT_URL + `state`;
@@ -39,9 +39,9 @@ export const assessmentsApi = {
         
         if (options) {
             if (options.year) params.append('year', options.year);
-            if (options.assessment_subgroup_id) params.append('assessment_subgroup_id', options.assessment_subgroup_id);
-            if (options.assessment_subject_id) params.append('assessment_subject_id', options.assessment_subject_id);
-            if (options.grade_id) params.append('grade_id', options.grade_id);
+            if (options.assessment_subgroup_id) params.append('assessment_subgroup_id', options.assessment_subgroup_id.toString());
+            if (options.assessment_subject_id) params.append('assessment_subject_id', options.assessment_subject_id.toString());
+            if (options.grade_id) params.append('grade_id', options.grade_id.toString());
         }
         
         const queryString = params.toString();
@@ -59,9 +59,9 @@ export const assessmentsApi = {
         options?: {
             district_id?: string;
             year?: string;
-            assessment_subgroup_id?: string;
-            assessment_subject_id?: string;
-            grade_id?: string;
+            assessment_subgroup_id?: number;
+            assessment_subject_id?: number;
+            grade_id?: number;
         }
     ) => {
         const url = BASE_ENDPOINT_URL + `district`;
@@ -70,9 +70,9 @@ export const assessmentsApi = {
         if (options) {
             if (options.district_id) params.append('district_id', options.district_id);
             if (options.year) params.append('year', options.year);
-            if (options.assessment_subgroup_id) params.append('assessment_subgroup_id', options.assessment_subgroup_id);
-            if (options.assessment_subject_id) params.append('assessment_subject_id', options.assessment_subject_id);
-            if (options.grade_id) params.append('grade_id', options.grade_id);
+            if (options.assessment_subgroup_id) params.append('assessment_subgroup_id', options.assessment_subgroup_id.toString());
+            if (options.assessment_subject_id) params.append('assessment_subject_id', options.assessment_subject_id.toString());
+            if (options.grade_id) params.append('grade_id', options.grade_id.toString());
         }
         
         const queryString = params.toString();
@@ -90,9 +90,9 @@ export const assessmentsApi = {
         options?: {
             school_id?: string;
             year?: string;
-            assessment_subgroup_id?: string;
-            assessment_subject_id?: string;
-            grade_id?: string;
+            assessment_subgroup_id?: number;
+            assessment_subject_id?: number;
+            grade_id?: number;
         }
     ) => {
         const url = BASE_ENDPOINT_URL + `school`;
@@ -101,9 +101,9 @@ export const assessmentsApi = {
         if (options) {
             if (options.school_id) params.append('school_id', options.school_id);
             if (options.year) params.append('year', options.year);
-            if (options.assessment_subgroup_id) params.append('assessment_subgroup_id', options.assessment_subgroup_id);
-            if (options.assessment_subject_id) params.append('assessment_subject_id', options.assessment_subject_id);
-            if (options.grade_id) params.append('grade_id', options.grade_id);
+            if (options.assessment_subgroup_id) params.append('assessment_subgroup_id', options.assessment_subgroup_id.toString());
+            if (options.assessment_subject_id) params.append('assessment_subject_id', options.assessment_subject_id.toString());
+            if (options.grade_id) params.append('grade_id', options.grade_id.toString());
         }
         
         const queryString = params.toString();

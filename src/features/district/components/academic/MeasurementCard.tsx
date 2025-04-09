@@ -1,24 +1,24 @@
 import React from 'react';
-import { Box, Card, CardContent, Typography, Paper } from '@mui/material';
-import { Measurement } from '@/store/slices/measurementSlice';
+import { Card, CardContent, Typography, Paper } from '@mui/material';
+import { AssessmentSubject, setSelectedSubjectId } from '@/store/slices/assessmentSlice';
+import { useAppDispatch } from '@/store/hooks';
 
 interface MeasurementCardProps {
-  title?: string;
-  value?: string | number;
-  type?: string;
-  measurement?: Measurement;
+  assessment_subject?: AssessmentSubject;
+  value?: number | null;
 }
 
 const MeasurementCard: React.FC<MeasurementCardProps> = ({
-  title = 'Measurement Title',
-  value = '75%',
-  type = 'Academic',
-  measurement
+  assessment_subject,
+  value = null
 }) => {
-  // If a measurement is provided, use its data instead of the defaults
-  const displayTitle = measurement?.name || title;
-  const displayValue = measurement?.value || value;
-  const displayType = measurement?.measurement_type?.name || type;
+  const dispatch = useAppDispatch();
+  
+  const handleCardClick = () => {
+    if (assessment_subject && assessment_subject.id) {
+      dispatch(setSelectedSubjectId(assessment_subject.id));
+    }
+  };
 
   return (
     <Card 
@@ -30,15 +30,14 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
         '&:hover': {
           transform: 'translateY(-4px)',
           boxShadow: 6,
+          cursor: 'pointer'
         }
       }}
+      onClick={handleCardClick}
     >
       <CardContent>
-        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-          {displayType}
-        </Typography>
         <Typography variant="h6" component="div" fontWeight="bold" sx={{ mb: 1.5 }}>
-          {displayTitle}
+          {assessment_subject?.description}
         </Typography>
         <Paper 
           elevation={0} 
@@ -52,7 +51,7 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
           }}
         >
           <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.contrastText' }}>
-            {displayValue}
+            {value !== null ? value : 'N/A'}
           </Typography>
         </Paper>
       </CardContent>
