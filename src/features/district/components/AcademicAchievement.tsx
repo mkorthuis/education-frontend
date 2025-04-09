@@ -13,7 +13,6 @@ import {
   selectMeasurementsLoading,
   selectAllMeasurements,
   selectMeasurementTypesLoaded,
-  MeasurementCategory
 } from '@/store/slices/measurementSlice';
 import {
   fetchAssessmentDistrictData,
@@ -75,9 +74,8 @@ const AcademicAchievement: React.FC = () => {
       if (district && !measurementsLoading && measurements.length === 0) {
         dispatch(fetchAllMeasurements({ entityId: id, entityType: 'district' }));
       }
-      
       // Fetch assessment district data with current fiscal year and null grade_id
-      if (district && !assessmentLoading && assessmentData.length === 0) {
+      if ((district && !assessmentLoading && assessmentData.length === 0) || assessmentData[0]?.district_id !== parseInt(id)) {
         dispatch(fetchAssessmentDistrictData({
           district_id: id
         }));
