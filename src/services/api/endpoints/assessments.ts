@@ -57,7 +57,7 @@ export const assessmentsApi = {
     getAssessmentDistrictData: async (
         forceRefresh = false,
         options?: {
-            district_id?: string;
+            district_id?: number;
             year?: string;
             assessment_subgroup_id?: number;
             assessment_subject_id?: number;
@@ -68,7 +68,7 @@ export const assessmentsApi = {
         const params = new URLSearchParams();
         
         if (options) {
-            if (options.district_id) params.append('district_id', options.district_id);
+            if (options.district_id) params.append('district_id', options.district_id.toString());
             if (options.year) params.append('year', options.year);
             if (options.assessment_subgroup_id) params.append('assessment_subgroup_id', options.assessment_subgroup_id.toString());
             if (options.assessment_subject_id) params.append('assessment_subject_id', options.assessment_subject_id.toString());

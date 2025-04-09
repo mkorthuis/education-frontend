@@ -88,8 +88,9 @@ const AcademicAchievement: React.FC = () => {
       }
 
       if ((district && !assessmentLoading && assessmentData.length === 0)) {
+
         dispatch(fetchAssessmentDistrictData({
-          district_id: id
+          district_id: parseInt(id)
         })).then((action) => {
           // After fetching is complete, set the current district data key manually
           if (action.meta.requestStatus === 'fulfilled') {

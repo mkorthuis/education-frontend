@@ -21,6 +21,7 @@ import {
 } from '@/features/district/utils/assessmentDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
 import AcademicHistoryChart from './AcademicHistoryChart';
+import DistrictAcademicPerformance from './DistrictAcademicPerformance';
 
 interface AcademicSubjectDetailsProps {
   subject: AssessmentSubject | null;
@@ -209,6 +210,9 @@ const AcademicSubjectDetails: React.FC<AcademicSubjectDetailsProps> = ({ subject
           No assessment data found for the selected filters.
         </Typography>
       )}
+      
+      {/* District vs State Performance Chart */}
+      {selectedSubjectId && <DistrictAcademicPerformance />}
       
       {/* Historical trend chart */}
       {selectedSubjectId && <AcademicHistoryChart />}

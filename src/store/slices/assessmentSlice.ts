@@ -78,7 +78,7 @@ export interface BaseAssessmentParams {
 }
 
 export interface FetchAssessmentDistrictDataParams extends BaseAssessmentParams {
-  district_id: string;
+  district_id?: number;
 }
 
 export interface FetchAssessmentStateDataParams extends BaseAssessmentParams {
