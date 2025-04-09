@@ -176,7 +176,9 @@ const createQueryKey = (params: Record<string, any>): AssessmentDataQueryKey => 
     .filter(([_, value]) => value !== undefined)
     .sort(([keyA], [keyB]) => keyA.localeCompare(keyB));
   
-  return sortedParams.map(([key, value]) => `${key}=${value}`).join('&');
+  const keyString = sortedParams.map(([key, value]) => `${key}=${value}`).join('&');
+  // Ensure we never return an empty string as a key
+  return keyString || '_default';
 };
 
 // Error handler function for thunks

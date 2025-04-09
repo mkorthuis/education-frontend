@@ -9,7 +9,8 @@ import {
   selectSelectedGradeId,
   selectSelectedSubgroupId,
   selectSelectedSubject,
-  selectAssessmentSubgroups
+  selectAssessmentSubgroups,
+  selectCurrentAssessmentStateData
 } from '@/store/slices/assessmentSlice';
 import { 
   filterAssessmentResults, 
@@ -25,6 +26,8 @@ interface ChartDataPoint {
   selectedSubgroupPercentage: number | null;
   selectedSubgroupException: string | null;
   selectedSubgroupName: string | null;
+  statePercentage: number | null;
+  stateException: string | null;
 }
 
 const AcademicHistoryChart: React.FC = () => {
@@ -33,6 +36,7 @@ const AcademicHistoryChart: React.FC = () => {
   
   // Get assessment data from Redux store
   const assessmentData = useAppSelector(selectCurrentAssessmentDistrictData);
+  const stateAssessmentData = useAppSelector(selectCurrentAssessmentStateData);
   const selectedSubjectId = useAppSelector(selectSelectedSubjectId);
   const selectedGradeId = useAppSelector(selectSelectedGradeId);
   const selectedSubgroupId = useAppSelector(selectSelectedSubgroupId);
@@ -65,6 +69,11 @@ const AcademicHistoryChart: React.FC = () => {
       assessment_subject_id: selectedSubjectId
     });
     
+    // Filter state data by subject
+    const filteredStateData = stateAssessmentData ? filterAssessmentResults(stateAssessmentData, {
+      assessment_subject_id: selectedSubjectId
+    }) : [];
+    
     // Prepare data for the chart
     // Get all available years
     const availableYears = [...new Set(filteredBySubjectData.map(item => item.year))].sort();
@@ -72,6 +81,9 @@ const AcademicHistoryChart: React.FC = () => {
     return availableYears.map(year => {
       // Filter data for current year and selected subject
       const yearData = filterAssessmentResults(filteredBySubjectData, { year: year.toString() });
+      
+      // Filter state data for current year and selected subject
+      const stateYearData = filterAssessmentResults(filteredStateData, { year: year.toString() });
       
       // Get 'All Students' data for this year
       const allStudentsData = filterAssessmentResults(yearData, {
@@ -82,6 +94,20 @@ const AcademicHistoryChart: React.FC = () => {
       // Get selected subgroup data if applicable
       const selectedSubgroupData = selectedSubgroupId !== ALL_STUDENTS_SUBGROUP_ID && selectedSubgroupId !== null
         ? filterAssessmentResults(yearData, {
+            grade_id: selectedGradeId || undefined,
+            assessment_subgroup_id: selectedSubgroupId
+          })
+        : [];
+      
+      // Get state data for this year - focusing on All Students for state comparison
+      const stateAllStudentsData = filterAssessmentResults(stateYearData, {
+        grade_id: selectedGradeId || undefined,
+        assessment_subgroup_id: ALL_STUDENTS_SUBGROUP_ID
+      });
+      
+      // Get state data for selected subgroup if applicable
+      const stateSelectedSubgroupData = selectedSubgroupId !== ALL_STUDENTS_SUBGROUP_ID && selectedSubgroupId !== null
+        ? filterAssessmentResults(stateYearData, {
             grade_id: selectedGradeId || undefined,
             assessment_subgroup_id: selectedSubgroupId
           })
@@ -103,6 +129,22 @@ const AcademicHistoryChart: React.FC = () => {
       const selectedSubgroupException = selectedSubgroupData.length > 0
         ? selectedSubgroupData[0].above_proficient_percentage_exception
         : null;
+        
+      const stateAboveProficient = selectedSubgroupId !== ALL_STUDENTS_SUBGROUP_ID && selectedSubgroupId !== null
+        ? (stateSelectedSubgroupData.length > 0 
+            ? stateSelectedSubgroupData[0].above_proficient_percentage 
+            : null)
+        : (stateAllStudentsData.length > 0
+            ? stateAllStudentsData[0].above_proficient_percentage
+            : null);
+        
+      const stateException = selectedSubgroupId !== ALL_STUDENTS_SUBGROUP_ID && selectedSubgroupId !== null
+        ? (stateSelectedSubgroupData.length > 0 
+            ? stateSelectedSubgroupData[0].above_proficient_percentage_exception 
+            : null)
+        : (stateAllStudentsData.length > 0
+            ? stateAllStudentsData[0].above_proficient_percentage_exception
+            : null);
       
       // Process values to handle special exceptions
       const processedAllStudentsPercentage = processExceptionValue(
@@ -115,6 +157,11 @@ const AcademicHistoryChart: React.FC = () => {
         selectedSubgroupException
       );
       
+      const processedStatePercentage = processExceptionValue(
+        stateAboveProficient,
+        stateException
+      );
+      
       return {
         year,
         formattedYear: `${year-1}-${year.toString().substring(2)}`, // Format like "2022-23"
@@ -122,10 +169,12 @@ const AcademicHistoryChart: React.FC = () => {
         allStudentsException,
         selectedSubgroupPercentage: processedSelectedSubgroupPercentage,
         selectedSubgroupException,
-        selectedSubgroupName
+        selectedSubgroupName,
+        statePercentage: processedStatePercentage,
+        stateException
       };
     });
-  }, [assessmentData, selectedSubjectId, selectedGradeId, selectedSubgroupId, selectedSubgroupName]);
+  }, [assessmentData, stateAssessmentData, selectedSubjectId, selectedGradeId, selectedSubgroupId, selectedSubgroupName]);
   
   // Calculate Y-axis domain based on data values
   const yAxisDomain = useMemo(() => {
@@ -140,6 +189,9 @@ const AcademicHistoryChart: React.FC = () => {
       }
       if (dataPoint.selectedSubgroupPercentage !== null) {
         allPercentages.push(dataPoint.selectedSubgroupPercentage);
+      }
+      if (dataPoint.statePercentage !== null) {
+        allPercentages.push(dataPoint.statePercentage);
       }
     });
     
@@ -204,9 +256,13 @@ const AcademicHistoryChart: React.FC = () => {
             let exception: string | null = null;
             
             if (dataPoint) {
-              exception = entry.dataKey === 'allStudentsPercentage' 
-                ? dataPoint.allStudentsException 
-                : dataPoint.selectedSubgroupException;
+              if (entry.dataKey === 'allStudentsPercentage') {
+                exception = dataPoint.allStudentsException;
+              } else if (entry.dataKey === 'selectedSubgroupPercentage') {
+                exception = dataPoint.selectedSubgroupException;
+              } else if (entry.dataKey === 'statePercentage') {
+                exception = dataPoint.stateException;
+              }
             }
             
             return (
@@ -280,8 +336,12 @@ const AcademicHistoryChart: React.FC = () => {
             <Line
               type="monotone"
               dataKey="allStudentsPercentage"
-              name="All Students"
-              stroke={theme.palette.primary.main}
+              name={selectedSubgroupId !== ALL_STUDENTS_SUBGROUP_ID && selectedSubgroupId !== null
+                ? "District Average" : "All Students"}
+              stroke={selectedSubgroupId !== null && selectedSubgroupId !== ALL_STUDENTS_SUBGROUP_ID 
+                ? theme.palette.grey[400] // Use grey when subgroup selected
+                : theme.palette.primary.main // Use primary color when no subgroup
+              }
               strokeWidth={2}
               dot={{ r: 4 }}
               activeDot={{ r: 6 }}
@@ -292,13 +352,26 @@ const AcademicHistoryChart: React.FC = () => {
                 type="monotone"
                 dataKey="selectedSubgroupPercentage"
                 name={selectedSubgroupName || "Selected Subgroup"}
-                stroke={theme.palette.secondary.main}
+                stroke={theme.palette.primary.main}
                 strokeWidth={2}
                 dot={{ r: 4 }}
                 activeDot={{ r: 6 }}
                 connectNulls
               />
             )}
+            <Line
+              type="monotone"
+              dataKey="statePercentage"
+              name={selectedSubgroupId !== ALL_STUDENTS_SUBGROUP_ID && selectedSubgroupId !== null
+                ? `State ${selectedSubgroupName || "Selected Subgroup"} Average.`
+                : "State Average"
+              }
+              stroke={theme.palette.success.main} // Green color from Material UI standards
+              strokeWidth={2}
+              dot={{ r: 4 }}
+              activeDot={{ r: 6 }}
+              connectNulls
+            />
           </LineChart>
         </ResponsiveContainer>
       </Box>

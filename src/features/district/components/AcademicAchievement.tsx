@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { Box, CircularProgress } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentDistrict,
@@ -20,7 +20,10 @@ import {
   selectAssessmentDistrictDataLoading,
   setSelectedSubjectId,
   selectSelectedSubjectId,
-  selectSelectedSubject
+  selectSelectedSubject,
+  fetchAssessmentStateData,
+  selectCurrentAssessmentStateData,
+  selectAssessmentStateDataLoading
 } from '@/store/slices/assessmentSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
 import MeasurementCard from '@/features/district/components/academic/MeasurementCard';
@@ -47,6 +50,8 @@ const AcademicAchievement: React.FC = () => {
   const measurementTypesLoaded = useAppSelector(selectMeasurementTypesLoaded);
   const assessmentData = useAppSelector(selectCurrentAssessmentDistrictData);
   const assessmentLoading = useAppSelector(selectAssessmentDistrictDataLoading);
+  const stateAssessmentData = useAppSelector(selectCurrentAssessmentStateData);
+  const stateAssessmentLoading = useAppSelector(selectAssessmentStateDataLoading);
   const selectedSubjectId = useAppSelector(selectSelectedSubjectId);
   const selectedSubject = useAppSelector(selectSelectedSubject);
   const dispatch = useAppDispatch();
@@ -74,8 +79,12 @@ const AcademicAchievement: React.FC = () => {
       if (district && !measurementsLoading && measurements.length === 0) {
         dispatch(fetchAllMeasurements({ entityId: id, entityType: 'district' }));
       }
-      // Fetch assessment district data with current fiscal year and null grade_id
-      if ((district && !assessmentLoading && assessmentData.length === 0) || assessmentData[0]?.district_id !== parseInt(id)) {
+
+      if (!stateAssessmentLoading && stateAssessmentData.length === 0) {
+        dispatch(fetchAssessmentStateData({}));
+      }
+
+      if ((district && !assessmentLoading && assessmentData.length === 0)) {
         dispatch(fetchAssessmentDistrictData({
           district_id: id
         }));
