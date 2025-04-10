@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Box, Typography, FormControl, InputLabel, Select, MenuItem, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Box, Typography, FormControl, InputLabel, Select, MenuItem, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, useTheme, useMediaQuery } from '@mui/material';
 import { 
   AssessmentSubject, 
   selectCurrentAssessmentDistrictData, 
@@ -31,6 +31,8 @@ interface AcademicSubjectDetailsProps {
 
 const AcademicSubjectDetails: React.FC<AcademicSubjectDetailsProps> = ({ subject }) => {
   const dispatch = useAppDispatch();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   // Get assessment district data from Redux store
   const assessmentData = useAppSelector(selectCurrentAssessmentDistrictData);
@@ -109,7 +111,7 @@ const AcademicSubjectDetails: React.FC<AcademicSubjectDetailsProps> = ({ subject
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       <Typography variant="h5" sx={{mb: 3}}>
-        {subject ? subject.description : 'No Subject Selected'} State Assessment Results 
+        {subject ? subject.description : 'No Subject Selected'} {!isMobile && 'State'} Assessment Results
       </Typography>
       
       {/* Filter controls */}

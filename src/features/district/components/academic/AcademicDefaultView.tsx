@@ -13,16 +13,14 @@ const AcademicDefaultView: React.FC<AcademicDefaultViewProps> = ({
 }) => {
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-      <Typography variant="h5" gutterBottom>
-        District Performance Overview
+      <Typography variant="h5">
+        Welcome to the Academic Performance Overview
       </Typography>
-      <Typography variant="body1">
-        {assessmentData.length > 0 
-          ? `Loaded ${assessmentData.length} assessment records for year ${fiscalYear}.` 
-          : 'No assessment data available.'}
+      <Typography variant="body1" sx={{ mt: 2, }}>
+        Please select a subject to view detailed information.
       </Typography>
-      <Typography variant="body1" sx={{ mt: 2 }}>
-        Please select a subject from the cards on the left to view detailed information.
+      <Typography variant="body2" sx={{ mt: 2, fontStyle: 'italic' }}>
+        More information about College Readiness is coming soon.
       </Typography>
     </Box>
   );
