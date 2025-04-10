@@ -17,7 +17,8 @@ import {
   filterAssessmentResults, 
   ExtendedGrade,
   ExtendedSubgroup,
-  ALL_STUDENTS_SUBGROUP_ID
+  ALL_STUDENTS_SUBGROUP_ID,
+  ALL_GRADES_ID
 } from '@/features/district/utils/assessmentDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
 import AcademicHistoryChart from './AcademicHistoryChart';
@@ -102,10 +103,36 @@ const AcademicSubjectDetails: React.FC<AcademicSubjectDetailsProps> = ({ subject
     dispatch(setSelectedSubgroupId(value === '' ? null : value));
   };
   
-  // Reset filters when subject changes
-//   useEffect(() => {
-//     dispatch(resetFilters());
-//   }, [selectedSubjectId, dispatch]);
+  // Reset filters when subject changes and validate existing filters
+  useEffect(() => {
+    if (!selectedSubjectId) return;
+
+    // Get data for the new subject to check available grades and subgroups
+    const newSubjectData = filterAssessmentResults(assessmentData, {
+      year: FISCAL_YEAR,
+      assessment_subject_id: selectedSubjectId
+    });
+
+    const availableGrades = getUniqueGrades(newSubjectData);
+    const availableSubgroups = getUniqueSubgroups(newSubjectData);
+
+    // Check if current grade is valid for the new subject
+    const isGradeValid = selectedGradeId === null || 
+      availableGrades.some(g => g.id === selectedGradeId && !g.disabled);
+
+    // Check if current subgroup is valid for the new subject
+    const isSubgroupValid = selectedSubgroupId === null ||
+      availableSubgroups.some(s => s.id === selectedSubgroupId && !s.disabled);
+
+    // If either filter is invalid, reset to default values
+    if (!isGradeValid && !isSubgroupValid) {
+      dispatch(resetFilters());
+    } else if (!isGradeValid) {
+      dispatch(setSelectedGradeId(ALL_GRADES_ID));
+    } else if (!isSubgroupValid) {
+      dispatch(setSelectedSubgroupId(ALL_STUDENTS_SUBGROUP_ID));
+    }
+  }, [selectedSubjectId, assessmentData, dispatch, selectedGradeId, selectedSubgroupId]);
   
 
   return (
