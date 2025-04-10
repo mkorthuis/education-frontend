@@ -18,6 +18,17 @@ export interface School {
   name: string;
   grades?: Grade[];
   enrollment?: Record<string, number>;
+  address1?: string | null;
+  address2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  webpage?: string | null;
+  principal_first_name?: string | null;
+  principal_last_name?: string | null;
+  school_type?: { id: number; name: string };
 }
 
 export interface Town {

@@ -30,13 +30,10 @@ const Staff: React.FC = () => {
   const teacherMeasurementTypeIds = ['13', '14', '15', '43', '44', '45'];
 
   useEffect(() => {
-    if (id) {
-      // If school data isn't loaded yet, fetch it
-      if (!school && !schoolLoading) {
-        dispatch(fetchAllSchoolData(id));
-      }
+    if (id && !school && !schoolLoading) {
+      dispatch(fetchAllSchoolData(Number(id)));
     }
-  }, [dispatch, id, school, schoolLoading]);
+  }, [id, school, schoolLoading, dispatch]);
 
   // Filter measurements to only include teacher-related measurement type IDs
   const teacherMeasurements = measurements.filter(

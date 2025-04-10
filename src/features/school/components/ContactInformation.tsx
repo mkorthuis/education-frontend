@@ -23,7 +23,7 @@ const ContactInformation: React.FC = () => {
   // Load school data if it's not already loaded
   useEffect(() => {
     if (id && !school && !loading) {
-      dispatch(fetchAllSchoolData(id));
+      dispatch(fetchAllSchoolData(Number(id)));
     }
   }, [id, school, loading, dispatch]);
 

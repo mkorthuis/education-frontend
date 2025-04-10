@@ -33,7 +33,7 @@ const District: React.FC = () => {
 
   useEffect(() => {
     if (id) {
-      dispatch(fetchAllDistrictData(id));
+      dispatch(fetchAllDistrictData(Number(id)));
     }
   }, [id, dispatch]);
 
