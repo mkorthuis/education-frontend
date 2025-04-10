@@ -1,17 +1,17 @@
 import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Box, Typography, Paper, CircularProgress } from '@mui/material';
+import { Box, Typography, CircularProgress } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentSchool,
-  selectLocationLoading,
-  selectLocationError,
-  fetchAllSchoolData
+  fetchAllSchoolData,
+  selectSchoolLoading
 } from '@/store/slices/locationSlice';
 import { 
   selectAllMeasurements, 
   selectMeasurementsLoading,
-  selectMeasurementsError
+  selectMeasurementsError,
+  fetchAllMeasurements
 } from '@/store/slices/measurementSlice';
 import MeasurementTable from '@/components/ui/tables/MeasurementTable';
 import SectionTitle from '@/components/ui/SectionTitle';
@@ -19,25 +19,29 @@ import SectionTitle from '@/components/ui/SectionTitle';
 const Safety: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const school = useAppSelector(selectCurrentSchool);
-  const schoolLoading = useAppSelector(selectLocationLoading);
-  const schoolError = useAppSelector(selectLocationError);
+  const schoolLoading = useAppSelector(selectSchoolLoading);
   const dispatch = useAppDispatch();
   const measurements = useAppSelector(selectAllMeasurements);
   const measurementsLoading = useAppSelector(selectMeasurementsLoading);
   const measurementsError = useAppSelector(selectMeasurementsError);
 
   // List of safety measurement type IDs
-  const safetyMeasurementTypeIds = ['39', '40', '41', '42'];
+  const safetyMeasurementTypeIds = [39, 40, 41, 42];
 
   useEffect(() => {
-    if (id && !school && !schoolLoading) {
-      dispatch(fetchAllSchoolData(Number(id)));
+    if (id) {
+      if(!schoolLoading && !school) {
+        dispatch(fetchAllSchoolData(parseInt(id)));
+      }
+      if (!measurementsLoading && measurements.length === 0) {
+        dispatch(fetchAllMeasurements({ entityId: id, entityType: 'school' }));
+      }
     }
-  }, [id, school, schoolLoading, dispatch]);
+  }, [id, schoolLoading, dispatch, measurementsLoading, measurements]);
 
   // Filter measurements to only include safety measurement type IDs
   const safetyMeasurements = measurements.filter(
-    measurement => safetyMeasurementTypeIds.includes(measurement.measurement_type_id)
+    measurement => safetyMeasurementTypeIds.includes(Number(measurement.measurement_type.id))
   );
 
   // Show loading when either school data or measurement data is loading

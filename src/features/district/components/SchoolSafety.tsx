@@ -10,7 +10,8 @@ import {
 import { 
   selectAllMeasurements, 
   selectMeasurementsLoading,
-  selectMeasurementsError
+  selectMeasurementsError,
+  fetchAllMeasurements
 } from '@/store/slices/measurementSlice';
 import MeasurementTable from '@/components/ui/tables/MeasurementTable';
 import SectionTitle from '@/components/ui/SectionTitle';
@@ -25,20 +26,22 @@ const SchoolSafety: React.FC = () => {
   const measurementsError = useAppSelector(selectMeasurementsError);
 
   // List of school safety measurement type IDs
-  const safetyMeasurementTypeIds = ['39', '40', '41', '42', '43'];
+  const safetyMeasurementTypeIds = [39, 40, 41, 42, 43];
 
   useEffect(() => {
     if (id) {
-      // If district data isn't loaded yet, fetch it
-      if (!district && !districtLoading) {
+      if(!districtLoading && !district) {
         dispatch(fetchAllDistrictData(parseInt(id)));
       }
+      if (!measurementsLoading && measurements.length === 0) {
+        dispatch(fetchAllMeasurements({ entityId: id, entityType: 'district' }));
+      }
     }
-  }, [dispatch, id, district, districtLoading]);
+  }, [id, districtLoading, dispatch, measurementsLoading, measurements]);
 
   // Filter measurements to only include safety measurement type IDs
   const safetyMeasurements = measurements.filter(
-    measurement => safetyMeasurementTypeIds.includes(measurement.measurement_type_id)
+    measurement => safetyMeasurementTypeIds.includes(Number(measurement.measurement_type.id))
   );
 
   // Show loading when either district data or measurement data is loading

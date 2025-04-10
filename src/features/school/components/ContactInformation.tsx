@@ -5,7 +5,7 @@ import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import {  sortStaffByTypeAndName } from '@/utils/formatting';
 import { 
   selectCurrentSchool, 
-  selectLocationLoading, 
+  selectSchoolLoading, 
   selectLocationError,
   fetchAllSchoolData,
   selectCurrentSau
@@ -17,15 +17,15 @@ const ContactInformation: React.FC = () => {
   const dispatch = useAppDispatch();
   const sau = useAppSelector(selectCurrentSau);
   const school = useAppSelector(selectCurrentSchool);
-  const loading = useAppSelector(selectLocationLoading);
+  const schoolLoading = useAppSelector(selectSchoolLoading);
   const error = useAppSelector(selectLocationError);
 
   // Load school data if it's not already loaded
   useEffect(() => {
-    if (id && !school && !loading) {
-      dispatch(fetchAllSchoolData(Number(id)));
+    if(id && !schoolLoading && !school) {
+      dispatch(fetchAllSchoolData(parseInt(id)));
     }
-  }, [id, school, loading, dispatch]);
+  }, [id, school, schoolLoading, dispatch]);
 
   const getSauAddress = () => {
     if (!sau) return 'SAU Address information not available';
@@ -65,7 +65,7 @@ const ContactInformation: React.FC = () => {
     );
   };
 
-  if (loading) {
+  if (schoolLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
         <CircularProgress />
