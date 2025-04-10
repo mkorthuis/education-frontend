@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
@@ -17,7 +17,7 @@ import {
 import {
   fetchAssessmentDistrictData,
   selectCurrentAssessmentDistrictData,
-  selectAssessmentDistrictDataLoading,
+  selectAssessmentDistrictDataLoadingByParams,
   setSelectedSubjectId,
   selectSelectedSubjectId,
   selectSelectedSubject,
@@ -46,7 +46,15 @@ const AcademicAchievement: React.FC = () => {
   const measurements = useAppSelector(selectAllMeasurements);
   const measurementTypesLoaded = useAppSelector(selectMeasurementTypesLoaded);
   const assessmentData = useAppSelector(selectCurrentAssessmentDistrictData);
-  const assessmentLoading = useAppSelector(selectAssessmentDistrictDataLoading);
+  
+  // Create query params for initial district data fetch
+  const initialQueryParams = useMemo(() => ({
+    district_id: id ? parseInt(id) : undefined
+  }), [id]);
+  
+  // Use parameterized loading selector
+  const assessmentLoading = useAppSelector(selectAssessmentDistrictDataLoadingByParams(initialQueryParams));
+  
   const stateAssessmentData = useAppSelector(selectCurrentAssessmentStateData);
   const stateAssessmentLoading = useAppSelector(selectAssessmentStateDataLoading);
   const selectedSubjectId = useAppSelector(selectSelectedSubjectId);
@@ -82,9 +90,7 @@ const AcademicAchievement: React.FC = () => {
 
       // Fetch district assessment data if not already loaded
       if ((district && !assessmentLoading && assessmentData.length === 0)) {
-        dispatch(fetchAssessmentDistrictData({
-          district_id: parseInt(id)
-        })).then((action) => {
+        dispatch(fetchAssessmentDistrictData(initialQueryParams)).then((action) => {
           // After fetching is complete, set the current district data key manually
           if (action.meta.requestStatus === 'fulfilled') {
             // Type assertion to access the payload properly
@@ -103,7 +109,7 @@ const AcademicAchievement: React.FC = () => {
     measurementsLoading, measurements.length, 
     measurementTypesLoaded, assessmentLoading, 
     assessmentData.length, stateAssessmentLoading,
-    stateAssessmentData.length
+    stateAssessmentData.length, initialQueryParams
   ]);
 
   // Show loading when any data is still loading

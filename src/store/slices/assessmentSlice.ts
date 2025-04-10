@@ -129,7 +129,7 @@ export interface AssessmentState {
   loadingStates: {
     subjects: boolean;
     subgroups: boolean;
-    districtData: boolean;
+    districtData: Record<AssessmentDataQueryKey, boolean>;
     stateData: boolean;
     schoolData: boolean;
   };
@@ -160,7 +160,7 @@ const initialState: AssessmentState = {
   loadingStates: {
     subjects: false,
     subgroups: false,
-    districtData: false,
+    districtData: {},
     stateData: false,
     schoolData: false
   },
@@ -442,7 +442,12 @@ export const assessmentSlice = createSlice({
   extraReducers: (builder) => {
     // Helper function to update loading states
     const updateLoadingState = (state: AssessmentState) => {
-      state.loading = Object.values(state.loadingStates).some(isLoading => isLoading);
+      const districtLoading = Object.values(state.loadingStates.districtData).some(isLoading => isLoading);
+      state.loading = state.loadingStates.subjects || 
+                      state.loadingStates.subgroups || 
+                      districtLoading || 
+                      state.loadingStates.stateData || 
+                      state.loadingStates.schoolData;
     };
 
     // Handle fetchAssessmentSubjects
@@ -483,19 +488,31 @@ export const assessmentSlice = createSlice({
       })
       
       // Handle fetchAssessmentDistrictData
-      .addCase(fetchAssessmentDistrictData.pending, (state) => {
-        state.loadingStates.districtData = true;
-        state.loading = true;
+      .addCase(fetchAssessmentDistrictData.pending, (state, action) => {
+        // Create a query key for this specific request
+        const { forceRefresh = false, ...queryParams } = action.meta.arg;
+        const queryKey = createQueryKey(queryParams);
+        
+        // Set loading state for this specific query
+        state.loadingStates.districtData[queryKey] = true;
+        updateLoadingState(state);
         state.error = null;
       })
       .addCase(fetchAssessmentDistrictData.fulfilled, (state, action) => {
         const { key, params, data } = action.payload;
         state.districtDataMap[key] = { params, data };
-        state.loadingStates.districtData = false;
+        
+        // Clear loading state for this specific query
+        state.loadingStates.districtData[key] = false;
         updateLoadingState(state);
       })
       .addCase(fetchAssessmentDistrictData.rejected, (state, action) => {
-        state.loadingStates.districtData = false;
+        // Extract the query key from the rejected action
+        const { forceRefresh = false, ...queryParams } = action.meta.arg;
+        const queryKey = createQueryKey(queryParams);
+        
+        // Clear loading state for this specific query
+        state.loadingStates.districtData[queryKey] = false;
         updateLoadingState(state);
         state.error = action.payload as string;
       })
@@ -646,7 +663,8 @@ export const selectAssessmentSchoolDataByParams = (params: Omit<FetchAssessmentS
 export const selectAssessmentLoading = (state: RootState) => state.assessment.loading;
 export const selectAssessmentSubjectsLoading = (state: RootState) => state.assessment.loadingStates.subjects;
 export const selectAssessmentSubgroupsLoading = (state: RootState) => state.assessment.loadingStates.subgroups;
-export const selectAssessmentDistrictDataLoading = (state: RootState) => state.assessment.loadingStates.districtData;
+export const selectAssessmentDistrictDataLoading = (state: RootState) => 
+  Object.values(state.assessment.loadingStates.districtData).some(loading => loading);
 export const selectAssessmentStateDataLoading = (state: RootState) => state.assessment.loadingStates.stateData;
 export const selectAssessmentSchoolDataLoading = (state: RootState) => state.assessment.loadingStates.schoolData;
 
@@ -671,6 +689,12 @@ export const selectSelectedSubject = (state: RootState) => {
 // Selected grade and subgroup selectors
 export const selectSelectedGradeId = (state: RootState) => state.assessment.selectedGradeId;
 export const selectSelectedSubgroupId = (state: RootState) => state.assessment.selectedSubgroupId;
+
+// Add a new selector for checking loading state by params
+export const selectAssessmentDistrictDataLoadingByParams = (params: Omit<FetchAssessmentDistrictDataParams, 'forceRefresh'>) => {
+  const key = createQueryKey(params);
+  return (state: RootState) => state.assessment.loadingStates.districtData[key] || false;
+};
 
 // Export reducer
 export default assessmentSlice.reducer;

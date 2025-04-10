@@ -23,7 +23,9 @@ import {
   selectCurrentAssessmentStateData,
   selectSelectedGradeId, 
   selectSelectedSubgroupId, 
-  selectSelectedSubjectId 
+  selectSelectedSubjectId,
+  selectAssessmentDistrictDataLoadingByParams,
+  selectAssessmentStateDataLoading
 } from '@/store/slices/assessmentSlice';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { filterAssessmentResults, getProficiencyRangeIndex, getDistrictRankInfo } from '@/features/district/utils/assessmentDataProcessing';
@@ -136,27 +138,29 @@ const DistrictAcademicPerformance: React.FC = () => {
   const selectedGradeId = useAppSelector(selectSelectedGradeId);
   const dispatch = useAppDispatch();
   
-  const districtAssessmentData = useAppSelector(selectAssessmentDistrictDataByParams({
+  // Create params object for the selected filters
+  const queryParams = useMemo(() => ({
     year: FISCAL_YEAR,
     assessment_subgroup_id: selectedSubgroupId || undefined,
     assessment_subject_id: selectedSubjectId || undefined,
     grade_id: selectedGradeId || undefined
-  }));
+  }), [selectedSubjectId, selectedSubgroupId, selectedGradeId]);
+  
+  const districtAssessmentData = useAppSelector(selectAssessmentDistrictDataByParams(queryParams));
   
   const stateAssessmentData = useAppSelector(selectCurrentAssessmentStateData);
+  
+  // Add loading state selectors
+  const isDistrictDataLoading = useAppSelector(selectAssessmentDistrictDataLoadingByParams(queryParams));
+  const isStateDataLoading = useAppSelector(selectAssessmentStateDataLoading);
 
   useEffect(() => {
     if(selectedSubgroupId && selectedSubjectId && selectedGradeId) {
-        if(districtAssessmentData.length === 0) {
-          dispatch(fetchAssessmentDistrictData({
-            year: FISCAL_YEAR,
-            assessment_subgroup_id: selectedSubgroupId,
-            assessment_subject_id: selectedSubjectId,
-            grade_id: selectedGradeId
-          }));
+        if(districtAssessmentData.length === 0 && !isDistrictDataLoading) {
+          dispatch(fetchAssessmentDistrictData(queryParams));
         }
         
-        if(stateAssessmentData.length === 0) {
+        if(stateAssessmentData.length === 0 && !isStateDataLoading) {
           dispatch(fetchAssessmentStateData({
             year: FISCAL_YEAR,
             assessment_subgroup_id: selectedSubgroupId,
@@ -165,7 +169,7 @@ const DistrictAcademicPerformance: React.FC = () => {
           }));
         }
     }
-  }, [selectedSubjectId, selectedSubgroupId, selectedGradeId, dispatch, districtAssessmentData, stateAssessmentData]);
+  }, [dispatch, districtAssessmentData, queryParams, stateAssessmentData, isDistrictDataLoading, isStateDataLoading, selectedSubjectId, selectedSubgroupId, selectedGradeId]);
   
   // Process the district data into ranges for the chart
   const chartData = useMemo(() => {

@@ -1,6 +1,11 @@
 import React, { useEffect, useMemo } from 'react';
 import { Card, CardContent, Typography, Box, Divider, CardActionArea, useMediaQuery } from '@mui/material';
-import { setSelectedSubjectId, fetchAssessmentDistrictData, selectAssessmentDistrictDataByParams } from '@/store/slices/assessmentSlice';
+import { 
+  setSelectedSubjectId, 
+  fetchAssessmentDistrictData, 
+  selectAssessmentDistrictDataByParams,
+  selectAssessmentDistrictDataLoadingByParams 
+} from '@/store/slices/assessmentSlice';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { 
   selectCurrentAssessmentDistrictData, 
@@ -38,6 +43,17 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
   const stateData = useAppSelector(selectCurrentAssessmentStateData);
   const selectedSubjectId = useAppSelector(selectSelectedSubjectId);
   
+  // Create params object for this card's data
+  const queryParams = useMemo(() => ({
+    year: FISCAL_YEAR,
+    assessment_subgroup_id: ALL_STUDENTS_SUBGROUP_ID,
+    assessment_subject_id: assessment_subject_id,
+    grade_id: ALL_GRADES_ID
+  }), [assessment_subject_id]);
+  
+  // Use parameterized loading selector
+  const isDistrictDataLoading = useAppSelector(selectAssessmentDistrictDataLoadingByParams(queryParams));
+  
   // Check if any subject is selected and if we're on mobile
   const isCollapsed = isMobile && selectedSubjectId !== null;
   
@@ -46,27 +62,17 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
   
   // Memoize the selector creation to prevent unnecessary rerenders
   const districtDataSelector = useMemo(() => {
-    return selectAssessmentDistrictDataByParams({
-      year: FISCAL_YEAR,
-      assessment_subgroup_id: ALL_STUDENTS_SUBGROUP_ID,
-      assessment_subject_id: assessment_subject_id,
-      grade_id: ALL_GRADES_ID
-    });
-  }, [assessment_subject_id]);
+    return selectAssessmentDistrictDataByParams(queryParams);
+  }, [queryParams]);
   
   // Use the memoized selector
   const districtAssessmentData = useAppSelector(districtDataSelector);
 
   useEffect(() => {
-    if(districtAssessmentData.length === 0) {
-      dispatch(fetchAssessmentDistrictData({
-        year: FISCAL_YEAR,
-        assessment_subgroup_id: ALL_STUDENTS_SUBGROUP_ID,
-        assessment_subject_id: assessment_subject_id,
-        grade_id: ALL_GRADES_ID
-      }));
+    if(districtAssessmentData.length === 0 && !isDistrictDataLoading) {
+      dispatch(fetchAssessmentDistrictData(queryParams));
     }
-  }, [dispatch, districtAssessmentData, assessment_subject_id]);
+  }, [dispatch, districtAssessmentData, queryParams, isDistrictDataLoading]);
 
   const handleCardClick = () => {
     dispatch(setSelectedSubjectId(assessment_subject_id));
