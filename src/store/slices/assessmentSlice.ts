@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSelector } from 'reselect';
 import { RootState } from '@/store/store';
 import { assessmentsApi } from '@/services/api/endpoints/assessments';
 import { fetchGrades, Grade } from '@/store/slices/locationSlice';
@@ -562,48 +563,6 @@ export const {
 export const selectAssessmentSubjects = (state: RootState) => state.assessment.subjects || [];
 export const selectAssessmentSubgroups = (state: RootState) => state.assessment.subgroups || [];
 
-// Current data selectors
-export const selectCurrentAssessmentDistrictData = (state: RootState) => {
-  const { currentDistrictDataKey, districtDataMap } = state.assessment;
-  return (currentDistrictDataKey && districtDataMap[currentDistrictDataKey]?.data) || [];
-};
-
-export const selectCurrentAssessmentStateData = (state: RootState) => {
-  const { currentStateDataKey, stateDataMap } = state.assessment;
-  return (currentStateDataKey && stateDataMap[currentStateDataKey]?.data) || [];
-};
-
-export const selectCurrentAssessmentSchoolData = (state: RootState) => {
-  const { currentSchoolDataKey, schoolDataMap } = state.assessment;
-  return (currentSchoolDataKey && schoolDataMap[currentSchoolDataKey]?.data) || [];
-};
-
-// Data selectors by key
-export const selectAssessmentDistrictDataByKey = (key: AssessmentDataQueryKey) => (state: RootState) => 
-  state.assessment.districtDataMap[key]?.data || [];
-
-export const selectAssessmentStateDataByKey = (key: AssessmentDataQueryKey) => (state: RootState) => 
-  state.assessment.stateDataMap[key]?.data || [];
-
-export const selectAssessmentSchoolDataByKey = (key: AssessmentDataQueryKey) => (state: RootState) => 
-  state.assessment.schoolDataMap[key]?.data || [];
-
-// Data selectors by params
-export const selectAssessmentDistrictDataByParams = (params: Omit<FetchAssessmentDistrictDataParams, 'forceRefresh'>) => (state: RootState) => {
-  const key = createQueryKey(params);
-  return state.assessment.districtDataMap[key]?.data || [];
-};
-
-export const selectAssessmentStateDataByParams = (params: Omit<FetchAssessmentStateDataParams, 'forceRefresh'>) => (state: RootState) => {
-  const key = createQueryKey(params);
-  return state.assessment.stateDataMap[key]?.data || [];
-};
-
-export const selectAssessmentSchoolDataByParams = (params: Omit<FetchAssessmentSchoolDataParams, 'forceRefresh'>) => (state: RootState) => {
-  const key = createQueryKey(params);
-  return state.assessment.schoolDataMap[key]?.data || [];
-};
-
 // Map selectors
 export const selectAllDistrictDataMap = (state: RootState) => state.assessment.districtDataMap;
 export const selectAllStateDataMap = (state: RootState) => state.assessment.stateDataMap;
@@ -613,6 +572,75 @@ export const selectAllSchoolDataMap = (state: RootState) => state.assessment.sch
 export const selectCurrentDistrictDataKey = (state: RootState) => state.assessment.currentDistrictDataKey;
 export const selectCurrentStateDataKey = (state: RootState) => state.assessment.currentStateDataKey;
 export const selectCurrentSchoolDataKey = (state: RootState) => state.assessment.currentSchoolDataKey;
+
+// Memoized current data selectors
+export const selectCurrentAssessmentDistrictData = createSelector(
+  [selectCurrentDistrictDataKey, selectAllDistrictDataMap],
+  (currentKey, dataMap) => {
+    // Use a constant empty array to ensure the same reference is returned when there's no data
+    return (currentKey && dataMap[currentKey]?.data) || [];
+  }
+);
+
+export const selectCurrentAssessmentStateData = createSelector(
+  [selectCurrentStateDataKey, selectAllStateDataMap],
+  (currentKey, dataMap) => {
+    // Use a constant empty array to ensure the same reference is returned when there's no data
+    return (currentKey && dataMap[currentKey]?.data) || [];
+  }
+);
+
+export const selectCurrentAssessmentSchoolData = createSelector(
+  [selectCurrentSchoolDataKey, selectAllSchoolDataMap],
+  (currentKey, dataMap) => {
+    // Use a constant empty array to ensure the same reference is returned when there's no data
+    return (currentKey && dataMap[currentKey]?.data) || [];
+  }
+);
+
+// Data selectors by key - also memoize these
+export const selectAssessmentDistrictDataByKey = (key: AssessmentDataQueryKey) => 
+  createSelector(
+    [selectAllDistrictDataMap],
+    (dataMap) => dataMap[key]?.data || []
+  );
+
+export const selectAssessmentStateDataByKey = (key: AssessmentDataQueryKey) => 
+  createSelector(
+    [selectAllStateDataMap],
+    (dataMap) => dataMap[key]?.data || []
+  );
+
+export const selectAssessmentSchoolDataByKey = (key: AssessmentDataQueryKey) => 
+  createSelector(
+    [selectAllSchoolDataMap],
+    (dataMap) => dataMap[key]?.data || []
+  );
+
+// Data selectors by params - create memoized selectors
+export const selectAssessmentDistrictDataByParams = (params: Omit<FetchAssessmentDistrictDataParams, 'forceRefresh'>) => {
+  const key = createQueryKey(params);
+  return createSelector(
+    [selectAllDistrictDataMap],
+    (dataMap) => dataMap[key]?.data || []
+  );
+};
+
+export const selectAssessmentStateDataByParams = (params: Omit<FetchAssessmentStateDataParams, 'forceRefresh'>) => {
+  const key = createQueryKey(params);
+  return createSelector(
+    [selectAllStateDataMap],
+    (dataMap) => dataMap[key]?.data || []
+  );
+};
+
+export const selectAssessmentSchoolDataByParams = (params: Omit<FetchAssessmentSchoolDataParams, 'forceRefresh'>) => {
+  const key = createQueryKey(params);
+  return createSelector(
+    [selectAllSchoolDataMap],
+    (dataMap) => dataMap[key]?.data || []
+  );
+};
 
 // Loading state selectors
 export const selectAssessmentLoading = (state: RootState) => state.assessment.loading;

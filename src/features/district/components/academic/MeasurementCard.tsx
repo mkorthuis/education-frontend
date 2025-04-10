@@ -44,12 +44,18 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
   // Check if this card is the selected one
   const isSelected = selectedSubjectId === assessment_subject_id;
   
-  const districtAssessmentData = useAppSelector(selectAssessmentDistrictDataByParams({
-    year: FISCAL_YEAR,
-    assessment_subgroup_id: ALL_STUDENTS_SUBGROUP_ID,
-    assessment_subject_id: assessment_subject_id,
-    grade_id: ALL_GRADES_ID
-  }));
+  // Memoize the selector creation to prevent unnecessary rerenders
+  const districtDataSelector = useMemo(() => {
+    return selectAssessmentDistrictDataByParams({
+      year: FISCAL_YEAR,
+      assessment_subgroup_id: ALL_STUDENTS_SUBGROUP_ID,
+      assessment_subject_id: assessment_subject_id,
+      grade_id: ALL_GRADES_ID
+    });
+  }, [assessment_subject_id]);
+  
+  // Use the memoized selector
+  const districtAssessmentData = useAppSelector(districtDataSelector);
 
   useEffect(() => {
     if(districtAssessmentData.length === 0) {
