@@ -22,6 +22,8 @@ import {
 import { FISCAL_YEAR } from '@/utils/environment';
 import AcademicHistoryChart from './AcademicHistoryChart';
 import DistrictAcademicPerformance from './DistrictAcademicPerformance';
+import SubjectOverviewCard from './SubjectOverviewCard';
+import ProficiencyByLevelTable from './ProficiencyByLevelTable';
 
 interface AcademicSubjectDetailsProps {
   subject: AssessmentSubject | null;
@@ -99,15 +101,15 @@ const AcademicSubjectDetails: React.FC<AcademicSubjectDetailsProps> = ({ subject
   };
   
   // Reset filters when subject changes
-  useEffect(() => {
-    dispatch(resetFilters());
-  }, [selectedSubjectId, dispatch]);
+//   useEffect(() => {
+//     dispatch(resetFilters());
+//   }, [selectedSubjectId, dispatch]);
   
 
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       <Typography variant="h5" gutterBottom>
-        {subject ? subject.description : 'No Subject Selected'} Results
+        {subject ? subject.description : 'No Subject Selected'} State Assessment Results 
       </Typography>
       
       {/* Filter controls */}
@@ -149,6 +151,9 @@ const AcademicSubjectDetails: React.FC<AcademicSubjectDetailsProps> = ({ subject
           </FormControl>
         </Grid>
       </Grid>
+      
+      {/* Subject Overview Card */}
+      {filteredData.length > 0 && <SubjectOverviewCard />}
       
       {/* Display the filtered assessment data as a table */}
       {filteredData.length > 0 ? (
@@ -210,6 +215,9 @@ const AcademicSubjectDetails: React.FC<AcademicSubjectDetailsProps> = ({ subject
           No assessment data found for the selected filters.
         </Typography>
       )}
+      
+      {/* Proficiency By Level Comparison Table */}
+      {selectedSubjectId && <ProficiencyByLevelTable districtName={filteredData[0]?.district_name} />}
       
       {/* District vs State Performance Chart */}
       {selectedSubjectId && <DistrictAcademicPerformance />}

@@ -337,7 +337,7 @@ const AcademicHistoryChart: React.FC = () => {
               type="monotone"
               dataKey="allStudentsPercentage"
               name={selectedSubgroupId !== ALL_STUDENTS_SUBGROUP_ID && selectedSubgroupId !== null
-                ? "District Average" : "All Students"}
+                ? "District All Students" : "All Students"}
               stroke={selectedSubgroupId !== null && selectedSubgroupId !== ALL_STUDENTS_SUBGROUP_ID 
                 ? theme.palette.grey[400] // Use grey when subgroup selected
                 : theme.palette.primary.main // Use primary color when no subgroup
