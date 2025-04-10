@@ -16,7 +16,7 @@ export const locationApi = {
         return response.data;
     },
     
-    getDistrictById: async (id: string, forceRefresh = false) => {
+    getDistrictById: async (id: number, forceRefresh = false) => {
         const url = BASE_ENDPOINT_URL + `district/${id}`;
         const response = await axiosInstance.get(
             url,
@@ -25,7 +25,7 @@ export const locationApi = {
         return response.data;
     },
 
-    getSchoolsByDistrictId: async (id: string, forceRefresh = false) => {
+    getSchoolsByDistrictId: async (id: number, forceRefresh = false) => {
         const url = BASE_ENDPOINT_URL + `school?district_id=${id}`;
         const response = await axiosInstance.get(
             url,
@@ -34,7 +34,7 @@ export const locationApi = {
         return response.data;
     },
 
-    getSchoolById: async (id: string, forceRefresh = false) => {
+    getSchoolById: async (id: number, forceRefresh = false) => {
         const url = BASE_ENDPOINT_URL + `school/${id}`;
         const response = await axiosInstance.get(
             url,
@@ -43,7 +43,7 @@ export const locationApi = {
         return response.data;
     },
 
-    getDistrictBySchoolId: async (id: string, forceRefresh = false) => {
+    getDistrictBySchoolId: async (id: number, forceRefresh = false) => {
         const url = BASE_ENDPOINT_URL + `district?school_id=${id}`;
         const response = await axiosInstance.get(
             url,
@@ -52,7 +52,7 @@ export const locationApi = {
         return response.data;
     },
 
-    getTownsByDistrictId: async (id: string, forceRefresh = false) => {
+    getTownsByDistrictId: async (id: number, forceRefresh = false) => {
         const url = BASE_ENDPOINT_URL + `town?district_id=${id}`;
         const response = await axiosInstance.get(
             url,
@@ -61,7 +61,7 @@ export const locationApi = {
         return response.data;
     },
 
-    getSauByDistrictId: async (id: string, forceRefresh = false) => {
+    getSauByDistrictId: async (id: number, forceRefresh = false) => {
         const url = BASE_ENDPOINT_URL + `sau?district_id=${id}`;
         const response = await axiosInstance.get(
             url,
@@ -70,4 +70,22 @@ export const locationApi = {
         return response.data;
     },
 
+    getGrades: async (forceRefresh = false) => {
+        const url = BASE_ENDPOINT_URL + 'grade';
+        const response = await axiosInstance.get(
+            url,
+            forceRefresh ? skipCache() : undefined
+        );
+        return response.data;
+    },
+
+    getGradeById: async (id: string, forceRefresh = false) => {
+        const url = BASE_ENDPOINT_URL + `grade/${id}`;
+        const response = await axiosInstance.get(
+            url,
+            forceRefresh ? skipCache() : undefined
+        );
+        return response.data;
+    },
+    
 };

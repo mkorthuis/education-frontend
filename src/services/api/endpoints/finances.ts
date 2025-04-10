@@ -7,9 +7,9 @@ const BASE_ENDPOINT_URL = BASE_API_URL + 'finance/';
 
 export const financeApi = {
 
-    getFinanceData: async (districtId: string, year?: string, forceRefresh = false) => {
+    getFinanceData: async (districtId: number, year?: string, forceRefresh = false) => {
         const queryParams = new URLSearchParams();
-        queryParams.append('district_id', districtId);
+        queryParams.append('district_id', districtId.toString());
         if (year) {
             queryParams.append('year', year);
         }
@@ -40,9 +40,9 @@ export const financeApi = {
         return response.data;
     },
 
-    getPerPupilExpendituresForDistrict: async (districtId: string, year?: string, forceRefresh = false) => {
+    getPerPupilExpendituresForDistrict: async (districtId: number, year?: string, forceRefresh = false) => {
         const queryParams = new URLSearchParams();
-        queryParams.append('district_id', districtId);
+        queryParams.append('district_id', districtId.toString());
         if (year) {
             queryParams.append('year', year);
         }

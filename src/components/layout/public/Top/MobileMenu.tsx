@@ -53,7 +53,7 @@ export default function MobileMenu() {
         color="inherit"
         sx={{ display: { xs: 'flex', md: 'none' }, p:'0px' }}
       >
-        <MenuIcon />
+       {/* <MenuIcon /> */}
       </IconButton>
     </Box>
   );

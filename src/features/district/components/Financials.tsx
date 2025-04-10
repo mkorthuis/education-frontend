@@ -46,7 +46,7 @@ const TABS = [
 /**
  * Custom hook to fetch and manage district financial data
  */
-function useDistrictFinancialData(districtId?: string) {
+function useDistrictFinancialData(districtId?: number) {
   const dispatch = useAppDispatch();
   const processedReportDistrictId = useAppSelector(selectProcessedReportDistrictId);
   const financialReports = useAppSelector(selectFinancialReports);
@@ -64,7 +64,7 @@ function useDistrictFinancialData(districtId?: string) {
   useEffect(() => {
     
     // Check if we need to reload the data because district has changed
-    const needsReload = districtId && processedReportDistrictId && districtId !== processedReportDistrictId;
+    const needsReload = districtId !== undefined && processedReportDistrictId !== null && districtId !== processedReportDistrictId;
     
     // Clear previous state if we're loading a different district
     if (needsReload) {
@@ -107,8 +107,6 @@ function useDistrictFinancialData(districtId?: string) {
     if (!latestStateExpenditureData || !latestStateRevenueData.length) {
       dispatch(fetchStateExpenditure({}));
     }
-
-
   }, [
     districtId, 
     dispatch,
@@ -146,12 +144,15 @@ const Financials: React.FC = () => {
   // Fetch district data on component mount - only use URL param if district is not set
   useEffect(() => {
     if (!district && id) {
-      dispatch(fetchDistrictById(id));
+      dispatch(fetchDistrictById(parseInt(id)));
     }
   }, [id, district, dispatch]);
 
   // Get the district ID to use for financial data - use district.id if available, otherwise URL param
-  const districtId = district?.id || id;
+  const districtId = district?.id || (id ? parseInt(id) : undefined);
+  
+  // Convert districtId to string for component props
+  const districtIdString = districtId?.toString();
   
   // Use the custom hook to handle data fetching with the determined district ID
   const { 
@@ -171,13 +172,13 @@ const Financials: React.FC = () => {
   const renderTabContent = () => {
     switch (mainTabValue) {
       case 0: 
-        return ( <OverallTab districtId={districtId} /> );
+        return ( <OverallTab districtId={districtIdString} /> );
       case 1: 
-        return ( <ExpendituresTab districtId={districtId} />);
+        return ( <ExpendituresTab districtId={districtIdString} />);
       case 2: 
-        return ( <RevenuesTab districtId={districtId} /> );
+        return ( <RevenuesTab districtId={districtIdString} /> );
       case 3: 
-        return ( <BalanceSheetTab districtId={districtId} /> );
+        return ( <BalanceSheetTab districtId={districtIdString} /> );
       default:
         return null;
     }

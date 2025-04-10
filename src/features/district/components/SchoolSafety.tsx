@@ -31,7 +31,7 @@ const SchoolSafety: React.FC = () => {
     if (id) {
       // If district data isn't loaded yet, fetch it
       if (!district && !districtLoading) {
-        dispatch(fetchAllDistrictData(id));
+        dispatch(fetchAllDistrictData(parseInt(id)));
       }
     }
   }, [dispatch, id, district, districtLoading]);

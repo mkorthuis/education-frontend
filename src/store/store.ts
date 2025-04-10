@@ -4,6 +4,7 @@ import authReducer from '@/features/auth/store/authSlice';
 import locationReducer from '@/store/slices/locationSlice';
 import measurementReducer from '@/store/slices/measurementSlice';
 import financeReducer from '@/store/slices/financeSlice';
+import assessmentReducer from '@/store/slices/assessmentSlice';
 
 export const store = configureStore({
   reducer: {
@@ -11,7 +12,8 @@ export const store = configureStore({
     auth: authReducer,
     location: locationReducer,
     measurement: measurementReducer,
-    finance: financeReducer
+    finance: financeReducer,
+    assessment: assessmentReducer
   },
   middleware: getDefaultMiddleware =>
       getDefaultMiddleware()
