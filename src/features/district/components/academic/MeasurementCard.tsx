@@ -4,19 +4,18 @@ import {
   setSelectedSubjectId, 
   fetchAssessmentDistrictData, 
   selectAssessmentDistrictDataByParams,
-  selectAssessmentDistrictDataLoadingByParams 
-} from '@/store/slices/assessmentSlice';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { 
+  selectAssessmentDistrictDataLoadingByParams,
   selectCurrentAssessmentDistrictData, 
   selectCurrentAssessmentStateData,
   selectSelectedSubjectId
 } from '@/store/slices/assessmentSlice';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
   filterAssessmentResults,
   ALL_STUDENTS_SUBGROUP_ID,
   ALL_GRADES_ID,
-  getDistrictRankInfo
+  getDistrictRankInfo,
+  EARLIEST_YEAR
 } from '@/features/district/utils/assessmentDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { useParams } from 'react-router-dom';
@@ -122,7 +121,7 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
   }, [districtAssessmentData, currentDistrictId]);
 
   const previousYearData = filterAssessmentResults(districtData, {
-    year: '2019',
+    year: EARLIEST_YEAR.toString(),
     assessment_subject_id: assessment_subject_id,
     grade_id: ALL_GRADES_ID,
     assessment_subgroup_id: ALL_STUDENTS_SUBGROUP_ID
@@ -137,7 +136,7 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
     if (scoreDelta === null) return '';
     
     if (scoreDelta === 0) {
-      return 'No Change in Proficient Students Since 2019';
+      return 'No Change in Proficient Students Since ' + EARLIEST_YEAR;
     } else if (scoreDelta < 0) {
       return (
         <Typography component="span" variant="body2" color="error">
@@ -216,7 +215,7 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
                 <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                   {scoreDelta === 0 || scoreDelta === null ? 
                     getScoreDeltaText() : 
-                    <>{getScoreDeltaText()} Since 2019</>
+                    <>{getScoreDeltaText()} Since {EARLIEST_YEAR}</>
                   }
                 </Typography>
               </Box>

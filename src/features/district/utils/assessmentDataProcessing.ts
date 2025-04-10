@@ -12,6 +12,7 @@ export const ALL_GRADES_ID = 999;
 export const ALL_GRADES_NAME = 'All Grades';
 export const ALL_STUDENTS_SUBGROUP_ID = 1;
 export const ALL_STUDENTS_SUBGROUP_NAME = 'All students';
+export const EARLIEST_YEAR = 2019;
 
 // Extend the Grade interface to include the disabled property
 export interface ExtendedGrade extends Grade {
