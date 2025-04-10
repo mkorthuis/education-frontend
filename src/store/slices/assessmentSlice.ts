@@ -401,6 +401,8 @@ export const assessmentSlice = createSlice({
       state.selectedSubjectId = null;
       state.selectedGradeId = ALL_GRADES_ID;
       state.selectedSubgroupId = ALL_STUDENTS_SUBGROUP_ID;
+      state.subjectsLoaded = false;
+      state.subgroupsLoaded = false;
       state.error = null;
     },
     clearDistrictData: (state) => {

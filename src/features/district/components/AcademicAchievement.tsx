@@ -7,13 +7,6 @@ import {
   selectAnyLocationLoading,
   fetchAllDistrictData
 } from '@/store/slices/locationSlice';
-import { 
-  fetchAllMeasurements, 
-  fetchMeasurementTypes,
-  selectMeasurementsLoading,
-  selectAllMeasurements,
-  selectMeasurementTypesLoaded,
-} from '@/store/slices/measurementSlice';
 import {
   fetchAssessmentDistrictData,
   selectCurrentAssessmentDistrictData,
@@ -26,7 +19,8 @@ import {
   selectAssessmentStateDataLoading,
   setCurrentDistrictDataKey,
   AssessmentDistrictData,
-  AssessmentDataQueryKey
+  AssessmentDataQueryKey,
+  clearAssessments
 } from '@/store/slices/assessmentSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
 import MeasurementCard from '@/features/district/components/academic/MeasurementCard';
@@ -34,6 +28,7 @@ import AcademicSubjectDetails from '@/features/district/components/academic/Acad
 import AcademicDefaultView from '@/features/district/components/academic/AcademicDefaultView';
 import { filterAssessmentResults, ALL_GRADES_ID } from '@/features/district/utils/assessmentDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
+import { clearFinanceState } from '@/store/slices/financeSlice';
 
 const AcademicAchievement: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -42,9 +37,6 @@ const AcademicAchievement: React.FC = () => {
   // Selectors
   const district = useAppSelector(selectCurrentDistrict);
   const districtLoading = useAppSelector(selectAnyLocationLoading);
-  const measurementsLoading = useAppSelector(selectMeasurementsLoading);
-  const measurements = useAppSelector(selectAllMeasurements);
-  const measurementTypesLoaded = useAppSelector(selectMeasurementTypesLoaded);
   const assessmentData = useAppSelector(selectCurrentAssessmentDistrictData);
   
   // Create query params for initial district data fetch
@@ -67,20 +59,18 @@ const AcademicAchievement: React.FC = () => {
 
   // Fetch all required data
   useEffect(() => {
+    // Check if we need to reload the data because district has changed
+    const needsReload = id !== undefined && assessmentData !== null && assessmentData.length > 0 && assessmentData[0].district_id !== parseInt(id);
+    
+    // Clear previous state if we're loading a different district
+    if (needsReload) {
+      dispatch(clearAssessments());
+    }
+
     if (id) {
       // If district data isn't loaded yet, fetch it
       if (!district && !districtLoading) {
         dispatch(fetchAllDistrictData(parseInt(id)));
-      }
-      
-      // If measurement types are not loaded, fetch them
-      if (!measurementTypesLoaded) {
-        dispatch(fetchMeasurementTypes());
-      }
-      
-      // If we have the district but no measurements, fetch them
-      if (district && !measurementsLoading && measurements.length === 0) {
-        dispatch(fetchAllMeasurements({ entityId: id, entityType: 'district' }));
       }
 
       // Fetch state assessment data if not already loaded
@@ -105,15 +95,13 @@ const AcademicAchievement: React.FC = () => {
       }
     }
   }, [
-    dispatch, id, district, districtLoading, 
-    measurementsLoading, measurements.length, 
-    measurementTypesLoaded, assessmentLoading, 
+    dispatch, id, district, districtLoading, assessmentLoading, 
     assessmentData.length, stateAssessmentLoading,
     stateAssessmentData.length, initialQueryParams
   ]);
 
   // Show loading when any data is still loading
-  const isLoading = districtLoading || measurementsLoading || assessmentLoading;
+  const isLoading = districtLoading || assessmentLoading;
 
   // Filter assessment data by fiscal year and subgroup_id
   const filteredAssessmentData = filterAssessmentResults(assessmentData, {
