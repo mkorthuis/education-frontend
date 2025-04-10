@@ -1,5 +1,6 @@
 import React from 'react';
-import { Typography, Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, useMediaQuery, useTheme } from '@mui/material';
+import { Typography, Box, Card, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, useMediaQuery, useTheme, Tooltip } from '@mui/material';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import { useAppSelector } from '@/store/hooks';
 import { 
   selectCurrentAssessmentDistrictData,
@@ -25,10 +26,34 @@ interface ProficiencyLevelData {
 
 // Define proficiency levels for the table
 const PROFICIENCY_LEVELS = [
-  { key: 'level_1_percentage', exception: 'level_1_percentage_exception', label: 'Below Proficient', bgColor: '#ffcdd2' }, // Darker red
-  { key: 'level_2_percentage', exception: 'level_2_percentage_exception', label: 'Near Proficient', bgColor: '#ffebee' }, // Light red
-  { key: 'level_3_percentage', exception: 'level_3_percentage_exception', label: 'Proficient', bgColor: '#e8f5e9' }, // Light green
-  { key: 'level_4_percentage', exception: 'level_4_percentage_exception', label: 'Above Proficient', bgColor: '#c8e6c9' }  // Darker green
+  { 
+    key: 'level_1_percentage', 
+    exception: 'level_1_percentage_exception', 
+    label: 'Below Proficient', 
+    bgColor: '#ffcdd2',
+    description: 'The student generally performs significantly below the standard for the grade level/course, is likely able to partially access grade-level content and engages with higher order thinking skills with extensive support.'
+  }, // Darker red
+  { 
+    key: 'level_2_percentage', 
+    exception: 'level_2_percentage_exception', 
+    label: 'Near Proficient', 
+    bgColor: '#ffebee',
+    description: 'The student generally performs slightly below the standard for the grade level/course, is able to access grade-level content, and engages in higher order thinking skills with some independence and support.'
+  }, // Light red
+  { 
+    key: 'level_3_percentage', 
+    exception: 'level_3_percentage_exception', 
+    label: 'Proficient', 
+    bgColor: '#e8f5e9',
+    description: 'The student generally performs at the standard for the grade level/course, is able to access grade-level content, and engages in higher order thinking skills with some independence and minimal support.'
+  }, // Light green
+  { 
+    key: 'level_4_percentage', 
+    exception: 'level_4_percentage_exception', 
+    label: 'Above Proficient', 
+    bgColor: '#c8e6c9',
+    description: 'The student generally performs significantly above the standard for the grade level/course, is able to access above grade-level content, and engages in higher order thinking skills independently.'
+  }  // Darker green
 ];
 
 interface ProficiencyByLevelTableProps {
@@ -93,15 +118,9 @@ const ProficiencyByLevelTable: React.FC<ProficiencyByLevelTableProps> = ({
   };
   
   return (
-    <Box sx={{ mt: 2 }}>
-      <Typography 
-        variant="body1" 
-        sx={{ textAlign: "center", width: "100%", mb: 1 }}
-      >
-        {districtName} Proficiency Levels vs State Average
-      </Typography>
+    <Box>
       
-      <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 2 }}>
+      <Card sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 2 }}>
         <TableContainer 
           component={Paper} 
           elevation={0} 
@@ -124,8 +143,8 @@ const ProficiencyByLevelTable: React.FC<ProficiencyByLevelTableProps> = ({
             }}>
               <TableRow>
                 <TableCell>Proficiency Level</TableCell>
-                <TableCell align="right">District</TableCell>
-                <TableCell align="right">State</TableCell>
+                <TableCell align="right">% Students</TableCell>
+                <TableCell align="right">State Avg.</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -143,7 +162,18 @@ const ProficiencyByLevelTable: React.FC<ProficiencyByLevelTableProps> = ({
                     backgroundColor: bgColor
                   }}
                 >
-                  <TableCell component="th" scope="row" sx={{ fontWeight: 'normal' }}>{label}</TableCell>
+                  <TableCell component="th" scope="row" sx={{ fontWeight: 'normal' }}>
+                    <Tooltip title={PROFICIENCY_LEVELS[index].description} arrow placement="right">
+                      <Box component="span" sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        cursor: 'help',
+                      }}>
+                        {label}
+                        <HelpOutlineIcon fontSize="small" sx={{ ml: 0.5, width: 16, height: 16, color: 'text.secondary' }} />
+                      </Box>
+                    </Tooltip>
+                  </TableCell>
                   <TableCell align="right">
                     {renderPercentage(districtAggregated, key, exception)}
                   </TableCell>
@@ -155,7 +185,7 @@ const ProficiencyByLevelTable: React.FC<ProficiencyByLevelTableProps> = ({
             </TableBody>
           </Table>
         </TableContainer>
-      </Box>
+      </Card>
     </Box>
   );
 };

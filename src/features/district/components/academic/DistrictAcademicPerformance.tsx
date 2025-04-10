@@ -11,7 +11,8 @@ import {
   ResponsiveContainer,
   Cell,
   ReferenceLine,
-  Label
+  Label,
+  Legend
 } from 'recharts';
 import { Paper, Typography, Box } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
@@ -166,6 +167,24 @@ const getDistrictRankInfo = (districtData: any[], currentDistrictId: number | nu
   return { rank, total };
 };
 
+// Custom Legend Component
+const renderLegend = (props: any) => {
+  const { payload } = props;
+  
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', fontSize: '12px', marginTop: '5px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', marginRight: '20px' }}>
+        <div style={{ width: '12px', height: '12px', backgroundColor: COLOR_CURRENT_DISTRICT, marginRight: '5px' }}></div>
+        <span>Your District</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ width: '12px', height: '12px', backgroundColor: COLOR_OTHER_DISTRICTS, marginRight: '5px' }}></div>
+        <span>Other Districts</span>
+      </div>
+    </div>
+  );
+};
+
 const DistrictAcademicPerformance: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const currentDistrictId = id ? parseInt(id) : null;
@@ -230,13 +249,13 @@ const DistrictAcademicPerformance: React.FC = () => {
   }, [districtAssessmentData, currentDistrictId]);
 
   return (
-    <Paper sx={{ p: 1, mt: 2, mb: 2 }}>
-      <Typography variant="h6" sx={{ mb: 0.5 }}>
-       % Students Proficient In Each District
+    <>
+      <Typography variant="h6" sx={{ textAlign: "center", width: "100%" }}>
+       % Students Proficient For Each District
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, textAlign: "center", width: "100%" }}>
         Your district is <span style={{ color: COLOR_CURRENT_DISTRICT, fontWeight: 'bold' }}>blue</span>
-        {rank !== null && total > 0 ? `. Ranked #${rank}/${total} districts` : ''}.
+        {rank !== null && total > 0 ? `. Ranked #${rank} out of ${total} districts` : ''}.
       </Typography>
       
       <Box sx={{ width: '100%', height: 350 }}>
@@ -244,7 +263,7 @@ const DistrictAcademicPerformance: React.FC = () => {
           <BarChart
             data={chartData}
             margin={{
-              top: 15, // Increased top margin to accommodate the state average text
+              top: 5, 
               right: 5,
               left: 5,
               bottom: 15,
@@ -298,6 +317,7 @@ const DistrictAcademicPerformance: React.FC = () => {
                 />
               ))}
             </Bar>
+            <Legend content={renderLegend} />
           </BarChart>
         </ResponsiveContainer>
       </Box>
@@ -307,7 +327,7 @@ const DistrictAcademicPerformance: React.FC = () => {
           No data available. Please select filters to view district data.
         </Typography>
       )}
-    </Paper>
+    </>
   );
 };
 

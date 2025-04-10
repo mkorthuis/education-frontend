@@ -62,17 +62,24 @@ const SubjectOverviewCard: React.FC = () => {
   const assessmentData = filteredDistrictData[0];
   const stateAssessmentData = filteredStateData.length > 0 
     ? filteredStateData[0] 
-    : { above_proficient_percentage: null };
+    : { above_proficient_percentage: null, above_proficient_percentage_exception: null };
   
   // Handle potential null values and exceptions
-  const proficiencyPercentage = assessmentData.above_proficient_percentage_exception || 
-    (assessmentData.above_proficient_percentage !== null
-      ? `${assessmentData.above_proficient_percentage.toFixed(1)}%`
-      : 'N/A');
+  const proficiencyPercentage = assessmentData.above_proficient_percentage !== null
+    ? `${assessmentData.above_proficient_percentage.toFixed(1)}%`
+    : (assessmentData.above_proficient_percentage_exception === 'SCORE_UNDER_10'
+      ? '<10%'
+      : assessmentData.above_proficient_percentage_exception === 'SCORE_OVER_90'
+        ? '>90%'
+        : assessmentData.above_proficient_percentage_exception || 'N/A');
   
   const statePercentage = stateAssessmentData.above_proficient_percentage !== null
     ? `${stateAssessmentData.above_proficient_percentage.toFixed(1)}%`
-    : 'N/A';
+    : (stateAssessmentData.above_proficient_percentage_exception === 'SCORE_UNDER_10'
+      ? '<10%'
+      : stateAssessmentData.above_proficient_percentage_exception === 'SCORE_OVER_90'
+        ? '>90%'
+        : stateAssessmentData.above_proficient_percentage_exception || 'N/A');
   
   const participationRate = assessmentData.participate_percentage !== null
     ? `${assessmentData.participate_percentage.toFixed(1)}%`
@@ -95,7 +102,7 @@ const SubjectOverviewCard: React.FC = () => {
     : `${assessmentData.total_fay_students_low}-${assessmentData.total_fay_students_high}`;
 
   return (
-    <Card sx={{ mb: 3 }}>
+    <Card sx={{ border: '1px solid', borderColor: 'divider', backgroundColor: 'grey.100' }}>
       <CardContent>
         
         <Box sx={{ mb: 2 }}>

@@ -17,6 +17,7 @@ import {
   ALL_STUDENTS_SUBGROUP_ID
 } from '@/features/district/utils/assessmentDataProcessing';
 import { formatCompactNumber } from '@/utils/formatting';
+import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
 
 interface ChartDataPoint {
   year: number;
@@ -164,7 +165,7 @@ const AcademicHistoryChart: React.FC = () => {
       
       return {
         year,
-        formattedYear: `${year-1}-${year.toString().substring(2)}`, // Format like "2022-23"
+        formattedYear: formatFiscalYear(year) || `${year-1}-${year.toString().substring(2)}`, // Use formatFiscalYear with fallback
         allStudentsPercentage: processedAllStudentsPercentage,
         allStudentsException,
         selectedSubgroupPercentage: processedSelectedSubgroupPercentage,
@@ -293,39 +294,36 @@ const AcademicHistoryChart: React.FC = () => {
   }
   
   return (
-    <Box sx={{ mt: 4 }}>
-      <Typography 
-        variant="h6" 
-        sx={{ 
-          textAlign: "center",
-          width: "100%"
-        }} 
-        gutterBottom
-      >
-        {selectedSubject?.description} Proficiency Over Time
+    <>
+      <Typography variant="h6" sx={{ textAlign: "center", width: "100%" }}>
+        % Students Proficient Over Time
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, textAlign: "center", width: "100%" }}>
+        Compared to State Average
       </Typography>
       
-      <Box sx={{ height: isMobile ? 300 : 400, width: '100%' }}>
+      <Box sx={{ height: isMobile ? 300 : 380, width: '100%' }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={chartData}
             margin={{
               top: 5,
-              right: 20,
-              left: 10,
-              bottom: 5,
+              right: 5,
+              left: 5,
+              bottom: 15,
             }}
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis 
               dataKey="formattedYear"
-              tick={{ fontSize: theme.typography.body2.fontSize }}
+              tick={{ fontSize: 10 }}
             />
             <YAxis
               domain={yAxisDomain}
               tickFormatter={(value) => `${value}%`}
-              tick={{ fontSize: theme.typography.body2.fontSize }}
+              tick={{ fontSize: 10 }}
               allowDecimals={false}
+              width={25}
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend 
@@ -375,7 +373,7 @@ const AcademicHistoryChart: React.FC = () => {
           </LineChart>
         </ResponsiveContainer>
       </Box>
-    </Box>
+    </>
   );
 };
 

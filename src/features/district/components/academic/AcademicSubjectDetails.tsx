@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Box, Typography, FormControl, InputLabel, Select, MenuItem, Grid, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import { Box, Typography, FormControl, InputLabel, Select, MenuItem, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import { 
   AssessmentSubject, 
   selectCurrentAssessmentDistrictData, 
@@ -108,20 +108,20 @@ const AcademicSubjectDetails: React.FC<AcademicSubjectDetailsProps> = ({ subject
 
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-      <Typography variant="h5" gutterBottom>
+      <Typography variant="h5" sx={{mb: 3}}>
         {subject ? subject.description : 'No Subject Selected'} State Assessment Results 
       </Typography>
       
       {/* Filter controls */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={6}>
-          <FormControl fullWidth>
-            <InputLabel id="subgroup-select-label">Subgroup</InputLabel>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2, mb: 3 }}>
+        <Box sx={{ flex: 1 }}>
+          <FormControl fullWidth >
+            <InputLabel id="subgroup-select-label">Filter By Subgroup</InputLabel>
             <Select
               labelId="subgroup-select-label"
               id="subgroup-select"
               value={selectedSubgroupId !== null ? selectedSubgroupId : ''}
-              label="Subgroup"
+              label="Filter By Subgroup"
               onChange={(e) => handleSubgroupChange(e.target.value as number | '')}
             >
               {subgroups.map((subgroup) => (
@@ -131,15 +131,15 @@ const AcademicSubjectDetails: React.FC<AcademicSubjectDetailsProps> = ({ subject
               ))}
             </Select>
           </FormControl>
-        </Grid>
-        <Grid item xs={12} md={6}>
+        </Box>
+        <Box sx={{ flex: 1 }}>
           <FormControl fullWidth>
-            <InputLabel id="grade-select-label">Grade</InputLabel>
+            <InputLabel id="grade-select-label">Filter By Grade</InputLabel>
             <Select
               labelId="grade-select-label"
               id="grade-select"
               value={selectedGradeId !== null ? selectedGradeId : ''}
-              label="Grade"
+              label="Filter By Grade"
               onChange={(e) => handleGradeChange(e.target.value as number | '')}
             >
               {grades.map((grade) => (
@@ -149,81 +149,28 @@ const AcademicSubjectDetails: React.FC<AcademicSubjectDetailsProps> = ({ subject
               ))}
             </Select>
           </FormControl>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
       
-      {/* Subject Overview Card */}
-      {filteredData.length > 0 && <SubjectOverviewCard />}
+      {/* First row: SubjectOverviewCard and ProficiencyByLevelTable side by side using flex */}
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, mb: 3, gap: 2 }}>
+        <Box sx={{ flex: 1, mb: 1 }}>
+          {filteredData.length > 0 && <SubjectOverviewCard />}
+        </Box>
+        <Box sx={{ flex: 1 }}>
+          {selectedSubjectId && <ProficiencyByLevelTable districtName={filteredData[0]?.district_name} />}
+        </Box>
+      </Box>
       
-      {/* Display the filtered assessment data as a table */}
-      {filteredData.length > 0 ? (
-        <TableContainer component={Paper} sx={{ mt: 2 }}>
-          <Table sx={{ minWidth: 650 }} aria-label="assessment results table">
-            <TableHead>
-              <TableRow sx={{ backgroundColor: 'primary.light' }}>
-                <TableCell>Grade</TableCell>
-                <TableCell>Subgroup</TableCell>
-                <TableCell align="right">Level 1 %</TableCell>
-                <TableCell align="right">Level 2 %</TableCell>
-                <TableCell align="right">Level 3 %</TableCell>
-                <TableCell align="right">Level 4 %</TableCell>
-                <TableCell align="right">Above Proficient %</TableCell>
-                <TableCell align="right">Participation %</TableCell>
-                <TableCell align="right">Student Count</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredData.map((row) => (
-                <TableRow key={row.id} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
-                  <TableCell>{row.grade?.name || 'All Grades'}</TableCell>
-                  <TableCell>{row.assessment_subgroup?.name || 'All Students'}</TableCell>
-                  <TableCell align="right">
-                    {row.level_1_percentage_exception || 
-                     (row.level_1_percentage !== null ? `${row.level_1_percentage.toFixed(1)}%` : 'N/A')}
-                  </TableCell>
-                  <TableCell align="right">
-                    {row.level_2_percentage_exception || 
-                     (row.level_2_percentage !== null ? `${row.level_2_percentage.toFixed(1)}%` : 'N/A')}
-                  </TableCell>
-                  <TableCell align="right">
-                    {row.level_3_percentage_exception || 
-                     (row.level_3_percentage !== null ? `${row.level_3_percentage.toFixed(1)}%` : 'N/A')}
-                  </TableCell>
-                  <TableCell align="right">
-                    {row.level_4_percentage_exception || 
-                     (row.level_4_percentage !== null ? `${row.level_4_percentage.toFixed(1)}%` : 'N/A')}
-                  </TableCell>
-                  <TableCell align="right">
-                    {row.above_proficient_percentage_exception || 
-                     (row.above_proficient_percentage !== null ? `${row.above_proficient_percentage.toFixed(1)}%` : 'N/A')}
-                  </TableCell>
-                  <TableCell align="right">
-                    {row.participate_percentage !== null ? `${row.participate_percentage.toFixed(1)}%` : 'N/A'}
-                  </TableCell>
-                  <TableCell align="right">
-                    {row.total_fay_students_low === row.total_fay_students_high
-                      ? row.total_fay_students_low
-                      : `${row.total_fay_students_low}-${row.total_fay_students_high}`}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      ) : (
-        <Typography variant="body1" color="error" sx={{ mt: 2 }}>
-          No assessment data found for the selected filters.
-        </Typography>
-      )}
-      
-      {/* Proficiency By Level Comparison Table */}
-      {selectedSubjectId && <ProficiencyByLevelTable districtName={filteredData[0]?.district_name} />}
-      
-      {/* District vs State Performance Chart */}
-      {selectedSubjectId && <DistrictAcademicPerformance />}
-      
-      {/* Historical trend chart */}
-      {selectedSubjectId && <AcademicHistoryChart />}
+      {/* Second row: AcademicHistoryChart (on left) and DistrictAcademicPerformance side by side using flex */}
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
+        <Box sx={{ flex: 1 }}>
+          {selectedSubjectId && <AcademicHistoryChart />}
+        </Box>
+        <Box sx={{ flex: 1 }}>
+          {selectedSubjectId && <DistrictAcademicPerformance />}
+        </Box>
+      </Box>
     </Box>
   );
 };
