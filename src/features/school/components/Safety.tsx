@@ -30,13 +30,10 @@ const Safety: React.FC = () => {
   const safetyMeasurementTypeIds = ['39', '40', '41', '42'];
 
   useEffect(() => {
-    if (id) {
-      // If school data isn't loaded yet, fetch it
-      if (!school && !schoolLoading) {
-        dispatch(fetchAllSchoolData(id));
-      }
+    if (id && !school && !schoolLoading) {
+      dispatch(fetchAllSchoolData(Number(id)));
     }
-  }, [dispatch, id, school, schoolLoading]);
+  }, [id, school, schoolLoading, dispatch]);
 
   // Filter measurements to only include safety measurement type IDs
   const safetyMeasurements = measurements.filter(

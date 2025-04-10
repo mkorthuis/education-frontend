@@ -30,13 +30,10 @@ const Demographics: React.FC = () => {
   const demographicMeasurementTypeIds = ['23', '24', '25', '26', '27', '28', '29', '30', '31', '32'];
 
   useEffect(() => {
-    if (id) {
-      // If school data isn't loaded yet, fetch it
-      if (!school && !schoolLoading) {
-        dispatch(fetchAllSchoolData(id));
-      }
+    if (id && !school && !schoolLoading) {
+      dispatch(fetchAllSchoolData(Number(id)));
     }
-  }, [dispatch, id, school, schoolLoading]);
+  }, [id, school, schoolLoading, dispatch]);
 
   // Filter measurements to only include demographic measurement type IDs
   const demographicMeasurements = measurements.filter(

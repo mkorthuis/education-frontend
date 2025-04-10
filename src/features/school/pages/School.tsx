@@ -30,7 +30,7 @@ const School: React.FC = () => {
 
   useEffect(() => {
     if (id) {
-      dispatch(fetchAllSchoolData(id));
+      dispatch(fetchAllSchoolData(Number(id)));
     }
   }, [id, dispatch]);
 
@@ -72,7 +72,7 @@ const School: React.FC = () => {
       <Typography variant="h5" gutterBottom>
         {school.name}
       </Typography>
-      <Typography variant="body1">{school.school_type.name}</Typography>
+      <Typography variant="body1">{school.school_type?.name || 'School Type Not Available'}</Typography>
       <Typography variant="body1">Grades: {gradesDisplay}</Typography>
       <Typography variant="body1">Total Enrollment: {totalEnrollment} students</Typography>
       {district && (

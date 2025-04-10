@@ -30,13 +30,10 @@ const Financials: React.FC = () => {
   const financialMeasurementTypeIds = ['16', '17', '18', '19', '20', '21', '22'];
 
   useEffect(() => {
-    if (id) {
-      // If school data isn't loaded yet, fetch it
-      if (!school && !schoolLoading) {
-        dispatch(fetchAllSchoolData(id));
-      }
+    if (id && !school && !schoolLoading) {
+      dispatch(fetchAllSchoolData(Number(id)));
     }
-  }, [dispatch, id, school, schoolLoading]);
+  }, [id, school, schoolLoading, dispatch]);
 
   // Filter measurements to only include financial measurement type IDs
   const financialMeasurements = measurements.filter(
