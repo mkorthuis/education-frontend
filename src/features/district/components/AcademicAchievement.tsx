@@ -131,8 +131,7 @@ const AcademicAchievement: React.FC = () => {
               {filteredAssessmentData.map((item) => (
                 <MeasurementCard
                   key={item.id}
-                  assessment_subject={item.assessment_subject}
-                  value={item.above_proficient_percentage}
+                  assessment_subject_id={item.assessment_subject?.id || 0}
                 />
               ))}
             </Box>

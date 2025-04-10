@@ -26,25 +26,13 @@ import {
   selectSelectedSubjectId 
 } from '@/store/slices/assessmentSlice';
 import { FISCAL_YEAR } from '@/utils/environment';
-import { filterAssessmentResults } from '@/features/district/utils/assessmentDataProcessing';
+import { filterAssessmentResults, getProficiencyRangeIndex, getDistrictRankInfo } from '@/features/district/utils/assessmentDataProcessing';
 
 // Color constants for better consistency
 const COLOR_CURRENT_DISTRICT = '#1976d2'; // Blue for current district
 const COLOR_STATE_AVERAGE = '#4CAF50'; // Green for state average
 const COLOR_OTHER_DISTRICTS = '#9e9e9e'; // Grey for other districts
 
-// Function to get the proficiency range index for a percentage value
-const getProficiencyRangeIndex = (percentage: number | null, exception: string | null) => {
-  if (exception === 'SCORE_UNDER_10') {
-    return 9; // Treat as 9%
-  } else if (exception === 'SCORE_OVER_90') {
-    return 91; // Treat as 91%
-  } else if (percentage !== null) {
-    // Round to the nearest integer (1% increment)
-    return Math.round(percentage);
-  }
-  return -1; // Invalid or missing data
-};
 
 // Function to calculate state average proficiency percentage
 const calculateStateAverage = (stateData: any[]) => {
@@ -120,52 +108,6 @@ const formatXAxisTick = (value: number) => {
   return '';
 };
 
-// Function to get district rank information
-const getDistrictRankInfo = (districtData: any[], currentDistrictId: number | null) => {
-  if (!districtData || districtData.length === 0 || !currentDistrictId) {
-    return { rank: null, total: 0 };
-  }
-  
-  // Only count districts with valid proficiency data
-  const districtsWithData = districtData.filter(d => 
-    d.above_proficient_percentage !== null || 
-    d.above_proficient_percentage_exception === 'SCORE_UNDER_10' || 
-    d.above_proficient_percentage_exception === 'SCORE_OVER_90'
-  );
-  
-  const total = districtsWithData.length;
-  
-  // Find current district
-  const currentDistrict = districtsWithData.find(d => d.district_id === currentDistrictId);
-  if (!currentDistrict) {
-    return { rank: null, total };
-  }
-  
-  // Get normalized proficiency percentage for current district
-  const currentProficiency = getProficiencyRangeIndex(
-    currentDistrict.above_proficient_percentage,
-    currentDistrict.above_proficient_percentage_exception
-  );
-  
-  if (currentProficiency === -1) {
-    return { rank: null, total };
-  }
-  
-  // Count districts with higher proficiency
-  // (rank 1 is the highest proficiency)
-  const districtsWithHigherProficiency = districtsWithData.filter(d => {
-    const proficiency = getProficiencyRangeIndex(
-      d.above_proficient_percentage,
-      d.above_proficient_percentage_exception
-    );
-    return proficiency > currentProficiency;
-  }).length;
-  
-  // Calculate rank (1 is best - highest proficiency)
-  const rank = districtsWithHigherProficiency + 1;
-  
-  return { rank, total };
-};
 
 // Custom Legend Component
 const renderLegend = (props: any) => {

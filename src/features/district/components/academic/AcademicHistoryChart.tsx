@@ -41,7 +41,6 @@ const AcademicHistoryChart: React.FC = () => {
   const selectedSubjectId = useAppSelector(selectSelectedSubjectId);
   const selectedGradeId = useAppSelector(selectSelectedGradeId);
   const selectedSubgroupId = useAppSelector(selectSelectedSubgroupId);
-  const selectedSubject = useAppSelector(selectSelectedSubject);
   const subgroups = useAppSelector(selectAssessmentSubgroups);
   
   // Find selected subgroup name
