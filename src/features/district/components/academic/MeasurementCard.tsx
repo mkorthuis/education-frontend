@@ -147,8 +147,11 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
     backgroundColor: isSelected ? 'grey.300' : 'grey.100', 
     mb: isCollapsed ? 0 : 2,
     flex: isCollapsed ? { xs: '1 1 0', md: '1 0 auto' } : '1 0 auto',
-    width: isCollapsed ? { xs: `calc(${100/totalCount}% - ${totalCount > 1 ? 4 : 0}px)`, md: '100%' } : '100%',
     minWidth: isCollapsed ? { xs: 0, md: '100%' } : '100%',
+    marginRight: isCollapsed ? { xs: '8px', md: 0 } : 0,
+    '&:last-child': {
+      marginRight: 0
+    },
     transition: 'all 0.3s ease'
   };
 

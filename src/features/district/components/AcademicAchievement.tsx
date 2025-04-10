@@ -126,7 +126,7 @@ const AcademicAchievement: React.FC = () => {
     },
     flexWrap: { xs: selectedSubjectId ? 'wrap' : 'nowrap', md: 'nowrap' },
     width: { xs: '100%', md: '300px'}, 
-    gap: selectedSubjectId ? 1 : 0,
+    gap: 0, // Explicitly set gap to 0
     flexShrink: 0,
     mb: selectedSubjectId ? 2 : 0,
     justifyContent: selectedSubjectId ? 'space-between' : 'flex-start'
@@ -140,7 +140,7 @@ const AcademicAchievement: React.FC = () => {
           <CircularProgress />
         </Box>
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }}}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'flex-start' }}>
           {/* Mobile instruction text - only visible on mobile and when no subject is selected */}
           {!selectedSubjectId && (
             <Box sx={{ display: { xs: 'block', md: 'none' }, mb: 1 }}>
