@@ -292,7 +292,7 @@ export const fetchAssessmentDistrictData = createAsyncThunk<
       await ensureAssessmentDataLoaded(getState() as RootState, dispatch);
       
       const { forceRefresh = false, ...queryParams } = params;
-      const districtData = await assessmentsApi.getAssessmentDistrictData(forceRefresh, queryParams);
+      const districtData = await assessmentsApi.getAssessmentDistrictData(queryParams, forceRefresh);
       const queryKey = createQueryKey(queryParams);
       
       // Type-safe access to state
@@ -326,7 +326,7 @@ export const fetchAssessmentStateData = createAsyncThunk<
       await ensureAssessmentDataLoaded(getState() as RootState, dispatch);
       
       const { forceRefresh = false, ...queryParams } = params;
-      const stateData = await assessmentsApi.getAssessmentStateData(forceRefresh, queryParams);
+      const stateData = await assessmentsApi.getAssessmentStateData(queryParams, forceRefresh);
       const queryKey = createQueryKey(queryParams);
       
       // Type-safe access to state
@@ -360,7 +360,7 @@ export const fetchAssessmentSchoolData = createAsyncThunk<
       await ensureAssessmentDataLoaded(getState() as RootState, dispatch);
       
       const { forceRefresh = false, ...queryParams } = params;
-      const schoolData = await assessmentsApi.getAssessmentSchoolData(forceRefresh, queryParams);
+      const schoolData = await assessmentsApi.getAssessmentSchoolData(queryParams, forceRefresh);
       const queryKey = createQueryKey(queryParams);
       
       // Type-safe access to state

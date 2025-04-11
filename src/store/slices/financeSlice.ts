@@ -309,8 +309,10 @@ export const fetchFinancialReports = createAsyncThunk(
       // Ensure entry types and fund types are loaded first
       await ensureTypesLoaded(getState() as RootState, dispatch);
       
-      // Fetch the financial report for the specified year
-      const reportData = await financeApi.getFinanceData(districtId);
+      // Fetch the financial report for the specified year using the new API signature
+      const reportData = await financeApi.getFinanceData({
+        district_id: districtId
+      });
       
       return { reportData };
     } catch (error) {
@@ -332,8 +334,11 @@ export const fetchPerPupilExpenditure = createAsyncThunk(
     forceRefresh?: boolean;
   }, { rejectWithValue }) => {
     try {
-      // Don't specify year parameter to get all data
-      const perPupilData = await financeApi.getPerPupilExpendituresForDistrict(districtId, year, forceRefresh);
+      // Use the new API signature with options object first and forceRefresh second
+      const perPupilData = await financeApi.getPerPupilExpendituresForDistrict(
+        { district_id: districtId, year }, 
+        forceRefresh
+      );
       return perPupilData;
     } catch (error) {
       return rejectWithValue(handleApiError(error, 'Failed to fetch per pupil expenditure data'));
@@ -352,8 +357,11 @@ export const fetchStatePerPupilExpenditure = createAsyncThunk(
     forceRefresh?: boolean;
   }, { rejectWithValue }) => {
     try {
-      // Don't specify year parameter to get all data
-      const statePerPupilData = await financeApi.getPerPupilExpendituresForState(year, forceRefresh);
+      // Use the new API signature with options object first and forceRefresh second
+      const statePerPupilData = await financeApi.getPerPupilExpendituresForState(
+        { year }, 
+        forceRefresh
+      );
       return statePerPupilData;
     } catch (error) {
       return rejectWithValue(handleApiError(error, 'Failed to fetch state average per pupil expenditure data'));
@@ -372,8 +380,11 @@ export const fetchStateExpenditureRollups = createAsyncThunk(
     forceRefresh?: boolean;
   }, { rejectWithValue }) => {
     try {
-      // Don't specify year parameter to get all data
-      const stateExpenditureRollupData = await financeApi.getStateExpenditureRollups(year, forceRefresh);
+      // Use the new API signature with options object first and forceRefresh second
+      const stateExpenditureRollupData = await financeApi.getStateExpenditureRollups(
+        { year }, 
+        forceRefresh
+      );
       return stateExpenditureRollupData;
     } catch (error) {
       return rejectWithValue(handleApiError(error, 'Failed to fetch state expenditure data'));
@@ -395,8 +406,14 @@ export const fetchStateRevenue = createAsyncThunk(
     forceRefresh?: boolean;
   }, { rejectWithValue }) => {
     try {
-      // Don't specify year parameter to get all data
-      const stateRevenueData = await financeApi.getStateRevenue(year, revenueEntryTypeId, forceRefresh);
+      // Use the new API signature with options object first and forceRefresh second
+      const stateRevenueData = await financeApi.getStateRevenue(
+        { 
+          year, 
+          revenue_entry_type_id: revenueEntryTypeId 
+        }, 
+        forceRefresh
+      );
       return stateRevenueData;
     } catch (error) {
       return rejectWithValue(handleApiError(error, 'Failed to fetch state revenue data'));
@@ -417,8 +434,14 @@ export const fetchStateExpenditure = createAsyncThunk(
     forceRefresh?: boolean;
   }, { rejectWithValue }) => {
     try {
-      // Don't specify year parameter to get all data
-      const stateExpenditureData = await financeApi.getStateExpenditure(year, expenditureEntryTypeId, forceRefresh);
+      // Use the new API signature with options object first and forceRefresh second
+      const stateExpenditureData = await financeApi.getStateExpenditure(
+        { 
+          year, 
+          expenditure_entry_type_id: expenditureEntryTypeId 
+        }, 
+        forceRefresh
+      );
       return stateExpenditureData;
     } catch (error) {
       return rejectWithValue(handleApiError(error, 'Failed to fetch state expenditure data'));

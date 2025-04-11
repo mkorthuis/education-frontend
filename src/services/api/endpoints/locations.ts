@@ -1,91 +1,41 @@
-import axiosInstance from '../config/axios';
 import { BASE_API_URL } from '../config/constants';
-import { skipCache, invalidateCache } from '../../../utils/cacheUtils';
+import { buildUrl, fetchData } from '../utils/apiUtils';
 
 const BASE_ENDPOINT_URL = BASE_API_URL + 'location/';
 
+// Helper function specific to location endpoints
+const buildLocationUrl = (endpoint: string, options: Record<string, any> = {}): string => {
+    return buildUrl(BASE_ENDPOINT_URL, endpoint, options);
+};
 
 export const locationApi = {
-
-    getDistricts: async (forceRefresh = false) => {
-        const url = BASE_ENDPOINT_URL + 'district?is_public=true';
-        const response = await axiosInstance.get(
-            url,
-            forceRefresh ? skipCache() : undefined
-        );
-        return response.data;
-    },
+    // Base endpoints
+    getDistricts: (forceRefresh = false) => 
+        fetchData(buildLocationUrl('district', { is_public: true }), forceRefresh),
     
-    getDistrictById: async (id: number, forceRefresh = false) => {
-        const url = BASE_ENDPOINT_URL + `district/${id}`;
-        const response = await axiosInstance.get(
-            url,
-            forceRefresh ? skipCache() : undefined
-        );
-        return response.data;
-    },
-
-    getSchoolsByDistrictId: async (id: number, forceRefresh = false) => {
-        const url = BASE_ENDPOINT_URL + `school?district_id=${id}`;
-        const response = await axiosInstance.get(
-            url,
-            forceRefresh ? skipCache() : undefined
-        );
-        return response.data;
-    },
-
-    getSchoolById: async (id: number, forceRefresh = false) => {
-        const url = BASE_ENDPOINT_URL + `school/${id}`;
-        const response = await axiosInstance.get(
-            url,
-            forceRefresh ? skipCache() : undefined
-        );
-        return response.data;
-    },
-
-    getDistrictBySchoolId: async (id: number, forceRefresh = false) => {
-        const url = BASE_ENDPOINT_URL + `district?school_id=${id}`;
-        const response = await axiosInstance.get(
-            url,
-            forceRefresh ? skipCache() : undefined
-        );
-        return response.data;
-    },
-
-    getTownsByDistrictId: async (id: number, forceRefresh = false) => {
-        const url = BASE_ENDPOINT_URL + `town?district_id=${id}`;
-        const response = await axiosInstance.get(
-            url,
-            forceRefresh ? skipCache() : undefined
-        );
-        return response.data;
-    },
-
-    getSauByDistrictId: async (id: number, forceRefresh = false) => {
-        const url = BASE_ENDPOINT_URL + `sau?district_id=${id}`;
-        const response = await axiosInstance.get(
-            url,
-            forceRefresh ? skipCache() : undefined
-        );
-        return response.data;
-    },
-
-    getGrades: async (forceRefresh = false) => {
-        const url = BASE_ENDPOINT_URL + 'grade';
-        const response = await axiosInstance.get(
-            url,
-            forceRefresh ? skipCache() : undefined
-        );
-        return response.data;
-    },
-
-    getGradeById: async (id: string, forceRefresh = false) => {
-        const url = BASE_ENDPOINT_URL + `grade/${id}`;
-        const response = await axiosInstance.get(
-            url,
-            forceRefresh ? skipCache() : undefined
-        );
-        return response.data;
-    },
+    getGrades: (forceRefresh = false) => 
+        fetchData(buildLocationUrl('grade'), forceRefresh),
     
+    // ID-based endpoints
+    getDistrictById: (id: number, forceRefresh = false) => 
+        fetchData(buildLocationUrl(`district/${id}`), forceRefresh),
+    
+    getSchoolById: (id: number, forceRefresh = false) => 
+        fetchData(buildLocationUrl(`school/${id}`), forceRefresh),
+    
+    getGradeById: (id: string, forceRefresh = false) => 
+        fetchData(buildLocationUrl(`grade/${id}`), forceRefresh),
+    
+    // Relation-based endpoints
+    getSchoolsByDistrictId: (id: number, forceRefresh = false) => 
+        fetchData(buildLocationUrl('school', { district_id: id }), forceRefresh),
+    
+    getDistrictBySchoolId: (id: number, forceRefresh = false) => 
+        fetchData(buildLocationUrl('district', { school_id: id }), forceRefresh),
+    
+    getTownsByDistrictId: (id: number, forceRefresh = false) => 
+        fetchData(buildLocationUrl('town', { district_id: id }), forceRefresh),
+    
+    getSauByDistrictId: (id: number, forceRefresh = false) => 
+        fetchData(buildLocationUrl('sau', { district_id: id }), forceRefresh)
 };
