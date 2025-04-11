@@ -89,7 +89,7 @@ export const safetyApi = {
         fetchData(buildSafetyUrl('bullying/impact', options), forceRefresh),
     
     getHarassmentIncidents: (options: HarassmentOptions = {}, forceRefresh = false) => 
-        fetchData(buildSafetyUrl('harassment/incident', options), forceRefresh),
+        fetchData(buildSafetyUrl('harassment', options), forceRefresh),
     
     getRestraints: (options: BaseSafetyOptions = {}, forceRefresh = false) => 
         fetchData(buildSafetyUrl('restraint', options), forceRefresh),

@@ -7,23 +7,34 @@ import {
   selectLocationLoading,
   fetchAllDistrictData 
 } from '@/store/slices/locationSlice';
-import { 
-  selectAllMeasurements, 
-  selectMeasurementsLoading,
-  selectMeasurementsError,
-  fetchAllMeasurements
-} from '@/store/slices/measurementSlice';
-import MeasurementTable from '@/components/ui/tables/MeasurementTable';
 import SectionTitle from '@/components/ui/SectionTitle';
+import { 
+  fetchHarassmentIncidents, 
+  fetchSchoolSafetyIncidents, 
+  fetchTruancyData, 
+  LoadingState,
+  selectSchoolSafetyData,
+  selectHarassmentData,
+  selectTruancyData,
+  selectSchoolSafetyIncidentsLoadingStatus,
+  selectHarassmentIncidentsLoadingStatus,
+  selectTruancyLoadingStatus
+} from '@/store/slices/safetySlice';
 
 const SchoolSafety: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const districtId = id ? parseInt(id) : 0;
+  
+  const schoolSafetyData = useAppSelector(state => selectSchoolSafetyData(state, { district_id: districtId }));
+  const harassmentData = useAppSelector(state => selectHarassmentData(state, { district_id: districtId }));
+  const truancyData = useAppSelector(state => selectTruancyData(state, { district_id: districtId }));
+  const schoolSafetyLoading = useAppSelector(state => selectSchoolSafetyIncidentsLoadingStatus(state, { district_id: districtId }));
+  const harassmentLoading = useAppSelector(state => selectHarassmentIncidentsLoadingStatus(state, { district_id: districtId }));
+  const truancyLoading = useAppSelector(state => selectTruancyLoadingStatus(state, { district_id: districtId }));
+
   const district = useAppSelector(selectCurrentDistrict);
   const districtLoading = useAppSelector(selectLocationLoading);
   const dispatch = useAppDispatch();
-  const measurements = useAppSelector(selectAllMeasurements);
-  const measurementsLoading = useAppSelector(selectMeasurementsLoading);
-  const measurementsError = useAppSelector(selectMeasurementsError);
 
   // List of school safety measurement type IDs
   const safetyMeasurementTypeIds = [39, 40, 41, 42, 43];
@@ -31,21 +42,22 @@ const SchoolSafety: React.FC = () => {
   useEffect(() => {
     if (id) {
       if(!districtLoading && !district) {
-        dispatch(fetchAllDistrictData(parseInt(id)));
+        dispatch(fetchAllDistrictData(districtId));
       }
-      if (!measurementsLoading && measurements.length === 0) {
-        dispatch(fetchAllMeasurements({ entityId: id, entityType: 'district' }));
+      if(schoolSafetyLoading === LoadingState.IDLE && schoolSafetyData.length === 0) {
+        dispatch(fetchSchoolSafetyIncidents({ district_id: districtId }));
+      }
+      if(harassmentLoading === LoadingState.IDLE && harassmentData.length === 0) {
+        dispatch(fetchHarassmentIncidents({ district_id: districtId }));
+      }
+      if(truancyLoading === LoadingState.IDLE && truancyData.length === 0) {
+        dispatch(fetchTruancyData({ district_id: districtId }));
       }
     }
-  }, [id, districtLoading, dispatch, measurementsLoading, measurements]);
+  }, [dispatch, id, districtId, districtLoading, district, schoolSafetyLoading, schoolSafetyData, harassmentLoading, harassmentData, truancyLoading, truancyData]);
 
-  // Filter measurements to only include safety measurement type IDs
-  const safetyMeasurements = measurements.filter(
-    measurement => safetyMeasurementTypeIds.includes(Number(measurement.measurement_type.id))
-  );
-
-  // Show loading when either district data or measurement data is loading
-  const isLoading = districtLoading || measurementsLoading;
+  // Show loading when any data is still loading
+  const isLoading = districtLoading || schoolSafetyLoading != LoadingState.SUCCEEDED || harassmentLoading != LoadingState.SUCCEEDED || truancyLoading != LoadingState.SUCCEEDED;
 
   return (
     <>
@@ -58,12 +70,12 @@ const SchoolSafety: React.FC = () => {
           <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
             <CircularProgress />
           </Box>
-        ) : measurementsError ? (
-          <Typography color="error">Error loading safety data: {measurementsError}</Typography>
-        ) : safetyMeasurements.length === 0 ? (
-          <Typography>No safety data available for this district.</Typography>
         ) : (
-          <MeasurementTable data={safetyMeasurements} />
+            <Box>
+                <Typography>School Safety</Typography>{JSON.stringify(schoolSafetyData)}
+                <Typography>Harassment</Typography>{JSON.stringify(harassmentData)}
+                <Typography>Truancy</Typography>{JSON.stringify(truancyData)}
+            </Box>
         )}
       </Box>
     </>
