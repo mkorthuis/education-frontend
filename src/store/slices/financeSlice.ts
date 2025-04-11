@@ -1,4 +1,3 @@
-// financeSlice.v2.ts - Empty file for new implementation 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { financeApi } from '@/services/api/endpoints/finances';
