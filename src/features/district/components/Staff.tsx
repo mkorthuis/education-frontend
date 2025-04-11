@@ -11,7 +11,7 @@ import {
 import { 
   fetchAllMeasurements, 
   selectAllMeasurements, 
-  selectMeasurementsLoading,
+  selectMeasurementsLoadingState,
   selectMeasurementsError
 } from '@/store/slices/measurementSlice';
 import MeasurementTable from '@/components/ui/tables/MeasurementTable';
@@ -24,7 +24,7 @@ const Staff: React.FC = () => {
   const districtError = useAppSelector(selectLocationError);
   const dispatch = useAppDispatch();
   const measurements = useAppSelector(selectAllMeasurements);
-  const measurementsLoading = useAppSelector(selectMeasurementsLoading);
+  const measurementsLoading = useAppSelector(selectMeasurementsLoadingState);
   const measurementsError = useAppSelector(selectMeasurementsError);
 
   // List of teacher-related measurement type IDs

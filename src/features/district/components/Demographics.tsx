@@ -9,7 +9,7 @@ import {
 } from '@/store/slices/locationSlice';
 import { 
   selectAllMeasurements, 
-  selectMeasurementsLoading,
+  selectMeasurementsLoadingState,
   selectMeasurementsError,
   fetchAllMeasurements,
   FetchMeasurementsParams
@@ -23,7 +23,7 @@ const Demographics: React.FC = () => {
   const districtLoading = useAppSelector(selectLocationLoading);
   const dispatch = useAppDispatch();
   const measurements = useAppSelector(selectAllMeasurements);
-  const measurementsLoading = useAppSelector(selectMeasurementsLoading);
+  const measurementsLoading = useAppSelector(selectMeasurementsLoadingState);
   const measurementsError = useAppSelector(selectMeasurementsError);
 
   // List of demographic measurement type IDs

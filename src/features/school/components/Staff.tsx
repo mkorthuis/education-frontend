@@ -9,7 +9,7 @@ import {
 } from '@/store/slices/locationSlice';
 import { 
   selectAllMeasurements, 
-  selectMeasurementsLoading,
+  selectMeasurementsLoadingState,
   selectMeasurementsError,
   fetchAllMeasurements
 } from '@/store/slices/measurementSlice';
@@ -22,7 +22,7 @@ const Staff: React.FC = () => {
   const schoolLoading = useAppSelector(selectSchoolLoading);
   const dispatch = useAppDispatch();
   const measurements = useAppSelector(selectAllMeasurements);
-  const measurementsLoading = useAppSelector(selectMeasurementsLoading);
+  const measurementsLoading = useAppSelector(selectMeasurementsLoadingState);
   const measurementsError = useAppSelector(selectMeasurementsError);
 
   // List of teacher-related measurement type IDs
