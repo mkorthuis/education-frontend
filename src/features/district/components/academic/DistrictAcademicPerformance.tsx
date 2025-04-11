@@ -14,21 +14,22 @@ import {
   Label,
   Legend
 } from 'recharts';
-import { Paper, Typography, Box } from '@mui/material';
+import { Typography, Box } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
 import { 
   fetchAssessmentDistrictData, 
   fetchAssessmentStateData,
-  selectAssessmentDistrictDataByParams, 
+  selectAssessmentDistrictLoadingStatus,
+  selectAssessmentDistrictData,
   selectCurrentAssessmentStateData,
   selectSelectedGradeId, 
   selectSelectedSubgroupId, 
   selectSelectedSubjectId,
-  selectAssessmentDistrictDataLoadingByParams,
-  selectAssessmentStateDataLoading
+  selectAssessmentStateLoadingStatus,
 } from '@/store/slices/assessmentSlice';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { filterAssessmentResults, getProficiencyRangeIndex, getDistrictRankInfo } from '@/features/district/utils/assessmentDataProcessing';
+import { LoadingState } from '@/store/slices/safetySlice';
 
 // Color constants for better consistency
 const COLOR_CURRENT_DISTRICT = '#1976d2'; // Blue for current district
@@ -146,21 +147,21 @@ const DistrictAcademicPerformance: React.FC = () => {
     grade_id: selectedGradeId || undefined
   }), [selectedSubjectId, selectedSubgroupId, selectedGradeId]);
   
-  const districtAssessmentData = useAppSelector(selectAssessmentDistrictDataByParams(queryParams));
+  const districtAssessmentData = useAppSelector(state => selectAssessmentDistrictData(state, queryParams));
   
   const stateAssessmentData = useAppSelector(selectCurrentAssessmentStateData);
   
   // Add loading state selectors
-  const isDistrictDataLoading = useAppSelector(selectAssessmentDistrictDataLoadingByParams(queryParams));
-  const isStateDataLoading = useAppSelector(selectAssessmentStateDataLoading);
+  const isDistrictDataLoading = useAppSelector(state => selectAssessmentDistrictLoadingStatus(state, queryParams));
+  const isStateDataLoading = useAppSelector(state => selectAssessmentStateLoadingStatus(state, {}));
 
   useEffect(() => {
     if(selectedSubgroupId && selectedSubjectId && selectedGradeId) {
-        if(districtAssessmentData.length === 0 && !isDistrictDataLoading) {
+        if(districtAssessmentData.length === 0 && isDistrictDataLoading === LoadingState.IDLE) {
           dispatch(fetchAssessmentDistrictData(queryParams));
         }
         
-        if(stateAssessmentData.length === 0 && !isStateDataLoading) {
+        if(stateAssessmentData.length === 0 && isStateDataLoading === LoadingState.IDLE) {
           dispatch(fetchAssessmentStateData({
             year: FISCAL_YEAR,
             assessment_subgroup_id: selectedSubgroupId,

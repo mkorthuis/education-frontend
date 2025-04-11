@@ -65,6 +65,7 @@ type SafetyTypeCategory = 'schoolSafetyTypes' | 'harassmentClassification';
 
 interface SafetyState {
     dataLoadingStatus: Record<SafetyCategory, Record<string, LoadingState>>;
+    typeLoadingStatus: Record<SafetyTypeCategory, LoadingState>;
     truancyData: Record<string, TruancyData[]>;
     schoolSafetyData: Record<string, SchoolSafetyData[]>;
     harassmentData: Record<string, HarassmentData[]>;
@@ -72,7 +73,6 @@ interface SafetyState {
     schoolSafetyTypes: SchoolSafetyType[];
     harassmentClassification: HarassmentClassificationData[];
 
-    typeLoadingStatus: Record<SafetyTypeCategory, LoadingState>;
 }
 
 const initialState: SafetyState = {
@@ -81,17 +81,17 @@ const initialState: SafetyState = {
         schoolSafetyIncidents: {},
         harassment: {},
     },
+    typeLoadingStatus: {
+        schoolSafetyTypes: LoadingState.IDLE,
+        harassmentClassification: LoadingState.IDLE,
+    },
+
     truancyData: {},
     schoolSafetyData: {},
     harassmentData: {},
 
     schoolSafetyTypes: [],
-    harassmentClassification: [],
-
-    typeLoadingStatus: {
-        schoolSafetyTypes: LoadingState.IDLE,
-        harassmentClassification: LoadingState.IDLE,
-    }
+    harassmentClassification: []
 
 }
 
@@ -105,6 +105,32 @@ const createOptionsKey = (params: Record<string, any>): string => {
     // Ensure we never return an empty string as a key
     return keyString || '_default';
   };
+
+
+
+export const fetchSchoolSafetyTypes = createAsyncThunk(
+    'safety/fetchSchoolSafetyTypes',
+    async (_, { rejectWithValue }) => {
+        try {
+            const data = await safetyApi.getSchoolSafetyTypes();
+            return data;
+        } catch (error : any) {
+            return rejectWithValue(error.message);
+        }
+    }
+)
+
+export const fetchHarassmentClassification = createAsyncThunk(
+    'safety/fetchHarassmentClassification',
+    async (_, {rejectWithValue}) => {
+        try {
+            const data = await safetyApi.getHarassmentClassifications();
+            return data;
+        } catch (error : any) {
+            return rejectWithValue(error.message);
+        }
+    }
+)
 
 export const fetchTruancyData = createAsyncThunk(
     'safety/fetchTruancyData',
@@ -164,34 +190,12 @@ export const fetchHarassmentIncidents = createAsyncThunk(
     }
 )
 
-export const fetchSchoolSafetyTypes = createAsyncThunk(
-    'safety/fetchSchoolSafetyTypes',
-    async (_, thunkAPI) => {
-        try {
-            const data = await safetyApi.getSchoolSafetyTypes();
-            return data;
-        } catch (error : any) {
-            return thunkAPI.rejectWithValue(error.message);
-        }
-    }
-)
-
-export const fetchHarassmentClassification = createAsyncThunk(
-    'safety/fetchHarassmentClassification',
-    async (_, thunkAPI) => {
-        try {
-            const data = await safetyApi.getHarassmentClassifications();
-            return data;
-        } catch (error : any) {
-            return thunkAPI.rejectWithValue(error.message);
-        }
-    }
-)
 export const safetySlice = createSlice({
     name: 'safety',
     initialState,
     reducers: {
-        clearSafety: (state) => {
+        clearSafety: (state) => initialState,
+        clearSafetyData: (state) => {
             state.dataLoadingStatus = {
                 truancy: {},
                 schoolSafetyIncidents: {},
@@ -203,7 +207,29 @@ export const safetySlice = createSlice({
         },
     },
     extraReducers: (builder) => {
-        builder.addCase(fetchTruancyData.pending, (state, action) => {
+        builder.addCase(fetchSchoolSafetyTypes.pending, (state, action) => {
+            state.typeLoadingStatus.schoolSafetyTypes = LoadingState.LOADING;
+        })
+        .addCase(fetchSchoolSafetyTypes.fulfilled, (state, action) => {
+            state.schoolSafetyTypes = action.payload;
+            state.typeLoadingStatus.schoolSafetyTypes = LoadingState.SUCCEEDED;
+        })  
+        .addCase(fetchSchoolSafetyTypes.rejected, (state, action) => {
+            state.typeLoadingStatus.schoolSafetyTypes = LoadingState.FAILED;
+        })
+
+        .addCase(fetchHarassmentClassification.pending, (state, action) => {
+            state.typeLoadingStatus.harassmentClassification = LoadingState.LOADING;
+        })
+        .addCase(fetchHarassmentClassification.fulfilled, (state, action) => {
+            state.harassmentClassification = action.payload;
+            state.typeLoadingStatus.harassmentClassification = LoadingState.SUCCEEDED;
+        })
+        .addCase(fetchHarassmentClassification.rejected, (state, action) => {
+            state.typeLoadingStatus.harassmentClassification = LoadingState.FAILED;
+        })
+        
+        .addCase(fetchTruancyData.pending, (state, action) => {
             const key = createOptionsKey(action.meta.arg);
             state.dataLoadingStatus.truancy[key] = LoadingState.LOADING;
         })
@@ -240,28 +266,6 @@ export const safetySlice = createSlice({
         .addCase(fetchHarassmentIncidents.rejected, (state, action) => {
             const key = createOptionsKey(action.meta.arg);
             state.dataLoadingStatus.harassment[key] = LoadingState.FAILED;
-        })
-
-        .addCase(fetchSchoolSafetyTypes.pending, (state, action) => {
-            state.typeLoadingStatus.schoolSafetyTypes = LoadingState.LOADING;
-        })
-        .addCase(fetchSchoolSafetyTypes.fulfilled, (state, action) => {
-            state.schoolSafetyTypes = action.payload;
-            state.typeLoadingStatus.schoolSafetyTypes = LoadingState.SUCCEEDED;
-        })  
-        .addCase(fetchSchoolSafetyTypes.rejected, (state, action) => {
-            state.typeLoadingStatus.schoolSafetyTypes = LoadingState.FAILED;
-        })
-
-        .addCase(fetchHarassmentClassification.pending, (state, action) => {
-            state.typeLoadingStatus.harassmentClassification = LoadingState.LOADING;
-        })
-        .addCase(fetchHarassmentClassification.fulfilled, (state, action) => {
-            state.harassmentClassification = action.payload;
-            state.typeLoadingStatus.harassmentClassification = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchHarassmentClassification.rejected, (state, action) => {
-            state.typeLoadingStatus.harassmentClassification = LoadingState.FAILED;
         })
     }
 })
