@@ -231,8 +231,7 @@ export const fetchAssessmentSubjects = createAsyncThunk(
   'assessment/fetchAssessmentSubjects',
   async (_, { rejectWithValue }) => {
     try {
-      const subjects = await assessmentsApi.getAssessmentSubjects();
-      return subjects;
+      return await assessmentsApi.getAssessmentSubjects();
     } catch (error : any) {
       return rejectWithValue(error.message);
     }
@@ -244,8 +243,7 @@ export const fetchAssessmentSubgroups = createAsyncThunk(
   'assessment/fetchAssessmentSubgroups',
   async (_, { rejectWithValue }) => {
     try {
-      const subgroups = await assessmentsApi.getAssessmentSubgroups();
-      return subgroups;
+      return await assessmentsApi.getAssessmentSubgroups();
     } catch (error : any) {
       return rejectWithValue(error.message);
     }
