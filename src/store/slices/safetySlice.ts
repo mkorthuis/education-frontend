@@ -60,7 +60,7 @@ export interface HarassmentClassificationData {
     name: string;
 }
 
-type SafetyCategory = 'truancy' | 'schoolSafetyIncidents' | 'harassment';
+export type SafetyCategory = 'truancy' | 'schoolSafetyIncidents' | 'harassment' | 'bullying' | 'suspension' | 'restraint' | 'serious';
 type SafetyTypeCategory = 'schoolSafetyTypes' | 'harassmentClassification';
 
 interface SafetyState {
@@ -72,7 +72,8 @@ interface SafetyState {
 
     schoolSafetyTypes: SchoolSafetyType[];
     harassmentClassification: HarassmentClassificationData[];
-
+    
+    selectedSafetyCategory: SafetyCategory | null;
 }
 
 const initialState: SafetyState = {
@@ -80,6 +81,10 @@ const initialState: SafetyState = {
         truancy: {},
         schoolSafetyIncidents: {},
         harassment: {},
+        bullying: {},
+        suspension: {},
+        restraint: {},
+        serious: {},
     },
     typeLoadingStatus: {
         schoolSafetyTypes: LoadingState.IDLE,
@@ -91,8 +96,9 @@ const initialState: SafetyState = {
     harassmentData: {},
 
     schoolSafetyTypes: [],
-    harassmentClassification: []
-
+    harassmentClassification: [],
+    
+    selectedSafetyCategory: null
 }
 
 // Generic key creation function
@@ -200,10 +206,17 @@ export const safetySlice = createSlice({
                 truancy: {},
                 schoolSafetyIncidents: {},
                 harassment: {},
+                bullying: {},
+                suspension: {},
+                restraint: {},
+                serious: {},
             };
             state.truancyData = {};
             state.schoolSafetyData = {};
             state.harassmentData = {};
+        },
+        setSelectedSafetyCategory: (state, action: PayloadAction<SafetyCategory | null>) => {
+            state.selectedSafetyCategory = action.payload;
         },
     },
     extraReducers: (builder) => {
@@ -270,7 +283,7 @@ export const safetySlice = createSlice({
     }
 })
 
-export const { clearSafety } = safetySlice.actions;
+export const { clearSafety, clearSafetyData, setSelectedSafetyCategory } = safetySlice.actions;
 
 const selectLoadingStatus = (state: RootState, category: SafetyCategory, params: BaseSafetyParams) => {
     const {forceRefresh = false, ...options} = params;
@@ -314,5 +327,7 @@ export const selectHarassmentData = (state: RootState, params: BaseSafetyParams)
 
 export const selectSchoolSafetyTypes = (state: RootState) => state.safety.schoolSafetyTypes;
 export const selectHarassmentClassification = (state: RootState) => state.safety.harassmentClassification;
+
+export const selectSelectedSafetyCategory = (state: RootState) => state.safety.selectedSafetyCategory;
 
 export default safetySlice.reducer;

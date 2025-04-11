@@ -14,13 +14,13 @@ const AcademicDefaultView: React.FC<AcademicDefaultViewProps> = ({
   return (
     <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
       <Typography variant="h5">
-        Welcome to the Academic Performance Overview
+        Welcome to the Academic Performance Overview Page
       </Typography>
       <Typography variant="body1" sx={{ mt: 2, }}>
         Please select a subject to view detailed information.
       </Typography>
       <Typography variant="body2" sx={{ mt: 2, fontStyle: 'italic' }}>
-        More information about College Readiness is coming soon.
+        More information about College Readiness coming soon.
       </Typography>
     </Box>
   );
