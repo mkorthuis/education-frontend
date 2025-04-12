@@ -190,6 +190,14 @@ export interface SchoolDisciplineIncidentData extends BaseDisciplineIncidentData
 export interface DistrictDisciplineIncidentData extends BaseDisciplineIncidentData { district_id: number; }
 export interface StateDisciplineIncidentData extends BaseDisciplineIncidentData {}
 
+export interface BaseEnrollmentData {
+    year: number;
+    total_enrollment: number;
+}
+export interface SchoolEnrollmentData extends BaseEnrollmentData { school_id: number; }
+export interface DistrictEnrollmentData extends BaseEnrollmentData { district_id: number; }
+export interface StateEnrollmentData extends BaseEnrollmentData {}
+
 export interface BullyingTypeData {
     id: number;
     name: string;
@@ -216,7 +224,7 @@ export interface DisciplineIncidentTypeData {
 }
 
 export type SafetyPage = 'truancy' | 'schoolSafetyIncidents' | 'harassment' | 'bullying' | 'restraint' | 'seclusion' | 'serious' | 'suspension';
-export type SafetyCategory = 'truancy' | 'safetyIncidents' | 'harassment' | 'bullying' | 'restraint' | 'seclusion' | 'bullyingClassification' | 'bullyingImpact' | 'disciplineCount' | 'disciplineIncident';
+export type SafetyCategory = 'truancy' | 'safetyIncidents' | 'harassment' | 'bullying' | 'restraint' | 'seclusion' | 'bullyingClassification' | 'bullyingImpact' | 'disciplineCount' | 'disciplineIncident' | 'enrollment';
 type SafetyTypeCategory = 'schoolSafetyTypes' | 'harassmentClassification' | 'bullyingTypes' | 'bullyingClassificationTypes' | 'bullyingImpactTypes' | 'disciplineCountTypes' | 'disciplineIncidentTypes';
 
 interface SafetyState {
@@ -238,6 +246,7 @@ interface SafetyState {
         bullyingImpact: Record<string, SchoolBullyingImpactData[]>;
         disciplineCount: Record<string, SchoolDisciplineCountData[]>;
         disciplineIncident: Record<string, SchoolDisciplineIncidentData[]>;
+        enrollment: Record<string, SchoolEnrollmentData[]>;
     }
     districtData: {
         truancy: Record<string, DistrictTruancyData[]>;
@@ -250,6 +259,7 @@ interface SafetyState {
         bullyingImpact: Record<string, DistrictBullyingImpactData[]>;
         disciplineCount: Record<string, DistrictDisciplineCountData[]>;
         disciplineIncident: Record<string, DistrictDisciplineIncidentData[]>;
+        enrollment: Record<string, DistrictEnrollmentData[]>;
     }
     stateData: {
         truancy: Record<string, StateTruancyData[]>;
@@ -262,6 +272,7 @@ interface SafetyState {
         bullyingImpact: Record<string, StateBullyingImpactData[]>;
         disciplineCount: Record<string, StateDisciplineCountData[]>;
         disciplineIncident: Record<string, StateDisciplineIncidentData[]>;
+        enrollment: Record<string, StateEnrollmentData[]>;
     }   
 
     schoolSafetyTypes: SchoolSafetyType[];
@@ -286,7 +297,8 @@ const initialState: SafetyState = {
         bullyingClassification: {},
         bullyingImpact: {},
         disciplineCount: {},
-        disciplineIncident: {}
+        disciplineIncident: {},
+        enrollment: {}
     },
     districtDataLoadingStatus: {
         truancy: {},
@@ -298,7 +310,8 @@ const initialState: SafetyState = {
         bullyingClassification: {},
         bullyingImpact: {},
         disciplineCount: {},
-        disciplineIncident: {}
+        disciplineIncident: {},
+        enrollment: {}
     },
     stateDataLoadingStatus: {
         truancy: {},
@@ -310,7 +323,8 @@ const initialState: SafetyState = {
         bullyingClassification: {},
         bullyingImpact: {},
         disciplineCount: {},
-        disciplineIncident: {}
+        disciplineIncident: {},
+        enrollment: {}
     },
     
     typeLoadingStatus: {
@@ -333,7 +347,8 @@ const initialState: SafetyState = {
         bullyingClassification: {},
         bullyingImpact: {},
         disciplineCount: {},
-        disciplineIncident: {}
+        disciplineIncident: {},
+        enrollment: {}
     },
     districtData: {
         truancy: {},
@@ -345,7 +360,8 @@ const initialState: SafetyState = {
         bullyingClassification: {},
         bullyingImpact: {},
         disciplineCount: {},
-        disciplineIncident: {}
+        disciplineIncident: {},
+        enrollment: {}
     },
     stateData: {
         truancy: {},
@@ -357,7 +373,8 @@ const initialState: SafetyState = {
         bullyingClassification: {},
         bullyingImpact: {},
         disciplineCount: {},
-        disciplineIncident: {}
+        disciplineIncident: {},
+        enrollment: {}
     },
     
     schoolSafetyTypes: [],
@@ -654,6 +671,24 @@ export const fetchSchoolDisciplineIncidents = createAsyncThunk(
     }
 )
 
+export const fetchSchoolEnrollmentData = createAsyncThunk(
+    'safety/fetchSchoolEnrollmentData',
+    async (params: BaseSchoolParams = {}, {getState, rejectWithValue}) => {
+        try {
+            const {forceRefresh = false, ...options} = params;
+            const key = createOptionsKey(options);
+            const cachedData = (getState() as RootState).safety.schoolData.enrollment[key];
+            if (cachedData && !forceRefresh) {
+                return {key, data: cachedData}
+            }
+            const data = await safetyApi.getSchoolEnrollment(options, forceRefresh);
+            return { key, data }
+        } catch (error : any) {
+            return rejectWithValue(error.message);
+        }
+    }
+)
+
 // District Level Thunks
 export const fetchDistrictTruancyData = createAsyncThunk(
     'safety/fetchDistrictTruancyData',
@@ -835,6 +870,24 @@ export const fetchDistrictDisciplineIncidents = createAsyncThunk(
             const key = createOptionsKey(options);
             const data = await safetyApi.getDistrictDisciplineIncidents(options, forceRefresh);
             return { key, data };
+        } catch (error : any) {
+            return rejectWithValue(error.message);
+        }
+    }
+)
+
+export const fetchDistrictEnrollmentData = createAsyncThunk(
+    'safety/fetchDistrictEnrollmentData',
+    async (params: BaseDistrictParams = {}, {getState, rejectWithValue}) => {
+        try {
+            const {forceRefresh = false, ...options} = params;
+            const key = createOptionsKey(options);
+            const cachedData = (getState() as RootState).safety.districtData.enrollment[key];
+            if (cachedData && !forceRefresh) {
+                return {key, data: cachedData}
+            }
+            const data = await safetyApi.getDistrictEnrollment(options, forceRefresh);
+            return { key, data }
         } catch (error : any) {
             return rejectWithValue(error.message);
         }
@@ -1028,6 +1081,24 @@ export const fetchStateDisciplineIncidents = createAsyncThunk(
     }
 )
 
+export const fetchStateEnrollmentData = createAsyncThunk(
+    'safety/fetchStateEnrollmentData',
+    async (params: BaseStateParams = {}, {getState, rejectWithValue}) => {
+        try {
+            const {forceRefresh = false, ...options} = params;
+            const key = createOptionsKey(options);
+            const cachedData = (getState() as RootState).safety.stateData.enrollment[key];
+            if (cachedData && !forceRefresh) {
+                return {key, data: cachedData}
+            }
+            const data = await safetyApi.getStateEnrollment(options, forceRefresh);
+            return { key, data }
+        } catch (error : any) {
+            return rejectWithValue(error.message);
+        }
+    }
+)
+
 export const safetySlice = createSlice({
     name: 'safety',
     initialState,
@@ -1044,7 +1115,8 @@ export const safetySlice = createSlice({
                 bullyingClassification: {},
                 bullyingImpact: {},
                 disciplineCount: {},
-                disciplineIncident: {}
+                disciplineIncident: {},
+                enrollment: {}
             };
             state.schoolData = {
                 truancy: {},
@@ -1056,7 +1128,8 @@ export const safetySlice = createSlice({
                 bullyingClassification: {},
                 bullyingImpact: {},
                 disciplineCount: {},
-                disciplineIncident: {}
+                disciplineIncident: {},
+                enrollment: {}
             };
             state.districtData = {
                 truancy: {},
@@ -1068,7 +1141,8 @@ export const safetySlice = createSlice({
                 bullyingClassification: {},
                 bullyingImpact: {},
                 disciplineCount: {},
-                disciplineIncident: {}
+                disciplineIncident: {},
+                enrollment: {}
             };
             state.stateData = {
                 truancy: {},
@@ -1080,7 +1154,8 @@ export const safetySlice = createSlice({
                 bullyingClassification: {},
                 bullyingImpact: {},
                 disciplineCount: {},
-                disciplineIncident: {}
+                disciplineIncident: {},
+                enrollment: {}
             };
         },
         setSelectedSafetyPage: (state, action: PayloadAction<SafetyPage | null>) => {
@@ -1307,6 +1382,19 @@ export const safetySlice = createSlice({
             state.schoolDataLoadingStatus.disciplineIncident[key] = LoadingState.FAILED;
         })
 
+        .addCase(fetchSchoolEnrollmentData.pending, (state, action) => {
+            const key = createOptionsKey(action.meta.arg);
+            state.schoolDataLoadingStatus.enrollment[key] = LoadingState.LOADING;
+        })
+        .addCase(fetchSchoolEnrollmentData.fulfilled, (state, action) => {
+            state.schoolData.enrollment[action.payload.key] = action.payload.data;
+            state.schoolDataLoadingStatus.enrollment[action.payload.key] = LoadingState.SUCCEEDED;
+        })
+        .addCase(fetchSchoolEnrollmentData.rejected, (state, action) => {
+            const key = createOptionsKey(action.meta.arg);
+            state.schoolDataLoadingStatus.enrollment[key] = LoadingState.FAILED;
+        })
+
         // District Level Reducers
         // District Truancy
         .addCase(fetchDistrictTruancyData.pending, (state, action) => {
@@ -1446,6 +1534,20 @@ export const safetySlice = createSlice({
         .addCase(fetchDistrictDisciplineIncidents.rejected, (state, action) => {
             const key = createOptionsKey(action.meta.arg);
             state.districtDataLoadingStatus.disciplineIncident[key] = LoadingState.FAILED;
+        })
+
+        // District Enrollment
+        .addCase(fetchDistrictEnrollmentData.pending, (state, action) => {
+            const key = createOptionsKey(action.meta.arg);
+            state.districtDataLoadingStatus.enrollment[key] = LoadingState.LOADING;
+        })
+        .addCase(fetchDistrictEnrollmentData.fulfilled, (state, action) => {
+            state.districtData.enrollment[action.payload.key] = action.payload.data;
+            state.districtDataLoadingStatus.enrollment[action.payload.key] = LoadingState.SUCCEEDED;
+        })
+        .addCase(fetchDistrictEnrollmentData.rejected, (state, action) => {
+            const key = createOptionsKey(action.meta.arg);
+            state.districtDataLoadingStatus.enrollment[key] = LoadingState.FAILED;
         })
 
         // State Level Reducers
@@ -1588,6 +1690,20 @@ export const safetySlice = createSlice({
             const key = createOptionsKey(action.meta.arg);
             state.stateDataLoadingStatus.disciplineIncident[key] = LoadingState.FAILED;
         })
+
+        // State Enrollment
+        .addCase(fetchStateEnrollmentData.pending, (state, action) => {
+            const key = createOptionsKey(action.meta.arg);
+            state.stateDataLoadingStatus.enrollment[key] = LoadingState.LOADING;
+        })
+        .addCase(fetchStateEnrollmentData.fulfilled, (state, action) => {
+            state.stateData.enrollment[action.payload.key] = action.payload.data;
+            state.stateDataLoadingStatus.enrollment[action.payload.key] = LoadingState.SUCCEEDED;
+        })
+        .addCase(fetchStateEnrollmentData.rejected, (state, action) => {
+            const key = createOptionsKey(action.meta.arg);
+            state.stateDataLoadingStatus.enrollment[key] = LoadingState.FAILED;
+        })
     }
 })
 
@@ -1660,6 +1776,9 @@ export const selectSchoolDisciplineCountsLoadingStatus = (state: RootState, para
 export const selectSchoolDisciplineIncidentsLoadingStatus = (state: RootState, params: SchoolDisciplineIncidentParams) => 
     selectLoadingStatus(state, 'disciplineIncident', params);
 
+export const selectSchoolEnrollmentLoadingStatus = (state: RootState, params: BaseSchoolParams) => 
+    selectLoadingStatus(state, 'enrollment', params);
+
 export const selectSchoolTruancyData = (state: RootState, params: BaseSchoolParams) => {
     const {forceRefresh = false, ...options} = params;
     const key = createOptionsKey(options);
@@ -1718,6 +1837,12 @@ export const selectSchoolDisciplineIncidentData = (state: RootState, params: Sch
     const {forceRefresh = false, ...options} = params;
     const key = createOptionsKey(options);
     return state.safety.schoolData.disciplineIncident[key] || [];
+}   
+
+export const selectSchoolEnrollmentData = (state: RootState, params: BaseSchoolParams) => {
+    const {forceRefresh = false, ...options} = params;
+    const key = createOptionsKey(options);
+    return state.safety.schoolData.enrollment[key] || [];
 }   
 
 
@@ -1807,6 +1932,15 @@ export const selectDistrictDisciplineCountsLoadingStatus = createSelector(
 export const selectDistrictDisciplineIncidentsLoadingStatus = createSelector(
     [(state: RootState) => state.safety.districtDataLoadingStatus.disciplineIncident,
      (_: RootState, params: DistrictDisciplineIncidentParams) => {
+        const options = { ...params };
+        return createOptionsKey(options);
+     }],
+    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
+);
+
+export const selectDistrictEnrollmentLoadingStatus = createSelector(
+    [(state: RootState) => state.safety.districtDataLoadingStatus.enrollment,
+     (_: RootState, params: BaseDistrictParams) => {
         const options = { ...params };
         return createOptionsKey(options);
      }],
@@ -1904,6 +2038,15 @@ export const selectStateDisciplineIncidentsLoadingStatus = createSelector(
     (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
 );
 
+export const selectStateEnrollmentLoadingStatus = createSelector(
+    [(state: RootState) => state.safety.stateDataLoadingStatus.enrollment,
+     (_: RootState, params: BaseStateParams) => {
+        const options = { ...params };
+        return createOptionsKey(options);
+     }],
+    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
+);
+
 // District Data Selectors
 export const selectDistrictTruancyData = createSelector(
     [(state: RootState) => state.safety.districtData.truancy, 
@@ -1995,6 +2138,15 @@ export const selectDistrictDisciplineIncidentData = createSelector(
     (disciplineIncidentData, key) => disciplineIncidentData[key] || []
 );
 
+export const selectDistrictEnrollmentData = createSelector(
+    [(state: RootState) => state.safety.districtData.enrollment, 
+     (_: RootState, params: BaseDistrictParams) => {
+        const {forceRefresh = false, ...options} = params;
+        return createOptionsKey(options);
+     }],
+    (enrollmentData, key) => enrollmentData[key] || []
+);
+
 // State Data Selectors
 export const selectStateTruancyData = createSelector(
     [(state: RootState) => state.safety.stateData.truancy, 
@@ -2084,6 +2236,15 @@ export const selectStateDisciplineIncidentData = createSelector(
         return createOptionsKey(options);
      }],
     (disciplineIncidentData, key) => disciplineIncidentData[key] || []
+);  
+
+export const selectStateEnrollmentData = createSelector(
+    [(state: RootState) => state.safety.stateData.enrollment, 
+     (_: RootState, params: BaseStateParams) => {
+        const {forceRefresh = false, ...options} = params;
+        return createOptionsKey(options);
+     }],
+    (enrollmentData, key) => enrollmentData[key] || []
 );
 
 export const selectSchoolSafetyTypes = (state: RootState) => state.safety.schoolSafetyTypes;

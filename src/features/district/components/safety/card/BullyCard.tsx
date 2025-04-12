@@ -3,8 +3,9 @@ import { Box, Divider, Typography } from '@mui/material';
 import DefaultSafetyCard from './DefaultSafetyCard';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { selectDistrictBullyingData, selectStateBullyingData, selectSelectedSafetyPage, setSelectedSafetyPage } from '@/store/slices/safetySlice';
+import { selectDistrictBullyingData, selectStateBullyingData, selectSelectedSafetyPage, setSelectedSafetyPage, selectDistrictEnrollmentData, selectStateEnrollmentData } from '@/store/slices/safetySlice';
 import { selectCurrentDistrict } from '@/store/slices/locationSlice';
+import { calculatePer100Students, calculatePercentageDifference } from '@/features/district/utils/safetyDataProcessing';
 
 const BullyCard: React.FC = () => {
     const dispatch = useAppDispatch();
@@ -12,15 +13,29 @@ const BullyCard: React.FC = () => {
     const district = useAppSelector(selectCurrentDistrict);
     const districtBullyingData = useAppSelector(state => selectDistrictBullyingData(state, {district_id: district?.id}));
     const stateBullyingData = useAppSelector(state => selectStateBullyingData(state, {}));
+    const districtEnrollmentData = useAppSelector(state => selectDistrictEnrollmentData(state, {district_id: district?.id}));
+    const stateEnrollmentData = useAppSelector(state => selectStateEnrollmentData(state, {}));
 
     const selectedSafetyPage = useAppSelector(selectSelectedSafetyPage);
     const isSelected = selectedSafetyPage === 'bullying';
     
     // Filter data for 2024 and calculate sums
-    const filtered2024Data = districtBullyingData.filter(item => item.year === 2024);
+    const filtered2024Data = districtBullyingData.filter(item => item.year === parseInt(FISCAL_YEAR));
     const actualSum = filtered2024Data.reduce((sum, item) => sum + (item.investigated_actual || 0), 0);
     const reportedSum = filtered2024Data.reduce((sum, item) => sum + (item.reported || 0), 0);
- 
+    
+    // Find 2024 enrollment data
+    const districtEnrollment2024 = districtEnrollmentData.find(item => item.year === parseInt(FISCAL_YEAR))?.total_enrollment || 0;
+    const stateEnrollment2024 = stateEnrollmentData.find(item => item.year === parseInt(FISCAL_YEAR))?.total_enrollment || 0;
+    
+    // Filter state bullying data for 2024
+    const stateFiltered2024Data = stateBullyingData.filter(item => item.year === parseInt(FISCAL_YEAR));
+    const stateActualSum = stateFiltered2024Data.reduce((sum, item) => sum + (item.investigated_actual || 0), 0);
+    
+    // Use utility functions for calculations
+    const districtIncidentsPer100 = calculatePer100Students(actualSum, districtEnrollment2024);
+    const stateIncidentsPer100 = calculatePer100Students(stateActualSum, stateEnrollment2024);
+    const percentDifference = calculatePercentageDifference(districtIncidentsPer100, stateIncidentsPer100);
 
     const handleClick = () => {
         dispatch(setSelectedSafetyPage('bullying'));
@@ -44,7 +59,7 @@ const BullyCard: React.FC = () => {
             <Divider sx={{ my: 1 }} />
             <Box>
                 <Typography variant="body2">
-                    Z% Higher than State Average
+                    {percentDifference > 0 ? `${percentDifference}% Higher` : `${Math.abs(percentDifference)}% Lower`} than State Average
                 </Typography>
             </Box>
         </DefaultSafetyCard>
