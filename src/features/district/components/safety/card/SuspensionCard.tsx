@@ -2,15 +2,15 @@ import React from 'react';
 import { Box, Divider, Typography } from '@mui/material';
 import DefaultSafetyCard from './DefaultSafetyCard';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { setSelectedSafetyCategory, selectSelectedSafetyCategory } from '@/store/slices/safetySlice';
+import { selectSelectedSafetyPage, setSelectedSafetyPage } from '@/store/slices/safetySlice';
 
 const SuspensionCard: React.FC = () => {
     const dispatch = useAppDispatch();
-    const selectedSafetyCategory = useAppSelector(selectSelectedSafetyCategory);
-    const isSelected = selectedSafetyCategory === 'suspension';
+    const selectedSafetyPage = useAppSelector(selectSelectedSafetyPage);
+    const isSelected = selectedSafetyPage === 'suspension';
     
     const handleClick = () => {
-        dispatch(setSelectedSafetyCategory('suspension'));
+        dispatch(setSelectedSafetyPage('suspension'));
     };
 
     return (

@@ -66,34 +66,96 @@ export const safetyApi = {
     getHarassmentClassifications: (forceRefresh = false) => 
         fetchData(buildSafetyUrl('harassment-classification'), forceRefresh),
     
-    // Data endpoints with filters
+    // School Level Data endpoints
     getSchoolSafetyIncidents: (options: SchoolSafetyIncidentOptions = {}, forceRefresh = false) => 
-        fetchData(buildSafetyUrl('school-safety', options), forceRefresh),
+        fetchData(buildSafetyUrl('school/safety', options), forceRefresh),
     
-    getTruancies: (options: BaseSafetyOptions = {}, forceRefresh = false) => 
-        fetchData(buildSafetyUrl('truancy', options), forceRefresh),
+    getSchoolTruancies: (options: BaseSafetyOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('school/truancy', options), forceRefresh),
     
-    getDisciplineIncidents: (options: DisciplineIncidentOptions = {}, forceRefresh = false) => 
-        fetchData(buildSafetyUrl('discipline/incident', options), forceRefresh),
+    getSchoolDisciplineIncidents: (options: DisciplineIncidentOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('school/discipline/incident', options), forceRefresh),
     
-    getDisciplineCounts: (options: DisciplineCountOptions = {}, forceRefresh = false) => 
-        fetchData(buildSafetyUrl('discipline/count', options), forceRefresh),
+    getSchoolDisciplineCounts: (options: DisciplineCountOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('school/discipline/count', options), forceRefresh),
     
-    getBullyingIncidents: (options: BullyingOptions = {}, forceRefresh = false) => 
-        fetchData(buildSafetyUrl('bullying/incident', options), forceRefresh),
+    getSchoolBullyingIncidents: (options: BullyingOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('school/bullying', options), forceRefresh),
     
-    getBullyingClassifications: (options: BullyingClassificationOptions = {}, forceRefresh = false) => 
-        fetchData(buildSafetyUrl('bullying/classification', options), forceRefresh),
+    getSchoolBullyingClassifications: (options: BullyingClassificationOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('school/bullying/classification', options), forceRefresh),
     
-    getBullyingImpacts: (options: BullyingImpactOptions = {}, forceRefresh = false) => 
-        fetchData(buildSafetyUrl('bullying/impact', options), forceRefresh),
+    getSchoolBullyingImpacts: (options: BullyingImpactOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('school/bullying/impact', options), forceRefresh),
     
-    getHarassmentIncidents: (options: HarassmentOptions = {}, forceRefresh = false) => 
-        fetchData(buildSafetyUrl('harassment', options), forceRefresh),
+    getSchoolHarassmentIncidents: (options: HarassmentOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('school/harassment', options), forceRefresh),
     
-    getRestraints: (options: BaseSafetyOptions = {}, forceRefresh = false) => 
-        fetchData(buildSafetyUrl('restraint', options), forceRefresh),
+    getSchoolRestraints: (options: BaseSafetyOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('school/restraint', options), forceRefresh),
     
-    getSeclusions: (options: BaseSafetyOptions = {}, forceRefresh = false) => 
-        fetchData(buildSafetyUrl('seclusion', options), forceRefresh)
+    getSchoolSeclusions: (options: BaseSafetyOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('school/seclusion', options), forceRefresh),
+    
+    // District Level Data endpoints
+    getDistrictSafetyIncidents: (options: SchoolSafetyIncidentOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('district/safety', options), forceRefresh),
+    
+    getDistrictTruancies: (options: BaseSafetyOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('district/truancy', options), forceRefresh),
+    
+    getDistrictDisciplineIncidents: (options: DisciplineIncidentOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('district/discipline/incident', options), forceRefresh),
+    
+    getDistrictDisciplineCounts: (options: DisciplineCountOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('district/discipline/count', options), forceRefresh),
+    
+    getDistrictBullyingIncidents: (options: BullyingOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('district/bullying', options), forceRefresh),
+    
+    getDistrictBullyingClassifications: (options: BullyingClassificationOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('district/bullying/classification', options), forceRefresh),
+    
+    getDistrictBullyingImpacts: (options: BullyingImpactOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('district/bullying/impact', options), forceRefresh),
+    
+    getDistrictHarassmentIncidents: (options: HarassmentOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('district/harassment', options), forceRefresh),
+    
+    getDistrictRestraints: (options: BaseSafetyOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('district/restraint', options), forceRefresh),
+    
+    getDistrictSeclusions: (options: BaseSafetyOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('district/seclusion', options), forceRefresh),
+    
+    // State Level Data endpoints
+    getStateSafetyIncidents: (options: SchoolSafetyIncidentOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('state/safety', options), forceRefresh),
+    
+    getStateTruancies: (options: BaseSafetyOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('state/truancy', options), forceRefresh),
+    
+    getStateDisciplineIncidents: (options: DisciplineIncidentOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('state/discipline/incident', options), forceRefresh),
+    
+    getStateDisciplineCounts: (options: DisciplineCountOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('state/discipline/count', options), forceRefresh),
+    
+    getStateBullyingIncidents: (options: BullyingOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('state/bullying', options), forceRefresh),
+    
+    getStateBullyingClassifications: (options: BullyingClassificationOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('state/bullying/classification', options), forceRefresh),
+    
+    getStateBullyingImpacts: (options: BullyingImpactOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('state/bullying/impact', options), forceRefresh),
+    
+    getStateHarassmentIncidents: (options: HarassmentOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('state/harassment', options), forceRefresh),
+    
+    getStateRestraints: (options: BaseSafetyOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('state/restraint', options), forceRefresh),
+    
+    getStateSeclusions: (options: BaseSafetyOptions = {}, forceRefresh = false) => 
+        fetchData(buildSafetyUrl('state/seclusion', options), forceRefresh)
 };

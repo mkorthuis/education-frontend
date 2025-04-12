@@ -9,7 +9,7 @@ import District from "@/features/district/pages/District";
 import AcademicAchievement from "@/features/district/components/AcademicAchievement";
 import Financials from "@/features/district/components/Financials";
 import Demographics from "@/features/district/components/Demographics";
-import SchoolSafety from "@/features/district/components/SchoolSafety";
+import Safety from "@/features/district/components/Safety";
 import Staff from "@/features/district/components/Staff";
 import ContactInformation from "@/features/district/components/ContactInformation";
 import School from "@/features/school/pages/School";
@@ -39,7 +39,7 @@ const router = createBrowserRouter(
         { path: PATHS.PUBLIC.DISTRICT_ACADEMIC.path, element: <AcademicAchievement /> },
         { path: PATHS.PUBLIC.DISTRICT_FINANCIALS.path, element: <Financials /> },
         { path: PATHS.PUBLIC.DISTRICT_DEMOGRAPHICS.path, element: <Demographics /> },
-        { path: PATHS.PUBLIC.DISTRICT_SAFETY.path, element: <SchoolSafety /> },
+        { path: PATHS.PUBLIC.DISTRICT_SAFETY.path, element: <Safety /> },
         { path: PATHS.PUBLIC.DISTRICT_STAFF.path, element: <Staff /> },
         { path: PATHS.PUBLIC.DISTRICT_CONTACT.path, element: <ContactInformation /> },
         { path: PATHS.PUBLIC.SCHOOL.path, element: <School /> },

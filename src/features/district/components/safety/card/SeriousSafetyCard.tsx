@@ -3,15 +3,15 @@ import { Box, Typography } from '@mui/material';
 import DefaultSafetyCard from './DefaultSafetyCard';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { setSelectedSafetyCategory, selectSelectedSafetyCategory } from '@/store/slices/safetySlice';
+import { selectSelectedSafetyPage, setSelectedSafetyPage } from '@/store/slices/safetySlice';
 
 const SeriousSafetyCard: React.FC = () => {
     const dispatch = useAppDispatch();
-    const selectedSafetyCategory = useAppSelector(selectSelectedSafetyCategory);
-    const isSelected = selectedSafetyCategory === 'serious';
+    const selectedSafetyPage = useAppSelector(selectSelectedSafetyPage);
+    const isSelected = selectedSafetyPage === 'serious';
     
     const handleClick = () => {
-        dispatch(setSelectedSafetyCategory('serious'));
+        dispatch(setSelectedSafetyPage('serious'));
     };
 
     return (

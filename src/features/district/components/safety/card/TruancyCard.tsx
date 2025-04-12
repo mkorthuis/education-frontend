@@ -3,15 +3,15 @@ import { Box, Divider, Typography } from '@mui/material';
 import DefaultSafetyCard from './DefaultSafetyCard';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { setSelectedSafetyCategory, selectSelectedSafetyCategory } from '@/store/slices/safetySlice';
+import { selectSelectedSafetyPage, setSelectedSafetyPage } from '@/store/slices/safetySlice';
 
 const TruancyCard: React.FC = () => {
     const dispatch = useAppDispatch();
-    const selectedSafetyCategory = useAppSelector(selectSelectedSafetyCategory);
-    const isSelected = selectedSafetyCategory === 'truancy';
+    const selectedSafetyPage = useAppSelector(selectSelectedSafetyPage);
+    const isSelected = selectedSafetyPage === 'truancy';
     
     const handleClick = () => {
-        dispatch(setSelectedSafetyCategory('truancy'));
+        dispatch(setSelectedSafetyPage('truancy'));
     };
 
     return (

@@ -3,15 +3,15 @@ import { Box, Divider, Typography } from '@mui/material';
 import DefaultSafetyCard from './DefaultSafetyCard';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { setSelectedSafetyCategory, selectSelectedSafetyCategory } from '@/store/slices/safetySlice';
+import { selectSelectedSafetyPage, setSelectedSafetyPage } from '@/store/slices/safetySlice';
 
 const RestraintCard: React.FC = () => {
     const dispatch = useAppDispatch();
-    const selectedSafetyCategory = useAppSelector(selectSelectedSafetyCategory);
-    const isSelected = selectedSafetyCategory === 'restraint';
+    const selectedSafetyPage = useAppSelector(selectSelectedSafetyPage);
+    const isSelected = selectedSafetyPage === 'restraint';
     
     const handleClick = () => {
-        dispatch(setSelectedSafetyCategory('restraint'));
+        dispatch(setSelectedSafetyPage('restraint'));
     };
 
     return (

@@ -2,7 +2,7 @@ import { Card, CardActionArea, CardContent, Typography } from '@mui/material';
 import React from 'react';
 import { useTheme } from '@mui/material/styles';
 import { useMediaQuery } from '@mui/material';
-import { selectSelectedSafetyCategory } from '@/store/slices/safetySlice';
+import { selectSelectedSafetyPage } from '@/store/slices/safetySlice';
 import { useAppSelector } from '@/store/hooks';
 
 interface DefaultSafetyCardProps {
@@ -23,9 +23,9 @@ const DefaultSafetyCard: React.FC<DefaultSafetyCardProps> = ({
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     
-    const selectedSafetyCategory = useAppSelector(selectSelectedSafetyCategory);
+    const selectedSafetyPage = useAppSelector(selectSelectedSafetyPage);
 
-    const isCollapsed = isMobile && selectedSafetyCategory !== null;
+    const isCollapsed = isMobile && selectedSafetyPage !== null;
     
     const handleCardClick = () => {
         if (onClick) {
