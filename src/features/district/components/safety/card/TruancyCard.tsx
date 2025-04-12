@@ -6,6 +6,8 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectDistrictTruancyData,selectStateEnrollmentData,  selectDistrictEnrollmentData, selectStateTruancyData, selectSelectedSafetyPage, setSelectedSafetyPage } from '@/store/slices/safetySlice';
 import { selectCurrentDistrict } from '@/store/slices/locationSlice';
 import { calculatePer100Students, calculatePercentageDifference } from '@/features/district/utils/safetyDataProcessing';
+import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
+
 const TruancyCard: React.FC = () => {
     const dispatch = useAppDispatch();
     const selectedSafetyPage = useAppSelector(selectSelectedSafetyPage);
@@ -45,7 +47,7 @@ const TruancyCard: React.FC = () => {
         >
             <Box sx={{ my: 1 }}>
                 <Typography variant="body2" fontWeight="bold">
-                    {districtTruantStudents} Truant Student{districtTruantStudents === 1 ? "" : "s"} in {FISCAL_YEAR}
+                    {districtTruantStudents} Truant Student{districtTruantStudents === 1 ? "" : "s"} in {formatFiscalYear(FISCAL_YEAR)}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                     ({percentageTruantStudents}% of Students)

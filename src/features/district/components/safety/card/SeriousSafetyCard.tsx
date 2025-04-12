@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectDistrictSafetyData, selectSelectedSafetyPage, setSelectedSafetyPage } from '@/store/slices/safetySlice';
 import { selectCurrentDistrict } from '@/store/slices/locationSlice';
 import { EARLIEST_YEAR } from '@/features/district/utils/safetyDataProcessing';
+import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
 
 const SeriousSafetyCard: React.FC = () => {
     const dispatch = useAppDispatch();
@@ -35,7 +36,7 @@ const SeriousSafetyCard: React.FC = () => {
         >
             <Box sx={{ my: 1 }}>
                 <Typography variant="body2">
-                    {totalCount>0 ? totalCount + ` Serious Safety Events Since ` + earliestYear : `No Serious Safety Events Since ` + EARLIEST_YEAR}
+                    {totalCount>0 ? totalCount + ` Serious Safety Events Since ` + earliestYear : `No Serious Safety Events Since ` + formatFiscalYear(EARLIEST_YEAR)}
                 </Typography>
                 
             </Box>

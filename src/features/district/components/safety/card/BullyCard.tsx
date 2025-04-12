@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectDistrictBullyingData, selectStateBullyingData, selectSelectedSafetyPage, setSelectedSafetyPage, selectDistrictEnrollmentData, selectStateEnrollmentData } from '@/store/slices/safetySlice';
 import { selectCurrentDistrict } from '@/store/slices/locationSlice';
 import { calculatePer100Students, calculatePercentageDifference } from '@/features/district/utils/safetyDataProcessing';
+import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
 
 const BullyCard: React.FC = () => {
     const dispatch = useAppDispatch();
@@ -51,7 +52,7 @@ const BullyCard: React.FC = () => {
         >
             <Box sx={{ my: 1 }}>
                 <Typography variant="body2" fontWeight="bold">
-                    {actualSum === 0 ? "No" : actualSum} Bullying Incident{actualSum === 1 ? "" : "s"} In {FISCAL_YEAR}
+                    {actualSum === 0 ? "No" : actualSum} Bullying Incident{actualSum === 1 ? "" : "s"} In {formatFiscalYear(FISCAL_YEAR)}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                     ({reportedSum === 0 ? "None" : reportedSum} Reported)

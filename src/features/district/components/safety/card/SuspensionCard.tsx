@@ -6,6 +6,7 @@ import { selectDistrictEnrollmentData, selectSelectedSafetyPage, selectStateEnro
 import { selectCurrentDistrict } from '@/store/slices/locationSlice';
 import { calculatePer100Students, calculatePercentageDifference, IN_SCHOOL_SUSPENSION_TYPE, OUT_OF_SCHOOL_SUSPENSION_TYPE } from '@/features/district/utils/safetyDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
+import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
 
 const SuspensionCard: React.FC = () => {
     const dispatch = useAppDispatch();
@@ -68,7 +69,7 @@ const SuspensionCard: React.FC = () => {
         >
             <Box sx={{ my: 1 }}>
                 <Typography variant="body2" fontWeight="bold">
-                    {totalSuspensions === 0 ? "No" : totalSuspensions} Suspension{totalSuspensions === 1 ? "" : "s"} in {FISCAL_YEAR}
+                    {totalSuspensions === 0 ? "No" : totalSuspensions} Suspension{totalSuspensions === 1 ? "" : "s"} in {formatFiscalYear(FISCAL_YEAR)}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                     ({outOfSchoolSuspensionsCount} Out-of-School Suspension{outOfSchoolSuspensionsCount === 1 ? "" : "s"})

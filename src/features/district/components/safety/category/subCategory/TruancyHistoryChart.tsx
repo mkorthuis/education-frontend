@@ -127,21 +127,22 @@ const TruancyHistoryChart: React.FC<TruancyHistoryChartProps> = ({ className }) 
           sx={{ 
             textAlign: "center",
             width: "100%",
-            mt: 4
+            mt: 2,
+            mb: 1,
+            fontWeight: 'medium'
           }} 
-          gutterBottom
         >
-            % of Students Truant Over Time
+            % {district?.name} Students Truant Over Time
         </Typography>
         
-        <Box sx={{ height: isMobile ? 300 : 400, width: '100%' }}>
+        <Box sx={{ height: isMobile ? 250 : 350, width: '100%' }}>
             {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
                 <LineChart
                 data={chartData}
                 margin={{
                     top: 5,
-                    right: 20,
+                    right: 10,
                     left: -20,
                     bottom: 5,
                 }}

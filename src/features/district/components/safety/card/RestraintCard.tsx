@@ -7,6 +7,7 @@ import { selectDistrictRestraintData, selectStateRestraintData, selectSelectedSa
 import { selectCurrentDistrict } from '@/store/slices/locationSlice';
 import { calculatePercentageDifference } from '@/features/district/utils/safetyDataProcessing';
 import { calculatePer100Students } from '@/features/district/utils/safetyDataProcessing';
+import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
 
 const RestraintCard: React.FC = () => {
     const dispatch = useAppDispatch();
@@ -49,7 +50,7 @@ const RestraintCard: React.FC = () => {
         >
             <Box sx={{ my: 1 }}>
                 <Typography variant="body2" fontWeight="bold">
-                    {districtGeneratedRestraints === 0 ? "No" : districtGeneratedRestraints} Restraint{districtGeneratedRestraints === 1 ? "" : "s"} in {FISCAL_YEAR}
+                    {districtGeneratedRestraints === 0 ? "No" : districtGeneratedRestraints} Restraint{districtGeneratedRestraints === 1 ? "" : "s"} in {formatFiscalYear(FISCAL_YEAR)}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                     ({districtClosedRestraints === districtGeneratedRestraints ? "All" : districtClosedRestraints} Investigated and Closed)
