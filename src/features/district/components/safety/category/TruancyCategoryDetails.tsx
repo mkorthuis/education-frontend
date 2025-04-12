@@ -19,7 +19,7 @@ const TruancyCategoryDetails: React.FC = () => {
                 </Box>
                 <Box sx={{ width: isLargeScreen ? '70%' : '100%', mb: 3 }}>
                     <Typography variant="body1">
-                        While school board specific, unexcused absenses generally DON'T include illness, school-sponsored activities, 
+                        Definition may vary by district, but unexcused absenses generally DON'T include illness, school-sponsored activities, 
                         medical appointments, family deaths, religious observances, and court attendance.
                     </Typography>
                 </Box>

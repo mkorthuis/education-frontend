@@ -200,7 +200,7 @@ const TruancyDetailsTable: React.FC<TruancyDetailsTableProps> = ({ className }) 
               }
             }}>
               <TableRow>
-                <TableCell>Metric</TableCell>
+                <TableCell></TableCell>
                 <TableCell align="right">District</TableCell>
                 <TableCell align="right">State</TableCell>
                 {!isMobile && <TableCell align="right">Difference</TableCell>}
