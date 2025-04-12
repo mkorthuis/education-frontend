@@ -33,6 +33,8 @@ const Safety: React.FC = () => {
   const stateParams = useMemo(() => ({}), []);
   
   // Use memoized parameters for all selectors
+  const schoolSafetyData = useAppSelector(state => safetySlice.selectSchoolSafetyData(state, districtParams));
+
   const districtSafetyData = useAppSelector(state => safetySlice.selectDistrictSafetyData(state, districtParams));
   const districtHarassmentData = useAppSelector(state => safetySlice.selectDistrictHarassmentData(state, districtParams));
   const districtTruancyData = useAppSelector(state => safetySlice.selectDistrictTruancyData(state, districtParams));
@@ -57,7 +59,10 @@ const Safety: React.FC = () => {
   const stateDisciplineCountData = useAppSelector(state => safetySlice.selectStateDisciplineCountData(state, stateParams));
   const stateDisciplineIncidentData = useAppSelector(state => safetySlice.selectStateDisciplineIncidentData(state, stateParams));
   const stateEnrollmentData = useAppSelector(state => safetySlice.selectStateEnrollmentData(state, stateParams));
+
   // Get loading statuses with memoized params
+  const schoolSafetyLoading = useAppSelector(state => safetySlice.selectSchoolSafetyIncidentsLoadingStatus(state, districtParams));
+
   const districtSafetyLoading = useAppSelector(state => safetySlice.selectDistrictSafetyIncidentsLoadingStatus(state, districtParams));
   const districtHarassmentLoading = useAppSelector(state => safetySlice.selectDistrictHarassmentIncidentsLoadingStatus(state, districtParams));
   const districtTruancyLoading = useAppSelector(state => safetySlice.selectDistrictTruancyLoadingStatus(state, districtParams));
@@ -94,7 +99,10 @@ const Safety: React.FC = () => {
         dispatch(fetchAllDistrictData(districtId));
       }
       
-      // Fetch all safety data if not already loaded
+      if(schoolSafetyLoading === safetySlice.LoadingState.IDLE && schoolSafetyData.length === 0) {
+        dispatch(safetySlice.fetchSchoolSafetyIncidents(districtParams));
+      }
+
       if(districtSafetyLoading === safetySlice.LoadingState.IDLE && districtSafetyData.length === 0) {
         dispatch(safetySlice.fetchDistrictSafetyIncidents(districtParams));
       }
@@ -208,7 +216,8 @@ const Safety: React.FC = () => {
     stateDisciplineIncidentLoading, stateDisciplineIncidentData,
     districtParams, stateParams,
     districtEnrollmentLoading, districtEnrollmentData,
-    stateEnrollmentLoading, stateEnrollmentData
+    stateEnrollmentLoading, stateEnrollmentData,
+    schoolSafetyLoading, schoolSafetyData
   ]);
 
   // Show loading when any data is still loading
@@ -235,7 +244,8 @@ const Safety: React.FC = () => {
     stateDisciplineCountLoading !== safetySlice.LoadingState.SUCCEEDED ||
     stateDisciplineIncidentLoading !== safetySlice.LoadingState.SUCCEEDED ||
     districtEnrollmentLoading !== safetySlice.LoadingState.SUCCEEDED ||
-    stateEnrollmentLoading !== safetySlice.LoadingState.SUCCEEDED;
+    stateEnrollmentLoading !== safetySlice.LoadingState.SUCCEEDED ||
+    schoolSafetyLoading !== safetySlice.LoadingState.SUCCEEDED;
 
   // Card container styling for responsive layout
   const cardContainerStyles = {
