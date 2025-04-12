@@ -10,27 +10,28 @@ import { calculatePer100Students, calculatePercentageDifference } from '@/featur
 const BullyCard: React.FC = () => {
     const dispatch = useAppDispatch();
 
+    const selectedSafetyPage = useAppSelector(selectSelectedSafetyPage);
+    const isSelected = selectedSafetyPage === 'bullying';
+
     const district = useAppSelector(selectCurrentDistrict);
     const districtBullyingData = useAppSelector(state => selectDistrictBullyingData(state, {district_id: district?.id}));
     const stateBullyingData = useAppSelector(state => selectStateBullyingData(state, {}));
     const districtEnrollmentData = useAppSelector(state => selectDistrictEnrollmentData(state, {district_id: district?.id}));
     const stateEnrollmentData = useAppSelector(state => selectStateEnrollmentData(state, {}));
 
-    const selectedSafetyPage = useAppSelector(selectSelectedSafetyPage);
-    const isSelected = selectedSafetyPage === 'bullying';
-    
     // Filter data for 2024 and calculate sums
     const filtered2024Data = districtBullyingData.filter(item => item.year === parseInt(FISCAL_YEAR));
     const actualSum = filtered2024Data.reduce((sum, item) => sum + (item.investigated_actual || 0), 0);
     const reportedSum = filtered2024Data.reduce((sum, item) => sum + (item.reported || 0), 0);
+
+    // Filter state bullying data for 2024
+    const stateFiltered2024Data = stateBullyingData.filter(item => item.year === parseInt(FISCAL_YEAR));
+    const stateActualSum = stateFiltered2024Data.reduce((sum, item) => sum + (item.investigated_actual || 0), 0);
     
     // Find 2024 enrollment data
     const districtEnrollment2024 = districtEnrollmentData.find(item => item.year === parseInt(FISCAL_YEAR))?.total_enrollment || 0;
     const stateEnrollment2024 = stateEnrollmentData.find(item => item.year === parseInt(FISCAL_YEAR))?.total_enrollment || 0;
     
-    // Filter state bullying data for 2024
-    const stateFiltered2024Data = stateBullyingData.filter(item => item.year === parseInt(FISCAL_YEAR));
-    const stateActualSum = stateFiltered2024Data.reduce((sum, item) => sum + (item.investigated_actual || 0), 0);
     
     // Use utility functions for calculations
     const districtIncidentsPer100 = calculatePer100Students(actualSum, districtEnrollment2024);
@@ -50,16 +51,16 @@ const BullyCard: React.FC = () => {
         >
             <Box sx={{ my: 1 }}>
                 <Typography variant="body2" fontWeight="bold">
-                    {actualSum} Bullying Incidents In {FISCAL_YEAR}
+                    {actualSum === 0 ? "No" : actualSum} Bullying Incident{actualSum === 1 ? "" : "s"} In {FISCAL_YEAR}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                    ({reportedSum} Reported)
+                    ({reportedSum === 0 ? "None" : reportedSum} Reported)
                 </Typography>
             </Box>
             <Divider sx={{ my: 1 }} />
             <Box>
                 <Typography variant="body2">
-                    {percentDifference > 0 ? `${percentDifference}% Higher` : `${Math.abs(percentDifference)}% Lower`} than State Average
+                    {percentDifference === 0 ? "Same as" : percentDifference > 0 ? `${percentDifference}% Higher Than` : `${-percentDifference}% Lower Than`} State Average
                 </Typography>
             </Box>
         </DefaultSafetyCard>

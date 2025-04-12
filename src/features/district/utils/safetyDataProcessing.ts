@@ -1,4 +1,11 @@
 /**
+ * Constants for suspension type strings
+ */
+export const IN_SCHOOL_SUSPENSION_TYPE = 'Who Received In-School Suspensions';
+export const OUT_OF_SCHOOL_SUSPENSION_TYPE = 'Who Received Out-of-School Suspensions';
+export const EARLIEST_YEAR = 2016;
+
+/**
  * Calculates the number of incidents per 100 students
  * @param count - The number of incidents
  * @param enrollment - The total enrollment number
