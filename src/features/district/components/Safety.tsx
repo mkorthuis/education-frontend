@@ -1,14 +1,18 @@
 import React, { useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Box, Typography, CircularProgress } from '@mui/material';
+import { Box, Typography, CircularProgress, Divider } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentDistrict,
   selectLocationLoading,
-  fetchAllDistrictData 
+  fetchAllDistrictData,
+  selectCurrentSchools
 } from '@/store/slices/locationSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
 import * as safetySlice from '@/store/slices/safetySlice';
+import { EARLIEST_YEAR } from '../utils/safetyDataProcessing';
+
+// Import card components
 import BullyCard from './safety/card/BullyCard';
 import HarassmentCard from './safety/card/HarassmentCard';
 import TruancyCard from './safety/card/TruancyCard';
@@ -16,25 +20,32 @@ import SuspensionCard from './safety/card/SuspensionCard';
 import RestraintCard from './safety/card/RestraintCard';
 import SeriousSafetyCard from './safety/card/SeriousSafetyCard';
 
-// Import all category detail components
+// Import category detail components
 import BullyCategoryDetails from './safety/category/BullyCategoryDetails';
 import HarassmentCategoryDetails from './safety/category/HarassmentCategoryDetails';
 import RestraintCategoryDetails from './safety/category/RestraintCategoryDetails';
 import SeriousSafetyCategoryDetails from './safety/category/SeriousSafetyCategoryDetails';
 import SuspensionCategoryDetails from './safety/category/SuspensionCategoryDetails';
 import TruancyCategoryDetails from './safety/category/TruancyCategoryDetails';
+import DefaultCategoryDetails from './safety/category/DefaultCategoryDetails';
 
 const Safety: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const districtId = id ? parseInt(id) : 0;
+  const dispatch = useAppDispatch();
   
-  // Memoize the parameter object to avoid recreating it on each render
+  // Memoize the parameter objects to avoid recreating them on each render
   const districtParams = useMemo(() => ({ district_id: districtId }), [districtId]);
   const stateParams = useMemo(() => ({}), []);
   
-  // Use memoized parameters for all selectors
+  // District and location data
+  const district = useAppSelector(selectCurrentDistrict);
+  const districtLoading = useAppSelector(selectLocationLoading);
+  const schools = useAppSelector(selectCurrentSchools);
+  
+  // Safety data selectors
   const schoolSafetyData = useAppSelector(state => safetySlice.selectSchoolSafetyData(state, districtParams));
-
+  const schoolHarassmentData = useAppSelector(state => safetySlice.selectSchoolHarassmentData(state, districtParams));
   const districtSafetyData = useAppSelector(state => safetySlice.selectDistrictSafetyData(state, districtParams));
   const districtHarassmentData = useAppSelector(state => safetySlice.selectDistrictHarassmentData(state, districtParams));
   const districtTruancyData = useAppSelector(state => safetySlice.selectDistrictTruancyData(state, districtParams));
@@ -47,7 +58,7 @@ const Safety: React.FC = () => {
   const districtDisciplineIncidentData = useAppSelector(state => safetySlice.selectDistrictDisciplineIncidentData(state, districtParams));
   const districtEnrollmentData = useAppSelector(state => safetySlice.selectDistrictEnrollmentData(state, districtParams));
 
-  // Get all safety data from the store using memoized state params
+  // State data selectors - used for comparison
   const stateSafetyData = useAppSelector(state => safetySlice.selectStateSafetyData(state, stateParams));
   const stateHarassmentData = useAppSelector(state => safetySlice.selectStateHarassmentData(state, stateParams));
   const stateTruancyData = useAppSelector(state => safetySlice.selectStateTruancyData(state, stateParams));
@@ -60,192 +71,179 @@ const Safety: React.FC = () => {
   const stateDisciplineIncidentData = useAppSelector(state => safetySlice.selectStateDisciplineIncidentData(state, stateParams));
   const stateEnrollmentData = useAppSelector(state => safetySlice.selectStateEnrollmentData(state, stateParams));
 
-  // Get loading statuses with memoized params
-  const schoolSafetyLoading = useAppSelector(state => safetySlice.selectSchoolSafetyIncidentsLoadingStatus(state, districtParams));
-
-  const districtSafetyLoading = useAppSelector(state => safetySlice.selectDistrictSafetyIncidentsLoadingStatus(state, districtParams));
-  const districtHarassmentLoading = useAppSelector(state => safetySlice.selectDistrictHarassmentIncidentsLoadingStatus(state, districtParams));
-  const districtTruancyLoading = useAppSelector(state => safetySlice.selectDistrictTruancyLoadingStatus(state, districtParams));
-  const districtSeclusionLoading = useAppSelector(state => safetySlice.selectDistrictSeclusionLoadingStatus(state, districtParams));
-  const districtRestraintLoading = useAppSelector(state => safetySlice.selectDistrictRestraintLoadingStatus(state, districtParams));
-  const districtBullyingLoading = useAppSelector(state => safetySlice.selectDistrictBullyingIncidentsLoadingStatus(state, districtParams));
-  const districtBullyingClassificationLoading = useAppSelector(state => safetySlice.selectDistrictBullyingClassificationsLoadingStatus(state, districtParams));
-  const districtBullyingImpactLoading = useAppSelector(state => safetySlice.selectDistrictBullyingImpactsLoadingStatus(state, districtParams));
-  const districtDisciplineCountLoading = useAppSelector(state => safetySlice.selectDistrictDisciplineCountsLoadingStatus(state, districtParams));
-  const districtDisciplineIncidentLoading = useAppSelector(state => safetySlice.selectDistrictDisciplineIncidentsLoadingStatus(state, districtParams));
-  const districtEnrollmentLoading = useAppSelector(state => safetySlice.selectDistrictEnrollmentLoadingStatus(state, districtParams));
-
-  const stateSafetyLoading = useAppSelector(state => safetySlice.selectStateSafetyIncidentsLoadingStatus(state, stateParams));
-  const stateHarassmentLoading = useAppSelector(state => safetySlice.selectStateHarassmentIncidentsLoadingStatus(state, stateParams));
-  const stateTruancyLoading = useAppSelector(state => safetySlice.selectStateTruancyLoadingStatus(state, stateParams));
-  const stateSeclusionLoading = useAppSelector(state => safetySlice.selectStateSeclusionLoadingStatus(state, stateParams));
-  const stateRestraintLoading = useAppSelector(state => safetySlice.selectStateRestraintLoadingStatus(state, stateParams));
-  const stateBullyingLoading = useAppSelector(state => safetySlice.selectStateBullyingIncidentsLoadingStatus(state, stateParams));  
-  const stateBullyingClassificationLoading = useAppSelector(state => safetySlice.selectStateBullyingClassificationsLoadingStatus(state, stateParams));
-  const stateBullyingImpactLoading = useAppSelector(state => safetySlice.selectStateBullyingImpactsLoadingStatus(state, stateParams));
-  const stateDisciplineCountLoading = useAppSelector(state => safetySlice.selectStateDisciplineCountsLoadingStatus(state, stateParams));
-  const stateDisciplineIncidentLoading = useAppSelector(state => safetySlice.selectStateDisciplineIncidentsLoadingStatus(state, stateParams));
-  const stateEnrollmentLoading = useAppSelector(state => safetySlice.selectStateEnrollmentLoadingStatus(state, stateParams));
+  // Loading states - consolidated to reduce complexity
+  const loadingStates = {
+    school: {
+      safety: useAppSelector(state => safetySlice.selectSchoolSafetyIncidentsLoadingStatus(state, districtParams)),
+      harassment: useAppSelector(state => safetySlice.selectSchoolHarassmentIncidentsLoadingStatus(state, districtParams))
+    },
+    district: {
+      safety: useAppSelector(state => safetySlice.selectDistrictSafetyIncidentsLoadingStatus(state, districtParams)),
+      harassment: useAppSelector(state => safetySlice.selectDistrictHarassmentIncidentsLoadingStatus(state, districtParams)),
+      truancy: useAppSelector(state => safetySlice.selectDistrictTruancyLoadingStatus(state, districtParams)),
+      seclusion: useAppSelector(state => safetySlice.selectDistrictSeclusionLoadingStatus(state, districtParams)),
+      restraint: useAppSelector(state => safetySlice.selectDistrictRestraintLoadingStatus(state, districtParams)),
+      bullying: useAppSelector(state => safetySlice.selectDistrictBullyingIncidentsLoadingStatus(state, districtParams)),
+      bullyingClassification: useAppSelector(state => safetySlice.selectDistrictBullyingClassificationsLoadingStatus(state, districtParams)),
+      bullyingImpact: useAppSelector(state => safetySlice.selectDistrictBullyingImpactsLoadingStatus(state, districtParams)),
+      disciplineCount: useAppSelector(state => safetySlice.selectDistrictDisciplineCountsLoadingStatus(state, districtParams)),
+      disciplineIncident: useAppSelector(state => safetySlice.selectDistrictDisciplineIncidentsLoadingStatus(state, districtParams)),
+      enrollment: useAppSelector(state => safetySlice.selectDistrictEnrollmentLoadingStatus(state, districtParams))
+    },
+    state: {
+      safety: useAppSelector(state => safetySlice.selectStateSafetyIncidentsLoadingStatus(state, stateParams)),
+      harassment: useAppSelector(state => safetySlice.selectStateHarassmentIncidentsLoadingStatus(state, stateParams)),
+      truancy: useAppSelector(state => safetySlice.selectStateTruancyLoadingStatus(state, stateParams)),
+      seclusion: useAppSelector(state => safetySlice.selectStateSeclusionLoadingStatus(state, stateParams)),
+      restraint: useAppSelector(state => safetySlice.selectStateRestraintLoadingStatus(state, stateParams)),
+      bullying: useAppSelector(state => safetySlice.selectStateBullyingIncidentsLoadingStatus(state, stateParams)),
+      bullyingClassification: useAppSelector(state => safetySlice.selectStateBullyingClassificationsLoadingStatus(state, stateParams)),
+      bullyingImpact: useAppSelector(state => safetySlice.selectStateBullyingImpactsLoadingStatus(state, stateParams)),
+      disciplineCount: useAppSelector(state => safetySlice.selectStateDisciplineCountsLoadingStatus(state, stateParams)),
+      disciplineIncident: useAppSelector(state => safetySlice.selectStateDisciplineIncidentsLoadingStatus(state, stateParams)),
+      enrollment: useAppSelector(state => safetySlice.selectStateEnrollmentLoadingStatus(state, stateParams))
+    }
+  };
 
   const selectedSafetyPage = useAppSelector(safetySlice.selectSelectedSafetyPage);
 
-  const district = useAppSelector(selectCurrentDistrict);
-  const districtLoading = useAppSelector(selectLocationLoading);
-  const dispatch = useAppDispatch();
+  // Helper function to check if data needs to be fetched
+  const shouldFetchData = (loadingState: safetySlice.LoadingState, data: any[]) => {
+    return loadingState === safetySlice.LoadingState.IDLE && data.length === 0;
+  };
 
   useEffect(() => {
-    if (id) {
-      if(!districtLoading && !district) {
-        dispatch(fetchAllDistrictData(districtId));
-      }
-      
-      if(schoolSafetyLoading === safetySlice.LoadingState.IDLE && schoolSafetyData.length === 0) {
-        dispatch(safetySlice.fetchSchoolSafetyIncidents(districtParams));
-      }
+    if (!id) return;
 
-      if(districtSafetyLoading === safetySlice.LoadingState.IDLE && districtSafetyData.length === 0) {
-        dispatch(safetySlice.fetchDistrictSafetyIncidents(districtParams));
-      }
-      
-      if(districtHarassmentLoading === safetySlice.LoadingState.IDLE && districtHarassmentData.length === 0) {
-        dispatch(safetySlice.fetchDistrictHarassmentIncidents(districtParams));
-      }
-      
-      if(districtTruancyLoading === safetySlice.LoadingState.IDLE && districtTruancyData.length === 0) {
-        dispatch(safetySlice.fetchDistrictTruancyData(districtParams));
-      }
-      
-      if(districtSeclusionLoading === safetySlice.LoadingState.IDLE && districtSeclusionData.length === 0) {
-        dispatch(safetySlice.fetchDistrictSeclusions(districtParams));
-      }
-      
-      if(districtRestraintLoading === safetySlice.LoadingState.IDLE && districtRestraintData.length === 0) {
-        dispatch(safetySlice.fetchDistrictRestraints(districtParams));
-      }
-      
-      if(districtBullyingLoading === safetySlice.LoadingState.IDLE && districtBullyingData.length === 0) {
-        dispatch(safetySlice.fetchDistrictBullyingIncidents(districtParams));
-      }
-      
-      if(districtBullyingClassificationLoading === safetySlice.LoadingState.IDLE && districtBullyingClassificationData.length === 0) {
-        dispatch(safetySlice.fetchDistrictBullyingClassifications(districtParams));
-      }
-      
-      if(districtBullyingImpactLoading === safetySlice.LoadingState.IDLE && districtBullyingImpactData.length === 0) {
-        dispatch(safetySlice.fetchDistrictBullyingImpacts(districtParams));
-      }
-      
-      if(districtDisciplineCountLoading === safetySlice.LoadingState.IDLE && districtDisciplineCountData.length === 0) {
-        dispatch(safetySlice.fetchDistrictDisciplineCounts(districtParams));
-      }
-      
-      if(districtDisciplineIncidentLoading === safetySlice.LoadingState.IDLE && districtDisciplineIncidentData.length === 0) {
-        dispatch(safetySlice.fetchDistrictDisciplineIncidents(districtParams));
-      }
-
-      if(districtEnrollmentLoading === safetySlice.LoadingState.IDLE && districtEnrollmentData.length === 0) {
-        dispatch(safetySlice.fetchDistrictEnrollmentData(districtParams));
-      }
-
-
-      if(stateSafetyLoading === safetySlice.LoadingState.IDLE && stateSafetyData.length === 0) {
-        dispatch(safetySlice.fetchStateSafetyIncidents(stateParams));
-      }
-      
-      if(stateHarassmentLoading === safetySlice.LoadingState.IDLE && stateHarassmentData.length === 0) {
-        dispatch(safetySlice.fetchStateHarassmentIncidents(stateParams));
-      }
-      
-      if(stateTruancyLoading === safetySlice.LoadingState.IDLE && stateTruancyData.length === 0) {
-        dispatch(safetySlice.fetchStateTruancyData(stateParams));
-      }
-
-      if(stateSeclusionLoading === safetySlice.LoadingState.IDLE && stateSeclusionData.length === 0) {
-        dispatch(safetySlice.fetchStateSeclusions(stateParams));
-      }
-      
-      if(stateRestraintLoading === safetySlice.LoadingState.IDLE && stateRestraintData.length === 0) {
-        dispatch(safetySlice.fetchStateRestraints(stateParams));
-      }
-      
-      if(stateBullyingLoading === safetySlice.LoadingState.IDLE && stateBullyingData.length === 0) {
-        dispatch(safetySlice.fetchStateBullyingIncidents(stateParams));
-      }
-
-      if(stateBullyingClassificationLoading === safetySlice.LoadingState.IDLE && stateBullyingClassificationData.length === 0) {
-        dispatch(safetySlice.fetchStateBullyingClassifications(stateParams));
-      }
-
-      if(stateBullyingImpactLoading === safetySlice.LoadingState.IDLE && stateBullyingImpactData.length === 0) {
-        dispatch(safetySlice.fetchStateBullyingImpacts(stateParams));
-      }
-
-      if(stateDisciplineCountLoading === safetySlice.LoadingState.IDLE && stateDisciplineCountData.length === 0) {
-        dispatch(safetySlice.fetchStateDisciplineCounts(stateParams));
-      }
-
-      if(stateDisciplineIncidentLoading === safetySlice.LoadingState.IDLE && stateDisciplineIncidentData.length === 0) {
-        dispatch(safetySlice.fetchStateDisciplineIncidents(stateParams));
-      }
-
-      if(stateEnrollmentLoading === safetySlice.LoadingState.IDLE && stateEnrollmentData.length === 0) {
-        dispatch(safetySlice.fetchStateEnrollmentData(stateParams));
-      }
+    // Fetch district data if needed
+    if (!districtLoading && !district) {
+      dispatch(fetchAllDistrictData(districtId));
     }
+
+    // Fetch school data
+    if (shouldFetchData(loadingStates.school.harassment, schoolHarassmentData)) {
+      dispatch(safetySlice.fetchSchoolHarassmentIncidents(districtParams));
+    }
+    
+    if (shouldFetchData(loadingStates.school.safety, schoolSafetyData)) {
+      dispatch(safetySlice.fetchSchoolSafetyIncidents(districtParams));
+    }
+
+    // Fetch district data
+    const districtDataFetches = [
+      { condition: shouldFetchData(loadingStates.district.safety, districtSafetyData), 
+        action: () => dispatch(safetySlice.fetchDistrictSafetyIncidents(districtParams)) },
+      { condition: shouldFetchData(loadingStates.district.harassment, districtHarassmentData), 
+        action: () => dispatch(safetySlice.fetchDistrictHarassmentIncidents(districtParams)) },
+      { condition: shouldFetchData(loadingStates.district.truancy, districtTruancyData), 
+        action: () => dispatch(safetySlice.fetchDistrictTruancyData(districtParams)) },
+      { condition: shouldFetchData(loadingStates.district.seclusion, districtSeclusionData), 
+        action: () => dispatch(safetySlice.fetchDistrictSeclusions(districtParams)) },
+      { condition: shouldFetchData(loadingStates.district.restraint, districtRestraintData), 
+        action: () => dispatch(safetySlice.fetchDistrictRestraints(districtParams)) },
+      { condition: shouldFetchData(loadingStates.district.bullying, districtBullyingData), 
+        action: () => dispatch(safetySlice.fetchDistrictBullyingIncidents(districtParams)) },
+      { condition: shouldFetchData(loadingStates.district.bullyingClassification, districtBullyingClassificationData), 
+        action: () => dispatch(safetySlice.fetchDistrictBullyingClassifications(districtParams)) },
+      { condition: shouldFetchData(loadingStates.district.bullyingImpact, districtBullyingImpactData), 
+        action: () => dispatch(safetySlice.fetchDistrictBullyingImpacts(districtParams)) },
+      { condition: shouldFetchData(loadingStates.district.disciplineCount, districtDisciplineCountData), 
+        action: () => dispatch(safetySlice.fetchDistrictDisciplineCounts(districtParams)) },
+      { condition: shouldFetchData(loadingStates.district.disciplineIncident, districtDisciplineIncidentData), 
+        action: () => dispatch(safetySlice.fetchDistrictDisciplineIncidents(districtParams)) },
+      { condition: shouldFetchData(loadingStates.district.enrollment, districtEnrollmentData), 
+        action: () => dispatch(safetySlice.fetchDistrictEnrollmentData(districtParams)) }
+    ];
+
+    // Fetch state data
+    const stateDataFetches = [
+      { condition: shouldFetchData(loadingStates.state.safety, stateSafetyData), 
+        action: () => dispatch(safetySlice.fetchStateSafetyIncidents(stateParams)) },
+      { condition: shouldFetchData(loadingStates.state.harassment, stateHarassmentData), 
+        action: () => dispatch(safetySlice.fetchStateHarassmentIncidents(stateParams)) },
+      { condition: shouldFetchData(loadingStates.state.truancy, stateTruancyData), 
+        action: () => dispatch(safetySlice.fetchStateTruancyData(stateParams)) },
+      { condition: shouldFetchData(loadingStates.state.seclusion, stateSeclusionData), 
+        action: () => dispatch(safetySlice.fetchStateSeclusions(stateParams)) },
+      { condition: shouldFetchData(loadingStates.state.restraint, stateRestraintData), 
+        action: () => dispatch(safetySlice.fetchStateRestraints(stateParams)) },
+      { condition: shouldFetchData(loadingStates.state.bullying, stateBullyingData), 
+        action: () => dispatch(safetySlice.fetchStateBullyingIncidents(stateParams)) },
+      { condition: shouldFetchData(loadingStates.state.bullyingClassification, stateBullyingClassificationData), 
+        action: () => dispatch(safetySlice.fetchStateBullyingClassifications(stateParams)) },
+      { condition: shouldFetchData(loadingStates.state.bullyingImpact, stateBullyingImpactData), 
+        action: () => dispatch(safetySlice.fetchStateBullyingImpacts(stateParams)) },
+      { condition: shouldFetchData(loadingStates.state.disciplineCount, stateDisciplineCountData), 
+        action: () => dispatch(safetySlice.fetchStateDisciplineCounts(stateParams)) },
+      { condition: shouldFetchData(loadingStates.state.disciplineIncident, stateDisciplineIncidentData), 
+        action: () => dispatch(safetySlice.fetchStateDisciplineIncidents(stateParams)) },
+      { condition: shouldFetchData(loadingStates.state.enrollment, stateEnrollmentData), 
+        action: () => dispatch(safetySlice.fetchStateEnrollmentData(stateParams)) }
+    ];
+
+    // Execute all necessary fetches
+    [...districtDataFetches, ...stateDataFetches].forEach(fetch => {
+      if (fetch.condition) {
+        fetch.action();
+      }
+    });
   }, [
-    dispatch, id, districtId, districtLoading, district, 
-    districtSafetyLoading, districtSafetyData, 
-    districtHarassmentLoading, districtHarassmentData, 
-    districtTruancyLoading, districtTruancyData,
-    districtSeclusionLoading, districtSeclusionData,
-    districtRestraintLoading, districtRestraintData,
-    districtBullyingLoading, districtBullyingData,
-    districtBullyingClassificationLoading, districtBullyingClassificationData,
-    districtBullyingImpactLoading, districtBullyingImpactData,
-    districtDisciplineCountLoading, districtDisciplineCountData,
-    districtDisciplineIncidentLoading, districtDisciplineIncidentData,
-    stateSafetyLoading, stateSafetyData,
-    stateHarassmentLoading, stateHarassmentData,
-    stateTruancyLoading, stateTruancyData,
-    stateSeclusionLoading, stateSeclusionData,
-    stateRestraintLoading, stateRestraintData,
-    stateBullyingLoading, stateBullyingData,
-    stateBullyingClassificationLoading, stateBullyingClassificationData,
-    stateBullyingImpactLoading, stateBullyingImpactData,
-    stateDisciplineCountLoading, stateDisciplineCountData,
-    stateDisciplineIncidentLoading, stateDisciplineIncidentData,
-    districtParams, stateParams,
-    districtEnrollmentLoading, districtEnrollmentData,
-    stateEnrollmentLoading, stateEnrollmentData,
-    schoolSafetyLoading, schoolSafetyData
+    dispatch, id, districtId, districtLoading, district,
+    loadingStates, districtParams, stateParams,
+    schoolSafetyData, schoolHarassmentData,
+    districtSafetyData, districtHarassmentData, districtTruancyData,
+    districtSeclusionData, districtRestraintData, districtBullyingData,
+    districtBullyingClassificationData, districtBullyingImpactData,
+    districtDisciplineCountData, districtDisciplineIncidentData, districtEnrollmentData,
+    stateSafetyData, stateHarassmentData, stateTruancyData,
+    stateSeclusionData, stateRestraintData, stateBullyingData,
+    stateBullyingClassificationData, stateBullyingImpactData,
+    stateDisciplineCountData, stateDisciplineIncidentData, stateEnrollmentData
   ]);
 
-  // Show loading when any data is still loading
-  const isLoading = 
-    districtLoading || 
-    districtSafetyLoading !== safetySlice.LoadingState.SUCCEEDED || 
-    districtHarassmentLoading !== safetySlice.LoadingState.SUCCEEDED || 
-    districtTruancyLoading !== safetySlice.LoadingState.SUCCEEDED ||
-    districtSeclusionLoading !== safetySlice.LoadingState.SUCCEEDED ||
-    districtRestraintLoading !== safetySlice.LoadingState.SUCCEEDED ||
-    districtBullyingLoading !== safetySlice.LoadingState.SUCCEEDED ||
-    districtBullyingClassificationLoading !== safetySlice.LoadingState.SUCCEEDED ||
-    districtBullyingImpactLoading !== safetySlice.LoadingState.SUCCEEDED ||
-    districtDisciplineCountLoading !== safetySlice.LoadingState.SUCCEEDED ||
-    districtDisciplineIncidentLoading !== safetySlice.LoadingState.SUCCEEDED ||
-    stateSafetyLoading !== safetySlice.LoadingState.SUCCEEDED ||
-    stateHarassmentLoading !== safetySlice.LoadingState.SUCCEEDED ||
-    stateTruancyLoading !== safetySlice.LoadingState.SUCCEEDED ||
-    stateSeclusionLoading !== safetySlice.LoadingState.SUCCEEDED ||
-    stateRestraintLoading !== safetySlice.LoadingState.SUCCEEDED ||
-    stateBullyingLoading !== safetySlice.LoadingState.SUCCEEDED ||
-    stateBullyingClassificationLoading !== safetySlice.LoadingState.SUCCEEDED ||
-    stateBullyingImpactLoading !== safetySlice.LoadingState.SUCCEEDED ||
-    stateDisciplineCountLoading !== safetySlice.LoadingState.SUCCEEDED ||
-    stateDisciplineIncidentLoading !== safetySlice.LoadingState.SUCCEEDED ||
-    districtEnrollmentLoading !== safetySlice.LoadingState.SUCCEEDED ||
-    stateEnrollmentLoading !== safetySlice.LoadingState.SUCCEEDED ||
-    schoolSafetyLoading !== safetySlice.LoadingState.SUCCEEDED;
+  // Check if any data is still loading
+  const isLoading = useMemo(() => {
+    return districtLoading || 
+      Object.values(loadingStates.district).some(state => state !== safetySlice.LoadingState.SUCCEEDED) ||
+      Object.values(loadingStates.state).some(state => state !== safetySlice.LoadingState.SUCCEEDED) ||
+      Object.values(loadingStates.school).some(state => state !== safetySlice.LoadingState.SUCCEEDED);
+  }, [districtLoading, loadingStates]);
+
+  // Process school harassment data to find earliest years
+  const getSchoolsWithEarliestHarassmentYear = useMemo(() => {
+    // Early return if schools or data aren't loaded yet
+    if (!schools.length || !schoolHarassmentData.length) {
+      return [];
+    }
+
+    // Create a map to store the earliest year for each school
+    const schoolYearMap = new Map<number, number>();
+
+    // Process harassment data to find earliest year for each school
+    schoolHarassmentData.forEach(item => {
+      const schoolId = item.school_id;
+      const year = item.year;
+      
+      // If this school isn't in our map yet, or this year is earlier than what we have
+      if (!schoolYearMap.has(schoolId) || year < schoolYearMap.get(schoolId)!) {
+        schoolYearMap.set(schoolId, year);
+      }
+    });
+
+    // Create the result array with school name and earliest year
+    return schools.map(school => ({
+      id: school.id,
+      name: school.name,
+      earliestYear: schoolYearMap.get(school.id) || null
+    })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [schools, schoolHarassmentData]);
+
+  // Filter schools to exclude those with data from EARLIEST_YEAR
+  const filteredSchools = useMemo(() => {
+    return getSchoolsWithEarliestHarassmentYear.filter(
+      school => !school.earliestYear || school.earliestYear > EARLIEST_YEAR
+    );
+  }, [getSchoolsWithEarliestHarassmentYear]);
 
   // Card container styling for responsive layout
   const cardContainerStyles = {
@@ -257,10 +255,26 @@ const Safety: React.FC = () => {
     },
     flexWrap: { xs: 'nowrap', md: 'nowrap' },
     width: { xs: '100%', md: '300px'}, 
-    gap: 0, // Explicitly set gap to 0
+    gap: 0,
     flexShrink: 0,
     mb: selectedSafetyPage ? 2 : 0,
     justifyContent: 'flex-start'
+  };
+
+  // Styles for card rows on mobile when safety category is selected
+  const firstRowStyles = {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    mb: selectedSafetyPage ? 1 : 0
+  };
+  
+  const secondRowStyles = {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%'
   };
 
   // Function to render the appropriate category details based on selection
@@ -280,30 +294,48 @@ const Safety: React.FC = () => {
         return <TruancyCategoryDetails />;
       default:
         return (
-          <Box sx={{ display: { xs: 'none', md: 'block' }, flex: 1 }}>
-            <Typography variant="body1">
-              Select a safety category to see detailed information
-            </Typography>
-          </Box>
+          <DefaultCategoryDetails title="Select A Card For More Information">
+            {filteredSchools.length > 0 && (
+              <>
+                <Typography variant="body1">
+                  Note: The Following Data is Unavailable:
+                </Typography>
+                <Box component="ul" sx={{pl: 3, mt: 1}}>
+                  {filteredSchools.map((school) => (
+                    <Typography component="li" variant="body2" key={school.id}>
+                      {school.earliestYear 
+                        ? `${school.name}: Data Before ${school.earliestYear}`
+                        : `${school.name}: No Safety Data`}
+                    </Typography>
+                  ))}
+                </Box>
+              </>
+            )}
+          </DefaultCategoryDetails>
         );
     }
   };
 
-  // Styles for the first row of cards on mobile when safety category is selected
-  const firstRowStyles = {
-    display: 'flex',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    mb: selectedSafetyPage ? 1 : 0
-  };
-  
-  // Styles for the second row of cards on mobile when safety category is selected
-  const secondRowStyles = {
-    display: 'flex',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%'
+  // Render school unavailability notice for mobile view
+  const renderSchoolUnavailabilityNotice = () => {
+    if (filteredSchools.length === 0) return null;
+    
+    return (
+      <>
+        <Typography variant="body1">
+          Note: Following Data is Unavailable:
+        </Typography>
+        <Box component="ul" sx={{pl: 3, mt: 1}}>
+          {filteredSchools.map((school) => (
+            <Typography component="li" variant="body2" key={school.id}>
+              {school.earliestYear 
+                ? `${school.name}: Data Before ${school.earliestYear}`
+                : `${school.name}: No Safety Data`}
+            </Typography>
+          ))}
+        </Box>
+      </>
+    );
   };
 
   return (
@@ -317,11 +349,14 @@ const Safety: React.FC = () => {
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'flex-start' }}>
           {/* Mobile instruction text - only visible on mobile and when no subject is selected */}  
           {!selectedSafetyPage && (
-          <Box sx={{ display: { xs: 'block', md: 'none' }, mb: 1 }}>
-            <Typography variant="body1">
-              Please Click A Card For More Information
-            </Typography>
-          </Box>
+            <Box sx={{ display: { xs: 'block', md: 'none' }, mb: 1 }}>
+              <Typography variant="body1" sx={{mb: 2}}>
+                Please Click A Card For More Information
+              </Typography>
+              <Divider sx={{mb: 2}}/>
+              {renderSchoolUnavailabilityNotice()}
+              <Divider sx={{mb: 2}}/>
+            </Box>
           )}
           
           <Box sx={cardContainerStyles}>
@@ -358,4 +393,4 @@ const Safety: React.FC = () => {
   );
 };
 
-export default  Safety; 
+export default Safety; 

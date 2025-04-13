@@ -167,10 +167,10 @@ const SuspensionCategoryDetails: React.FC = () => {
             return (
                 <>
                     <Box sx={{ display: 'flex', flexDirection: 'row' }}>
-                        <Box sx={{ width: '35%', pr: 2 }}>
+                        <Box sx={{ width: '35%', pr: 1 }}>
                             {renderCardSummary()}
                         </Box>
-                        <Box sx={{ width: '65%', pl: 2 }}>
+                        <Box sx={{ width: '65%', pl: 1 }}>
                             <DisciplineIncidentTable fiscalYear={fiscalYear} />
                         </Box>
                     </Box>

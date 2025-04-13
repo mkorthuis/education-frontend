@@ -219,7 +219,7 @@ const TruancyDetailsTable: React.FC<TruancyDetailsTableProps> = ({ className }) 
                 {!isMobile && <TableCell align="right"></TableCell>}
               </TableRow>
               <TableRow>
-                <TableCell>% Truant {formatFiscalYear(truancyStats.currentYear)}</TableCell>
+                <TableCell>% {isMobile ? 'Truant' : 'Students Truant'} {formatFiscalYear(truancyStats.currentYear)}</TableCell>
                 <TableCell align="right">{formatPercentage(truancyStats.districtPercentage)}</TableCell>
                 <TableCell align="right">{formatPercentage(truancyStats.statePercentage)}</TableCell>
                 {!isMobile && 
@@ -242,7 +242,7 @@ const TruancyDetailsTable: React.FC<TruancyDetailsTableProps> = ({ className }) 
                   borderColor: 'grey.300'
                 } 
               }}>
-                <TableCell>% Truant {formatFiscalYear(EARLIEST_YEAR)}</TableCell>
+                <TableCell>% {isMobile ? 'Truant' : 'Students Truant'} {formatFiscalYear(EARLIEST_YEAR)}</TableCell>
                 <TableCell align="right">{formatPercentage(truancyStats.baselineDistrictPercentage)}</TableCell>
                 <TableCell align="right">{formatPercentage(truancyStats.baselineStatePercentage)}</TableCell>
                 {!isMobile && <TableCell align="right">{truancyStats.historicalDistrictVsStatePercentage === 0 ? '-' : formatPercentage(truancyStats.historicalDistrictVsStatePercentage)}</TableCell>}
