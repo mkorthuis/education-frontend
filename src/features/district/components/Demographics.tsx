@@ -9,8 +9,10 @@ import {
 } from '@/store/slices/locationSlice';
 import { 
   selectAllMeasurements, 
-  selectMeasurementsLoading,
-  selectMeasurementsError
+  selectMeasurementsLoadingState,
+  selectMeasurementsError,
+  fetchAllMeasurements,
+  FetchMeasurementsParams
 } from '@/store/slices/measurementSlice';
 import MeasurementTable from '@/components/ui/tables/MeasurementTable';
 import SectionTitle from '@/components/ui/SectionTitle';
@@ -21,21 +23,26 @@ const Demographics: React.FC = () => {
   const districtLoading = useAppSelector(selectLocationLoading);
   const dispatch = useAppDispatch();
   const measurements = useAppSelector(selectAllMeasurements);
-  const measurementsLoading = useAppSelector(selectMeasurementsLoading);
+  const measurementsLoading = useAppSelector(selectMeasurementsLoadingState);
   const measurementsError = useAppSelector(selectMeasurementsError);
 
   // List of demographic measurement type IDs
-  const demographicMeasurementTypeIds = ['23', '24', '25', '26', '27', '28', '29', '30', '31', '32'];
+  const demographicMeasurementTypeIds = [23, 24, 25, 26, 27, 28, 29, 30, 31, 32];
 
   useEffect(() => {
-    if (id && !districtLoading) {
-      dispatch(fetchAllDistrictData(Number(id)));
+    if (id) {
+      if(!districtLoading && !district) {
+        dispatch(fetchAllDistrictData(parseInt(id)));
+      }
+      if (!measurementsLoading && measurements.length === 0) {
+        dispatch(fetchAllMeasurements({ entityId: id, entityType: 'district' }));
+      }
     }
-  }, [id, districtLoading, dispatch]);
+  }, [id, districtLoading, dispatch, measurementsLoading, measurements]);
 
   // Filter measurements to only include demographic measurement type IDs
   const demographicMeasurements = measurements.filter(
-    measurement => demographicMeasurementTypeIds.includes(measurement.measurement_type_id)
+    measurement => demographicMeasurementTypeIds.includes(Number(measurement.measurement_type.id))
   );
 
   // Show loading when either district data or measurement data is loading

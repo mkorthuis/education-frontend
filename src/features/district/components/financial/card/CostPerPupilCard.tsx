@@ -120,7 +120,15 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
   };
 
   // Common button style to ensure consistent width
-  const toggleButtonStyle = { minWidth: 320 };
+  const toggleButtonStyle = { 
+    minWidth: 320,
+    backgroundColor: 'grey.100',
+    color: 'text.primary',
+    borderColor: 'divider',
+    '&:hover': {
+      backgroundColor: 'grey.300',
+    }
+  };
 
   // Render Per Pupil Cost details
   const renderPerPupilDetails = () => {

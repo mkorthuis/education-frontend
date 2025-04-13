@@ -9,11 +9,9 @@ import {
   selectCurrentSchools, 
   selectCurrentSau, 
   selectLocationLoading, 
-  selectLocationError,
-  School
+  selectLocationError
 } from '@/store/slices/locationSlice';
 import { formatGradesDisplay } from '@/utils/formatting';
-import { calculateTotalEnrollment } from '@/utils/calculations';
 
 /**
  * Represents the District page/feature.
@@ -131,7 +129,7 @@ const District: React.FC = () => {
           to={`/district/${id}/safety`}
           fullWidth
         >
-          School Safety
+          Safety
         </Button>
         <Button 
           variant="outlined" 

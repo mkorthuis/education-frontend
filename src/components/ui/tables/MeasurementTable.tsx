@@ -24,7 +24,7 @@ const MeasurementTable: React.FC<MeasurementTableProps> = ({ data }) => {
         <TableBody>
           {data.map((measurement) => (
             <TableRow key={measurement.id}>
-              <TableCell>{measurement.measurementType || `Type ${measurement.measurement_type_id}`}</TableCell>
+              <TableCell>{measurement.measurement_type.name || `Type ${measurement.measurement_type.id}`}</TableCell>
               <TableCell>{measurement.year}</TableCell>
               <TableCell align="right">{measurement.value}</TableCell>
             </TableRow>

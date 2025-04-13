@@ -1,8 +1,10 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { measurementApi } from '@/services/api/endpoints/measurements';
+import { LoadingState } from './safetySlice';
 
-// Define types for the slice state
+// ================ TYPE DEFINITIONS ================
+
 export interface Measurement {
   id: string;
   value: number;
@@ -32,32 +34,42 @@ export enum MeasurementCategory {
   SCHOOL_ENVIRONMENT = 'School Environment'
 }
 
-// Define the initial state
+// Define a parameter type for fetching measurements
+export interface FetchMeasurementsParams {
+  entityId: string;
+  entityType: 'district' | 'school';
+  forceRefresh?: boolean;
+}
+
+// ================ STATE INTERFACE ================
+
 interface MeasurementState {
-  measurements: Measurement[]; // Array of all measurements
-  measurementTypes: MeasurementType[]; // Add measurement types to state
-  measurementTypeByIdMap: Record<string, MeasurementType>; // Add measurement types to state
-  loading: boolean;
-  measurementTypesLoaded: boolean; // Track if measurement types have been loaded
+  measurements: Measurement[]; 
+  measurementTypes: MeasurementType[]; 
+  measurementTypeByIdMap: Record<string, MeasurementType>; 
+  measurementTypesLoaded: boolean;
   loadingStates: {
-    measurementTypes: boolean;
-    measurements: boolean;
+    measurementTypes: LoadingState;
+    measurements: LoadingState;
   };
   error: string | null;
 }
 
+// ================ INITIAL STATE ================
+
 const initialState: MeasurementState = {
-  measurements: [], // Initialize as empty array
-  measurementTypes: [], // Initialize measurement types as empty array
-  measurementTypeByIdMap: {}, // Initialize measurement types by id to state
-  loading: false,
+  measurements: [],
+  measurementTypes: [],
+  measurementTypeByIdMap: {},
   measurementTypesLoaded: false,
   loadingStates: {
-    measurementTypes: false,
-    measurements: false
+    measurementTypes: LoadingState.IDLE,
+    measurements: LoadingState.IDLE
   },
   error: null
 };
+
+// ================ HELPER FUNCTIONS ================
 
 // Generic error handler function for thunks
 const handleApiError = (error: any, errorMessage: string) => {
@@ -65,11 +77,16 @@ const handleApiError = (error: any, errorMessage: string) => {
   return errorMessage;
 };
 
-// Define a parameter type for fetching measurements
-export interface FetchMeasurementsParams {
-  entityId: string;
-  entityType: 'district' | 'school';
-}
+// Helper to ensure measurement types are loaded
+export const ensureMeasurementTypesLoaded = async (state: RootState, dispatch: any) => {
+  const { measurementTypesLoaded } = state.measurement;
+  
+  if (!measurementTypesLoaded) {
+    await dispatch(fetchMeasurementTypes());
+  }
+};
+
+// ================ ASYNC THUNKS ================
 
 // Async thunk for fetching measurement types
 export const fetchMeasurementTypes = createAsyncThunk(
@@ -83,22 +100,13 @@ export const fetchMeasurementTypes = createAsyncThunk(
         return acc;
       }, {} as Record<string, MeasurementType>);
       
-      return {measurementTypes, measurementTypeByIdMap} ;
+      return {measurementTypes, measurementTypeByIdMap};
       
     } catch (error) {
       return rejectWithValue(handleApiError(error, 'Failed to fetch measurement types'));
     }
   }
 );
-
-// Helper to ensure measurement types are loaded
-export const ensureMeasurementTypesLoaded = async (state: RootState, dispatch: any) => {
-  const { measurementTypesLoaded } = state.measurement;
-  
-  if (!measurementTypesLoaded) {
-    await dispatch(fetchMeasurementTypes());
-  }
-};
 
 // Async thunk for fetching all measurements at once
 export const fetchAllMeasurements = createAsyncThunk(
@@ -114,9 +122,9 @@ export const fetchAllMeasurements = createAsyncThunk(
       // Fetch measurements based on entity type
       let measurementsArray;
       if (params.entityType === 'district') {
-        measurementsArray = await measurementApi.getLatestDistrictMeasurements(params.entityId);
+        measurementsArray = await measurementApi.getLatestDistrictMeasurements(params.entityId, params.forceRefresh);
       } else {
-        measurementsArray = await measurementApi.getLatestSchoolMeasurements(params.entityId);
+        measurementsArray = await measurementApi.getLatestSchoolMeasurements(params.entityId, params.forceRefresh);
       }
       
       // Make sure we have an array of measurements
@@ -144,7 +152,8 @@ export const fetchAllMeasurements = createAsyncThunk(
   }
 );
 
-// Create the measurement slice
+// ================ SLICE DEFINITION ================
+
 export const measurementSlice = createSlice({
   name: 'measurement',
   initialState,
@@ -153,73 +162,77 @@ export const measurementSlice = createSlice({
       state.measurements = [];
       state.error = null;
     },
+    resetMeasurementState: () => initialState,
   },
   extraReducers: (builder) => {
     builder
       // Handle fetchMeasurementTypes
       .addCase(fetchMeasurementTypes.pending, (state) => {
-        state.loading = true;
-        state.loadingStates.measurementTypes = true;
+        state.loadingStates.measurementTypes = LoadingState.LOADING;
         state.error = null;
       })
       .addCase(fetchMeasurementTypes.fulfilled, (state, action) => {
         state.measurementTypes = action.payload.measurementTypes;
         state.measurementTypeByIdMap = action.payload.measurementTypeByIdMap;
         state.measurementTypesLoaded = true;
-        state.loadingStates.measurementTypes = false;
-        state.loading = state.loadingStates.measurements; // Only keep loading true if measurements are still loading
+        state.loadingStates.measurementTypes = LoadingState.SUCCEEDED;
       })
       .addCase(fetchMeasurementTypes.rejected, (state, action) => {
-        state.loadingStates.measurementTypes = false;
-        state.loading = state.loadingStates.measurements;
+        state.loadingStates.measurementTypes = LoadingState.FAILED;
         state.error = action.payload as string;
       })
       
       // Handle fetchAllMeasurements
       .addCase(fetchAllMeasurements.pending, (state) => {
-        state.loading = true;
-        state.loadingStates.measurements = true;
+        state.loadingStates.measurements = LoadingState.LOADING;
         state.error = null;
       })
       .addCase(fetchAllMeasurements.fulfilled, (state, action) => {
         // Update measurements from payload
         state.measurements = action.payload;
-        state.loadingStates.measurements = false;
-        state.loading = state.loadingStates.measurementTypes; // Only keep loading true if measurement types are still loading
+        state.loadingStates.measurements = LoadingState.SUCCEEDED;
       })
       .addCase(fetchAllMeasurements.rejected, (state, action) => {
-        state.loadingStates.measurements = false;
-        state.loading = state.loadingStates.measurementTypes;
+        state.loadingStates.measurements = LoadingState.FAILED;
         state.error = action.payload as string;
       });
   },
 });
 
-// Export actions
-export const { clearMeasurements } = measurementSlice.actions;
+// ================ EXPORTS ================
 
-// Selectors
+// Export actions
+export const { clearMeasurements, resetMeasurementState } = measurementSlice.actions;
+
+// ================ SELECTORS ================
+
 export const selectAllMeasurements = (state: RootState) => state.measurement.measurements;
 
 // Helper selector to filter measurements by category if needed
 export const selectMeasurementsByCategory = (category: string) => 
   (state: RootState) => state.measurement.measurements.filter(
-    m => m.measurementCategoryName === category
+    m => m.measurement_type.category === category
   );
 
-export const selectMeasurementsLoading = (state: RootState) => state.measurement.loading;
-export const selectMeasurementTypesLoading = (state: RootState) => state.measurement.loadingStates.measurementTypes;
-export const selectMeasurementsDataLoading = (state: RootState) => state.measurement.loadingStates.measurements;
-export const selectMeasurementsError = (state: RootState) => state.measurement.error;
-export const selectMeasurementTypesLoaded = (state: RootState) => state.measurement.measurementTypesLoaded;
+export const selectMeasurementTypesLoadingState = (state: RootState) => 
+  state.measurement.loadingStates.measurementTypes;
 
-// Add selector for measurement types
-export const selectMeasurementTypes = (state: RootState) => state.measurement.measurementTypes;
+export const selectMeasurementsLoadingState = (state: RootState) => 
+  state.measurement.loadingStates.measurements;
+
+export const selectMeasurementsError = (state: RootState) => 
+  state.measurement.error;
+
+export const selectMeasurementTypesLoaded = (state: RootState) => 
+  state.measurement.measurementTypesLoaded;
+
+export const selectMeasurementTypes = (state: RootState) => 
+  state.measurement.measurementTypes;
 
 // Check if any data is currently loading
 export const selectAnyMeasurementLoading = (state: RootState) => {
-  const loadingStates = state.measurement.loadingStates;
-  return Object.values(loadingStates).some(isLoading => isLoading);
+  const { measurementTypes, measurements } = state.measurement.loadingStates;
+  return measurementTypes === LoadingState.LOADING || measurements === LoadingState.LOADING;
 };
 
 // Export reducer

@@ -3,11 +3,11 @@ import { Card, CardContent, Typography, Box, Divider, CardActionArea, useMediaQu
 import { 
   setSelectedSubjectId, 
   fetchAssessmentDistrictData, 
-  selectAssessmentDistrictDataByParams,
-  selectAssessmentDistrictDataLoadingByParams,
   selectCurrentAssessmentDistrictData, 
   selectCurrentAssessmentStateData,
-  selectSelectedSubjectId
+  selectSelectedSubjectId,
+  selectAssessmentDistrictLoadingStatus,
+  selectAssessmentDistrictData
 } from '@/store/slices/assessmentSlice';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
@@ -51,7 +51,7 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
   }), [assessment_subject_id]);
   
   // Use parameterized loading selector
-  const isDistrictDataLoading = useAppSelector(selectAssessmentDistrictDataLoadingByParams(queryParams));
+  const isDistrictDataLoading = useAppSelector(state => selectAssessmentDistrictLoadingStatus(state, queryParams));
   
   // Check if any subject is selected and if we're on mobile
   const isCollapsed = isMobile && selectedSubjectId !== null;
@@ -59,13 +59,8 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
   // Check if this card is the selected one
   const isSelected = selectedSubjectId === assessment_subject_id;
   
-  // Memoize the selector creation to prevent unnecessary rerenders
-  const districtDataSelector = useMemo(() => {
-    return selectAssessmentDistrictDataByParams(queryParams);
-  }, [queryParams]);
-  
   // Use the memoized selector
-  const districtAssessmentData = useAppSelector(districtDataSelector);
+  const districtAssessmentData = useAppSelector(state => selectAssessmentDistrictData(state, queryParams));
 
   useEffect(() => {
     if(districtAssessmentData.length === 0 && !isDistrictDataLoading) {

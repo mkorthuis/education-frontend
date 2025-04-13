@@ -1,46 +1,31 @@
-import axiosInstance from '../config/axios';
 import { BASE_API_URL } from '../config/constants';
-import { skipCache, invalidateCache } from '../../../utils/cacheUtils';
+import { buildUrl, fetchData } from '../utils/apiUtils';
 
 const BASE_ENDPOINT_URL = BASE_API_URL + 'measurement/';
 
+// Define interfaces for measurement options
+interface LatestMeasurementOptions {
+    district_id?: string;
+    school_id?: string;
+    measurement_type_id?: string;
+    year?: string;
+}
+
+// Helper function specific to measurement endpoints
+const buildMeasurementUrl = (endpoint: string, options: Record<string, any> = {}): string => {
+    return buildUrl(BASE_ENDPOINT_URL, endpoint, options);
+};
 
 export const measurementApi = {
-
-    getLatestMeasurements: async (districtId: string, schoolId: string, measurementTypeId: string, year: string, forceRefresh = false) => {
-        const url = BASE_ENDPOINT_URL + `latest?district_id=${districtId}&school_id=${schoolId}&measurement_type_id=${measurementTypeId}&year=${year}`;
-        const response = await axiosInstance.get(
-            url,
-            forceRefresh ? skipCache() : undefined
-        );
-        return response.data;
-    },
-
-    getLatestDistrictMeasurements: async (districtId: string, forceRefresh = false) => {
-        const url = BASE_ENDPOINT_URL + `latest?district_id=${districtId}`;
-        const response = await axiosInstance.get(
-            url,
-            forceRefresh ? skipCache() : undefined
-        );
-        return response.data;
-    },
-
-    getLatestSchoolMeasurements: async (schoolId: string, forceRefresh = false) => {
-        const url = BASE_ENDPOINT_URL + `latest?school_id=${schoolId}`;
-        const response = await axiosInstance.get(
-            url,
-            forceRefresh ? skipCache() : undefined
-        );
-        return response.data;
-    },
+    getLatestMeasurements: (options: LatestMeasurementOptions, forceRefresh = false) => 
+        fetchData(buildMeasurementUrl('latest', options), forceRefresh),
     
-    getMeasurementTypes: async (forceRefresh = false) => {
-        const url = BASE_ENDPOINT_URL + 'type';
-        const response = await axiosInstance.get(
-            url, 
-            forceRefresh ? skipCache() : undefined
-        );
-        return response.data;
-    },
-        
+    getLatestDistrictMeasurements: (districtId: string, forceRefresh = false) => 
+        fetchData(buildMeasurementUrl('latest', { district_id: districtId }), forceRefresh),
+    
+    getLatestSchoolMeasurements: (schoolId: string, forceRefresh = false) => 
+        fetchData(buildMeasurementUrl('latest', { school_id: schoolId }), forceRefresh),
+    
+    getMeasurementTypes: (forceRefresh = false) => 
+        fetchData(buildMeasurementUrl('type'), forceRefresh)
 };

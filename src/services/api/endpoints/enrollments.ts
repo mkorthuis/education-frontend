@@ -1,28 +1,12 @@
-import axiosInstance from '../config/axios';
 import { BASE_API_URL } from '../config/constants';
-import { skipCache, invalidateCache } from '../../../utils/cacheUtils';
+import { buildUrl, fetchData } from '../utils/apiUtils';
 
 const BASE_ENDPOINT_URL = BASE_API_URL + 'enrollment/';
 
-
 export const enrollmentApi = {
-
-    getLatestSchoolEnrollment: async (schoolId: string, forceRefresh = false) => {
-        const url = BASE_ENDPOINT_URL + `school/${schoolId}/latest`;
-        const response = await axiosInstance.get(
-            url, 
-            forceRefresh ? skipCache() : undefined
-        );
-        return response.data;
-    },
-
-    getStateEnrollment: async (forceRefresh = false) => {
-        const url = BASE_ENDPOINT_URL + `state`;
-        const response = await axiosInstance.get(
-            url, 
-            forceRefresh ? skipCache() : undefined
-        );
-        return response.data;
-    },
-        
+    getLatestSchoolEnrollment: (schoolId: string, forceRefresh = false) => 
+        fetchData(buildUrl(BASE_ENDPOINT_URL, `school/${schoolId}/latest`), forceRefresh),
+    
+    getStateEnrollment: (forceRefresh = false) => 
+        fetchData(buildUrl(BASE_ENDPOINT_URL, 'state'), forceRefresh)
 };

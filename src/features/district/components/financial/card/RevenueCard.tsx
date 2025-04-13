@@ -201,7 +201,16 @@ const RevenueCard: React.FC<RevenueCardProps> = ({ className }) => {
   };
   
   // Common button style 
-  const toggleButtonStyle = { minWidth: 320, mb: 1 };
+  const toggleButtonStyle = { 
+    minWidth: 320, 
+    mb: 1,
+    backgroundColor: 'grey.100',
+    color: 'text.primary',
+    borderColor: 'divider',
+    '&:hover': {
+      backgroundColor: 'grey.300',
+    }
+  };
   
   return (
     <Card 

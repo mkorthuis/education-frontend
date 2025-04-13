@@ -10,17 +10,17 @@ import {
 import {
   fetchAssessmentDistrictData,
   selectCurrentAssessmentDistrictData,
-  selectAssessmentDistrictDataLoadingByParams,
   setSelectedSubjectId,
   selectSelectedSubjectId,
   selectSelectedSubject,
   fetchAssessmentStateData,
   selectCurrentAssessmentStateData,
-  selectAssessmentStateDataLoading,
   setCurrentDistrictDataKey,
   AssessmentDistrictData,
   AssessmentDataQueryKey,
-  clearAssessments
+  clearAssessments,
+  selectAssessmentDistrictLoadingStatus,
+  selectAssessmentStateLoadingStatus
 } from '@/store/slices/assessmentSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
 import MeasurementCard from '@/features/district/components/academic/MeasurementCard';
@@ -28,7 +28,7 @@ import AcademicSubjectDetails from '@/features/district/components/academic/Acad
 import AcademicDefaultView from '@/features/district/components/academic/AcademicDefaultView';
 import { filterAssessmentResults, ALL_GRADES_ID } from '@/features/district/utils/assessmentDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
-import { clearFinanceState } from '@/store/slices/financeSlice';
+import { LoadingState } from '@/store/slices/safetySlice';
 
 const AcademicAchievement: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -37,7 +37,6 @@ const AcademicAchievement: React.FC = () => {
   // Selectors
   const district = useAppSelector(selectCurrentDistrict);
   const districtLoading = useAppSelector(selectAnyLocationLoading);
-  const assessmentData = useAppSelector(selectCurrentAssessmentDistrictData);
   
   // Create query params for initial district data fetch
   const initialQueryParams = useMemo(() => ({
@@ -45,10 +44,12 @@ const AcademicAchievement: React.FC = () => {
   }), [id]);
   
   // Use parameterized loading selector
-  const assessmentLoading = useAppSelector(selectAssessmentDistrictDataLoadingByParams(initialQueryParams));
+  const districtAssessmentLoading = useAppSelector(state => selectAssessmentDistrictLoadingStatus(state, initialQueryParams));
+  const stateAssessmentLoading = useAppSelector(state => selectAssessmentStateLoadingStatus(state, {}));
   
+  const districtAssessmentData = useAppSelector(selectCurrentAssessmentDistrictData);
   const stateAssessmentData = useAppSelector(selectCurrentAssessmentStateData);
-  const stateAssessmentLoading = useAppSelector(selectAssessmentStateDataLoading);
+
   const selectedSubjectId = useAppSelector(selectSelectedSubjectId);
   const selectedSubject = useAppSelector(selectSelectedSubject);
 
@@ -59,13 +60,6 @@ const AcademicAchievement: React.FC = () => {
 
   // Fetch all required data
   useEffect(() => {
-    // Check if we need to reload the data because district has changed
-    const needsReload = id !== undefined && assessmentData !== null && assessmentData.length > 0 && assessmentData[0].district_id !== parseInt(id);
-    
-    // Clear previous state if we're loading a different district
-    if (needsReload) {
-      dispatch(clearAssessments());
-    }
 
     if (id) {
       // If district data isn't loaded yet, fetch it
@@ -74,12 +68,12 @@ const AcademicAchievement: React.FC = () => {
       }
 
       // Fetch state assessment data if not already loaded
-      if (!stateAssessmentLoading && stateAssessmentData.length === 0) {
+      if (stateAssessmentLoading === LoadingState.IDLE && stateAssessmentData.length === 0) {
         dispatch(fetchAssessmentStateData({}));
       }
 
       // Fetch district assessment data if not already loaded
-      if ((district && !assessmentLoading && assessmentData.length === 0)) {
+      if ((district && districtAssessmentLoading == LoadingState.IDLE && districtAssessmentData.length === 0)) {
         dispatch(fetchAssessmentDistrictData(initialQueryParams)).then((action) => {
           // After fetching is complete, set the current district data key manually
           if (action.meta.requestStatus === 'fulfilled') {
@@ -95,16 +89,16 @@ const AcademicAchievement: React.FC = () => {
       }
     }
   }, [
-    dispatch, id, district, districtLoading, assessmentLoading, 
-    assessmentData.length, stateAssessmentLoading,
+    dispatch, id, district, districtLoading, districtAssessmentLoading, 
+    districtAssessmentData.length, stateAssessmentLoading,
     stateAssessmentData.length, initialQueryParams
   ]);
 
   // Show loading when any data is still loading
-  const isLoading = districtLoading || assessmentLoading;
+  const isLoading = districtLoading || districtAssessmentLoading != LoadingState.SUCCEEDED || stateAssessmentLoading != LoadingState.SUCCEEDED;
 
   // Filter assessment data by fiscal year and subgroup_id
-  const filteredAssessmentData = filterAssessmentResults(assessmentData, {
+  const filteredAssessmentData = filterAssessmentResults(districtAssessmentData, {
     year: FISCAL_YEAR,
     assessment_subgroup_id: 1,
     grade_id: ALL_GRADES_ID
@@ -162,7 +156,7 @@ const AcademicAchievement: React.FC = () => {
           ) : (
             <Box sx={{ display: { xs: 'none', md: 'block' }, flex: 1 }}>
               <AcademicDefaultView 
-                assessmentData={assessmentData} 
+                assessmentData={districtAssessmentData} 
                 fiscalYear={FISCAL_YEAR} 
               />
             </Box>
