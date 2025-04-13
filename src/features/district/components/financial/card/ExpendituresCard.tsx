@@ -102,7 +102,16 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className, district
   };
 
   // Common button style to ensure consistent width
-  const toggleButtonStyle = { minWidth: 320, mb: 1 };
+  const toggleButtonStyle = { 
+    minWidth: 320, 
+    mb: 1,
+    backgroundColor: 'grey.100',
+    color: 'text.primary',
+    borderColor: 'divider',
+    '&:hover': {
+      backgroundColor: 'grey.300',
+    }
+  };
   
   return (
     <Card 
@@ -191,9 +200,9 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className, district
                     size="small"
                     onClick={handleToggleChart}
                     sx={toggleButtonStyle}
-                >
-                  Instructional & Support Costs Chart
-                </Button>) : (<InstructionalVsSupportTrendChart />)
+                  >
+                    Instructional & Support Costs Chart
+                  </Button>) : (<InstructionalVsSupportTrendChart />)
                 }
 
                 {!showCostTable ?(
