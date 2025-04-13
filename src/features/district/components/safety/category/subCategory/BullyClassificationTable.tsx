@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Typography, Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, useMediaQuery, useTheme, Select, MenuItem, FormControl, SelectChangeEvent } from '@mui/material';
 import { 
-  selectStateBullyingData,
   selectDistrictBullyingClassificationData,
   selectStateBullyingClassificationData,
   selectBullyingClassificationTypes
@@ -65,15 +64,17 @@ const tableStyles = {
   }
 };
 
-const BullyClassificationTable: React.FC = () => {
+interface BullyClassificationTableProps {
+  selectedYear: string | number;
+  onYearChange: (year: string | number) => void;
+}
+
+const BullyClassificationTable: React.FC<BullyClassificationTableProps> = ({ 
+  selectedYear, 
+  onYearChange 
+}) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
-  // Get default fiscal year from environment
-  const defaultFiscalYear = parseInt(FISCAL_YEAR);
-  
-  // State for selected year
-  const [selectedYear, setSelectedYear] = useState<string | number>(defaultFiscalYear);
   
   // Get data from store using selectors
   const district = useAppSelector(selectCurrentDistrict);
@@ -95,11 +96,6 @@ const BullyClassificationTable: React.FC = () => {
     districtBullyClassificationData.forEach(item => years.add(item.year));
     return Array.from(years).sort((a, b) => b - a); // Sort descending
   }, [districtBullyClassificationData]);
-  
-  // Reset selected year when fiscal year changes
-  useEffect(() => {
-    setSelectedYear(defaultFiscalYear);
-  }, [defaultFiscalYear]);
   
   // Filter data based on selected year
   const filteredData = useMemo(() => {
@@ -157,7 +153,7 @@ const BullyClassificationTable: React.FC = () => {
   }, [totals]);
   
   const handleYearChange = (event: SelectChangeEvent<string | number>) => {
-    setSelectedYear(event.target.value);
+    onYearChange(event.target.value);
   };
   
   const formattedYear = useMemo(() => {
