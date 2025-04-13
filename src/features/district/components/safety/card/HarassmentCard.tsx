@@ -44,7 +44,7 @@ const HarassmentCard: React.FC = () => {
         <DefaultSafetyCard
             onClick={handleClick}
             isSelected={isSelected}
-            title="Harassment"
+            title="Harassments"
             shortTitle="Harass"
         >
             <Box sx={{ my: 1  }}>

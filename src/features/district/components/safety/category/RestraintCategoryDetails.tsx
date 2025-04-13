@@ -110,12 +110,14 @@ const RestraintCategoryDetails: React.FC = () => {
                     `This is ${data.per100Students} ${type} Reports Per 100 Students`
                 }
             </Typography>
-            <Typography component="li" sx={{ml:2, fontStyle: 'italic', color: 'text.secondary'}} variant="body1">
+            <Box component="ul" sx={{ fontStyle: 'italic', pl: 4, mb: 2 }}>
+            <Typography component="li" sx={{fontStyle: 'italic', color: 'text.secondary'}} variant="body1">
                 {isMobile ? 
                     `State Average is ${data.stateAvg} Reports` :
                     `State Average is ${data.stateAvg} Reports Per 100 Students`
                 }
             </Typography>
+            </Box>
             {data.hasActiveInvestigations && (
                 <Typography component="li" variant="body1">
                     There Are {data.activeInvestigations} Active/Ongoing Investigations

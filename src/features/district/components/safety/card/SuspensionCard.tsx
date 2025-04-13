@@ -64,7 +64,7 @@ const SuspensionCard: React.FC = () => {
         <DefaultSafetyCard
             onClick={handleClick}
             isSelected={isSelected}
-            title="Suspension and Expulsions"
+            title="Suspensions and Expulsions"
             shortTitle="Suspend"
         >
             <Box sx={{ my: 1 }}>

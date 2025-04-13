@@ -45,7 +45,7 @@ const RestraintCard: React.FC = () => {
         <DefaultSafetyCard
             onClick={handleClick}
             isSelected={isSelected}
-            title="Restraint and Seclusions"
+            title="Restraints and Seclusions"
             shortTitle="Restraint"
         >
             <Box sx={{ my: 1 }}>
