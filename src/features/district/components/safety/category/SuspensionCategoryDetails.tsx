@@ -94,7 +94,7 @@ const SuspensionCategoryDetails: React.FC = () => {
                     {totalSuspensions} students were suspended in {formattedFiscalYear}
                 </Typography>
                 
-                <Box component="ul" sx={{ fontStyle: 'italic', mb: 2 }}>
+                <Box component="ul" sx={{ fontStyle: 'italic', mb: 2, pl: 2 }}>
                     <Typography component="li" variant="body1">
                         {inSchoolSuspensionsCount} Received In-School Suspensions
                     </Typography>
@@ -107,7 +107,7 @@ const SuspensionCategoryDetails: React.FC = () => {
                     {districtSuspensionsPer100.toFixed(0)} Suspensions Per 100 Students in the District
                 </Typography>
                 
-                <Box component="ul" sx={{ mb: 2, fontStyle: 'italic' }}>
+                <Box component="ul" sx={{ mb: 2, fontStyle: 'italic', pl: 2 }}>
                     <Typography component="li" variant="body1">
                         {stateSuspensionsPer100.toFixed(0)} Suspensions Per 100 Statewide
                     </Typography>
@@ -119,7 +119,7 @@ const SuspensionCategoryDetails: React.FC = () => {
                             {expulsionsCount} students were expelled in {formattedFiscalYear}
                         </Typography>
                         
-                        <Box component="ul" sx={{ fontStyle: 'italic' }}>
+                        <Box component="ul" sx={{ fontStyle: 'italic', pl: 2 }}>
                             <Typography component="li" variant="body1">
                                 Expulsions are rare, only {stateExpulsionsCount} NH students were expelled in {formattedFiscalYear}
                             </Typography>
@@ -199,6 +199,7 @@ const SuspensionCategoryDetails: React.FC = () => {
                 <DisciplineIncidentTable fiscalYear={fiscalYear} />
                 <Divider sx={{ mt: 3 }} />
                 <SuspensionTrendChart />
+                <Box sx={{ pb: 4 }} />
             </>
         );
     };
