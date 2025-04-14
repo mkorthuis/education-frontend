@@ -60,7 +60,6 @@ const AcademicAchievement: React.FC = () => {
 
   // Fetch all required data
   useEffect(() => {
-
     if (id) {
       // If district data isn't loaded yet, fetch it
       if (!district && !districtLoading) {
@@ -73,7 +72,7 @@ const AcademicAchievement: React.FC = () => {
       }
 
       // Fetch district assessment data if not already loaded
-      if ((district && districtAssessmentLoading == LoadingState.IDLE && districtAssessmentData.length === 0)) {
+      if ((district && districtAssessmentLoading == LoadingState.IDLE && (districtAssessmentData.length === 0 || districtAssessmentData[0].district_id != district.id))) {
         dispatch(fetchAssessmentDistrictData(initialQueryParams)).then((action) => {
           // After fetching is complete, set the current district data key manually
           if (action.meta.requestStatus === 'fulfilled') {
@@ -126,6 +125,15 @@ const AcademicAchievement: React.FC = () => {
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
           <CircularProgress />
+        </Box>
+      ) : filteredAssessmentData.length === 0 ? (
+        <Box sx={{  justifyContent: 'left',}}>
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            There Is No Academic Achievement Data For This District.
+          </Typography>
+          <Typography variant="body1">
+            This District Does Not Operate Any Schools.
+          </Typography>
         </Box>
       ) : (
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'flex-start' }}>
