@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Typography, Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, useMediaQuery, useTheme, Select, MenuItem, FormControl, SelectChangeEvent } from '@mui/material';
+import React, { useMemo, useState, useEffect } from 'react';
+import { Typography, Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, useMediaQuery, useTheme, Select, MenuItem, FormControl, SelectChangeEvent, alpha } from '@mui/material';
 import { 
   selectDistrictBullyingClassificationData,
   selectStateBullyingClassificationData,
@@ -75,6 +75,8 @@ const BullyClassificationTable: React.FC<BullyClassificationTableProps> = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [isLoading, setIsLoading] = useState(false);
+  const [prevYear, setPrevYear] = useState<string | number>(selectedYear);
   
   // Get data from store using selectors
   const district = useAppSelector(selectCurrentDistrict);
@@ -152,6 +154,19 @@ const BullyClassificationTable: React.FC<BullyClassificationTableProps> = ({
     return totals.count === 0;
   }, [totals]);
   
+  // Effect to detect year changes (excluding initial load)
+  useEffect(() => {
+    if (prevYear !== selectedYear) {
+      setIsLoading(true);
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 800); // Show loading state for 800ms
+      
+      return () => clearTimeout(timer);
+    }
+    setPrevYear(selectedYear);
+  }, [selectedYear, prevYear]);
+  
   const handleYearChange = (event: SelectChangeEvent<string | number>) => {
     onYearChange(event.target.value);
   };
@@ -191,12 +206,34 @@ const BullyClassificationTable: React.FC<BullyClassificationTableProps> = ({
         </Typography>
       </Box>
       
-      <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 2 }}>
+      <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 2, position: 'relative' }}>
         <TableContainer 
           component={Paper} 
           elevation={0} 
-          sx={tableStyles.container}
+          sx={{
+            ...tableStyles.container,
+            position: 'relative',
+            opacity: isLoading ? 0.6 : 1,
+            transition: 'opacity 0.3s ease'
+          }}
         >
+          {/* Overlay for loading state */}
+          {isLoading && (
+            <Box 
+              sx={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: alpha(theme.palette.background.paper, 0.2),
+                zIndex: 1,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+            />
+          )}
           <Table size="small">
             <TableHead sx={tableStyles.head}>
               <TableRow>

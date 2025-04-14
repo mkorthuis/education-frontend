@@ -45,18 +45,29 @@ export default function Home() {
   };
 
   return (
-    <Box sx={{ padding: '24px', width: '100%' }}>
-      <Typography variant="body1" gutterBottom sx={{fontWeight: 'bold'}}>
-        Questions about New Hampshire Schools?
+    <Box sx={{ 
+      padding: {
+        xs: '24px 24px 24px 0',
+        sm: '24px 24px 24px 8px',
+        md: '24px 24px 24px 24px',
+      },
+      width: '100%',
+      maxWidth: {
+        xs: '100%',
+        sm: '80%',
+        md: '60%', 
+        lg: '50%',  
+        xl: '40%' 
+      }
+    }}>
+      <Typography variant="body1"  sx={{fontWeight: 'bold', mb: 2}}>
+        New Hampshire Education Data Made Accessible
       </Typography>
-      <Typography variant="body1" gutterBottom>
-        We've made state data accessible to provide clear, politically unbiased answers—just the facts you need.
-      </Typography>
-      <Typography variant="body1" gutterBottom>
-        Start by selecting your district or viewing our statewide data.
+      <Typography variant="body1" sx={{mb: 2}}>
+        Start by Selecting Your District:
       </Typography>
       
-      <FormControl fullWidth sx={{ mt: 2 }}>
+      <FormControl fullWidth>
         <Autocomplete
           id="district-autocomplete"
           options={districts}
@@ -67,13 +78,17 @@ export default function Home() {
           renderInput={(params) => (
             <TextField
               {...params}
-              label="School District"
+              label="Select District"
               variant="outlined"
             />
           )}
         />
       </FormControl>
 
+      <Typography variant="body2" sx={{fontStyle: 'italic', color: 'text.secondary', mt: 2}}>
+        * Statewide Data Coming Soon. *
+      </Typography>
+{/* 
       <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Button 
           variant="contained" 
@@ -90,7 +105,7 @@ export default function Home() {
         <Button variant="outlined" color="primary" size="large">
           NH Education FAQ
         </Button>
-      </Box>
+      </Box> */}
     </Box>
   );
 }
