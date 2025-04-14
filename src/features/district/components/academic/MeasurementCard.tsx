@@ -94,7 +94,7 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
     : { above_proficient_percentage: null, above_proficient_percentage_exception: null };
   
   // Handle potential null values and exceptions
-  const proficiencyPercentage = assessmentData?.above_proficient_percentage !== null
+  const proficiencyPercentage = assessmentData?.above_proficient_percentage !== null && assessmentData?.above_proficient_percentage !== undefined
     ? `${assessmentData.above_proficient_percentage.toFixed(1)}%`
     : (assessmentData?.above_proficient_percentage_exception === 'SCORE_UNDER_10'
       ? '<10%'
@@ -102,7 +102,7 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
         ? '>90%'
         : assessmentData?.above_proficient_percentage_exception || 'N/A');
   
-  const statePercentage = stateAssessmentData?.above_proficient_percentage !== null
+  const statePercentage = stateAssessmentData?.above_proficient_percentage !== null && stateAssessmentData?.above_proficient_percentage !== undefined
     ? `${stateAssessmentData.above_proficient_percentage.toFixed(1)}%`
     : (stateAssessmentData?.above_proficient_percentage_exception === 'SCORE_UNDER_10'
       ? '<10%'
@@ -186,7 +186,7 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
             noWrap={isCollapsed}
             sx={titleStyles}
           >
-            {assessmentData?.assessment_subject?.description}
+            {assessmentData?.assessment_subject?.description || "Unknown Subject"}
           </Typography>
           
           {/* Only show detailed content when not collapsed */}
