@@ -13,6 +13,16 @@ import {
 import { formatGradesDisplay } from '@/utils/formatting';
 import { calculateTotalEnrollment } from '@/utils/calculations';
 
+// Common button styles
+const navigationButtonStyle = {
+  backgroundColor: 'grey.100', 
+  borderColor: 'divider',
+  color: 'text.primary',
+  '&:hover': {
+    backgroundColor: 'grey.300',
+  }
+};
+
 /**
  * Represents the School page/feature.
  * Displays school information based on the ID from the URL.
@@ -87,51 +97,109 @@ const School: React.FC = () => {
       <Stack direction="column" spacing={2} sx={{ mb: 4 }}>
         <Button 
           variant="outlined" 
+          color="inherit"
           component={Link} 
-          to={`/school/${id}/academic`}
+          to={`/school/${id}/contact`}
           fullWidth
+          sx={navigationButtonStyle}
+        >
+          Contact Information
+        </Button>
+        <Divider sx={{ my: 2 }} />
+        <Button 
+          variant="outlined" 
+          color="inherit"
+          component="div" 
+          disabled
+          fullWidth
+          sx={{
+            ...navigationButtonStyle,
+            opacity: 0.6,
+            cursor: 'not-allowed',
+            '&.Mui-disabled': {
+              color: 'text.secondary',
+              backgroundColor: 'grey.100',
+              borderColor: 'divider'
+            }
+          }}
         >
           Academic Achievement
         </Button>
         <Button 
           variant="outlined" 
-          component={Link} 
-          to={`/school/${id}/financials`}
+          color="inherit"
+          component="div" 
+          disabled
           fullWidth
+          sx={{
+            ...navigationButtonStyle,
+            opacity: 0.6,
+            cursor: 'not-allowed',
+            '&.Mui-disabled': {
+              color: 'text.secondary',
+              backgroundColor: 'grey.100',
+              borderColor: 'divider'
+            }
+          }}
         >
           Financials
         </Button>
         <Button 
           variant="outlined" 
-          component={Link} 
-          to={`/school/${id}/demographics`}
+          color="inherit"
+          component="div" 
+          disabled
           fullWidth
-        >
-          Demographics
-        </Button>
-        <Button 
-          variant="outlined" 
-          component={Link} 
-          to={`/school/${id}/safety`}
-          fullWidth
+          sx={{
+            ...navigationButtonStyle,
+            opacity: 0.6,
+            cursor: 'not-allowed',
+            '&.Mui-disabled': {
+              color: 'text.secondary',
+              backgroundColor: 'grey.100',
+              borderColor: 'divider'
+            }
+          }}
         >
           School Safety
         </Button>
         <Button 
           variant="outlined" 
-          component={Link} 
-          to={`/school/${id}/staff`}
+          color="inherit"
+          component="div" 
+          disabled
           fullWidth
+          sx={{
+            ...navigationButtonStyle,
+            opacity: 0.6,
+            cursor: 'not-allowed',
+            '&.Mui-disabled': {
+              color: 'text.secondary',
+              backgroundColor: 'grey.100',
+              borderColor: 'divider'
+            }
+          }}
         >
-          Staff Metrics
+          Demographics
         </Button>
         <Button 
           variant="outlined" 
-          component={Link} 
-          to={`/school/${id}/contact`}
+          color="inherit"
+          component="div" 
+          disabled
           fullWidth
+          sx={{
+            ...navigationButtonStyle,
+            opacity: 0.6,
+            cursor: 'not-allowed',
+            '&.Mui-disabled': {
+              color: 'text.secondary',
+              backgroundColor: 'grey.100',
+              borderColor: 'divider'
+            }
+          }}
         >
-          Contact Information
+          Staff Metrics
         </Button>
       </Stack>
     </Box>
