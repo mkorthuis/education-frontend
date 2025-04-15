@@ -49,4 +49,4 @@ export const calculatePercentageDifference = (
   
   // Round to nearest integer
   return Math.round(percentDifference);
-};
+}; 

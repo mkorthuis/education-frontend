@@ -3,9 +3,9 @@ import { Box, Typography } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
 import { selectCurrentDistrict, selectCurrentSchools } from '@/store/slices/locationSlice';
 import { selectSchoolSafetyData } from '@/store/slices/safetySlice';
-import { EARLIEST_YEAR } from '@/features/district/utils/safetyDataProcessing';
+import { EARLIEST_YEAR } from '@/utils/safetyCalculations';
 import DefaultCategoryDetails from './DefaultCategoryDetails';
-import SchoolSafetyIncidentsTable from './subCategory/SchoolSafetyIncidentsTable';
+import DistrictSchoolSafetyIncidentsTable from './subCategory/SchoolSafetyIncidentsTable';
 
 // Types
 interface SafetyType {
@@ -87,7 +87,7 @@ const SeriousSafetyCategoryDetails: React.FC = () => {
 
                             return (
                                 <Box key={schoolId}>
-                                    <SchoolSafetyIncidentsTable
+                                    <DistrictSchoolSafetyIncidentsTable
                                         schoolName={schoolName}
                                         incidents={incidents}
                                     />

@@ -16,7 +16,7 @@ import {
     IN_SCHOOL_SUSPENSION_TYPE, 
     OUT_OF_SCHOOL_SUSPENSION_TYPE, 
     calculatePer100Students 
-} from '@/features/district/utils/safetyDataProcessing';
+} from '@/utils/safetyCalculations';
 import SuspensionTrendChart from './subCategory/SuspensionTrendChart';
 import DisciplineIncidentTable from './subCategory/DisciplineIncidentTable';
 

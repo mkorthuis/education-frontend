@@ -15,7 +15,7 @@ import { useAppSelector } from '@/store/hooks';
 import { selectCurrentDistrict } from '@/store/slices/locationSlice';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
-import { calculatePer100Students } from '@/features/district/utils/safetyDataProcessing';
+import { calculatePer100Students } from '@/utils/safetyCalculations';
 
 const RestraintCategoryDetails: React.FC = () => {
     const theme = useTheme();

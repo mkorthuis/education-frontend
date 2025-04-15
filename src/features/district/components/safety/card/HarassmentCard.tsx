@@ -5,7 +5,7 @@ import { FISCAL_YEAR } from '@/utils/environment';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectSelectedSafetyPage, setSelectedSafetyPage, selectDistrictHarassmentData, selectStateHarassmentData, selectDistrictEnrollmentData, selectStateEnrollmentData } from '@/store/slices/safetySlice';
 import { selectCurrentDistrict } from '@/store/slices/locationSlice';
-import { calculatePer100Students, calculatePercentageDifference } from '@/features/district/utils/safetyDataProcessing';
+import { calculatePer100Students, calculatePercentageDifference } from '@/utils/safetyCalculations';
 import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
 
 const HarassmentCard: React.FC = () => {

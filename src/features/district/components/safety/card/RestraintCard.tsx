@@ -5,8 +5,8 @@ import { FISCAL_YEAR } from '@/utils/environment';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectDistrictRestraintData, selectStateRestraintData, selectSelectedSafetyPage, setSelectedSafetyPage, selectStateEnrollmentData, selectDistrictEnrollmentData } from '@/store/slices/safetySlice';
 import { selectCurrentDistrict } from '@/store/slices/locationSlice';
-import { calculatePercentageDifference } from '@/features/district/utils/safetyDataProcessing';
-import { calculatePer100Students } from '@/features/district/utils/safetyDataProcessing';
+import { calculatePercentageDifference } from '@/utils/safetyCalculations';
+import { calculatePer100Students } from '@/utils/safetyCalculations';
 import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
 
 const RestraintCard: React.FC = () => {

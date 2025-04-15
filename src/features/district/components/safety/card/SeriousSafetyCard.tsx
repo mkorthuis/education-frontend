@@ -5,7 +5,7 @@ import { FISCAL_YEAR } from '@/utils/environment';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectDistrictSafetyData, selectSelectedSafetyPage, setSelectedSafetyPage } from '@/store/slices/safetySlice';
 import { selectCurrentDistrict } from '@/store/slices/locationSlice';
-import { EARLIEST_YEAR } from '@/features/district/utils/safetyDataProcessing';
+import { EARLIEST_YEAR } from '@/utils/safetyCalculations';
 import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
 
 const SeriousSafetyCard: React.FC = () => {

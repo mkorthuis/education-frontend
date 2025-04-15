@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Box, Typography, CircularProgress, Divider } from '@mui/material';
+import { Box, Typography, CircularProgress, Divider, useTheme, useMediaQuery } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentDistrict,
@@ -10,7 +10,7 @@ import {
 } from '@/store/slices/locationSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
 import * as safetySlice from '@/store/slices/safetySlice';
-import { EARLIEST_YEAR } from '../utils/safetyDataProcessing';
+import { EARLIEST_YEAR } from '@/utils/safetyCalculations';
 
 // Import card components
 import BullyCard from './safety/card/BullyCard';
@@ -33,6 +33,9 @@ const Safety: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const districtId = id ? parseInt(id) : 0;
   const dispatch = useAppDispatch();
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   // Memoize the parameter objects to avoid recreating them on each render
   const districtParams = useMemo(() => ({ district_id: districtId }), [districtId]);
@@ -294,11 +297,12 @@ const Safety: React.FC = () => {
         return <TruancyCategoryDetails />;
       default:
         return (
-          <DefaultCategoryDetails title="Select A Card For More Information">
-            {filteredSchools.length > 0 && (
-              <>
+          isMobile ? (<></>) : (
+            <DefaultCategoryDetails title="Select A Card For More Information">
+              {filteredSchools.length > 0 && (
+                <>
                 <Typography variant="body1">
-                  Note: The Following Data is Unavailable:
+                  Note: The Following School Data is Unavailable:
                 </Typography>
                 <Box component="ul" sx={{pl: 3, mt: 1}}>
                   {filteredSchools.map((school) => (
@@ -312,7 +316,7 @@ const Safety: React.FC = () => {
               </>
             )}
           </DefaultCategoryDetails>
-        );
+        ));
     }
   };
 
@@ -323,7 +327,7 @@ const Safety: React.FC = () => {
     return (
       <>
         <Typography variant="body1">
-          Note: Following Data is Unavailable:
+          Note: The Following School Data is Unavailable:
         </Typography>
         <Box component="ul" sx={{pl: 3, mt: 1}}>
           {filteredSchools.map((school) => (

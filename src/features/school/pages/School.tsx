@@ -95,6 +95,16 @@ const School: React.FC = () => {
       <Divider sx={{ my: 3 }} />
       
       <Stack direction="column" spacing={2} sx={{ mb: 4 }}>
+      <Button 
+          variant="outlined" 
+          color="inherit"
+          component={Link} 
+          to={`/school/${id}/safety`}
+          fullWidth
+          sx={navigationButtonStyle}
+        >
+          School Safety
+        </Button>
         <Button 
           variant="outlined" 
           color="inherit"
@@ -143,25 +153,6 @@ const School: React.FC = () => {
           }}
         >
           Financials
-        </Button>
-        <Button 
-          variant="outlined" 
-          color="inherit"
-          component="div" 
-          disabled
-          fullWidth
-          sx={{
-            ...navigationButtonStyle,
-            opacity: 0.6,
-            cursor: 'not-allowed',
-            '&.Mui-disabled': {
-              color: 'text.secondary',
-              backgroundColor: 'grey.100',
-              borderColor: 'divider'
-            }
-          }}
-        >
-          School Safety
         </Button>
         <Button 
           variant="outlined" 

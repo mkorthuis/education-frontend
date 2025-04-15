@@ -4,7 +4,7 @@ import DefaultSafetyCard from './DefaultSafetyCard';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectDistrictEnrollmentData, selectSelectedSafetyPage, selectStateEnrollmentData, setSelectedSafetyPage, selectDistrictDisciplineCountData, selectStateDisciplineCountData, selectDisciplineCountTypes } from '@/store/slices/safetySlice';
 import { selectCurrentDistrict } from '@/store/slices/locationSlice';
-import { calculatePer100Students, calculatePercentageDifference, IN_SCHOOL_SUSPENSION_TYPE, OUT_OF_SCHOOL_SUSPENSION_TYPE } from '@/features/district/utils/safetyDataProcessing';
+import { calculatePer100Students, calculatePercentageDifference, IN_SCHOOL_SUSPENSION_TYPE, OUT_OF_SCHOOL_SUSPENSION_TYPE } from '@/utils/safetyCalculations';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
 
