@@ -88,7 +88,7 @@ export interface FetchAssessmentStateDataParams extends BaseAssessmentParams {
 }
 
 export interface FetchAssessmentSchoolDataParams extends BaseAssessmentParams {
-  school_id: string;
+  school_id?: string;
 }
 
 // Query Key Types

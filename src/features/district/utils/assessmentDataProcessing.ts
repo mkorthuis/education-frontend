@@ -14,12 +14,14 @@ export const ALL_STUDENTS_SUBGROUP_ID = 1;
 export const ALL_STUDENTS_SUBGROUP_NAME = 'All students';
 export const EARLIEST_YEAR = 2019;
 
-// Extend the Grade interface to include the disabled property
+// Common assessment data type - represents all assessment data types
+export type AssessmentDataType = AssessmentDistrictData | AssessmentStateData | AssessmentSchoolData;
+
+// Extended interfaces with common disabled property
 export interface ExtendedGrade extends Grade {
   disabled?: boolean;
 }
 
-// Extend the AssessmentSubgroup interface to include the disabled property
 export interface ExtendedSubgroup extends AssessmentSubgroup {
   disabled?: boolean;
 }
@@ -30,15 +32,14 @@ export interface ExtendedSubgroup extends AssessmentSubgroup {
  * @param params Parameters to filter by (year, subject_id, subgroup_id, grade_id)
  * @returns Filtered array of assessment data
  */
-export const filterAssessmentResults = <T extends AssessmentDistrictData | AssessmentStateData | AssessmentSchoolData>(
+export const filterAssessmentResults = <T extends AssessmentDataType>(
   assessmentData: T[],
   params: Partial<BaseAssessmentParams>
 ): T[] => {
   return assessmentData.filter(item => {
     // Filter by year if provided
-    if (params.year !== undefined) {
-      const yearNum = parseInt(params.year);
-      if (item.year !== yearNum) return false;
+    if (params.year !== undefined && item.year !== parseInt(params.year)) {
+      return false;
     }
 
     // Filter by assessment_subject_id if provided
@@ -57,11 +58,10 @@ export const filterAssessmentResults = <T extends AssessmentDistrictData | Asses
     if (params.grade_id !== undefined) {
       // Special case: If grade_id is ALL_GRADES_ID, match items with null grade_id
       if (params.grade_id === ALL_GRADES_ID) {
-        if (item.grade !== null) return false;
-      } else {
-        // Normal case: Match with the provided grade_id
-        if (item.grade?.id !== params.grade_id) return false;
-      }
+        return item.grade === null;
+      } 
+      // Normal case: Match with the provided grade_id
+      return item.grade?.id === params.grade_id;
     }
 
     return true;
@@ -69,168 +69,221 @@ export const filterAssessmentResults = <T extends AssessmentDistrictData | Asses
 };
 
 /**
- * Extracts unique grade objects from assessment data based on grade.id
- * @param assessmentData Array of assessment data objects to process
- * @returns Array of unique ExtendedGrade objects with disabled property for TOO_FEW_SAMPLES grades
+ * Generic function to extract unique items from assessment data
+ * @param assessmentData Assessment data array
+ * @param getItem Function to get the item from assessment data
+ * @param checkException Function to check if the item has an exception
+ * @param createDefaultItem Function to create a default "All" item
+ * @param sortItems Function to sort the items
+ * @returns Array of unique items with disabled property set for TOO_FEW_SAMPLES
  */
-export const getUniqueGrades = <T extends AssessmentDistrictData | AssessmentStateData | AssessmentSchoolData>(
-  assessmentData: T[]
-): ExtendedGrade[] => {
-  // Create a map to store unique grades by id
-  const gradesMap = new Map<number, ExtendedGrade>();
+const getUniqueItems = <T extends AssessmentDataType, R extends { id: number, disabled?: boolean }>(
+  assessmentData: T[],
+  getItem: (item: T) => R | null | undefined,
+  checkException: (item: T) => boolean,
+  createDefaultItem: () => R,
+  sortItems: (a: R, b: R) => number
+): R[] => {
+  // Create a map to store unique items by id
+  const itemsMap = new Map<number, R>();
   
-  // Create a Set to track grade IDs that appear only with TOO_FEW_SAMPLES
-  const onlyTooFewSamplesGrades = new Set<number>();
-  const normalGrades = new Set<number>();
+  // Track items that appear with and without TOO_FEW_SAMPLES
+  const onlyTooFewSamplesItems = new Set<number>();
+  const normalItems = new Set<number>();
+  
+  // Check if we need to add a default "All" item
+  let hasDefaultItem = false;
   
   // Process each assessment data item
   assessmentData.forEach(item => {
-    // Skip items with null grade
-    if (item.grade === null) {
-      if (!gradesMap.has(ALL_GRADES_ID)) {
-        gradesMap.set(ALL_GRADES_ID, { id: ALL_GRADES_ID, name: ALL_GRADES_NAME });
+    const currentItem = getItem(item);
+    
+    // Skip null or undefined items
+    if (!currentItem) {
+      if (!hasDefaultItem) {
+        const defaultItem = createDefaultItem();
+        itemsMap.set(defaultItem.id, defaultItem);
+        hasDefaultItem = true;
       }
       return;
     }
     
-    if (item.grade && item.grade.id) {
-      // Add grade to map if not already present
-      if (!gradesMap.has(item.grade.id)) {
-        gradesMap.set(item.grade.id, { ...item.grade });
-      }
-      
-      // Track grades that have TOO_FEW_SAMPLES vs normal data
-      if (item.level_1_percentage_exception === "TOO_FEW_SAMPLES") {
-        onlyTooFewSamplesGrades.add(item.grade.id);
-      } else {
-        normalGrades.add(item.grade.id);
+    // Add item to map if not already present
+    if (!itemsMap.has(currentItem.id)) {
+      itemsMap.set(currentItem.id, { ...currentItem });
+    }
+    
+    // Track TOO_FEW_SAMPLES vs normal data
+    if (checkException(item)) {
+      onlyTooFewSamplesItems.add(currentItem.id);
+    } else {
+      normalItems.add(currentItem.id);
+    }
+  });
+  
+  // Mark items that only appear with TOO_FEW_SAMPLES as disabled
+  onlyTooFewSamplesItems.forEach(itemId => {
+    if (!normalItems.has(itemId) && itemsMap.has(itemId)) {
+      const item = itemsMap.get(itemId);
+      if (item) {
+        item.disabled = true;
       }
     }
   });
   
-  // Mark grades that only appear with TOO_FEW_SAMPLES as disabled
-  onlyTooFewSamplesGrades.forEach(gradeId => {
-    if (!normalGrades.has(gradeId) && gradesMap.has(gradeId)) {
-      const grade = gradesMap.get(gradeId);
-      if (grade) {
-        grade.disabled = true;
-      }
-    }
-  });
-  
-  // Convert map values to array and sort by id
-  return Array.from(gradesMap.values()).sort((a, b) => {
-    // Place "All Grades" (id ALL_GRADES_ID) first
-    if (a.id === ALL_GRADES_ID) return -1;
-    if (b.id === ALL_GRADES_ID) return 1;
-    // Sort the rest by id descending
-    return b.id - a.id;
-  });
+  // Convert map values to array and sort
+  return Array.from(itemsMap.values()).sort(sortItems);
 };
 
 /**
- * Extracts unique subgroup objects from assessment data based on assessment_subgroup.id
- * @param assessmentData Array of assessment data objects to process
- * @returns Array of unique ExtendedSubgroup objects with disabled property for TOO_FEW_SAMPLES subgroups
+ * Extracts unique grade objects from assessment data
+ * @param assessmentData Array of assessment data objects
+ * @returns Array of unique ExtendedGrade objects
  */
-export const getUniqueSubgroups = <T extends AssessmentDistrictData | AssessmentStateData | AssessmentSchoolData>(
+export const getUniqueGrades = <T extends AssessmentDataType>(
   assessmentData: T[]
-): ExtendedSubgroup[] => {
-  // Create a map to store unique subgroups by id
-  const subgroupsMap = new Map<number, ExtendedSubgroup>();
-  
-  // Create a Set to track subgroup IDs that appear only with TOO_FEW_SAMPLES
-  const onlyTooFewSamplesSubgroups = new Set<number>();
-  const normalSubgroups = new Set<number>();
-  
-  // Process each assessment data item
-  assessmentData.forEach(item => {
-    if (item.assessment_subgroup && item.assessment_subgroup.id) {
-      // Add subgroup to map if not already present
-      if (!subgroupsMap.has(item.assessment_subgroup.id)) {
-        subgroupsMap.set(item.assessment_subgroup.id, { ...item.assessment_subgroup });
-      }
-      
-      // Track subgroups that have TOO_FEW_SAMPLES vs normal data
-      if (item.level_1_percentage_exception === "TOO_FEW_SAMPLES") {
-        onlyTooFewSamplesSubgroups.add(item.assessment_subgroup.id);
-      } else {
-        normalSubgroups.add(item.assessment_subgroup.id);
-      }
+): ExtendedGrade[] => {
+  return getUniqueItems<T, ExtendedGrade>(
+    assessmentData,
+    // Get grade from assessment data
+    (item) => item.grade,
+    // Check for TOO_FEW_SAMPLES exception
+    (item) => item.level_1_percentage_exception === "TOO_FEW_SAMPLES",
+    // Create "All Grades" item
+    () => ({ id: ALL_GRADES_ID, name: ALL_GRADES_NAME }),
+    // Sort grades: "All Grades" first, then descending by id
+    (a, b) => {
+      if (a.id === ALL_GRADES_ID) return -1;
+      if (b.id === ALL_GRADES_ID) return 1;
+      return b.id - a.id;
     }
-  });
-  
-  // Mark subgroups that only appear with TOO_FEW_SAMPLES as disabled
-  onlyTooFewSamplesSubgroups.forEach(subgroupId => {
-    if (!normalSubgroups.has(subgroupId) && subgroupsMap.has(subgroupId)) {
-      const subgroup = subgroupsMap.get(subgroupId);
-      if (subgroup) {
-        subgroup.disabled = true;
-      }
-    }
-  });
-  
-  // Convert map values to array and sort by id
-  return Array.from(subgroupsMap.values()).sort((a, b) => a.id - b.id);
+  );
 };
 
-// Function to get the proficiency range index for a percentage value
-export const getProficiencyRangeIndex = (percentage: number | null, exception: string | null) => {
-    if (exception === 'SCORE_UNDER_10') {
-      return 9; // Treat as 9%
-    } else if (exception === 'SCORE_OVER_90') {
-      return 91; // Treat as 91%
-    } else if (percentage !== null) {
-      // Round to the nearest integer (1% increment)
-      return Math.round(percentage);
-    }
-    return -1; // Invalid or missing data
-  };
+/**
+ * Extracts unique subgroup objects from assessment data
+ * @param assessmentData Array of assessment data objects
+ * @returns Array of unique ExtendedSubgroup objects
+ */
+export const getUniqueSubgroups = <T extends AssessmentDataType>(
+  assessmentData: T[]
+): ExtendedSubgroup[] => {
+  return getUniqueItems<T, ExtendedSubgroup>(
+    assessmentData,
+    // Get subgroup from assessment data
+    (item) => item.assessment_subgroup,
+    // Check for TOO_FEW_SAMPLES exception
+    (item) => item.level_1_percentage_exception === "TOO_FEW_SAMPLES",
+    // No default "All" item for subgroups as they're already included in the data
+    () => ({ id: -1, name: "", description: null }),
+    // Sort subgroups by id ascending
+    (a, b) => a.id - b.id
+  );
+};
 
+/**
+ * Handles special score cases and normalizes proficiency percentages
+ * @param percentage The raw percentage value
+ * @param exception Exception string (e.g., SCORE_UNDER_10)
+ * @returns Normalized percentage value for comparison
+ */
+export const getProficiencyRangeIndex = (percentage: number | null, exception: string | null): number => {
+  if (exception === 'SCORE_UNDER_10') {
+    return 9; // Treat as 9%
+  } else if (exception === 'SCORE_OVER_90') {
+    return 91; // Treat as 91%
+  } else if (percentage !== null) {
+    return Math.round(percentage); // Round to nearest integer
+  }
+  return -1; // Invalid or missing data
+};
 
-// Function to get district rank information
-export const getDistrictRankInfo = (districtData: any[], currentDistrictId: number | null) => {
-    if (!districtData || districtData.length === 0 || !currentDistrictId) {
-      return { rank: null, total: 0 };
-    }
-    
-    // Only count districts with valid proficiency data
-    const districtsWithData = districtData.filter(d => 
-      d.above_proficient_percentage !== null || 
-      d.above_proficient_percentage_exception === 'SCORE_UNDER_10' || 
-      d.above_proficient_percentage_exception === 'SCORE_OVER_90'
+/**
+ * Generic function to calculate entity rank based on proficiency
+ * @param data Array of assessment data
+ * @param entityId ID of the current entity
+ * @param getEntityId Function to get entity ID from data
+ * @returns Object with rank and total count
+ */
+const getEntityRankInfo = <T extends { 
+  above_proficient_percentage: number | null, 
+  above_proficient_percentage_exception: string | null 
+}>(
+  data: T[],
+  entityId: number | null,
+  getEntityId: (item: T) => number | string
+): { rank: number | null, total: number } => {
+  if (!data || data.length === 0 || !entityId) {
+    return { rank: null, total: 0 };
+  }
+  
+  // Only count entities with valid proficiency data
+  const entitiesWithData = data.filter(entity => 
+    entity.above_proficient_percentage !== null || 
+    entity.above_proficient_percentage_exception === 'SCORE_UNDER_10' || 
+    entity.above_proficient_percentage_exception === 'SCORE_OVER_90'
+  );
+  
+  const total = entitiesWithData.length;
+  
+  // Find current entity
+  const currentEntity = entitiesWithData.find(entity => getEntityId(entity) === entityId);
+  if (!currentEntity) {
+    return { rank: null, total };
+  }
+  
+  // Get proficiency for current entity
+  const currentProficiency = getProficiencyRangeIndex(
+    currentEntity.above_proficient_percentage,
+    currentEntity.above_proficient_percentage_exception
+  );
+  
+  if (currentProficiency === -1) {
+    return { rank: null, total };
+  }
+  
+  // Count entities with higher proficiency (rank 1 is highest)
+  const entitiesWithHigherProficiency = entitiesWithData.filter(entity => {
+    const proficiency = getProficiencyRangeIndex(
+      entity.above_proficient_percentage,
+      entity.above_proficient_percentage_exception
     );
-    
-    const total = districtsWithData.length;
-    
-    // Find current district
-    const currentDistrict = districtsWithData.find(d => d.district_id === currentDistrictId);
-    if (!currentDistrict) {
-      return { rank: null, total };
-    }
-    
-    // Get normalized proficiency percentage for current district
-    const currentProficiency = getProficiencyRangeIndex(
-      currentDistrict.above_proficient_percentage,
-      currentDistrict.above_proficient_percentage_exception
-    );
-    
-    if (currentProficiency === -1) {
-      return { rank: null, total };
-    }
-    
-    // Count districts with higher proficiency
-    // (rank 1 is the highest proficiency)
-    const districtsWithHigherProficiency = districtsWithData.filter(d => {
-      const proficiency = getProficiencyRangeIndex(
-        d.above_proficient_percentage,
-        d.above_proficient_percentage_exception
-      );
-      return proficiency > currentProficiency;
-    }).length;
-    
-    // Calculate rank (1 is best - highest proficiency)
-    const rank = districtsWithHigherProficiency + 1;
-    
-    return { rank, total };
-  };
+    return proficiency > currentProficiency;
+  }).length;
+  
+  return { rank: entitiesWithHigherProficiency + 1, total };
+};
+
+/**
+ * Gets district rank information
+ * @param districtData Array of district assessment data
+ * @param currentDistrictId ID of the current district
+ * @returns Object with rank and total count
+ */
+export const getDistrictRankInfo = (
+  districtData: any[], 
+  currentDistrictId: number | null
+): { rank: number | null, total: number } => {
+  return getEntityRankInfo(
+    districtData,
+    currentDistrictId,
+    (district) => district.district_id
+  );
+};
+
+/**
+ * Gets school rank information
+ * @param schoolData Array of school assessment data
+ * @param currentSchoolId ID of the current school
+ * @returns Object with rank and total count
+ */
+export const getSchoolRankInfo = (
+  schoolData: any[], 
+  currentSchoolId: number | null
+): { rank: number | null, total: number } => {
+  return getEntityRankInfo(
+    schoolData,
+    currentSchoolId,
+    (school) => school.school_id
+  );
+};

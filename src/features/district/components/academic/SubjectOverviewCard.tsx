@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-import { Card, CardContent, Typography, Box, Divider } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentAssessmentDistrictData, 
@@ -15,6 +14,7 @@ import {
   ALL_GRADES_ID
 } from '@/features/district/utils/assessmentDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
+import SubjectOverviewCardUI from '@/components/ui/academic/SubjectOverviewCard';
 
 const SubjectOverviewCard: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -54,78 +54,18 @@ const SubjectOverviewCard: React.FC = () => {
     assessment_subgroup_id: selectedSubgroupId || undefined
   });
   
-  // Return empty if no data is available
-  if (filteredDistrictData.length === 0) {
-    return null;
-  }
+  // Get the first item from filtered data or null if not available
+  const assessmentData = filteredDistrictData.length > 0 ? filteredDistrictData[0] : null;
+  const stateAssessmentData = filteredStateData.length > 0 ? filteredStateData[0] : null;
   
-  const assessmentData = filteredDistrictData[0];
-  const stateAssessmentData = filteredStateData.length > 0 
-    ? filteredStateData[0] 
-    : { above_proficient_percentage: null, above_proficient_percentage_exception: null };
-  
-  // Handle potential null values and exceptions
-  const proficiencyPercentage = assessmentData.above_proficient_percentage !== null
-    ? `${assessmentData.above_proficient_percentage.toFixed(1)}%`
-    : (assessmentData.above_proficient_percentage_exception === 'SCORE_UNDER_10'
-      ? '<10%'
-      : assessmentData.above_proficient_percentage_exception === 'SCORE_OVER_90'
-        ? '>90%'
-        : assessmentData.above_proficient_percentage_exception || 'N/A');
-  
-  const statePercentage = stateAssessmentData.above_proficient_percentage !== null
-    ? `${stateAssessmentData.above_proficient_percentage.toFixed(1)}%`
-    : (stateAssessmentData.above_proficient_percentage_exception === 'SCORE_UNDER_10'
-      ? '<10%'
-      : stateAssessmentData.above_proficient_percentage_exception === 'SCORE_OVER_90'
-        ? '>90%'
-        : stateAssessmentData.above_proficient_percentage_exception || 'N/A');
-  
-  const participationRate = assessmentData.participate_percentage !== null
-    ? `${assessmentData.participate_percentage.toFixed(1)}%`
-    : 'N/A';
-  
-  // Get grade name but don't display if it's All Grades
-  const gradeId = assessmentData.grade?.id || selectedGradeId;
-  const gradeName = (gradeId === ALL_GRADES_ID || gradeId === null) 
-    ? '' 
-    : `${assessmentData.grade?.name || ''} `;
-  
-  // Get subgroup name but don't display if it's All Students
-  const subgroupId = assessmentData.assessment_subgroup?.id || selectedSubgroupId;
-  const subgroupName = (subgroupId === ALL_STUDENTS_SUBGROUP_ID || subgroupId === null) 
-    ? '' 
-    : `${assessmentData.assessment_subgroup?.name || ''} `;
-  
-  const studentCount = assessmentData.total_fay_students_low === assessmentData.total_fay_students_high
-    ? assessmentData.total_fay_students_low
-    : `${assessmentData.total_fay_students_low}-${assessmentData.total_fay_students_high}`;
-
   return (
-    <Card sx={{ border: '1px solid', borderColor: 'divider', backgroundColor: 'grey.100' }}>
-      <CardContent>
-        
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="body1" fontWeight="bold">
-            {proficiencyPercentage} {gradeName}{subgroupName}Students Meet Grade Level Proficiency.
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-            {statePercentage} State Average
-          </Typography>
-        </Box>
-        
-        <Divider sx={{ my: 2 }} />
-        
-        <Box>
-          <Typography variant="body1">
-            {studentCount} {gradeName}{subgroupName}Students Took The Test.
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-            {participationRate} Participation Rate.
-          </Typography>
-        </Box>
-      </CardContent>
-    </Card>
+    <SubjectOverviewCardUI
+      assessmentData={assessmentData}
+      stateAssessmentData={stateAssessmentData}
+      selectedGradeId={selectedGradeId}
+      selectedSubgroupId={selectedSubgroupId}
+      entityType="district"
+    />
   );
 };
 

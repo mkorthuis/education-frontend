@@ -1,20 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { useAppDispatch } from '@/store/hooks';
 import { useParams } from 'react-router-dom';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  Cell,
-  ReferenceLine,
-  Label,
-  Legend
-} from 'recharts';
-import { Typography, Box } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
 import { 
   fetchAssessmentDistrictData, 
@@ -30,12 +16,7 @@ import {
 import { FISCAL_YEAR } from '@/utils/environment';
 import { filterAssessmentResults, getProficiencyRangeIndex, getDistrictRankInfo } from '@/features/district/utils/assessmentDataProcessing';
 import { LoadingState } from '@/store/slices/safetySlice';
-
-// Color constants for better consistency
-const COLOR_CURRENT_DISTRICT = '#1976d2'; // Blue for current district
-const COLOR_STATE_AVERAGE = '#4CAF50'; // Green for state average
-const COLOR_OTHER_DISTRICTS = '#9e9e9e'; // Grey for other districts
-
+import EntityAcademicPerformance from '@/components/ui/academic/EntityAcademicPerformance';
 
 // Function to calculate state average proficiency percentage
 const calculateStateAverage = (stateData: any[]) => {
@@ -61,7 +42,7 @@ const processDistrictData = (districtData: any[], currentDistrictId: number | nu
   const percentageBars = Array.from({ length: 101 }, (_, i) => ({
     percentage: i,
     count: 0,
-    isCurrentDistrict: false
+    isCurrentEntity: false
   }));
 
   // Find the current district and its proficiency percentage
@@ -90,44 +71,11 @@ const processDistrictData = (districtData: any[], currentDistrictId: number | nu
 
   // Mark the bar that contains the current district
   if (currentDistrictPercentage >= 0 && currentDistrictPercentage <= 100) {
-    percentageBars[currentDistrictPercentage].isCurrentDistrict = true;
+    percentageBars[currentDistrictPercentage].isCurrentEntity = true;
   }
 
   // Return all bars including zeros to show the complete spectrum
   return percentageBars;
-};
-
-// Custom X-axis tick formatter to show ticks only at 10% intervals
-const formatXAxisTick = (value: number) => {
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  
-  if (value % 10 === 0) {
-    // For the value 100, don't add the percentage sign on mobile
-    if (value === 100 && isMobile) {
-      return '100';
-    }
-    return `${value}%`;
-  }
-  return '';
-};
-
-
-// Custom Legend Component
-const renderLegend = (props: any) => {
-  const { payload } = props;
-  
-  return (
-    <div style={{ display: 'flex', justifyContent: 'center', fontSize: '12px', marginTop: '5px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', marginRight: '20px' }}>
-        <div style={{ width: '12px', height: '12px', backgroundColor: COLOR_CURRENT_DISTRICT, marginRight: '5px' }}></div>
-        <span>Your District</span>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <div style={{ width: '12px', height: '12px', backgroundColor: COLOR_OTHER_DISTRICTS, marginRight: '5px' }}></div>
-        <span>Other Districts</span>
-      </div>
-    </div>
-  );
 };
 
 const DistrictAcademicPerformance: React.FC = () => {
@@ -196,85 +144,14 @@ const DistrictAcademicPerformance: React.FC = () => {
   }, [districtAssessmentData, currentDistrictId]);
 
   return (
-    <>
-      <Typography variant="h6" sx={{ textAlign: "center", width: "100%" }}>
-       % Students Proficient For Each District
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, textAlign: "center", width: "100%" }}>
-        Your district is <span style={{ color: COLOR_CURRENT_DISTRICT, fontWeight: 'bold' }}>blue</span>
-        {rank !== null && total > 0 ? `. Ranked #${rank} out of ${total} districts` : ''}.
-      </Typography>
-      
-      <Box sx={{ width: '100%', height: 350 }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={chartData}
-            margin={{
-              top: 5, 
-              right: 5,
-              left: 5,
-              bottom: 15,
-            }}
-            barCategoryGap={0}
-            barGap={0}
-          >
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis 
-              dataKey="percentage" 
-              domain={[0, 100]}
-              tickFormatter={formatXAxisTick}
-              ticks={[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]}
-              tick={{ fontSize: 10 }}
-              height={20}
-            />
-            <YAxis 
-              allowDecimals={false}
-              tick={{ fontSize: 10 }}
-              width={25}
-            />
-            <Tooltip 
-              formatter={(value) => [value, 'Districts']}
-              labelFormatter={(percentage) => `Proficiency: ${percentage}%`}
-            />
-            {stateAverage !== null && (
-              <ReferenceLine 
-                x={stateAverage} 
-                stroke={COLOR_STATE_AVERAGE} 
-                strokeWidth={2}
-                strokeDasharray="5 5"
-                isFront={true}
-              >
-                <Label
-                  value={`State Average: ${stateAverage}%`}
-                  position="top"
-                  fill={COLOR_STATE_AVERAGE}
-                  fontSize={12}
-                  fontWeight={600}
-                  offset={0}
-                  dx={65}
-                  dy={20}
-                />
-              </ReferenceLine>
-            )}
-            <Bar dataKey="count" name="Districts" minPointSize={1}>
-              {chartData.map((entry, index) => (
-                <Cell 
-                  key={`cell-${index}`} 
-                  fill={entry.isCurrentDistrict ? COLOR_CURRENT_DISTRICT : COLOR_OTHER_DISTRICTS} 
-                />
-              ))}
-            </Bar>
-            <Legend content={renderLegend} />
-          </BarChart>
-        </ResponsiveContainer>
-      </Box>
-      
-      {districtAssessmentData.length === 0 && (
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, textAlign: 'center' }}>
-          No data available. Please select filters to view district data.
-        </Typography>
-      )}
-    </>
+    <EntityAcademicPerformance
+      chartData={chartData}
+      entityType="district"
+      stateAverage={stateAverage}
+      rank={rank}
+      total={total}
+      hasData={districtAssessmentData.length > 0}
+    />
   );
 };
 

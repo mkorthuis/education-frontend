@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useAppSelector } from '@/store/hooks';
 import { 
-  selectCurrentAssessmentDistrictData,
+  selectCurrentAssessmentSchoolData,
   selectCurrentAssessmentStateData,
   selectSelectedSubjectId,
   selectSelectedGradeId,
@@ -12,44 +12,46 @@ import { FISCAL_YEAR } from '@/utils/environment';
 import ProficiencyByLevelTableUI from '@/components/ui/academic/ProficiencyByLevelTable';
 
 interface ProficiencyByLevelTableProps {
-  districtName?: string;
+  schoolName?: string;
 }
 
 const ProficiencyByLevelTable: React.FC<ProficiencyByLevelTableProps> = ({ 
-  districtName = 'District'
+  schoolName = 'School'
 }) => {
   // Get data from Redux store
-  const districtData = useAppSelector(selectCurrentAssessmentDistrictData);
+  const schoolData = useAppSelector(selectCurrentAssessmentSchoolData);
   const stateData = useAppSelector(selectCurrentAssessmentStateData);
   const selectedSubjectId = useAppSelector(selectSelectedSubjectId);
   const selectedGradeId = useAppSelector(selectSelectedGradeId);
   const selectedSubgroupId = useAppSelector(selectSelectedSubgroupId);
   
-  // Filter both district and state data based on current selections
-  const filteredDistrictData = filterAssessmentResults(districtData, {
+  // Create filter object for consistency
+  const filterParams = useMemo(() => ({
     year: FISCAL_YEAR,
     assessment_subject_id: selectedSubjectId || undefined,
     grade_id: selectedGradeId || undefined,
     assessment_subgroup_id: selectedSubgroupId || undefined
-  });
+  }), [selectedSubjectId, selectedGradeId, selectedSubgroupId]);
 
-  const filteredStateData = filterAssessmentResults(stateData, {
-    year: FISCAL_YEAR,
-    assessment_subject_id: selectedSubjectId || undefined,
-    grade_id: selectedGradeId || undefined,
-    assessment_subgroup_id: selectedSubgroupId || undefined
-  });
+  // Filter both school and state data based on current selections
+  const filteredSchoolData = useMemo(() => 
+    filterAssessmentResults(schoolData, filterParams),
+  [schoolData, filterParams]);
 
-  // Aggregate data - use the first result since we're filtering to specific criteria
-  const districtAggregated = filteredDistrictData.length > 0 ? filteredDistrictData[0] : null;
+  const filteredStateData = useMemo(() => 
+    filterAssessmentResults(stateData, filterParams),
+  [stateData, filterParams]);
+
+  // Get the first item from filtered data or null if not available
+  const schoolAggregated = filteredSchoolData.length > 0 ? filteredSchoolData[0] : null;
   const stateAggregated = filteredStateData.length > 0 ? filteredStateData[0] : null;
   
   return (
     <ProficiencyByLevelTableUI
-      entityData={districtAggregated}
+      entityData={schoolAggregated}
       stateData={stateAggregated}
-      entityType="district"
-      entityName={districtName}
+      entityType="school"
+      entityName={schoolName}
     />
   );
 };

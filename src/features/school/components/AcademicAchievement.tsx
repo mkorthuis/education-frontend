@@ -1,74 +1,167 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Box, Typography, CircularProgress } from '@mui/material';
+import { Box, CircularProgress, Typography } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentSchool,
-  fetchAllSchoolData,
-  selectSchoolLoading
+  selectAnyLocationLoading,
+  fetchAllSchoolData
 } from '@/store/slices/locationSlice';
-import { 
-  selectAllMeasurements, 
-  selectMeasurementsLoadingState,
-  selectMeasurementsError,
-  fetchAllMeasurements
-} from '@/store/slices/measurementSlice';
-import MeasurementTable from '@/components/ui/tables/MeasurementTable';
+import {
+  fetchAssessmentSchoolData,
+  setSelectedSubjectId,
+  selectSelectedSubjectId,
+  selectSelectedSubject,
+  fetchAssessmentStateData,
+  selectCurrentAssessmentStateData,
+  setCurrentSchoolDataKey,
+  AssessmentSchoolData,
+  AssessmentDataQueryKey,
+  selectAssessmentSchoolLoadingStatus,
+  selectAssessmentStateLoadingStatus,
+  selectAssessmentSchoolData
+} from '@/store/slices/assessmentSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
+import MeasurementCard from '@/features/school/components/academic/MeasurementCard';
+import AcademicSubjectDetails from '@/features/school/components/academic/AcademicSubjectDetails';
+import AcademicDefaultView from '@/features/school/components/academic/AcademicDefaultView';
+import { filterAssessmentResults, ALL_GRADES_ID } from '@/features/district/utils/assessmentDataProcessing';
+import { FISCAL_YEAR } from '@/utils/environment';
+import { LoadingState } from '@/store/slices/safetySlice';
 
 const AcademicAchievement: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const school = useAppSelector(selectCurrentSchool);
-  const schoolLoading = useAppSelector(selectSchoolLoading);
   const dispatch = useAppDispatch();
-  const measurements = useAppSelector(selectAllMeasurements);
-  const measurementsLoading = useAppSelector(selectMeasurementsLoadingState);
-  const measurementsError = useAppSelector(selectMeasurementsError);
 
-  // List of academic measurement type IDs
-  const academicMeasurementTypeIds = [
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 
-    34, 35, 36, 37, 38
-  ];
+  // Selectors
+  const school = useAppSelector(selectCurrentSchool);
+  const schoolLoading = useAppSelector(selectAnyLocationLoading);
+  
+  // Create query params for initial school data fetch
+  const initialQueryParams = useMemo(() => ({
+    school_id: id || ''
+  }), [id]);
+  
+  // Use parameterized loading selector
+  const schoolAssessmentLoading = useAppSelector(state => selectAssessmentSchoolLoadingStatus(state, initialQueryParams));
+  const stateAssessmentLoading = useAppSelector(state => selectAssessmentStateLoadingStatus(state, {}));
+  
+  const schoolAssessmentData = useAppSelector(state => selectAssessmentSchoolData(state, initialQueryParams));
+  const stateAssessmentData = useAppSelector(selectCurrentAssessmentStateData);
 
+  const selectedSubjectId = useAppSelector(selectSelectedSubjectId);
+  const selectedSubject = useAppSelector(selectSelectedSubject);
+
+  // Effect to reset selected subject - runs only once when component mounts
+  useEffect(() => {
+    dispatch(setSelectedSubjectId(null));
+  }, [dispatch]);
+
+  // Fetch all required data
   useEffect(() => {
     if (id) {
-      if(!schoolLoading && !school) {
+      // If school data isn't loaded yet, fetch it
+      if (!school && !schoolLoading) {
         dispatch(fetchAllSchoolData(parseInt(id)));
       }
-      if (!measurementsLoading && measurements.length === 0) {
-        dispatch(fetchAllMeasurements({ entityId: id, entityType: 'school' }));
+
+      // Fetch state assessment data if not already loaded
+      if (stateAssessmentLoading === LoadingState.IDLE && stateAssessmentData.length === 0) {
+        dispatch(fetchAssessmentStateData({}));
+      }
+
+      // Fetch school assessment data if not already loaded
+      if ((school && schoolAssessmentLoading === LoadingState.IDLE && schoolAssessmentData.length === 0)) {
+        dispatch(setCurrentSchoolDataKey("-1"));
+        dispatch(fetchAssessmentSchoolData(initialQueryParams)).then((action) => {
+          // After fetching is complete, set the current school data key manually
+          if (action.meta.requestStatus === 'fulfilled') {
+            // Type assertion to access the payload properly
+            const payload = action.payload as { 
+              key: AssessmentDataQueryKey; 
+              params: any; 
+              data: AssessmentSchoolData[] 
+            };
+            dispatch(setCurrentSchoolDataKey(payload.key));
+          }
+        });
       }
     }
-  }, [id, schoolLoading, dispatch, measurementsLoading, measurements]);
+  }, [
+    dispatch, id, school, schoolLoading, schoolAssessmentLoading, 
+    schoolAssessmentData.length, stateAssessmentLoading,
+    stateAssessmentData.length, initialQueryParams
+  ]);
 
-  // Filter measurements to only include academic measurement type IDs
-  const academicMeasurements = measurements.filter(
-    measurement => academicMeasurementTypeIds.includes(Number(measurement.measurement_type.id))
-  );
+  // Show loading when any data is still loading
+  const isLoading = schoolLoading || schoolAssessmentLoading !== LoadingState.SUCCEEDED || stateAssessmentLoading !== LoadingState.SUCCEEDED;
 
-  // Show loading when either school data or measurement data is loading
-  const isLoading = schoolLoading || measurementsLoading;
+  // Filter assessment data by fiscal year and subgroup_id
+  const filteredAssessmentData = filterAssessmentResults(schoolAssessmentData, {
+    year: FISCAL_YEAR,
+    assessment_subgroup_id: 1,
+    grade_id: ALL_GRADES_ID
+  }).filter(item => item.above_proficient_percentage !== null);
+
+  // Card container styling for responsive layout
+  const cardContainerStyles = {
+    marginRight: { xs: 0, md: '16px' }, 
+    display: 'flex', 
+    flexDirection: { 
+      xs: selectedSubjectId ? 'row' : 'column', 
+      md: 'column' 
+    },
+    flexWrap: { xs: selectedSubjectId ? 'wrap' : 'nowrap', md: 'nowrap' },
+    width: { xs: '100%', md: '300px'}, 
+    gap: 0, // Explicitly set gap to 0
+    flexShrink: 0,
+    mb: selectedSubjectId ? 2 : 0,
+    justifyContent: selectedSubjectId ? 'space-between' : 'flex-start'
+  };
 
   return (
     <>
-      <SectionTitle>
-        {school?.name || 'School'}
-      </SectionTitle>
-      
-      <Box>
-        {isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-            <CircularProgress />
+      <SectionTitle>{school?.name || 'School'}</SectionTitle>    
+      {isLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'flex-start' }}>
+          {/* Mobile instruction text - only visible on mobile and when no subject is selected */}
+          {!selectedSubjectId && (
+            <Box sx={{ display: { xs: 'block', md: 'none' }, mb: 1 }}>
+              <Typography variant="body1">
+                Please Click A Subject For Detailed Information
+              </Typography>
+            </Box>
+          )}
+
+          {/* Measurement cards container */}
+          <Box sx={cardContainerStyles}>
+            {filteredAssessmentData.map((item, index) => (
+              <MeasurementCard
+                key={item.id}
+                assessment_subject_id={item.assessment_subject?.id || 0}
+                totalCount={filteredAssessmentData.length}
+                index={index}
+              />
+            ))}
           </Box>
-        ) : measurementsError ? (
-          <Typography color="error">Error loading academic data: {measurementsError}</Typography>
-        ) : academicMeasurements.length === 0 ? (
-          <Typography>No academic achievement data available for this school.</Typography>
-        ) : (
-          <MeasurementTable data={academicMeasurements} />
-        )}
-      </Box>
+          
+          {/* Conditionally render AcademicSubjectDetails or AcademicDefaultView */}
+          {selectedSubjectId ? (
+            <AcademicSubjectDetails subject={selectedSubject} />
+          ) : (
+            <Box sx={{ display: { xs: 'none', md: 'block' }, flex: 1 }}>
+              <AcademicDefaultView 
+                assessmentData={schoolAssessmentData} 
+                fiscalYear={FISCAL_YEAR} 
+              />
+            </Box>
+          )}
+        </Box>
+      )}
     </>
   );
 };
