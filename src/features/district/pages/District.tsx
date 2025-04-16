@@ -198,6 +198,25 @@ const District: React.FC = () => {
             }
           }}
         >
+          Education Freedom Accounts
+        </Button>
+        <Button 
+          variant="outlined" 
+          color="inherit"
+          component="div" 
+          disabled
+          fullWidth
+          sx={{
+            ...navigationButtonStyle,
+            opacity: 0.6,
+            cursor: 'not-allowed',
+            '&.Mui-disabled': {
+              color: 'text.secondary',
+              backgroundColor: 'grey.100',
+              borderColor: 'divider'
+            }
+          }}
+        >
           Demographics
         </Button>
         <Button 
