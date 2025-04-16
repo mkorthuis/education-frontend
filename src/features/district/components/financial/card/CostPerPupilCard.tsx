@@ -1,5 +1,6 @@
 import React, { useMemo, useCallback, useState } from 'react';
-import { Typography, Box, Card, CardContent, useMediaQuery, useTheme, Button, Divider } from '@mui/material';
+import { Typography, Box, Card, CardContent, useMediaQuery, useTheme, Button, Divider, Tooltip } from '@mui/material';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import { useAppSelector } from '@/store/hooks';
 import {
   selectLatestPerPupilExpenditureDetails,
@@ -272,11 +273,30 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
       className={className}
     >
       <CardContent>
-        <Typography variant="h6">
-          Cost Per Pupil: {latestPerPupilExpenditureDetails?.total 
-            ? formatCompactNumber(latestPerPupilExpenditureDetails.total) 
-            : ''}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Tooltip 
+            title={
+              <Typography variant="body2">
+                The Cost per Pupil represents, with certain adjustments, current expenditures for schools daily operations. Payments to other school districts and private schools are subtracted. Revenues from the sales of lunches are excluded.
+                <br /><br />
+                Cost per Pupil is calculated by subtracting tuition and transportation from the K-12 current operating expenditures, and then dividing by the average daily membership in attendance (ADM-A).
+              </Typography>
+            }
+            arrow
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'help' }}>
+              <Typography variant="h6">
+                Cost Per Pupil: {latestPerPupilExpenditureDetails?.total 
+                  ? formatCompactNumber(latestPerPupilExpenditureDetails.total) 
+                  : ''}
+              </Typography>
+              <HelpOutlineIcon 
+                fontSize="small" 
+                sx={{ ml: 1, color: 'primary.main' }} 
+              />
+            </Box>
+          </Tooltip>
+        </Box>
         
         {latestPerPupilExpenditureDetails?.total 
           ? (
