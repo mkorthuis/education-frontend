@@ -50,5 +50,8 @@ export const financeApi = {
         fetchData(buildFinanceUrl('state-revenue', options), forceRefresh),
     
     getStateExpenditure: (options: ExpenditureOptions = {}, forceRefresh = false) => 
-        fetchData(buildFinanceUrl('state-expenditure', options), forceRefresh)
+        fetchData(buildFinanceUrl('state-expenditure', options), forceRefresh),
+
+    getStateADM: (options: BaseFinanceOptions = {}, forceRefresh = false) =>
+        fetchData(buildFinanceUrl('state-adm', options), forceRefresh)
 };  

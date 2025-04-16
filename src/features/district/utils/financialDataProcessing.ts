@@ -35,6 +35,14 @@ export const normalizeExpenditureCategory = (categoryName: string): string => {
   return categoryName;
 };
 
+// Define constants for the school level super category IDs.  Not ideal... but it works for now.
+export const SCHOOL_LEVEL_SUPER_CATEGORY_IDS = {
+  ELEMENTARY: [1, 6],
+  MIDDLE: [2, 7],
+  HIGH: [3, 8]
+};
+
+
 /**
  * Normalizes category names for revenue categories
  * 

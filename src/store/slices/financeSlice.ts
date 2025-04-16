@@ -56,6 +56,14 @@ export interface StateExpenditureRollup {
   date_updated: string;
 }
 
+export interface StateADM {
+  year: number;
+  elementary: number;
+  middle: number;
+  high: number;
+  total: number;
+}
+
 export interface StateRevenue {
   id: number;
   entry_type_id: number;
@@ -83,6 +91,14 @@ export interface FinancialItem {
   fund_type: FundType;
 }
 
+export interface ADM {
+  id: number;
+  elementary: number;
+  middle: number;
+  high: number;
+  total: number;
+}
+
 // Type aliases for semantic clarity
 export interface ExpenditureRaw extends FinancialItemRaw {}
 export interface RevenueRaw extends FinancialItemRaw {}
@@ -103,12 +119,14 @@ export interface FinancialReport {
   balance_sheets: BalanceSheetRaw[];
   revenues: RevenueRaw[];
   expenditures: ExpenditureRaw[];
+  adm: ADM;
 }
 
 export interface ProcessedReport {
   balance_sheets: BalanceSheet[];
   revenues: Revenue[];
   expenditures: Expenditure[];
+  adm: ADM;
 }
 
 // ================ STATE INTERFACE ================
@@ -137,6 +155,7 @@ export interface FinanceState {
   stateExpenditureRollupData: StateExpenditureRollup[];
   stateRevenueAllData: StateRevenue[];
   stateExpenditureAllData: StateExpenditure[];
+  stateADMData: StateADM[];
 
   // Status
   loadingStates: {
@@ -148,6 +167,7 @@ export interface FinanceState {
     stateExpenditureRollups: LoadingState;
     stateRevenue: LoadingState;
     stateExpenditure: LoadingState;
+    stateADM: LoadingState;
   };
   entryTypesLoaded: boolean;
   fundTypesLoaded: boolean;
@@ -171,6 +191,7 @@ const initialState: FinanceState = {
   stateExpenditureRollupData: [],
   stateRevenueAllData: [],
   stateExpenditureAllData: [],
+  stateADMData: [],
   loadingStates: {
     entryTypes: LoadingState.IDLE,
     fundTypes: LoadingState.IDLE,
@@ -180,6 +201,7 @@ const initialState: FinanceState = {
     stateExpenditureRollups: LoadingState.IDLE,
     stateRevenue: LoadingState.IDLE,
     stateExpenditure: LoadingState.IDLE,
+    stateADM: LoadingState.IDLE,
   },
   entryTypesLoaded: false,
   fundTypesLoaded: false,
@@ -265,7 +287,8 @@ const processReport = (
       report.expenditures,
       expenditureEntryTypeMap,
       expenditureFundTypeMap
-    ) as Expenditure[]
+    ) as Expenditure[],
+    adm: report.adm
   };
 };
 
@@ -479,6 +502,29 @@ export const fetchStateExpenditure = createAsyncThunk(
   }
 );
 
+// Async thunk for fetching state ADM data
+export const fetchStateADM = createAsyncThunk(
+  'finance/fetchStateADM',
+  async ({
+    year,
+    forceRefresh = false
+  }: {
+    year?: string;
+    forceRefresh?: boolean;
+  }, { rejectWithValue }) => {
+    try {
+      // Use the new API signature with options object first and forceRefresh second
+      const stateADMData = await financeApi.getStateADM(
+        { year },
+        forceRefresh
+      );
+      return stateADMData;
+    } catch (error) {
+      return rejectWithValue(handleApiError(error, 'Failed to fetch state ADM data'));
+    }
+  }
+);
+
 // ================ SLICE DEFINITION ================
 
 export const financeSlice = createSlice({
@@ -495,6 +541,7 @@ export const financeSlice = createSlice({
       state.error = null;
       // Don't reset statePerPupilExpenditureAllData as it's not district specific
       // Don't reset stateExpenditureRollupsData as it's not district specific
+      // Don't reset stateADMData as it's not district specific
     },
     resetFinanceState: () => initialState
   },
@@ -660,6 +707,25 @@ export const financeSlice = createSlice({
       .addCase(fetchStateExpenditure.rejected, (state, action) => {
         state.loadingStates.stateExpenditure = LoadingState.FAILED;
         state.error = action.payload as string;
+      })
+
+      // Handle fetchStateADM
+      .addCase(fetchStateADM.pending, (state) => {
+        state.loadingStates.stateADM = LoadingState.LOADING;
+        state.error = null;
+      })
+      .addCase(fetchStateADM.fulfilled, (state, action) => {
+        // API returns an array with objects containing state ADM data
+        if (Array.isArray(action.payload) && action.payload.length > 0) {
+          state.stateADMData = action.payload;
+        } else {
+          state.stateADMData = [];
+        }
+        state.loadingStates.stateADM = LoadingState.SUCCEEDED;
+      })
+      .addCase(fetchStateADM.rejected, (state, action) => {
+        state.loadingStates.stateADM = LoadingState.FAILED;
+        state.error = action.payload as string;
       });
   },
 });
@@ -680,6 +746,7 @@ export const selectStatePerPupilExpenditureLoadingState = (state: RootState) => 
 export const selectStateExpenditureRollupsLoadingState = (state: RootState) => state.finance.loadingStates.stateExpenditureRollups;
 export const selectStateRevenueLoadingState = (state: RootState) => state.finance.loadingStates.stateRevenue;
 export const selectStateExpenditureLoadingState = (state: RootState) => state.finance.loadingStates.stateExpenditure;
+export const selectStateADMLoadingState = (state: RootState) => state.finance.loadingStates.stateADM;
 
 // Check if any data is currently loading
 export const selectAnyFinanceLoading = (state: RootState) => {
@@ -712,6 +779,7 @@ export const selectStatePerPupilExpenditureAllData = (state: RootState) => state
 export const selectStateExpenditureRollupData = (state: RootState) => state.finance.stateExpenditureRollupData;
 export const selectStateRevenueAllData = (state: RootState) => state.finance.stateRevenueAllData;
 export const selectStateExpenditureAllData = (state: RootState) => state.finance.stateExpenditureAllData;
+export const selectStateADMAllData = (state: RootState) => state.finance.stateADMData;
 
 // Total calculations selectors
 export const selectTotalExpendituresByYear = (state: RootState, year: string) => {
@@ -826,6 +894,25 @@ export const selectStateExpenditureByYear = (state: RootState, year: number) => 
 
   // Find all entries matching the requested year
   return allData.filter(item => item.year === year);
+};
+
+// State ADM Selectors
+export const selectLatestStateADM = (state: RootState) => {
+  const allData = state.finance.stateADMData;
+  if (!allData || allData.length === 0) return null;
+  
+  // Find the entry with the highest year value
+  return allData.reduce((latest, current) => {
+    return current.year > latest.year ? current : latest;
+  }, allData[0]);
+};
+
+export const selectStateADMByYear = (state: RootState, year: number) => {
+  const allData = state.finance.stateADMData;
+  if (!allData || allData.length === 0) return null;
+  
+  // Find the entry matching the requested year
+  return allData.find(item => item.year === year) || null;
 };
 
 // Export reducer

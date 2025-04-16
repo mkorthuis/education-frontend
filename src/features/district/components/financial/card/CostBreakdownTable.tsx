@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Typography, 
   Box, 
@@ -11,18 +11,28 @@ import {
   TableRow, 
   useMediaQuery, 
   useTheme,
-  IconButton
+  IconButton,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  SelectChangeEvent,
+  alpha
 } from '@mui/material';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
-import { useAppSelector } from '@/store/hooks';
+import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectLatestStateExpenditureDetails, 
   selectExpenditureEntryTypes,
   selectTotalExpendituresByYear,
   selectFinancialReports,
+  selectLatestStateADM,
+  fetchStateADM
 } from '@/store/slices/financeSlice';
 import { FISCAL_YEAR } from '@/utils/environment';
+import { formatCompactNumber } from '@/utils/formatting';
+import { SCHOOL_LEVEL_SUPER_CATEGORY_IDS } from '@/features/district/utils/financialDataProcessing';
 
 // Define types for Redux data
 interface ExpenditureItem {
@@ -76,12 +86,61 @@ interface CategoryTotals {
   };
 }
 
+// Add a new type to handle different data processing modes
+type DataProcessingMode = 'percentage' | 'admCost';
+
+// Define a type for the view mode selection
+type ViewMode = 'percentage' | 'perPupil';
+
+// Table styles similar to SafetyDataTable
+const tableStyles = {
+  container: {
+    flex: 1,
+    backgroundColor: 'grey.100',
+    border: 1,
+    borderColor: 'grey.300',
+    borderRadius: 1,
+    overflow: 'hidden'
+  },
+  head: {
+    backgroundColor: 'grey.200',
+    '& th': {
+      borderBottom: '2px solid',
+      borderColor: 'grey.400'
+    }
+  },
+  viewSelect: {
+    minWidth: 80,
+    '& .MuiSelect-select': {
+      textAlign: 'right',
+    }
+  },
+  selectInput: (theme: any) => ({
+    color: theme.palette.primary.main,
+    marginTop: '5px',
+    fontWeight: 500,
+    height: '20px',
+    '&:hover': {
+      color: theme.palette.primary.dark
+    },
+    '& .MuiSvgIcon-root': {
+      color: theme.palette.primary.main,
+      '&:hover': {
+        color: theme.palette.primary.dark
+      }
+    }
+  })
+};
+
 const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtName = 'District' }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   // State to track expanded categories
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
+  
+  // State to track the selected view mode
+  const [viewMode, setViewMode] = useState<ViewMode>('percentage');
   
   // Toggle category expansion
   const toggleCategory = (categoryName: string) => {
@@ -90,6 +149,11 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
         ? prev.filter(name => name !== categoryName)
         : [...prev, categoryName]
     );
+  };
+
+  // Handle view mode change
+  const handleViewModeChange = (event: SelectChangeEvent<ViewMode>) => {
+    setViewMode(event.target.value as ViewMode);
   };
 
   // Fallback dummy data function
@@ -119,6 +183,7 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
   const districtExpenditureTotal = useAppSelector(state => 
     selectTotalExpendituresByYear(state, FISCAL_YEAR)
   );
+  const stateADM = useAppSelector(selectLatestStateADM);
   
   // Helper function to process an expenditure item and update the appropriate category
   const processExpenditureItem = (
@@ -189,8 +254,8 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
     }
   };
   
-  // Process the data to create our cost categories
-  const processedData = useMemo((): CostCategory[] => {
+  // Process the data to create our cost categories - unified function for both percentage and ADM cost
+  const processData = (mode: DataProcessingMode): CostCategory[] => {
     if (!stateExpenditureDetails || !entryTypes) {
       // Fallback to dummy data if real data is not available
       return getDummyData();
@@ -222,6 +287,7 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
     
     // Find district expenditure report for the current fiscal year
     const districtExpenditures = districtFinancialReports[parseInt(FISCAL_YEAR)]?.expenditures;
+    const districtADM = districtFinancialReports[parseInt(FISCAL_YEAR)]?.adm;
     
     // Process state data
     stateItems.forEach((item: any) => {
@@ -237,9 +303,17 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
       const categoryName = entryType?.category?.name || '';
       const entryTypeName = entryType?.name || '';
       const value = item.value || 0;
-      const percentage = (value / stateTotal) * 100;
       
-      processExpenditureItem(categoryName, entryTypeName, percentage, categoryTotals.state);
+      let valueToProcess: number;
+      if (mode === 'percentage') {
+        valueToProcess = (value / stateTotal) * 100;
+      } else { // admCost mode
+        // Use stateADM data when available for per pupil costs
+        const totalStateADM = stateADM?.total || 1; // Prevent division by zero
+        valueToProcess = value / totalStateADM;
+      }
+      
+      processExpenditureItem(categoryName, entryTypeName, valueToProcess, categoryTotals.state);
     });
     
     // Process district data
@@ -251,9 +325,38 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
         const categoryName = entryType?.category?.name || '';
         const entryTypeName = entryType?.name || '';
         const value = item.value || 0;
-        const percentage = (value / districtExpenditureTotal) * 100;
+        const superCategoryId = entryType?.category?.super_category?.id;
         
-        processExpenditureItem(categoryName, entryTypeName, percentage, categoryTotals.district);
+        // Skip specific categories based on ADM values when in admCost mode
+        if (mode === 'admCost') {
+          // Check for elementary school expenses
+          if (SCHOOL_LEVEL_SUPER_CATEGORY_IDS.ELEMENTARY.includes(superCategoryId) && districtADM?.elementary === 0) {
+            console.log('Skipping elementary school expense', item);
+            return; // Skip this expense
+          }
+          
+          // Check for middle school expenses
+          if (SCHOOL_LEVEL_SUPER_CATEGORY_IDS.MIDDLE.includes(superCategoryId) && districtADM?.middle === 0) {
+            console.log('Skipping middle school expense', item);
+            return; // Skip this expense
+          }
+          
+          // Check for high school expenses
+          if (SCHOOL_LEVEL_SUPER_CATEGORY_IDS.HIGH.includes(superCategoryId) && districtADM?.high === 0) {
+            console.log('Skipping high school expense', item);
+            return; // Skip this expense
+          }
+          console.log('Processing expense', item);
+        }
+        
+        let valueToProcess: number;
+        if (mode === 'percentage') {
+          valueToProcess = (value / districtExpenditureTotal) * 100;
+        } else { // admCost mode
+          valueToProcess = value / (districtADM?.total || 1); // Prevent division by zero
+        }
+        
+        processExpenditureItem(categoryName, entryTypeName, valueToProcess, categoryTotals.district);
       });
     } else {
       // If no district data, use state data as placeholder
@@ -381,73 +484,80 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
         parent: 'Other' 
       },
     ];
+  };
+
+  // Use the unified function to create the data
+  const processedData = useMemo((): CostCategory[] => {
+    return processData('percentage');
   }, [stateExpenditureDetails, entryTypes, districtFinancialReports, districtExpenditureTotal]);
+
+  const admProcessedData = useMemo((): CostCategory[] => {
+    return processData('admCost');
+  }, [stateExpenditureDetails, entryTypes, districtFinancialReports, stateADM]);
   
   // Check if real data is loaded (not using dummy data)
   const isRealDataLoaded = useMemo((): boolean => {
     return !!(stateExpenditureDetails && entryTypes);
   }, [stateExpenditureDetails, entryTypes]);
 
-  // Filter data based on expanded categories
+  // Filter data based on expanded categories and selected view mode
   const tableData = useMemo((): CostCategory[] => {
-    return processedData.filter(row => 
+    // Select data source based on view mode
+    const dataSource = viewMode === 'percentage' ? processedData : admProcessedData;
+    
+    return dataSource.filter(row => 
       !row.isSubcategory || // Always show main categories
       (row.parent && expandedCategories.includes(row.parent)) // Show subcategories only if parent is expanded
     );
-  }, [processedData, expandedCategories]);
+  }, [processedData, admProcessedData, expandedCategories, viewMode]);
   
   // Check if a category has subcategories
   const hasSubcategories = (categoryName: string): boolean => {
-    return processedData.some(row => row.isSubcategory && row.parent === categoryName);
+    const dataSource = viewMode === 'percentage' ? processedData : admProcessedData;
+    return dataSource.some(row => row.isSubcategory && row.parent === categoryName);
   };
 
   // Format percentage with 1 decimal place and % sign
   const formatPercentage = (value: number): string => {
     return `${value.toFixed(1)}%`;
   };
-
-  // Display cell data based on loading state
+  
+  // Display cell data based on loading state and view mode
   const displayCellData = (value: number): string => {
     if (!isRealDataLoaded) {
       return 'N/A';
     }
-    return formatPercentage(value);
+    return viewMode === 'percentage' ? formatPercentage(value) : formatCompactNumber(value);
   };
 
   return (
     <Box sx={{ mt: 2 }}>
-      <Typography 
-        variant="body1" 
-        sx={{ 
-          textAlign: "center",
-          width: "100%",
-          mb: 1
-        }}
-      >
-        District Costs Relative to State Avg.
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+        <FormControl size="small" sx={tableStyles.viewSelect}>
+          <Select
+            value={viewMode}
+            onChange={handleViewModeChange}
+            displayEmpty
+            variant="standard"
+            sx={tableStyles.selectInput(theme)}
+          >
+            <MenuItem value="percentage">Percentage</MenuItem>
+            <MenuItem value="perPupil">Per Pupil</MenuItem>
+          </Select>
+        </FormControl>
+        <Typography variant="body1" sx={{ ml: .5 }}>
+          Breakdown of District Costs
+        </Typography>
+      </Box>
       
       <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 2 }}>
         <TableContainer 
           component={Paper} 
           elevation={0} 
-          sx={{ 
-            flex: 1,
-            backgroundColor: 'grey.100',
-            border: 1,
-            borderColor: 'grey.300',
-            borderRadius: 1,
-            overflow: 'hidden'
-          }}
+          sx={tableStyles.container}
         >
           <Table size="small">
-            <TableHead sx={{ 
-              backgroundColor: 'grey.200',
-              '& th': {
-                borderBottom: '2px solid',
-                borderColor: 'grey.400',
-              }
-            }}>
+            <TableHead sx={tableStyles.head}>
               <TableRow>
                 <TableCell>Category</TableCell>
                 <TableCell align="right">District</TableCell>
