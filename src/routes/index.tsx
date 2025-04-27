@@ -22,6 +22,7 @@ import SchoolContactInformation from "@/features/school/components/ContactInform
 
 import NotFound from "@components/NotFound/NotFound";
 import { PATHS } from './paths';
+import EducationFreedomAccount from "@/features/district/components/EducationFreedomAccount";
 
 const router = createBrowserRouter(
   [
@@ -41,6 +42,7 @@ const router = createBrowserRouter(
         { path: PATHS.PUBLIC.DISTRICT_DEMOGRAPHICS.path, element: <Demographics /> },
         { path: PATHS.PUBLIC.DISTRICT_SAFETY.path, element: <Safety /> },
         { path: PATHS.PUBLIC.DISTRICT_STAFF.path, element: <Staff /> },
+        { path: PATHS.PUBLIC.DISTRICT_EFA.path, element: <EducationFreedomAccount /> },
         { path: PATHS.PUBLIC.DISTRICT_CONTACT.path, element: <ContactInformation /> },
         { path: PATHS.PUBLIC.SCHOOL.path, element: <School /> },
         { path: PATHS.PUBLIC.SCHOOL_ACADEMIC.path, element: <SchoolAcademicAchievement /> },

@@ -174,6 +174,16 @@ const District: React.FC = () => {
           variant="outlined" 
           color="inherit"
           component={Link} 
+          to={`/district/${id}/efa`}
+          fullWidth
+          sx={navigationButtonStyle}
+        >
+          Education Freedom Accounts
+        </Button>
+        <Button 
+          variant="outlined" 
+          color="inherit"
+          component={Link} 
           to={`/district/${id}/contact`}
           fullWidth
           sx={navigationButtonStyle}
@@ -181,25 +191,6 @@ const District: React.FC = () => {
           Contact Information
         </Button>
         <Divider sx={{ my: 2 }} />
-        <Button 
-          variant="outlined" 
-          color="inherit"
-          component="div" 
-          disabled
-          fullWidth
-          sx={{
-            ...navigationButtonStyle,
-            opacity: 0.6,
-            cursor: 'not-allowed',
-            '&.Mui-disabled': {
-              color: 'text.secondary',
-              backgroundColor: 'grey.100',
-              borderColor: 'divider'
-            }
-          }}
-        >
-          Education Freedom Accounts
-        </Button>
         <Button 
           variant="outlined" 
           color="inherit"

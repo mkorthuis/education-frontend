@@ -6,6 +6,8 @@ import measurementReducer from '@/store/slices/measurementSlice';
 import financeReducer from '@/store/slices/financeSlice';
 import assessmentReducer from '@/store/slices/assessmentSlice';
 import safetyReducer from '@/store/slices/safetySlice';
+import efaReducer from '@/store/slices/efaSlice';
+import enrollmentReducer from '@/store/slices/enrollmentSlice';
 
 export const store = configureStore({
   reducer: {
@@ -15,7 +17,9 @@ export const store = configureStore({
     measurement: measurementReducer,
     finance: financeReducer,
     assessment: assessmentReducer,
-    safety: safetyReducer
+    safety: safetyReducer,
+    efa: efaReducer,
+    enrollment: enrollmentReducer
   },
   middleware: getDefaultMiddleware =>
       getDefaultMiddleware()
