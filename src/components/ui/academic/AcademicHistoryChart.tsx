@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useTheme } from '@mui/material/styles';
-import { Typography, Box, useMediaQuery } from '@mui/material';
+import { Typography, Box, useMediaQuery, Tooltip as MuiTooltip, IconButton } from '@mui/material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { 
   filterAssessmentResults, 
@@ -17,6 +17,7 @@ import {
   formatPercentage,
   CHART_COLORS
 } from './utils/academicUtils';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 interface ChartDataPoint {
   year: number;
@@ -222,16 +223,23 @@ function AcademicHistoryChart({
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   // Prepare chart data based on the selections
-  const chartData = useMemo<ChartDataPoint[]>(() => 
-    prepareChartData(
+  const chartData = useMemo<ChartDataPoint[]>(() => {
+    let data = prepareChartData(
       assessmentData,
       stateAssessmentData,
       selectedSubjectId,
       selectedGradeId,
       selectedSubgroupId,
       selectedSubgroupName
-    ), 
-  [assessmentData, stateAssessmentData, selectedSubjectId, selectedGradeId, selectedSubgroupId, selectedSubgroupName]);
+    );
+    
+    // Filter data to start from 2018 if subgroup data is being used
+    if (selectedSubgroupId !== null && selectedSubgroupId !== ALL_STUDENTS_SUBGROUP_ID) {
+      data = data.filter(item => item.year >= 2018);
+    }
+    
+    return data;
+  }, [assessmentData, stateAssessmentData, selectedSubjectId, selectedGradeId, selectedSubgroupId, selectedSubgroupName]);
   
   // Calculate Y-axis domain based on data values
   const yAxisDomain = useMemo(() => 
@@ -306,9 +314,19 @@ function AcademicHistoryChart({
   
   return (
     <>
-      <Typography variant="h6" sx={{ textAlign: "center", width: "100%" }}>
-        % Students Proficient Over Time
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+        <Typography variant="h6" component="span">
+          % Students Proficient Over Time
+        </Typography>
+        <MuiTooltip 
+          title="State average and district data before 2018 was calculated with available school level data and not calculated by the NH DOE. Values will be very close but not precise. Contact the NH DOE for precise values."
+          arrow
+        >
+          <IconButton size="small" color="inherit" sx={{ ml: 0.5, p: 0 }}>
+            <InfoOutlinedIcon fontSize="small" />
+          </IconButton>
+        </MuiTooltip>
+      </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, textAlign: "center", width: "100%" }}>
         Compared to State Average
       </Typography>
