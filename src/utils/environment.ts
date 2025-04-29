@@ -20,7 +20,13 @@ export const FISCAL_START_YEAR = import.meta.env.VITE_FISCAL_START_YEAR || '2010
 /**
  * API base URL from environment configuration
  */
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL; 
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+/**
+ * Google Analytics Measurement ID
+ * Only set in production environment (.env.production)
+ */
+export const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
 
 /**
  * Whether the application is running in development mode
