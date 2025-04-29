@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, matchPath } from 'react-router-dom';
+import { PATHS } from '@/routes/paths';
 
 declare global {
   interface Window {
@@ -23,15 +24,32 @@ declare global {
 const usePageTracking = (): void => {
   const location = useLocation();
   
+  const getPageTitle = (pathname: string): string => {
+    const allPublicRoutes = Object.values(PATHS.PUBLIC) as Array<{ path: string; title: string }>;
+
+    for (const route of allPublicRoutes) {
+      if (matchPath({ path: route.path, end: true }, pathname)) {
+        return route.title;
+      }
+    }
+
+    // Fallback title
+    return 'NH Education Facts';
+  };
+
   useEffect(() => {
     if (typeof window.gtag !== 'function') return;
     
     const pagePath = location.pathname + location.search;
+    const title = getPageTitle(location.pathname);
+
+    // Update <title> element for UX & SEO
+    document.title = title;
     
     // Send pageview event (GA4)
     window.gtag('event', 'page_view', {
       page_path: pagePath,
-      page_title: document.title,
+      page_title: title,
       send_to: 'G-445FEZPXWE'
     });
   }, [location]);
