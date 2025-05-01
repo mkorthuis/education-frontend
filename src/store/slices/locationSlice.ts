@@ -6,6 +6,7 @@ import { locationApi } from '@/services/api/endpoints/locations';
 export interface District {
   id: number;
   name: string;
+  grades?: Grade[];
 }
 
 export interface Grade {

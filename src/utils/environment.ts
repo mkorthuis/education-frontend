@@ -32,3 +32,8 @@ export const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
  * Whether the application is running in development mode
  */
 export const IS_DEV = import.meta.env.DEV; 
+
+/**
+ * Grades from environment configuration
+ */
+export const GRADUATION_GRADE = import.meta.env.VITE_GRADUATION_GRADE;
