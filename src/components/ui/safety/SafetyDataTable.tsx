@@ -79,7 +79,7 @@ export interface ColumnDefinition {
 
 export interface TotalDefinition {
   label: string;
-  value: number | string;
+  value: number | string | ReactNode;
   align?: 'left' | 'right' | 'center';
 }
 

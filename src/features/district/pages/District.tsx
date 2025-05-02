@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Box, Typography, Divider, CircularProgress, Alert, Button, Stack } from '@mui/material';
+import { Box, Typography, Divider, CircularProgress, Alert, Button, Stack, Tooltip } from '@mui/material';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { 
   fetchAllDistrictData, 
@@ -22,6 +22,7 @@ const navigationButtonStyle = {
     backgroundColor: 'grey.300',
   }
 };
+const GRADUATION_GRADE = import.meta.env.VITE_GRADUATION_GRADE;
 
 /**
  * Represents the District page/feature.
@@ -39,6 +40,11 @@ const District: React.FC = () => {
   const sau = useAppSelector(selectCurrentSau);
   const loading = useAppSelector(selectLocationLoading);
   const error = useAppSelector(selectLocationError);
+
+  // Determine if the district includes the graduation grade
+  const hasGraduationGrade = district?.grades?.some(
+    (grade) => grade.name === GRADUATION_GRADE
+  );
 
   useEffect(() => {
     if (id) {
@@ -74,6 +80,7 @@ const District: React.FC = () => {
       </Box>
     );
   }
+
 
   return (
     <Box>
@@ -150,6 +157,45 @@ const District: React.FC = () => {
         >
           Academic Achievement
         </Button>
+        {hasGraduationGrade ? (
+          <Button 
+            variant="outlined" 
+            color="inherit"
+            component={Link} 
+            to={`/district/${id}/outcomes`}
+            fullWidth
+            sx={navigationButtonStyle}
+          >
+            Graduation / College
+          </Button>
+        ) : (
+          <Tooltip 
+            title={`This District Does Not Educate ${GRADUATION_GRADE} Students. For Information, Refer to the District ${GRADUATION_GRADE} Students Are Sent To.`} 
+            arrow
+          >
+            <span style={{ width: '100%' }}>
+              <Button 
+                variant="outlined" 
+                color="inherit"
+                component="div" 
+                disabled
+                fullWidth
+                sx={{
+                  ...navigationButtonStyle,
+                  opacity: 0.6,
+                  cursor: 'not-allowed',
+                  '&.Mui-disabled': {
+                    color: 'text.secondary',
+                    backgroundColor: 'grey.100',
+                    borderColor: 'divider'
+                  }
+                }}
+              >
+                Graduation / College
+              </Button>
+            </span>
+          </Tooltip>
+        )}
         <Button 
           variant="outlined" 
           color="inherit"

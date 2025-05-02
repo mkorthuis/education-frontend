@@ -23,6 +23,7 @@ import SchoolContactInformation from "@/features/school/components/ContactInform
 import NotFound from "@components/NotFound/NotFound";
 import { PATHS } from './paths';
 import EducationFreedomAccount from "@/features/district/components/EducationFreedomAccount";
+import Outcomes from "@/features/district/components/Outcomes";
 
 const router = createBrowserRouter(
   [
@@ -38,6 +39,7 @@ const router = createBrowserRouter(
         { path: PATHS.PUBLIC.HOME.path, element: <Home /> },
         { path: PATHS.PUBLIC.DISTRICT.path, element: <District /> },
         { path: PATHS.PUBLIC.DISTRICT_ACADEMIC.path, element: <AcademicAchievement /> },
+        { path: PATHS.PUBLIC.DISTRICT_OUTCOMES.path, element: <Outcomes /> },
         { path: PATHS.PUBLIC.DISTRICT_FINANCIALS.path, element: <Financials /> },
         { path: PATHS.PUBLIC.DISTRICT_DEMOGRAPHICS.path, element: <Demographics /> },
         { path: PATHS.PUBLIC.DISTRICT_SAFETY.path, element: <Safety /> },

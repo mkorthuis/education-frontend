@@ -91,7 +91,7 @@ const SuspensionCategoryDetails: React.FC = () => {
         return (
             <Box component={Container} sx={containerStyles}>
                 <Typography component="li" variant="body1">
-                    {totalSuspensions} students were suspended in {formattedFiscalYear}
+                    {totalSuspensions} Students Suspended in {formattedFiscalYear}
                 </Typography>
                 
                 <Box component="ul" sx={{ fontStyle: 'italic', mb: 2, pl: 2 }}>
@@ -116,7 +116,7 @@ const SuspensionCategoryDetails: React.FC = () => {
                 {expulsionsCount > 0 ? (
                     <>
                         <Typography component="li" variant="body1" sx={{ mb: 1 }}>
-                            {expulsionsCount} students were expelled in {formattedFiscalYear}
+                            {expulsionsCount} Students Expelled in {formattedFiscalYear}
                         </Typography>
                         
                         <Box component="ul" sx={{ fontStyle: 'italic', pl: 2 }}>
@@ -127,7 +127,7 @@ const SuspensionCategoryDetails: React.FC = () => {
                     </>
                 ) : (
                     <Typography component="li" variant="body1">
-                        No students were expelled in {formattedFiscalYear}
+                        No Students Expelled in {formattedFiscalYear}
                     </Typography>
                 )}
             </Box>

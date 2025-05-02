@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation, matchPath } from 'react-router-dom';
 import { PATHS } from '@/routes/paths';
+import { GA_MEASUREMENT_ID, IS_DEV } from '@/utils/environment';
 
 declare global {
   interface Window {
@@ -24,6 +25,31 @@ declare global {
 const usePageTracking = (): void => {
   const location = useLocation();
   
+  // Load Google Analytics script only once in production
+  useEffect(() => {
+    if (IS_DEV) return; // Skip in development
+    if (!GA_MEASUREMENT_ID) return; // Measurement ID missing
+
+    // If gtag is already initialized, skip
+    if (typeof window.gtag === 'function') return;
+
+    // Inject gtag script
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+    document.head.appendChild(script);
+
+    // Initialize gtag
+    window.dataLayer = window.dataLayer || [];
+    function gtag() {
+      window.dataLayer.push(arguments as any);
+    }
+    // @ts-ignore
+    window.gtag = gtag;
+    window.gtag('js', new Date() as any);
+    window.gtag('config', GA_MEASUREMENT_ID);
+  }, []);
+
   const getPageTitle = (pathname: string): string => {
     const allPublicRoutes = Object.values(PATHS.PUBLIC) as Array<{ path: string; title: string }>;
 
@@ -38,7 +64,9 @@ const usePageTracking = (): void => {
   };
 
   useEffect(() => {
+    if (IS_DEV) return; // Don't send in dev
     if (typeof window.gtag !== 'function') return;
+    if (!GA_MEASUREMENT_ID) return;
     
     const pagePath = location.pathname + location.search;
     const title = getPageTitle(location.pathname);
@@ -50,7 +78,7 @@ const usePageTracking = (): void => {
     window.gtag('event', 'page_view', {
       page_path: pagePath,
       page_title: title,
-      send_to: 'G-445FEZPXWE'
+      send_to: GA_MEASUREMENT_ID
     });
   }, [location]);
 };
