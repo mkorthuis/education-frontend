@@ -13,6 +13,7 @@ import {
   selectMeasurementsError,
   fetchAllMeasurements
 } from '@/store/slices/measurementSlice';
+import { fetchTownEnrollment } from '@/store/slices/enrollmentSlice';
 import MeasurementTable from '@/components/ui/tables/MeasurementTable';
 import SectionTitle from '@/components/ui/SectionTitle';
 
@@ -36,6 +37,8 @@ const Staff: React.FC = () => {
       if (!measurementsLoading && measurements.length === 0) {
         dispatch(fetchAllMeasurements({ entityId: id, entityType: 'school' }));
       }
+      // Fetch enrollment data
+      dispatch(fetchTownEnrollment({ town_id: parseInt(id) }));
     }
   }, [id, schoolLoading, dispatch, measurementsLoading, measurements]);
 

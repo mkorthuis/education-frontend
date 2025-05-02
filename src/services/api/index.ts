@@ -1,5 +1,10 @@
-export { locationApi } from './endpoints/locations';
-export { enrollmentApi } from './endpoints/enrollments';
-export { measurementApi } from './endpoints/measurements';
-export { financeApi } from './endpoints/finances';
 export { assessmentsApi } from './endpoints/assessments';
+export { classSizeApi } from './endpoints/classSize';
+export { efaApi } from './endpoints/efa';
+export { enrollmentApi } from './endpoints/enrollments';
+export { financeApi } from './endpoints/finances';
+export { locationApi } from './endpoints/locations';
+export { measurementApi } from './endpoints/measurements';
+export { outcomesApi } from './endpoints/outcomes';
+export { safetyApi } from './endpoints/safety';
+export { staffApi } from './endpoints/staff';

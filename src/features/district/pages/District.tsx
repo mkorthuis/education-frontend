@@ -230,6 +230,16 @@ const District: React.FC = () => {
           variant="outlined" 
           color="inherit"
           component={Link} 
+          to={`/district/${id}/staff`}
+          fullWidth
+          sx={navigationButtonStyle}
+        >
+          Staff
+        </Button>
+        <Button 
+          variant="outlined" 
+          color="inherit"
+          component={Link} 
           to={`/district/${id}/contact`}
           fullWidth
           sx={navigationButtonStyle}
@@ -237,44 +247,32 @@ const District: React.FC = () => {
           Contact Information
         </Button>
         <Divider sx={{ my: 2 }} />
-        <Button 
-          variant="outlined" 
-          color="inherit"
-          component="div" 
-          disabled
-          fullWidth
-          sx={{
-            ...navigationButtonStyle,
-            opacity: 0.6,
-            cursor: 'not-allowed',
-            '&.Mui-disabled': {
-              color: 'text.secondary',
-              backgroundColor: 'grey.100',
-              borderColor: 'divider'
-            }
-          }}
+        <Tooltip 
+          title="Working with NH DOE to fix a bug in their data. Once resolved, demographic data will be available." 
+          arrow
         >
-          Demographics
-        </Button>
-        <Button 
-          variant="outlined" 
-          color="inherit"
-          component="div" 
-          disabled
-          fullWidth
-          sx={{
-            ...navigationButtonStyle,
-            opacity: 0.6,
-            cursor: 'not-allowed',
-            '&.Mui-disabled': {
-              color: 'text.secondary',
-              backgroundColor: 'grey.100',
-              borderColor: 'divider'
-            }
-          }}
-        >
-          Staff Metrics
-        </Button>
+          <span style={{ width: '100%' }}>
+            <Button 
+              variant="outlined" 
+              color="inherit"
+              component="div" 
+              disabled
+              fullWidth
+              sx={{
+                ...navigationButtonStyle,
+                opacity: 0.6,
+                cursor: 'not-allowed',
+                '&.Mui-disabled': {
+                  color: 'text.secondary',
+                  backgroundColor: 'grey.100',
+                  borderColor: 'divider'
+                }
+              }}
+            >
+              Demographics
+            </Button>
+          </span>
+        </Tooltip>
       </Stack>
     </Box>
   );

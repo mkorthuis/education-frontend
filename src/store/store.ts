@@ -9,6 +9,8 @@ import safetyReducer from '@/store/slices/safetySlice';
 import efaReducer from '@/store/slices/efaSlice';
 import enrollmentReducer from '@/store/slices/enrollmentSlice';
 import outcomeReducer from '@/store/slices/outcomeSlice';
+import staffReducer from '@/store/slices/staffSlice';
+import classSizeReducer from '@/store/slices/classSizeSlice';
 
 export const store = configureStore({
   reducer: {
@@ -21,7 +23,9 @@ export const store = configureStore({
     safety: safetyReducer,
     efa: efaReducer,
     enrollment: enrollmentReducer,
-    outcomes: outcomeReducer
+    outcomes: outcomeReducer,
+    staff: staffReducer,
+    classSize: classSizeReducer
   },
   middleware: getDefaultMiddleware =>
       getDefaultMiddleware()
