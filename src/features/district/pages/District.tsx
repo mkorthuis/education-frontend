@@ -147,17 +147,74 @@ const District: React.FC = () => {
       <Divider sx={{ my: 3 }} />
       
       <Stack direction="column" spacing={2} sx={{ mb: 4 }}>
-        <Button 
-          variant="outlined" 
-          color="inherit"
-          component={Link} 
-          to={`/district/${id}/academic`}
-          fullWidth
-          sx={navigationButtonStyle}
-        >
-          Academic Achievement
-        </Button>
-        {hasGraduationGrade ? (
+        {schools.length === 0 ? (
+          <Tooltip 
+            title="Your town does not operate schools. Please view the districts who receive your students for information" 
+            arrow
+          >
+            <span style={{ width: '100%' }}>
+              <Button 
+                variant="outlined" 
+                color="inherit"
+                component="div" 
+                disabled
+                fullWidth
+                sx={{
+                  ...navigationButtonStyle,
+                  opacity: 0.6,
+                  cursor: 'not-allowed',
+                  '&.Mui-disabled': {
+                    color: 'text.secondary',
+                    backgroundColor: 'grey.100',
+                    borderColor: 'divider'
+                  }
+                }}
+              >
+                Academic Achievement
+              </Button>
+            </span>
+          </Tooltip>
+        ) : (
+          <Button 
+            variant="outlined" 
+            color="inherit"
+            component={Link} 
+            to={`/district/${id}/academic`}
+            fullWidth
+            sx={navigationButtonStyle}
+          >
+            Academic Achievement
+          </Button>
+        )}
+
+        {schools.length === 0 ? (
+          <Tooltip 
+            title="Your town does not operate schools. Please view the districts who receive your students for information" 
+            arrow
+          >
+            <span style={{ width: '100%' }}>
+              <Button 
+                variant="outlined" 
+                color="inherit"
+                component="div" 
+                disabled
+                fullWidth
+                sx={{
+                  ...navigationButtonStyle,
+                  opacity: 0.6,
+                  cursor: 'not-allowed',
+                  '&.Mui-disabled': {
+                    color: 'text.secondary',
+                    backgroundColor: 'grey.100',
+                    borderColor: 'divider'
+                  }
+                }}
+              >
+                Graduation / College
+              </Button>
+            </span>
+          </Tooltip>
+        ) : hasGraduationGrade ? (
           <Button 
             variant="outlined" 
             color="inherit"
@@ -196,6 +253,7 @@ const District: React.FC = () => {
             </span>
           </Tooltip>
         )}
+
         <Button 
           variant="outlined" 
           color="inherit"
@@ -206,16 +264,47 @@ const District: React.FC = () => {
         >
           Financials
         </Button>
-        <Button 
-          variant="outlined" 
-          color="inherit"
-          component={Link} 
-          to={`/district/${id}/safety`}
-          fullWidth
-          sx={navigationButtonStyle}
-        >
-          Safety
-        </Button>
+
+        {schools.length === 0 ? (
+          <Tooltip 
+            title="Your town does not operate schools. Please view the districts who receive your students for information" 
+            arrow
+          >
+            <span style={{ width: '100%' }}>
+              <Button 
+                variant="outlined" 
+                color="inherit"
+                component="div" 
+                disabled
+                fullWidth
+                sx={{
+                  ...navigationButtonStyle,
+                  opacity: 0.6,
+                  cursor: 'not-allowed',
+                  '&.Mui-disabled': {
+                    color: 'text.secondary',
+                    backgroundColor: 'grey.100',
+                    borderColor: 'divider'
+                  }
+                }}
+              >
+                Safety
+              </Button>
+            </span>
+          </Tooltip>
+        ) : (
+          <Button 
+            variant="outlined" 
+            color="inherit"
+            component={Link} 
+            to={`/district/${id}/safety`}
+            fullWidth
+            sx={navigationButtonStyle}
+          >
+            Safety
+          </Button>
+        )}
+
         <Button 
           variant="outlined" 
           color="inherit"
@@ -226,16 +315,47 @@ const District: React.FC = () => {
         >
           Education Freedom Accounts
         </Button>
-        <Button 
-          variant="outlined" 
-          color="inherit"
-          component={Link} 
-          to={`/district/${id}/staff`}
-          fullWidth
-          sx={navigationButtonStyle}
-        >
-          Staff
-        </Button>
+
+        {schools.length === 0 ? (
+          <Tooltip 
+            title="Your town does not operate schools. Please view the districts who receive your students for information" 
+            arrow
+          >
+            <span style={{ width: '100%' }}>
+              <Button 
+                variant="outlined" 
+                color="inherit"
+                component="div" 
+                disabled
+                fullWidth
+                sx={{
+                  ...navigationButtonStyle,
+                  opacity: 0.6,
+                  cursor: 'not-allowed',
+                  '&.Mui-disabled': {
+                    color: 'text.secondary',
+                    backgroundColor: 'grey.100',
+                    borderColor: 'divider'
+                  }
+                }}
+              >
+                Staff
+              </Button>
+            </span>
+          </Tooltip>
+        ) : (
+          <Button 
+            variant="outlined" 
+            color="inherit"
+            component={Link} 
+            to={`/district/${id}/staff`}
+            fullWidth
+            sx={navigationButtonStyle}
+          >
+            Staff
+          </Button>
+        )}
+
         <Button 
           variant="outlined" 
           color="inherit"
