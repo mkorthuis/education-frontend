@@ -20,9 +20,14 @@ import {
 } from '@/utils/safetyCalculations';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
+import { useNavigate, useParams } from 'react-router-dom';
+import { PATHS } from '@/routes/paths';
 
 const SuspensionCard: React.FC = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  
   const selectedSafetyPage = useAppSelector(selectSelectedSafetyPage);
   const isSelected = selectedSafetyPage === 'suspension';
   
@@ -73,6 +78,8 @@ const SuspensionCard: React.FC = () => {
   const percentageDiff = calculatePercentageDifference(schoolSuspensionsPer100, stateSuspensionsPer100);
 
   const handleClick = () => {
+    const path = PATHS.PUBLIC.SCHOOL_SAFETY.path.replace(':id', id || '').replace(':category?', 'suspension');
+    navigate(path);
     dispatch(setSelectedSafetyPage('suspension'));
   };
 

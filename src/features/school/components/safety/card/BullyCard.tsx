@@ -14,9 +14,13 @@ import {
 import { selectCurrentSchool } from '@/store/slices/locationSlice';
 import { calculatePer100Students, calculatePercentageDifference } from '@/utils/safetyCalculations';
 import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
+import { useNavigate, useParams } from 'react-router-dom';
+import { PATHS } from '@/routes/paths';
 
 const BullyCard: React.FC = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   
   const selectedSafetyPage = useAppSelector(selectSelectedSafetyPage);
   const isSelected = selectedSafetyPage === 'bullying';
@@ -49,6 +53,8 @@ const BullyCard: React.FC = () => {
   const percentDifference = calculatePercentageDifference(schoolIncidentsPer100, stateIncidentsPer100);
 
   const handleClick = () => {
+    const path = PATHS.PUBLIC.SCHOOL_SAFETY.path.replace(':id', id || '').replace(':category?', 'bullying');
+    navigate(path);
     dispatch(setSelectedSafetyPage('bullying'));
   };
 

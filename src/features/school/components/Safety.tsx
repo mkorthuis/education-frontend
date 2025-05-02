@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Typography, CircularProgress, Divider, useTheme, useMediaQuery } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
@@ -10,6 +10,7 @@ import {
 import SectionTitle from '@/components/ui/SectionTitle';
 import * as safetySlice from '@/store/slices/safetySlice';
 import { EARLIEST_YEAR } from '@/utils/safetyCalculations';
+import { PATHS } from '@/routes/paths';
 
 // Import card components
 import BullyCard from './safety/card/BullyCard';
@@ -29,7 +30,8 @@ import TruancyCategoryDetails from './safety/category/TruancyCategoryDetails';
 import DefaultCategoryDetails from './safety/category/DefaultCategoryDetails';
 
 const Safety: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id, category } = useParams<{ id: string; category?: string }>();
+  const navigate = useNavigate();
   const schoolId = id ? parseInt(id) : 0;
   const dispatch = useAppDispatch();
   
@@ -101,6 +103,20 @@ const Safety: React.FC = () => {
   };
 
   const selectedSafetyPage = useAppSelector(safetySlice.selectSelectedSafetyPage);
+
+  // Effect to sync URL with selected category
+  useEffect(() => {
+    if (!category && selectedSafetyPage) {
+      // Clear selected category when visiting base safety page
+      dispatch(safetySlice.setSelectedSafetyPage(null));
+    } else if (category && !selectedSafetyPage) {
+      // Only set the category if it's a valid safety page
+      const validCategories = ['bullying', 'harassment', 'restraint', 'serious', 'suspension', 'truancy'];
+      if (validCategories.includes(category)) {
+        dispatch(safetySlice.setSelectedSafetyPage(category as safetySlice.SafetyPage));
+      }
+    }
+  }, [category, selectedSafetyPage, dispatch]);
 
   // Helper function to check if data needs to be fetched
   const shouldFetchData = (loadingState: safetySlice.LoadingState, data: any[]) => {

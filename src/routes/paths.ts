@@ -17,7 +17,7 @@ export const PATHS = {
         SCHOOL_ACADEMIC: { path: '/school/:id/academic/:subjectName?', title: 'Academic Performance' },
         SCHOOL_FINANCIALS: { path: '/school/:id/financials', title: 'Financials' },
         SCHOOL_DEMOGRAPHICS: { path: '/school/:id/demographics', title: 'Demographics' },
-        SCHOOL_SAFETY: { path: '/school/:id/safety', title: 'Safety' },
+        SCHOOL_SAFETY: { path: '/school/:id/safety/:category?', title: 'Safety' },
         SCHOOL_STAFF: { path: '/school/:id/staff', title: 'Staff' },
         SCHOOL_CONTACT: { path: '/school/:id/contact', title: 'Contact Information' }
     },
