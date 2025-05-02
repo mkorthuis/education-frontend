@@ -14,7 +14,7 @@ export const PATHS = {
         DISTRICT_CONTACT: { path: '/district/:id/contact', title: 'Contact Information' },
         // Add School routes
         SCHOOL: { path: '/school/:id', title: 'School Overview' },
-        SCHOOL_ACADEMIC: { path: '/school/:id/academic', title: 'Academic Performance' },
+        SCHOOL_ACADEMIC: { path: '/school/:id/academic/:subjectName?', title: 'Academic Performance' },
         SCHOOL_FINANCIALS: { path: '/school/:id/financials', title: 'Financials' },
         SCHOOL_DEMOGRAPHICS: { path: '/school/:id/demographics', title: 'Demographics' },
         SCHOOL_SAFETY: { path: '/school/:id/safety', title: 'Safety' },
