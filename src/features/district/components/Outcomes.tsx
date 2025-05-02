@@ -93,43 +93,47 @@ const Outcomes: React.FC = () => {
   useEffect(() => {
     if (!id) return;
 
-    // Fetch district data if needed
-    if (!districtLoading && !district) {
+    // Only fetch district data if we don't have it and aren't already loading it
+    if (!district && !districtLoading) {
       dispatch(fetchAllDistrictData(districtId));
     }
 
-    if (measurementsLoading === safetySlice.LoadingState.IDLE && measurements.length === 0) {
+    // Only fetch other data if we have the district data
+    if (district) {
+      // Fetch measurements if needed
+      if (measurementsLoading === safetySlice.LoadingState.IDLE && measurements.length === 0) {
         dispatch(fetchAllMeasurements({ entityId: id, entityType: 'district' }));
       }
 
-    // Fetch post-graduation types if needed
-    if (shouldFetchData(loadingStates.types.postGraduationTypes, postGraduationTypes)) {
-      dispatch(outcomeSlice.fetchPostGraduationTypes());
-    }
+      // Fetch post-graduation types if needed
+      if (shouldFetchData(loadingStates.types.postGraduationTypes, postGraduationTypes)) {
+        dispatch(outcomeSlice.fetchPostGraduationTypes());
+      }
 
-    // Fetch district data
-    if (shouldFetchData(loadingStates.district.postGraduation, districtPostGraduationData)) {
-      dispatch(outcomeSlice.fetchDistrictPostGraduationOutcomes(districtParams));
-    }
-    if (shouldFetchData(loadingStates.district.earlyExit, districtEarlyExitData)) {
-      dispatch(outcomeSlice.fetchDistrictEarlyExitData(districtParams));
-    }
-    if (shouldFetchData(loadingStates.district.graduationCohort, districtGraduationCohortData)) {
-      dispatch(outcomeSlice.fetchDistrictGraduationCohortData(districtParams));
-    }
+      // Fetch district data
+      if (shouldFetchData(loadingStates.district.postGraduation, districtPostGraduationData)) {
+        dispatch(outcomeSlice.fetchDistrictPostGraduationOutcomes(districtParams));
+      }
+      if (shouldFetchData(loadingStates.district.earlyExit, districtEarlyExitData)) {
+        dispatch(outcomeSlice.fetchDistrictEarlyExitData(districtParams));
+      }
+      if (shouldFetchData(loadingStates.district.graduationCohort, districtGraduationCohortData)) {
+        dispatch(outcomeSlice.fetchDistrictGraduationCohortData(districtParams));
+      }
 
-    // Fetch state data
-    if (shouldFetchData(loadingStates.state.postGraduation, statePostGraduationData)) {
-      dispatch(outcomeSlice.fetchStatePostGraduationOutcomes(stateParams));
-    }
-    if (shouldFetchData(loadingStates.state.earlyExit, stateEarlyExitData)) {
-      dispatch(outcomeSlice.fetchStateEarlyExitData(stateParams));
-    }
-    if (shouldFetchData(loadingStates.state.graduationCohort, stateGraduationCohortData)) {
-      dispatch(outcomeSlice.fetchStateGraduationCohortData(stateParams));
+      // Fetch state data
+      if (shouldFetchData(loadingStates.state.postGraduation, statePostGraduationData)) {
+        dispatch(outcomeSlice.fetchStatePostGraduationOutcomes(stateParams));
+      }
+      if (shouldFetchData(loadingStates.state.earlyExit, stateEarlyExitData)) {
+        dispatch(outcomeSlice.fetchStateEarlyExitData(stateParams));
+      }
+      if (shouldFetchData(loadingStates.state.graduationCohort, stateGraduationCohortData)) {
+        dispatch(outcomeSlice.fetchStateGraduationCohortData(stateParams));
+      }
     }
   }, [
-    dispatch, id, districtId, districtLoading, district,
+    dispatch, id, districtId, district, districtLoading,
     measurementsLoading, measurements,
     loadingStates, districtParams, stateParams,
     districtPostGraduationData, districtEarlyExitData, districtGraduationCohortData,

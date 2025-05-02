@@ -124,68 +124,71 @@ const Staff: React.FC = () => {
   useEffect(() => {
     if (!id) return;
 
-    // Fetch district data if needed
-    if (!districtLoading && !district) {
+    // Only fetch district data if we don't have it and aren't already loading it
+    if (!district && !districtLoading) {
       dispatch(fetchAllDistrictData(districtId));
     }
 
-    // Fetch measurements if needed
-    if (measurementsLoading === safetySlice.LoadingState.IDLE && measurements.length === 0) {
-      dispatch(fetchAllMeasurements({ entityId: id, entityType: 'district' }));
-    }
+    // Only fetch other data if we have the district data
+    if (district) {
+      // Fetch measurements if needed
+      if (measurementsLoading === safetySlice.LoadingState.IDLE && measurements.length === 0) {
+        dispatch(fetchAllMeasurements({ entityId: id, entityType: 'district' }));
+      }
 
-    // Fetch types
-    if (shouldFetchData(loadingStates.types.staffTypes, staffTypes)) {
-      dispatch(staffSlice.fetchStaffTypes());
-    }
-    if (shouldFetchData(loadingStates.types.teacherEducationTypes, teacherEducationTypes)) {
-      dispatch(staffSlice.fetchTeacherEducationTypes());
-    }
-    if (shouldFetchData(loadingStates.types.teacherSalaryBandTypes, teacherSalaryBandTypes)) {
-      dispatch(staffSlice.fetchTeacherSalaryBandTypes());
-    }
+      // Fetch types
+      if (shouldFetchData(loadingStates.types.staffTypes, staffTypes)) {
+        dispatch(staffSlice.fetchStaffTypes());
+      }
+      if (shouldFetchData(loadingStates.types.teacherEducationTypes, teacherEducationTypes)) {
+        dispatch(staffSlice.fetchTeacherEducationTypes());
+      }
+      if (shouldFetchData(loadingStates.types.teacherSalaryBandTypes, teacherSalaryBandTypes)) {
+        dispatch(staffSlice.fetchTeacherSalaryBandTypes());
+      }
 
-    // Fetch district data
-    if (shouldFetchData(loadingStates.district.staff, districtStaffData)) {
-      dispatch(staffSlice.fetchDistrictStaffData(districtParams));
-    }
-    if (shouldFetchData(loadingStates.district.teacherEducation, districtTeacherEducationData)) {
-      dispatch(staffSlice.fetchDistrictTeacherEducationData(districtParams));
-    }
-    if (shouldFetchData(loadingStates.district.teacherAverageSalary, districtTeacherAverageSalaryData)) {
-      dispatch(staffSlice.fetchDistrictTeacherAverageSalary(districtParams));
-    }
-    if (shouldFetchData(loadingStates.district.teacherSalaryBand, districtTeacherSalaryBandData)) {
-      dispatch(staffSlice.fetchDistrictTeacherSalaryBandData(districtParams));
-    }
-    if (shouldFetchData(loadingStates.district.classSize, districtClassSizeData)) {
-      dispatch(classSizeSlice.fetchDistrictClassSizeData(districtParams));
-    }
-    if (shouldFetchData(loadingStates.district.enrollment, districtEnrollmentData)) {
-      dispatch(enrollmentSlice.fetchTownEnrollment(districtParams));
-    }
+      // Fetch district data
+      if (shouldFetchData(loadingStates.district.staff, districtStaffData)) {
+        dispatch(staffSlice.fetchDistrictStaffData(districtParams));
+      }
+      if (shouldFetchData(loadingStates.district.teacherEducation, districtTeacherEducationData)) {
+        dispatch(staffSlice.fetchDistrictTeacherEducationData(districtParams));
+      }
+      if (shouldFetchData(loadingStates.district.teacherAverageSalary, districtTeacherAverageSalaryData)) {
+        dispatch(staffSlice.fetchDistrictTeacherAverageSalary(districtParams));
+      }
+      if (shouldFetchData(loadingStates.district.teacherSalaryBand, districtTeacherSalaryBandData)) {
+        dispatch(staffSlice.fetchDistrictTeacherSalaryBandData(districtParams));
+      }
+      if (shouldFetchData(loadingStates.district.classSize, districtClassSizeData)) {
+        dispatch(classSizeSlice.fetchDistrictClassSizeData(districtParams));
+      }
+      if (shouldFetchData(loadingStates.district.enrollment, districtEnrollmentData)) {
+        dispatch(enrollmentSlice.fetchTownEnrollment(districtParams));
+      }
 
-    // Fetch state data
-    if (shouldFetchData(loadingStates.state.staff, stateStaffData)) {
-      dispatch(staffSlice.fetchStateStaffData(stateParams));
-    }
-    if (shouldFetchData(loadingStates.state.teacherEducation, stateTeacherEducationData)) {
-      dispatch(staffSlice.fetchStateTeacherEducationData(stateParams));
-    }
-    if (shouldFetchData(loadingStates.state.teacherAverageSalary, stateTeacherAverageSalaryData)) {
-      dispatch(staffSlice.fetchStateTeacherAverageSalary(stateParams));
-    }
-    if (shouldFetchData(loadingStates.state.teacherSalaryBand, stateTeacherSalaryBandData)) {
-      dispatch(staffSlice.fetchStateTeacherSalaryBandData(stateParams));
-    }
-    if (shouldFetchData(loadingStates.state.classSize, stateClassSizeData)) {
-      dispatch(classSizeSlice.fetchStateClassSizeData(stateParams));
-    }
-    if (shouldFetchData(loadingStates.state.enrollment, stateEnrollmentData)) {
-      dispatch(enrollmentSlice.fetchStateTownEnrollment(stateParams));
+      // Fetch state data
+      if (shouldFetchData(loadingStates.state.staff, stateStaffData)) {
+        dispatch(staffSlice.fetchStateStaffData(stateParams));
+      }
+      if (shouldFetchData(loadingStates.state.teacherEducation, stateTeacherEducationData)) {
+        dispatch(staffSlice.fetchStateTeacherEducationData(stateParams));
+      }
+      if (shouldFetchData(loadingStates.state.teacherAverageSalary, stateTeacherAverageSalaryData)) {
+        dispatch(staffSlice.fetchStateTeacherAverageSalary(stateParams));
+      }
+      if (shouldFetchData(loadingStates.state.teacherSalaryBand, stateTeacherSalaryBandData)) {
+        dispatch(staffSlice.fetchStateTeacherSalaryBandData(stateParams));
+      }
+      if (shouldFetchData(loadingStates.state.classSize, stateClassSizeData)) {
+        dispatch(classSizeSlice.fetchStateClassSizeData(stateParams));
+      }
+      if (shouldFetchData(loadingStates.state.enrollment, stateEnrollmentData)) {
+        dispatch(enrollmentSlice.fetchStateTownEnrollment(stateParams));
+      }
     }
   }, [
-    dispatch, id, districtId, districtLoading, district,
+    dispatch, id, districtId, district, districtLoading,
     measurementsLoading, measurements, loadingStates,
     districtParams, stateParams, staffTypes, teacherEducationTypes,
     teacherSalaryBandTypes, districtStaffData, districtTeacherEducationData,

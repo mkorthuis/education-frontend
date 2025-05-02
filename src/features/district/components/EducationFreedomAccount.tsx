@@ -75,41 +75,44 @@ const EducationFreedomAccount: React.FC = () => {
   useEffect(() => {
     if (!id) return;
 
-    // Fetch district data if needed
-    if (!districtLoading && !district) {
-        dispatch(fetchAllDistrictData(districtId));
+
+    // Only fetch district data if we don't have it and aren't already loading it
+    if (!district && !districtLoading) {
+      dispatch(fetchAllDistrictData(districtId));
     }
 
-    // Fetch entry types if needed
-    if (shouldFetchData(entryTypesLoading, entryTypes)) {
-      dispatch(fetchEfaEntryTypes({}));
-    }
+    // Only fetch other data if we have the district data
+    if (district) {
+      // Fetch entry types if needed
+      if (shouldFetchData(entryTypesLoading, entryTypes)) {
+        dispatch(fetchEfaEntryTypes({}));
+      }
 
-    // Fetch district EFA data if needed
-    if (shouldFetchData(efaLoading, efaData)) {
-      dispatch(fetchEfaEntries({ district_id: districtId }));
-    }
+      // Fetch district EFA data if needed
+      if (shouldFetchData(efaLoading, efaData)) {
+        dispatch(fetchEfaEntries({ district_id: districtId }));
+      }
 
-    // Fetch state EFA data if needed
-    if (shouldFetchData(stateEfaLoading, stateEfaData)) {
-      dispatch(fetchEfaStateEntries({}));
-    }
-    
-    // Fetch town enrollment data for district if needed
-    if (shouldFetchData(townEnrollmentLoading, townEnrollmentData)) {
-      dispatch(fetchTownEnrollment({ district_id: districtId }));
-    }
-    
-    // Fetch state-level town enrollment data if needed
-    if (shouldFetchData(stateTownEnrollmentLoading, stateTownEnrollmentData)) {
-      dispatch(fetchStateTownEnrollment({}));
+      // Fetch state EFA data if needed
+      if (shouldFetchData(stateEfaLoading, stateEfaData)) {
+        dispatch(fetchEfaStateEntries({}));
+      }
+      
+      // Fetch town enrollment data for district if needed
+      if (shouldFetchData(townEnrollmentLoading, townEnrollmentData)) {
+        dispatch(fetchTownEnrollment({ district_id: districtId }));
+      }
+      
+      // Fetch state-level town enrollment data if needed
+      if (shouldFetchData(stateTownEnrollmentLoading, stateTownEnrollmentData)) {
+        dispatch(fetchStateTownEnrollment({}));
+      }
     }
 
   }, [
     id, 
     districtId, 
-    districtLoading, 
-    district, 
+    district,  // Add district as dependency
     dispatch, 
     efaLoading, 
     efaData, 

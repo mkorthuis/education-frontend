@@ -30,15 +30,18 @@ const Demographics: React.FC = () => {
   const demographicMeasurementTypeIds = [23, 24, 25, 26, 27, 28, 29, 30, 31, 32];
 
   useEffect(() => {
-    if (id) {
-      if(!districtLoading && !district) {
-        dispatch(fetchAllDistrictData(parseInt(id)));
-      }
-      if (!measurementsLoading && measurements.length === 0) {
-        dispatch(fetchAllMeasurements({ entityId: id, entityType: 'district' }));
-      }
+    if (!id) return;
+
+    // Only fetch district data if we don't have it and aren't already loading it
+    if (!district && !districtLoading) {
+      dispatch(fetchAllDistrictData(parseInt(id)));
     }
-  }, [id, districtLoading, dispatch, measurementsLoading, measurements]);
+
+    // Only fetch measurements if we have the district data
+    if (district && !measurementsLoading && measurements.length === 0) {
+      dispatch(fetchAllMeasurements({ entityId: id, entityType: 'district' }));
+    }
+  }, [id, district, districtLoading, dispatch, measurementsLoading, measurements]);
 
   // Filter measurements to only include demographic measurement type IDs
   const demographicMeasurements = measurements.filter(

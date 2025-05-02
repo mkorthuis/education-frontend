@@ -25,7 +25,12 @@ const ContactInformation: React.FC = () => {
 
   // Load district data if it's not already loaded
   useEffect(() => {
-    if (id && !district && !loading) {
+    if (!id) {
+      return;
+    }
+
+    // Only fetch district data if we don't have it and aren't already loading it
+    if (!district && !loading) {
       dispatch(fetchAllDistrictData(parseInt(id)));
     }
   }, [id, district, loading, dispatch]);

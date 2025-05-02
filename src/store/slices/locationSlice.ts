@@ -69,7 +69,6 @@ export interface LocationState {
   currentTowns: Town[];
   currentSau: Sau | null;
   currentSchool: School | null;
-  loading: boolean;
   loadingStates: {
     districts: boolean;
     grades: boolean;
@@ -90,7 +89,6 @@ const initialState: LocationState = {
   currentTowns: [],
   currentSau: null,
   currentSchool: null,
-  loading: false,
   loadingStates: {
     districts: false,
     grades: false,
@@ -272,109 +270,90 @@ export const locationSlice = createSlice({
     builder
       // Handle fetchDistricts
       .addCase(fetchDistricts.pending, (state) => {
-        state.loading = true;
         state.loadingStates.districts = true;
         state.error = null;
       })
       .addCase(fetchDistricts.fulfilled, (state, action) => {
         state.districts = action.payload;
-        state.loading = false;
         state.loadingStates.districts = false;
       })
       .addCase(fetchDistricts.rejected, (state, action) => {
-        state.loading = false;
         state.loadingStates.districts = false;
         state.error = action.payload as string;
       })
       
       // Handle fetchDistrictById
       .addCase(fetchDistrictById.pending, (state) => {
-        state.loading = true;
         state.loadingStates.district = true;
         state.error = null;
       })
       .addCase(fetchDistrictById.fulfilled, (state, action) => {
         state.currentDistrict = action.payload;
-        state.loading = false;
         state.loadingStates.district = false;
       })
       .addCase(fetchDistrictById.rejected, (state, action) => {
-        state.loading = false;
         state.loadingStates.district = false;
         state.error = action.payload as string;
       })
       
       // Handle fetchSchoolsByDistrictId
       .addCase(fetchSchoolsByDistrictId.pending, (state) => {
-        state.loading = true;
         state.loadingStates.schools = true;
         state.error = null;
       })
       .addCase(fetchSchoolsByDistrictId.fulfilled, (state, action) => {
         state.currentSchools = action.payload;
-        state.loading = false;
         state.loadingStates.schools = false;
       })
       .addCase(fetchSchoolsByDistrictId.rejected, (state, action) => {
-        state.loading = false;
         state.loadingStates.schools = false;
         state.error = action.payload as string;
       })
       
       // Handle fetchTownsByDistrictId
       .addCase(fetchTownsByDistrictId.pending, (state) => {
-        state.loading = true;
         state.loadingStates.towns = true;
         state.error = null;
       })
       .addCase(fetchTownsByDistrictId.fulfilled, (state, action) => {
         state.currentTowns = action.payload;
-        state.loading = false;
         state.loadingStates.towns = false;
       })
       .addCase(fetchTownsByDistrictId.rejected, (state, action) => {
-        state.loading = false;
         state.loadingStates.towns = false;
         state.error = action.payload as string;
       })
       
       // Handle fetchSauByDistrictId
       .addCase(fetchSauByDistrictId.pending, (state) => {
-        state.loading = true;
         state.loadingStates.sau = true;
         state.error = null;
       })
       .addCase(fetchSauByDistrictId.fulfilled, (state, action) => {
         state.currentSau = action.payload;
-        state.loading = false;
         state.loadingStates.sau = false;
       })
       .addCase(fetchSauByDistrictId.rejected, (state, action) => {
-        state.loading = false;
         state.loadingStates.sau = false;
         state.error = action.payload as string;
       })
       
       // Handle fetchSchoolById
       .addCase(fetchSchoolById.pending, (state) => {
-        state.loading = true;
         state.loadingStates.school = true;
         state.error = null;
       })
       .addCase(fetchSchoolById.fulfilled, (state, action) => {
         state.currentSchool = action.payload;
-        state.loading = false;
         state.loadingStates.school = false;
       })
       .addCase(fetchSchoolById.rejected, (state, action) => {
-        state.loading = false;
         state.loadingStates.school = false;
         state.error = action.payload as string;
       })
       
       // Handle fetchDistrictBySchoolId
       .addCase(fetchDistrictBySchoolId.pending, (state) => {
-        state.loading = true;
         state.loadingStates.district = true;
         state.error = null;
       })
@@ -383,28 +362,23 @@ export const locationSlice = createSlice({
         if (Array.isArray(action.payload) && action.payload.length > 0) {
           state.currentDistrict = action.payload[0];
         }
-        state.loading = false;
         state.loadingStates.district = false;
       })
       .addCase(fetchDistrictBySchoolId.rejected, (state, action) => {
-        state.loading = false;
         state.loadingStates.district = false;
         state.error = action.payload as string;
       })
       
       // Handle fetchGrades
       .addCase(fetchGrades.pending, (state) => {
-        state.loading = true;
         state.loadingStates.grades = true;
         state.error = null;
       })
       .addCase(fetchGrades.fulfilled, (state, action) => {
         state.grades = action.payload;
-        state.loading = false;
         state.loadingStates.grades = false;
       })
       .addCase(fetchGrades.rejected, (state, action) => {
-        state.loading = false;
         state.loadingStates.grades = false;
         state.error = action.payload as string;
       })
@@ -421,7 +395,8 @@ export const selectCurrentSchools = (state: RootState) => state.location.current
 export const selectCurrentTowns = (state: RootState) => state.location.currentTowns;
 export const selectCurrentSau = (state: RootState) => state.location.currentSau;
 export const selectCurrentSchool = (state: RootState) => state.location.currentSchool;
-export const selectLocationLoading = (state: RootState) => state.location.loading;
+export const selectLocationLoading = (state: RootState) => 
+  Object.values(state.location.loadingStates).some(isLoading => isLoading);
 export const selectLocationError = (state: RootState) => state.location.error;
 
 // Specific loading state selectors

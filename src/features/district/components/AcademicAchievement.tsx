@@ -62,20 +62,22 @@ const AcademicAchievement: React.FC = () => {
 
   // Fetch all required data
   useEffect(() => {
+    if (!id) return;
 
-    if (id) {
-      // If district data isn't loaded yet, fetch it
-      if (!district && !districtLoading) {
-        dispatch(fetchAllDistrictData(parseInt(id)));
-      }
+    // If district data isn't loaded yet, fetch it
+    if (!district && !districtLoading) {
+      dispatch(fetchAllDistrictData(parseInt(id)));
+    }
 
+    // Only fetch assessment data if we have the district data
+    if (district) {
       // Fetch state assessment data if not already loaded
       if (stateAssessmentLoading === LoadingState.IDLE && stateAssessmentData.length === 0) {
         dispatch(fetchAssessmentStateData({}));
       }
 
       // Fetch district assessment data if not already loaded
-      if ((district && districtAssessmentLoading == LoadingState.IDLE && districtAssessmentData.length === 0)) {
+      if (districtAssessmentLoading === LoadingState.IDLE && districtAssessmentData.length === 0) {
         dispatch(setCurrentDistrictDataKey("-1"));
         dispatch(fetchAssessmentDistrictData(initialQueryParams)).then((action) => {
           // After fetching is complete, set the current district data key manually
@@ -92,9 +94,15 @@ const AcademicAchievement: React.FC = () => {
       }
     }
   }, [
-    dispatch, id, district, districtLoading, districtAssessmentLoading, 
-    districtAssessmentData.length, stateAssessmentLoading,
-    stateAssessmentData.length, initialQueryParams
+    dispatch, 
+    id, 
+    district,  // Add district as dependency
+    districtLoading,
+    districtAssessmentLoading, 
+    districtAssessmentData.length, 
+    stateAssessmentLoading,
+    stateAssessmentData.length, 
+    initialQueryParams
   ]);
 
   // Show loading when any data is still loading

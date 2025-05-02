@@ -118,80 +118,83 @@ const Safety: React.FC = () => {
   useEffect(() => {
     if (!id) return;
 
-    // Fetch district data if needed
-    if (!districtLoading && !district) {
+    // Only fetch district data if we don't have it and aren't already loading it
+    if (!district && !districtLoading) {
       dispatch(fetchAllDistrictData(districtId));
     }
 
-    // Fetch school data
-    if (shouldFetchData(loadingStates.school.harassment, schoolHarassmentData)) {
-      dispatch(safetySlice.fetchSchoolHarassmentIncidents(districtParams));
-    }
-    
-    if (shouldFetchData(loadingStates.school.safety, schoolSafetyData)) {
-      dispatch(safetySlice.fetchSchoolSafetyIncidents(districtParams));
-    }
-
-    // Fetch district data
-    const districtDataFetches = [
-      { condition: shouldFetchData(loadingStates.district.safety, districtSafetyData), 
-        action: () => dispatch(safetySlice.fetchDistrictSafetyIncidents(districtParams)) },
-      { condition: shouldFetchData(loadingStates.district.harassment, districtHarassmentData), 
-        action: () => dispatch(safetySlice.fetchDistrictHarassmentIncidents(districtParams)) },
-      { condition: shouldFetchData(loadingStates.district.truancy, districtTruancyData), 
-        action: () => dispatch(safetySlice.fetchDistrictTruancyData(districtParams)) },
-      { condition: shouldFetchData(loadingStates.district.seclusion, districtSeclusionData), 
-        action: () => dispatch(safetySlice.fetchDistrictSeclusions(districtParams)) },
-      { condition: shouldFetchData(loadingStates.district.restraint, districtRestraintData), 
-        action: () => dispatch(safetySlice.fetchDistrictRestraints(districtParams)) },
-      { condition: shouldFetchData(loadingStates.district.bullying, districtBullyingData), 
-        action: () => dispatch(safetySlice.fetchDistrictBullyingIncidents(districtParams)) },
-      { condition: shouldFetchData(loadingStates.district.bullyingClassification, districtBullyingClassificationData), 
-        action: () => dispatch(safetySlice.fetchDistrictBullyingClassifications(districtParams)) },
-      { condition: shouldFetchData(loadingStates.district.bullyingImpact, districtBullyingImpactData), 
-        action: () => dispatch(safetySlice.fetchDistrictBullyingImpacts(districtParams)) },
-      { condition: shouldFetchData(loadingStates.district.disciplineCount, districtDisciplineCountData), 
-        action: () => dispatch(safetySlice.fetchDistrictDisciplineCounts(districtParams)) },
-      { condition: shouldFetchData(loadingStates.district.disciplineIncident, districtDisciplineIncidentData), 
-        action: () => dispatch(safetySlice.fetchDistrictDisciplineIncidents(districtParams)) },
-      { condition: shouldFetchData(loadingStates.district.enrollment, districtEnrollmentData), 
-        action: () => dispatch(safetySlice.fetchDistrictEnrollmentData(districtParams)) }
-    ];
-
-    // Fetch state data
-    const stateDataFetches = [
-      { condition: shouldFetchData(loadingStates.state.safety, stateSafetyData), 
-        action: () => dispatch(safetySlice.fetchStateSafetyIncidents(stateParams)) },
-      { condition: shouldFetchData(loadingStates.state.harassment, stateHarassmentData), 
-        action: () => dispatch(safetySlice.fetchStateHarassmentIncidents(stateParams)) },
-      { condition: shouldFetchData(loadingStates.state.truancy, stateTruancyData), 
-        action: () => dispatch(safetySlice.fetchStateTruancyData(stateParams)) },
-      { condition: shouldFetchData(loadingStates.state.seclusion, stateSeclusionData), 
-        action: () => dispatch(safetySlice.fetchStateSeclusions(stateParams)) },
-      { condition: shouldFetchData(loadingStates.state.restraint, stateRestraintData), 
-        action: () => dispatch(safetySlice.fetchStateRestraints(stateParams)) },
-      { condition: shouldFetchData(loadingStates.state.bullying, stateBullyingData), 
-        action: () => dispatch(safetySlice.fetchStateBullyingIncidents(stateParams)) },
-      { condition: shouldFetchData(loadingStates.state.bullyingClassification, stateBullyingClassificationData), 
-        action: () => dispatch(safetySlice.fetchStateBullyingClassifications(stateParams)) },
-      { condition: shouldFetchData(loadingStates.state.bullyingImpact, stateBullyingImpactData), 
-        action: () => dispatch(safetySlice.fetchStateBullyingImpacts(stateParams)) },
-      { condition: shouldFetchData(loadingStates.state.disciplineCount, stateDisciplineCountData), 
-        action: () => dispatch(safetySlice.fetchStateDisciplineCounts(stateParams)) },
-      { condition: shouldFetchData(loadingStates.state.disciplineIncident, stateDisciplineIncidentData), 
-        action: () => dispatch(safetySlice.fetchStateDisciplineIncidents(stateParams)) },
-      { condition: shouldFetchData(loadingStates.state.enrollment, stateEnrollmentData), 
-        action: () => dispatch(safetySlice.fetchStateEnrollmentData(stateParams)) }
-    ];
-
-    // Execute all necessary fetches
-    [...districtDataFetches, ...stateDataFetches].forEach(fetch => {
-      if (fetch.condition) {
-        fetch.action();
+    // Only fetch other data if we have the district data
+    if (district) {
+      // Fetch school data
+      if (shouldFetchData(loadingStates.school.harassment, schoolHarassmentData)) {
+        dispatch(safetySlice.fetchSchoolHarassmentIncidents(districtParams));
       }
-    });
+      
+      if (shouldFetchData(loadingStates.school.safety, schoolSafetyData)) {
+        dispatch(safetySlice.fetchSchoolSafetyIncidents(districtParams));
+      }
+
+      // Fetch district data
+      const districtDataFetches = [
+        { condition: shouldFetchData(loadingStates.district.safety, districtSafetyData), 
+          action: () => dispatch(safetySlice.fetchDistrictSafetyIncidents(districtParams)) },
+        { condition: shouldFetchData(loadingStates.district.harassment, districtHarassmentData), 
+          action: () => dispatch(safetySlice.fetchDistrictHarassmentIncidents(districtParams)) },
+        { condition: shouldFetchData(loadingStates.district.truancy, districtTruancyData), 
+          action: () => dispatch(safetySlice.fetchDistrictTruancyData(districtParams)) },
+        { condition: shouldFetchData(loadingStates.district.seclusion, districtSeclusionData), 
+          action: () => dispatch(safetySlice.fetchDistrictSeclusions(districtParams)) },
+        { condition: shouldFetchData(loadingStates.district.restraint, districtRestraintData), 
+          action: () => dispatch(safetySlice.fetchDistrictRestraints(districtParams)) },
+        { condition: shouldFetchData(loadingStates.district.bullying, districtBullyingData), 
+          action: () => dispatch(safetySlice.fetchDistrictBullyingIncidents(districtParams)) },
+        { condition: shouldFetchData(loadingStates.district.bullyingClassification, districtBullyingClassificationData), 
+          action: () => dispatch(safetySlice.fetchDistrictBullyingClassifications(districtParams)) },
+        { condition: shouldFetchData(loadingStates.district.bullyingImpact, districtBullyingImpactData), 
+          action: () => dispatch(safetySlice.fetchDistrictBullyingImpacts(districtParams)) },
+        { condition: shouldFetchData(loadingStates.district.disciplineCount, districtDisciplineCountData), 
+          action: () => dispatch(safetySlice.fetchDistrictDisciplineCounts(districtParams)) },
+        { condition: shouldFetchData(loadingStates.district.disciplineIncident, districtDisciplineIncidentData), 
+          action: () => dispatch(safetySlice.fetchDistrictDisciplineIncidents(districtParams)) },
+        { condition: shouldFetchData(loadingStates.district.enrollment, districtEnrollmentData), 
+          action: () => dispatch(safetySlice.fetchDistrictEnrollmentData(districtParams)) }
+      ];
+
+      // Fetch state data
+      const stateDataFetches = [
+        { condition: shouldFetchData(loadingStates.state.safety, stateSafetyData), 
+          action: () => dispatch(safetySlice.fetchStateSafetyIncidents(stateParams)) },
+        { condition: shouldFetchData(loadingStates.state.harassment, stateHarassmentData), 
+          action: () => dispatch(safetySlice.fetchStateHarassmentIncidents(stateParams)) },
+        { condition: shouldFetchData(loadingStates.state.truancy, stateTruancyData), 
+          action: () => dispatch(safetySlice.fetchStateTruancyData(stateParams)) },
+        { condition: shouldFetchData(loadingStates.state.seclusion, stateSeclusionData), 
+          action: () => dispatch(safetySlice.fetchStateSeclusions(stateParams)) },
+        { condition: shouldFetchData(loadingStates.state.restraint, stateRestraintData), 
+          action: () => dispatch(safetySlice.fetchStateRestraints(stateParams)) },
+        { condition: shouldFetchData(loadingStates.state.bullying, stateBullyingData), 
+          action: () => dispatch(safetySlice.fetchStateBullyingIncidents(stateParams)) },
+        { condition: shouldFetchData(loadingStates.state.bullyingClassification, stateBullyingClassificationData), 
+          action: () => dispatch(safetySlice.fetchStateBullyingClassifications(stateParams)) },
+        { condition: shouldFetchData(loadingStates.state.bullyingImpact, stateBullyingImpactData), 
+          action: () => dispatch(safetySlice.fetchStateBullyingImpacts(stateParams)) },
+        { condition: shouldFetchData(loadingStates.state.disciplineCount, stateDisciplineCountData), 
+          action: () => dispatch(safetySlice.fetchStateDisciplineCounts(stateParams)) },
+        { condition: shouldFetchData(loadingStates.state.disciplineIncident, stateDisciplineIncidentData), 
+          action: () => dispatch(safetySlice.fetchStateDisciplineIncidents(stateParams)) },
+        { condition: shouldFetchData(loadingStates.state.enrollment, stateEnrollmentData), 
+          action: () => dispatch(safetySlice.fetchStateEnrollmentData(stateParams)) }
+      ];
+
+      // Execute all necessary fetches
+      [...districtDataFetches, ...stateDataFetches].forEach(fetch => {
+        if (fetch.condition) {
+          fetch.action();
+        }
+      });
+    }
   }, [
-    dispatch, id, districtId, districtLoading, district,
+    dispatch, id, districtId, district, districtLoading,
     loadingStates, districtParams, stateParams,
     schoolSafetyData, schoolHarassmentData,
     districtSafetyData, districtHarassmentData, districtTruancyData,
