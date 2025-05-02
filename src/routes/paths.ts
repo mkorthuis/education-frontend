@@ -4,7 +4,7 @@ export const PATHS = {
     PUBLIC: {
         HOME: { path: '/', title: 'NH Education Facts' },
         DISTRICT: { path: '/district/:id', title: 'District Overview' },
-        DISTRICT_ACADEMIC: { path: '/district/:id/academic', title: 'Academic Performance' },
+        DISTRICT_ACADEMIC: { path: '/district/:id/academic/:subjectName?', title: 'Academic Performance' },
         DISTRICT_OUTCOMES: { path: '/district/:id/outcomes', title: 'Graduation / College' },
         DISTRICT_FINANCIALS: { path: '/district/:id/financials', title: 'Financials' },
         DISTRICT_DEMOGRAPHICS: { path: '/district/:id/demographics', title: 'Demographics' },

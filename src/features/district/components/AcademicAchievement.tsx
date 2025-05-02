@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
@@ -30,9 +30,11 @@ import AcademicDefaultView from '@/features/district/components/academic/Academi
 import { filterAssessmentResults, ALL_GRADES_ID } from '@/features/district/utils/assessmentDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { LoadingState } from '@/store/slices/safetySlice';
+import { PATHS } from '@/routes/paths';
 
 const AcademicAchievement: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id, subjectName } = useParams<{ id: string; subjectName?: string }>();
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
   // Selectors
@@ -49,16 +51,29 @@ const AcademicAchievement: React.FC = () => {
   const stateAssessmentLoading = useAppSelector(state => selectAssessmentStateLoadingStatus(state, {}));
   
   const districtAssessmentData = useAppSelector(state => selectAssessmentDistrictData(state, initialQueryParams));
-  //const districtAssessmentData = useAppSelector(selectCurrentAssessmentDistrictData);
   const stateAssessmentData = useAppSelector(selectCurrentAssessmentStateData);
 
   const selectedSubjectId = useAppSelector(selectSelectedSubjectId);
   const selectedSubject = useAppSelector(selectSelectedSubject);
 
-  // Effect to reset selected subject - runs only once when component mounts
+  // Effect to sync URL with selected subject
   useEffect(() => {
-    dispatch(setSelectedSubjectId(null));
-  }, [dispatch]);
+    if (!subjectName && selectedSubjectId) {
+      // Clear selected subject when visiting base academic page
+      dispatch(setSelectedSubjectId(null));
+    } else if (subjectName && districtAssessmentData.length > 0) {
+      // Find the subject ID that matches the URL subject name
+      const matchingSubject = districtAssessmentData.find(data => {
+        const subjectDescription = data.assessment_subject?.description || '';
+        const urlSafeSubjectName = encodeURIComponent(subjectDescription.toLowerCase().replace(/\s+/g, '-'));
+        return urlSafeSubjectName === subjectName;
+      });
+
+      if (matchingSubject?.assessment_subject?.id) {
+        dispatch(setSelectedSubjectId(matchingSubject.assessment_subject.id));
+      }
+    }
+  }, [subjectName, districtAssessmentData, dispatch]);
 
   // Fetch all required data
   useEffect(() => {
