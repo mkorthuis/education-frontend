@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Divider, Typography } from '@mui/material';
+import { useNavigate, useParams } from 'react-router-dom';
 import DefaultSafetyCard from './DefaultSafetyCard';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -7,9 +8,12 @@ import { selectDistrictBullyingData, selectStateBullyingData, selectSelectedSafe
 import { selectCurrentDistrict } from '@/store/slices/locationSlice';
 import { calculatePer100Students, calculatePercentageDifference } from '@/utils/safetyCalculations';
 import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
+import { PATHS } from '@/routes/paths';
 
 const BullyCard: React.FC = () => {
     const dispatch = useAppDispatch();
+    const navigate = useNavigate();
+    const { id } = useParams<{ id: string }>();
 
     const selectedSafetyPage = useAppSelector(selectSelectedSafetyPage);
     const isSelected = selectedSafetyPage === 'bullying';
@@ -41,6 +45,7 @@ const BullyCard: React.FC = () => {
 
     const handleClick = () => {
         dispatch(setSelectedSafetyPage('bullying'));
+        navigate(PATHS.PUBLIC.DISTRICT_SAFETY.path.replace(':id', id || '').replace(':category?', 'bullying'));
     };
 
     return (

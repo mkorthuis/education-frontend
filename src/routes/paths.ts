@@ -8,7 +8,7 @@ export const PATHS = {
         DISTRICT_OUTCOMES: { path: '/district/:id/outcomes', title: 'Graduation / College' },
         DISTRICT_FINANCIALS: { path: '/district/:id/financials', title: 'Financials' },
         DISTRICT_DEMOGRAPHICS: { path: '/district/:id/demographics', title: 'Demographics' },
-        DISTRICT_SAFETY: { path: '/district/:id/safety', title: 'Safety' },
+        DISTRICT_SAFETY: { path: '/district/:id/safety/:category?', title: 'Safety' },
         DISTRICT_STAFF: { path: '/district/:id/staff', title: 'Staff' },
         DISTRICT_EFA: { path: '/district/:id/efa', title: 'Education Freedom Accounts' },
         DISTRICT_CONTACT: { path: '/district/:id/contact', title: 'Contact Information' },
