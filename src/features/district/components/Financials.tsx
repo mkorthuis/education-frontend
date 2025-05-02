@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Typography, Box, CircularProgress, Tabs, Tab, useMediaQuery, useTheme, Divider } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
@@ -8,6 +8,7 @@ import {
   fetchDistrictById
 } from '@/store/slices/locationSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
+import { PATHS } from '@/routes/paths';
 
 import {
   selectLatestPerPupilExpenditureDetails,
@@ -39,10 +40,10 @@ import BalanceSheetTab from './financial/BalanceSheetTab';
 
 // Tabs configuration
 const TABS = [
-  { value: 0, label: 'Overall', mobileLabel: 'Summary' },
-  { value: 1, label: 'Expenditures', mobileLabel: 'Spend' },
-  { value: 2, label: 'Revenues', mobileLabel: 'Income' },
-  { value: 3, label: 'Balance Sheet', mobileLabel: 'Capital' }
+  { value: 0, label: 'Overall', mobileLabel: 'Summary', path: 'overall' },
+  { value: 1, label: 'Expenditures', mobileLabel: 'Spend', path: 'expenditures' },
+  { value: 2, label: 'Revenues', mobileLabel: 'Income', path: 'revenues' },
+  { value: 3, label: 'Balance Sheet', mobileLabel: 'Capital', path: 'balance-sheet' }
 ];
 
 /**
@@ -138,15 +139,23 @@ function useDistrictFinancialData(districtId?: number) {
  * Financials component displays district financial data with yearly comparisons
  */
 const Financials: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id, tab } = useParams<{ id: string; tab?: string }>();
+  const navigate = useNavigate();
   const district = useAppSelector(selectCurrentDistrict);
   const districtLoading = useAppSelector(selectLocationLoading);
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
+  // Find the initial tab value based on the URL parameter
+  const getInitialTabValue = () => {
+    if (!tab) return 0;
+    const tabConfig = TABS.find(t => t.path === tab);
+    return tabConfig ? tabConfig.value : 0;
+  };
+  
   // Tab state
-  const [mainTabValue, setMainTabValue] = useState(0);
+  const [mainTabValue, setMainTabValue] = useState(getInitialTabValue());
   
   // Fetch district data on component mount - only use URL param if district is not set
   useEffect(() => {
@@ -170,6 +179,13 @@ const Financials: React.FC = () => {
   // Tab change handler
   const handleMainTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setMainTabValue(newValue);
+    const selectedTab = TABS.find(t => t.value === newValue);
+    if (selectedTab) {
+      const path = PATHS.PUBLIC.DISTRICT_FINANCIALS.path
+        .replace(':id', id || '')
+        .replace(':tab?', selectedTab.path);
+      navigate(path);
+    }
   };
 
   // Loading and data availability states

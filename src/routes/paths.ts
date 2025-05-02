@@ -6,7 +6,7 @@ export const PATHS = {
         DISTRICT: { path: '/district/:id', title: 'District Overview' },
         DISTRICT_ACADEMIC: { path: '/district/:id/academic/:subjectName?', title: 'Academic Performance' },
         DISTRICT_OUTCOMES: { path: '/district/:id/outcomes', title: 'Graduation / College' },
-        DISTRICT_FINANCIALS: { path: '/district/:id/financials', title: 'Financials' },
+        DISTRICT_FINANCIALS: { path: '/district/:id/financials/:tab?', title: 'Financials' },
         DISTRICT_DEMOGRAPHICS: { path: '/district/:id/demographics', title: 'Demographics' },
         DISTRICT_SAFETY: { path: '/district/:id/safety/:category?', title: 'Safety' },
         DISTRICT_STAFF: { path: '/district/:id/staff', title: 'Staff' },
@@ -15,7 +15,7 @@ export const PATHS = {
         // Add School routes
         SCHOOL: { path: '/school/:id', title: 'School Overview' },
         SCHOOL_ACADEMIC: { path: '/school/:id/academic/:subjectName?', title: 'Academic Performance' },
-        SCHOOL_FINANCIALS: { path: '/school/:id/financials', title: 'Financials' },
+        SCHOOL_FINANCIALS: { path: '/school/:id/financials/:tab?', title: 'Financials' },
         SCHOOL_DEMOGRAPHICS: { path: '/school/:id/demographics', title: 'Demographics' },
         SCHOOL_SAFETY: { path: '/school/:id/safety/:category?', title: 'Safety' },
         SCHOOL_STAFF: { path: '/school/:id/staff', title: 'Staff' },
