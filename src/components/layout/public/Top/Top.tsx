@@ -1,10 +1,16 @@
-import { AppBar, Toolbar, Typography, Container, useMediaQuery, IconButton, Box } from '@mui/material';
+import { AppBar, Toolbar, Typography, Container, useMediaQuery, IconButton, Box, Autocomplete, TextField, Popper, InputAdornment } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import MobileMenu from './MobileMenu';
 import { useLocation, matchPath, useNavigate } from 'react-router-dom';
 import { PATHS } from '@/routes/paths';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { 
+  fetchDistricts,
+  District
+} from '@/store/slices/locationSlice';
+import SearchIcon from '@mui/icons-material/Search';
 
 export default function Top() {
   const theme = useTheme();
@@ -12,7 +18,17 @@ export default function Top() {
   const isLargeOrLarger = useMediaQuery(theme.breakpoints.up('lg'));
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const prevPathsRef = useRef<string[]>([]);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
+  
+  // District search state using direct state access
+  const locationState = useAppSelector((state) => state.location);
+  const districts = locationState.districts;
+  const loading = locationState.loadingStates?.districts || false;
+  const currentDistrict = locationState.currentDistrict;
+  const currentSchool = locationState.currentSchool;
+  const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
 
   // Track navigation history within our app
   useEffect(() => {
@@ -26,9 +42,16 @@ export default function Top() {
     }
   }, [location]);
 
+  // Load districts when component mounts
+  useEffect(() => {
+    dispatch(fetchDistricts());
+  }, [dispatch]);
+
   // Find the current path title
   let currentTitle = 'NH Education Facts'; // Default title
-  let showBackButton = location.pathname !== '/'; // Show back button if not on home page
+  
+  // Check if we're on the home page
+  const isHomePage = location.pathname === '/' || location.pathname === '/home';
   
   for (const key in PATHS.PUBLIC) {
     const route = PATHS.PUBLIC[key as keyof typeof PATHS.PUBLIC];
@@ -62,31 +85,117 @@ export default function Top() {
     }
   };
 
+  const handleDistrictChange = (_event: React.SyntheticEvent, district: District | null) => {
+    setSelectedDistrict(district);
+    if (district?.id) {
+      navigate(`/district/${district.id}`);
+      setShowMobileSearch(false);
+    }
+  };
+
+  // Custom Popper for mobile that opens below the top bar
+  const CustomPopper = function (props: any) {
+    return <Popper {...props} placement="bottom-start" style={{ width: '100%' }} />;
+  };
+  
+  const toggleMobileSearch = () => {
+    setShowMobileSearch(!showMobileSearch);
+  };
+
   return (
-    <AppBar position="static">
+    <>
+      <AppBar position="static">
         <Container maxWidth={false} sx={{ px: { xs: '2', md: '50px' } }}>
-        <Toolbar disableGutters>
-          {showBackButton && (
-            <IconButton
-              color="inherit"
-              aria-label="back"
-              onClick={handleBackClick}
-              edge="start"
-              sx={{ m: '0px', paddingLeft: '0px' }}
+          <Toolbar disableGutters>
+            <Typography
+              variant={isMediumOrLarger ? "h4" : "h5"}
+              noWrap
+              sx={{ flexGrow: isMediumOrLarger ? 0 : 1 }}
             >
-              <ArrowBackIcon />
-            </IconButton>
-          )}
-          <Typography
-            variant={isMediumOrLarger ? "h4" : "h5"}
-            noWrap
-          >
-            {currentTitle}
-          </Typography>
-          <Box sx={{ flexGrow: 1 }} />
-          <MobileMenu />
-        </Toolbar>
-      </Container>
-    </AppBar>
+              {currentTitle}
+            </Typography>
+            <Box sx={{ flexGrow: 1 }} />
+            
+            {/* Search on desktop (medium and larger screens) - only on non-home pages */}
+            {!isHomePage && isMediumOrLarger && (
+              <Box sx={{ width: '300px', mr: 2 }}>
+                <Autocomplete
+                  id="top-district-search"
+                  options={districts}
+                  getOptionLabel={(option) => option.name}
+                  value={selectedDistrict}
+                  onChange={handleDistrictChange}
+                  loading={loading}
+                  size="small"
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      placeholder="Search districts..."
+                      variant="outlined"
+                      InputProps={{
+                        ...params.InputProps,
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <SearchIcon />
+                          </InputAdornment>
+                        )
+                      }}
+                    />
+                  )}
+                />
+              </Box>
+            )}
+            
+            {/* Search icon for mobile - only on non-home pages */}
+            {!isHomePage && !isMediumOrLarger && (
+              <IconButton
+                color="inherit"
+                aria-label="search"
+                onClick={toggleMobileSearch}
+                sx={{ ml: 1 }}
+              >
+                <SearchIcon />
+              </IconButton>
+            )}
+            
+            <MobileMenu />
+          </Toolbar>
+        </Container>
+      </AppBar>
+      
+      {/* Mobile search bar that appears below the app bar when toggled */}
+      {!isHomePage && !isMediumOrLarger && showMobileSearch && (
+        <Box sx={{ 
+          width: '100%', 
+          padding: '8px 16px', 
+          backgroundColor: theme.palette.primary.main,
+          color: theme.palette.primary.contrastText
+        }}>
+          <Autocomplete
+            id="mobile-district-search"
+            options={districts}
+            getOptionLabel={(option) => option.name}
+            value={selectedDistrict}
+            onChange={handleDistrictChange}
+            loading={loading}
+            PopperComponent={CustomPopper}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                placeholder="Search districts..."
+                variant="outlined"
+                fullWidth
+                size="small"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: 'white'
+                  }
+                }}
+              />
+            )}
+          />
+        </Box>
+      )}
+    </>
   );
 }
