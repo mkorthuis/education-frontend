@@ -1,38 +1,70 @@
-import { Outlet } from "react-router-dom";
-import { Box, useTheme, Card, Container, useMediaQuery } from "@mui/material";
-import Top from "./Top/Top";
-import Footer from "./Footer/Footer";
+import { Box } from "@mui/material";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import usePageTracking from "@/hooks/usePageTracking";
+import AppBar from "./AppBar";
+import MainLayout from "./MainLayout";
+import { locationApi } from "@/services/api/endpoints/locations";
 
-const PrivateLayout = () => {
+// Define District interface
+interface District {
+  id: number;
+  name: string;
+  grades?: { id: number; name: string }[];
+}
+
+/**
+ * Public layout component that serves as the main container for public pages
+ */
+const PublicLayout = () => {
   // Track page views
   usePageTracking();
   
-  const theme = useTheme();
-  const isMediumOrLarger = useMediaQuery(theme.breakpoints.up('md'));
+  const navigate = useNavigate();
+  
+  // State for districts search
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
 
-  const content = (
-    <Container maxWidth="xl" sx={{ p : 0 }}>
-        <Top />
-        <Box component="main" sx={{ flexGrow: 1, px: { xs: 2, md: 3 }, minHeight: '70vh' }}>
-          <Outlet />
-        </Box>
-        <Footer />
-    </Container>
-  );
+  // Load districts when component mounts
+  useEffect(() => {
+    const fetchDistricts = async () => {
+      try {
+        setLoading(true);
+        const districtsData = await locationApi.getDistricts();
+        setDistricts(districtsData);
+      } catch (error) {
+        console.error('Failed to fetch districts:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  if (!isMediumOrLarger) return content;
+    fetchDistricts();
+  }, []);
+
+  const handleDistrictChange = (_event: React.SyntheticEvent, district: District | null) => {
+    setSelectedDistrict(district);
+    if (district?.id) {
+      navigate(`/district/${district.id}`);
+    }
+  };
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        overflowY: 'auto',
-      }}
-    >
-      {content}
+    <Box sx={{ display: 'flex' }}>
+      {/* Top AppBar */}
+      <AppBar 
+        districts={districts}
+        loading={loading}
+        selectedDistrict={selectedDistrict}
+        onDistrictChange={handleDistrictChange}
+      />
+      
+      {/* Main Content */}
+      <MainLayout />
     </Box>
   );
 };
 
-export default PrivateLayout;
+export default PublicLayout;

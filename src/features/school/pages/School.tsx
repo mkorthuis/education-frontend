@@ -78,7 +78,6 @@ const School: React.FC = () => {
 
   return (
     <Box>
-      <Divider sx={{ mb: 2 }} />
       <Typography variant="h5" gutterBottom>
         {school.name}
       </Typography>

@@ -13,12 +13,10 @@ interface SectionTitleProps {
  */
 const SectionTitle: React.FC<SectionTitleProps> = ({ 
   children, 
-  sx = {}, 
-  withDivider = true 
+  sx = {}
 }) => {
   return (
     <Box>
-      {withDivider && <Divider sx={{ mb: 2 }} />}
       <Typography 
         variant="h5" 
         gutterBottom 
