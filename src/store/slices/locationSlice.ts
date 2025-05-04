@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { locationApi } from '@/services/api/endpoints/locations';
+import { updateDistrictPages, updateSchoolPages } from './pageSlice';
 
 // Define types for the slice state
 export interface District {
@@ -177,6 +178,9 @@ export const fetchAllDistrictData = createAsyncThunk(
       dispatch(fetchSauByDistrictId(id))
     ]);
 
+    // After all data is loaded, update the district pages
+    dispatch(updateDistrictPages());
+
     return id;
   }
 );
@@ -220,8 +224,11 @@ export const fetchAllSchoolData = createAsyncThunk(
     const district = state.location.currentDistrict;
     
     if (district && district.id) {
-      dispatch(fetchSauByDistrictId(district.id));
+      await dispatch(fetchSauByDistrictId(district.id));
     }
+
+    // After all data is loaded, update the school pages
+    dispatch(updateSchoolPages());
 
     return id;
   }

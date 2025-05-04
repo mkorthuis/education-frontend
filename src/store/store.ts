@@ -11,6 +11,15 @@ import enrollmentReducer from '@/store/slices/enrollmentSlice';
 import outcomeReducer from '@/store/slices/outcomeSlice';
 import staffReducer from '@/store/slices/staffSlice';
 import classSizeReducer from '@/store/slices/classSizeSlice';
+import pageReducer, { createSyncLocationWithPageMiddleware } from '@/store/slices/pageSlice';
+
+// Re-export selectors from pageSlice.  Avoids circular dependency.
+export {
+  selectDistrict,
+  selectSchool,
+  selectCurrentPage,
+  selectShowSecondaryNav
+} from '@/store/slices/pageSlice';
 
 export const store = configureStore({
   reducer: {
@@ -25,10 +34,11 @@ export const store = configureStore({
     enrollment: enrollmentReducer,
     outcomes: outcomeReducer,
     staff: staffReducer,
-    classSize: classSizeReducer
+    classSize: classSizeReducer,
+    page: pageReducer
   },
   middleware: getDefaultMiddleware =>
-      getDefaultMiddleware()
+    getDefaultMiddleware().concat(createSyncLocationWithPageMiddleware())
 });
 
 export type AppDispatch = typeof store.dispatch;
@@ -38,4 +48,4 @@ export type AppThunk<ReturnType = void> = ThunkAction<
   RootState,
   unknown,
   Action<string>
->;
+>; 
