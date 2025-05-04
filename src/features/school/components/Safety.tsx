@@ -4,13 +4,12 @@ import { Box, Typography, CircularProgress, Divider, useTheme, useMediaQuery } f
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentSchool,
-  fetchAllSchoolData,
-  selectSchoolLoading
+  selectLocationLoading,
+  fetchAllSchoolData
 } from '@/store/slices/locationSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
 import * as safetySlice from '@/store/slices/safetySlice';
 import { EARLIEST_YEAR } from '@/utils/safetyCalculations';
-import { PATHS } from '@/routes/paths';
 
 // Import card components
 import BullyCard from './safety/card/BullyCard';
@@ -44,7 +43,7 @@ const Safety: React.FC = () => {
   
   // School and location data
   const school = useAppSelector(selectCurrentSchool);
-  const schoolLoading = useAppSelector(selectSchoolLoading);
+  const schoolLoading = useAppSelector(selectLocationLoading);
   
   // Safety data selectors
   const schoolSafetyData = useAppSelector(state => safetySlice.selectSchoolSafetyData(state, schoolParams));

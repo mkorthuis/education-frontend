@@ -11,12 +11,12 @@ import {
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation, matchPath } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { selectSchool, selectDistrict } from '@/store/store';
 import { 
-  selectCurrentPage, 
-  setCurrentPage, 
-  determineCurrentPage 
-} from '@/store/slices/pageSlice';
+  selectSchool, 
+  selectDistrict, 
+  selectCurrentPage
+} from '@/store/store';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 // Custom styled Tab for better appearance
 const NavTab = styled(Tab)(({ theme }) => ({
@@ -77,42 +77,17 @@ const SecondaryNav = () => {
     return [] as NavItem[];
   }, [school, district]);
 
-  // Update current page when location changes
-  useEffect(() => {
-    let matchedPage = null;
-    
-    // Try to match school pages first
-    if (school.id && school.availablePages.length > 0) {
-      matchedPage = determineCurrentPage(location.pathname, school.availablePages);
-    }
-    
-    // Then try district pages if no match found
-    if (!matchedPage && district.id && district.availablePages.length > 0) {
-      matchedPage = determineCurrentPage(location.pathname, district.availablePages);
-    }
-    
-    // Update the current page in Redux store if a match is found
-    if (matchedPage) {
-      dispatch(setCurrentPage(matchedPage));
-    } else if (location.pathname !== '/') {
-      // Default to home page if no match and not already on home
-      dispatch(setCurrentPage({
-        name: 'Home',
-        path: '/',
-        enabled: true,
-        tooltip: ''
-      }));
-    }
-  }, [location.pathname, dispatch, school, district]);
-
   // Calculate the active tab index based on current location
   const activeTabIndex = useMemo(() => {
-    // First try exact match with current page path from store
-    if (currentPage && currentPage.path && navItems.length > 0) {
+    // First try to match based on current page urlPatterns
+    if (currentPage && currentPage.urlPatterns && navItems.length > 0) {
+      // Extract the base path from the first URL pattern
+      const basePath = currentPage.urlPatterns[0].split('/').slice(0, 3).join('/');
+      
       const indexFromStore = navItems.findIndex(item => 
-        // Compare with paths after stripping any query params
-        item.path.split('?')[0] === currentPage.path.split('?')[0]
+        item.path.startsWith(basePath)
       );
+      
       if (indexFromStore !== -1) return indexFromStore;
     }
     

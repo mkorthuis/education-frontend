@@ -8,7 +8,7 @@ import { selectSelectedSafetyPage, setSelectedSafetyPage, selectDistrictHarassme
 import { selectCurrentDistrict } from '@/store/slices/locationSlice';
 import { calculatePer100Students, calculatePercentageDifference } from '@/utils/safetyCalculations';
 import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
-import { PATHS } from '@/routes/paths';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const HarassmentCard: React.FC = () => {
     const dispatch = useAppDispatch();
@@ -43,7 +43,7 @@ const HarassmentCard: React.FC = () => {
 
     const handleClick = () => {
         dispatch(setSelectedSafetyPage('harassment'));
-        navigate(PATHS.PUBLIC.DISTRICT_SAFETY.path.replace(':id', id || '').replace(':category?', 'harassment'));
+        navigate(PAGE_REGISTRY.district.safety.urlPatterns[0].replace(':id', id || '').replace(':category?', 'harassment'));
     };
 
     return (

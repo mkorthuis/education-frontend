@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation, matchPath } from 'react-router-dom';
-import { PATHS } from '@/routes/paths';
+import { PAGE_REGISTRY, getAllPages } from '@/routes/pageRegistry';
 import { GA_MEASUREMENT_ID, IS_DEV } from '@/utils/environment';
 
 declare global {
@@ -51,11 +51,14 @@ const usePageTracking = (): void => {
   }, []);
 
   const getPageTitle = (pathname: string): string => {
-    const allPublicRoutes = Object.values(PATHS.PUBLIC) as Array<{ path: string; title: string }>;
-
-    for (const route of allPublicRoutes) {
-      if (matchPath({ path: route.path, end: true }, pathname)) {
-        return route.title;
+    // Get all pages from the registry
+    const allPages = getAllPages();
+    
+    for (const page of allPages) {
+      for (const pattern of page.urlPatterns) {
+        if (matchPath({ path: pattern, end: true }, pathname)) {
+          return page.displayName;
+        }
       }
     }
 

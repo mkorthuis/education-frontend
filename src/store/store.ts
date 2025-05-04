@@ -11,15 +11,31 @@ import enrollmentReducer from '@/store/slices/enrollmentSlice';
 import outcomeReducer from '@/store/slices/outcomeSlice';
 import staffReducer from '@/store/slices/staffSlice';
 import classSizeReducer from '@/store/slices/classSizeSlice';
-import pageReducer, { createSyncLocationWithPageMiddleware } from '@/store/slices/pageSlice';
+import pageReducer, { 
+  createSyncLocationWithPageMiddleware,
+  selectDistrict,
+  selectSchool,
+  selectCurrentPage,
+  selectCurrentPageId,
+  selectShowSecondaryNav,
+  updateCurrentPage,
+  setCurrentPage,
+  findPageEntryByPathname,
+  getPageEntryById 
+} from '@/store/slices/pageSlice';
 
-// Re-export selectors from pageSlice.  Avoids circular dependency.
+// Re-export these items to avoid circular dependencies
 export {
   selectDistrict,
   selectSchool,
   selectCurrentPage,
-  selectShowSecondaryNav
-} from '@/store/slices/pageSlice';
+  selectCurrentPageId,
+  selectShowSecondaryNav,
+  updateCurrentPage,
+  setCurrentPage,
+  findPageEntryByPathname,
+  getPageEntryById
+};
 
 export const store = configureStore({
   reducer: {
@@ -38,7 +54,14 @@ export const store = configureStore({
     page: pageReducer
   },
   middleware: getDefaultMiddleware =>
-    getDefaultMiddleware().concat(createSyncLocationWithPageMiddleware())
+    getDefaultMiddleware({
+      serializableCheck: {
+        // These paths no longer need to be ignored since we're only storing IDs
+        // Empty objects are kept for easy restoration if needed
+        ignoredPaths: [],
+        ignoredActionPaths: []
+      }
+    }).concat(createSyncLocationWithPageMiddleware())
 });
 
 export type AppDispatch = typeof store.dispatch;

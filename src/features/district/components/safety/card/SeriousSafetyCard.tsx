@@ -8,7 +8,7 @@ import { selectDistrictSafetyData, selectSelectedSafetyPage, setSelectedSafetyPa
 import { selectCurrentDistrict } from '@/store/slices/locationSlice';
 import { EARLIEST_YEAR } from '@/utils/safetyCalculations';
 import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
-import { PATHS } from '@/routes/paths';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const SeriousSafetyCard: React.FC = () => {
     const dispatch = useAppDispatch();
@@ -30,7 +30,7 @@ const SeriousSafetyCard: React.FC = () => {
 
     const handleClick = () => {
         dispatch(setSelectedSafetyPage('serious'));
-        navigate(PATHS.PUBLIC.DISTRICT_SAFETY.path.replace(':id', id || '').replace(':category?', 'serious'));
+        navigate(PAGE_REGISTRY.district.safety.urlPatterns[0].replace(':id', id || '').replace(':category?', 'serious'));
     };
 
     return (

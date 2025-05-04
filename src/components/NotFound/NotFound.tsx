@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Button, Container, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import SelfImprovementIcon from '@mui/icons-material/SelfImprovement';
-import { PATHS } from '@routes/paths';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const NotFound: React.FC = () => {
   const navigate = useNavigate();
@@ -56,7 +56,7 @@ const NotFound: React.FC = () => {
           <Button
             variant="contained"
             size="large"
-            onClick={() => navigate(PATHS.PUBLIC.HOME.path)}
+            onClick={() => navigate(PAGE_REGISTRY.general.home.urlPatterns[0])}
             sx={{
               px: 4,
               py: 1.5

@@ -8,7 +8,7 @@ import {
   fetchDistrictById
 } from '@/store/slices/locationSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
-import { PATHS } from '@/routes/paths';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 import {
   selectLatestPerPupilExpenditureDetails,
@@ -181,7 +181,7 @@ const Financials: React.FC = () => {
     setMainTabValue(newValue);
     const selectedTab = TABS.find(t => t.value === newValue);
     if (selectedTab) {
-      const path = PATHS.PUBLIC.DISTRICT_FINANCIALS.path
+      const path = PAGE_REGISTRY.district.financials.urlPatterns[0]
         .replace(':id', id || '')
         .replace(':tab?', selectedTab.path);
       navigate(path);

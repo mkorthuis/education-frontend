@@ -16,7 +16,6 @@ import { useLocation, matchPath, useNavigate } from 'react-router-dom';
 import SearchIcon from '@mui/icons-material/Search';
 import MenuIcon from '@mui/icons-material/Menu';
 import { useRef, useState } from 'react';
-import { PATHS } from '@/routes/paths';
 import MainMenu from '../Navigation/MainMenu';
 import SecondaryNav from './SecondaryNav';
 

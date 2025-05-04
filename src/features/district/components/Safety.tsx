@@ -11,7 +11,6 @@ import {
 import SectionTitle from '@/components/ui/SectionTitle';
 import * as safetySlice from '@/store/slices/safetySlice';
 import { EARLIEST_YEAR } from '@/utils/safetyCalculations';
-import { PATHS } from '@/routes/paths';
 
 // Import card components
 import BullyCard from './safety/card/BullyCard';

@@ -8,7 +8,7 @@ import { selectDistrictTruancyData,selectStateEnrollmentData,  selectDistrictEnr
 import { selectCurrentDistrict } from '@/store/slices/locationSlice';
 import { calculatePer100Students, calculatePercentageDifference } from '@/utils/safetyCalculations';
 import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
-import { PATHS } from '@/routes/paths';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const TruancyCard: React.FC = () => {
     const dispatch = useAppDispatch();
@@ -41,7 +41,7 @@ const TruancyCard: React.FC = () => {
     
     const handleClick = () => {
         dispatch(setSelectedSafetyPage('truancy'));
-        navigate(PATHS.PUBLIC.DISTRICT_SAFETY.path.replace(':id', id || '').replace(':category?', 'truancy'));
+        navigate(PAGE_REGISTRY.district.safety.urlPatterns[0].replace(':id', id || '').replace(':category?', 'truancy'));
     };
 
     return (

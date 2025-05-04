@@ -1,10 +1,12 @@
 import { Box } from "@mui/material";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import usePageTracking from "@/hooks/usePageTracking";
 import AppBar from "./AppBar";
 import MainLayout from "./MainLayout";
 import { locationApi } from "@/services/api/endpoints/locations";
+import { useAppDispatch } from "@/store/hooks";
+import { updateCurrentPage } from "@/store/store";
 
 // Define District interface
 interface District {
@@ -21,11 +23,18 @@ const PublicLayout = () => {
   usePageTracking();
   
   const navigate = useNavigate();
+  const location = useLocation();
+  const dispatch = useAppDispatch();
   
   // State for districts search
   const [districts, setDistricts] = useState<District[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
+
+  // Update current page whenever location changes
+  useEffect(() => {
+    dispatch(updateCurrentPage(location.pathname));
+  }, [location.pathname, dispatch]);
 
   // Load districts when component mounts
   useEffect(() => {

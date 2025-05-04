@@ -19,7 +19,7 @@ import {
 import { FISCAL_YEAR } from '@/utils/environment';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTheme } from '@mui/material/styles';
-import { PATHS } from '@/routes/paths';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 interface MeasurementCardProps {
   assessment_subject_id: number;
@@ -73,7 +73,7 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
     if (id) {
       const subjectDescription = assessmentData?.assessment_subject?.description || '';
       const urlSafeSubjectName = encodeURIComponent(subjectDescription.toLowerCase().replace(/\s+/g, '-'));
-      const path = PATHS.PUBLIC.DISTRICT_ACADEMIC.path
+      const path = PAGE_REGISTRY.district.academic.urlPatterns[0]
         .replace(':id', id)
         .replace(':subjectName?', urlSafeSubjectName);
       navigate(path);

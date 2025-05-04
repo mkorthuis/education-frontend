@@ -8,7 +8,7 @@ import { selectCurrentSchool } from '@/store/slices/locationSlice';
 import { EARLIEST_YEAR } from '@/utils/safetyCalculations';
 import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
 import { useNavigate, useParams } from 'react-router-dom';
-import { PATHS } from '@/routes/paths';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const SeriousSafetyCard: React.FC = () => {
     const dispatch = useAppDispatch();
@@ -31,7 +31,7 @@ const SeriousSafetyCard: React.FC = () => {
     const totalCount = schoolSafetyData.reduce((sum, item) => sum + item.count, 0);
 
     const handleClick = () => {
-        const path = PATHS.PUBLIC.SCHOOL_SAFETY.path.replace(':id', id || '').replace(':category?', 'serious');
+        const path = PAGE_REGISTRY.school.safety.urlPatterns[0].replace(':id', id || '').replace(':category?', 'serious');
         navigate(path);
         dispatch(setSelectedSafetyPage('serious'));
     };

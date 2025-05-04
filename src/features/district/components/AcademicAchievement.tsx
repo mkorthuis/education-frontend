@@ -30,7 +30,6 @@ import AcademicDefaultView from '@/features/district/components/academic/Academi
 import { filterAssessmentResults, ALL_GRADES_ID } from '@/features/district/utils/assessmentDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { LoadingState } from '@/store/slices/safetySlice';
-import { PATHS } from '@/routes/paths';
 
 const AcademicAchievement: React.FC = () => {
   const { id, subjectName } = useParams<{ id: string; subjectName?: string }>();

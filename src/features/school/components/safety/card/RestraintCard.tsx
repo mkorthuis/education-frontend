@@ -8,7 +8,7 @@ import { selectCurrentSchool } from '@/store/slices/locationSlice';
 import { calculatePercentageDifference, calculatePer100Students } from '@/utils/safetyCalculations';
 import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
 import { useNavigate, useParams } from 'react-router-dom';
-import { PATHS } from '@/routes/paths';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const RestraintCard: React.FC = () => {
     const dispatch = useAppDispatch();
@@ -43,7 +43,7 @@ const RestraintCard: React.FC = () => {
     const percentDifference = calculatePercentageDifference(schoolRestraintsPer100, stateRestraintsPer100);
 
     const handleClick = () => {
-        const path = PATHS.PUBLIC.SCHOOL_SAFETY.path.replace(':id', id || '').replace(':category?', 'restraint');
+        const path = PAGE_REGISTRY.school.safety.urlPatterns[0].replace(':id', id || '').replace(':category?', 'restraint');
         navigate(path);
         dispatch(setSelectedSafetyPage('restraint'));
     };
