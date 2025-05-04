@@ -10,11 +10,15 @@ import {
   ListSubheader, 
   Slide, 
   Paper,
-  useMediaQuery
+  useMediaQuery,
+  Tooltip
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import { useSelector } from 'react-redux';
+import { selectSchool, selectDistrict } from '@/store/store';
+import { useNavigate } from 'react-router-dom';
 
 interface MainMenuProps {
   open: boolean;
@@ -28,10 +32,15 @@ interface MainMenuProps {
  */
 const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSecondaryNav = false }) => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
   const isXlOrLess = useMediaQuery(theme.breakpoints.down('xl'));
   const [menuPosition, setMenuPosition] = useState({ left: 0 });
   const drawerWidth = 300;
+  
+  // Get school and district data from Redux store
+  const school = useSelector(selectSchool);
+  const district = useSelector(selectDistrict);
   
   // Calculate the top position based on whether secondary nav is present
   const secondaryNavHeight = 48; // Height of the secondary nav in pixels
@@ -63,6 +72,13 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
       window.removeEventListener('resize', updateMenuPosition);
     };
   }, [anchorEl, isXlOrLess, open]);
+
+  const handleNavigate = (path: string, enabled: boolean = true) => {
+    if (enabled) {
+      navigate(path);
+      onClose();
+    }
+  };
 
   return (
     <>
@@ -131,65 +147,79 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
 
             {/* Menu Content */}
             <List sx={{ p: 0 }}>
-              {/* Kennett Middle School Section */}
-              <ListSubheader>Kennett Middle School</ListSubheader>
-              <ListItem disablePadding>
-                <ListItemButton>
-                  <ListItemText primary="Academics" />
-                </ListItemButton>
-              </ListItem>
-              <ListItem disablePadding>
-                <ListItemButton>
-                  <ListItemText primary="Safety" />
-                </ListItemButton>
-              </ListItem>
-              <ListItem disablePadding>
-                <ListItemButton>
-                  <ListItemText primary="Graduation" />
-                </ListItemButton>
-              </ListItem>
+              {/* School Pages (Dynamic) */}
+              {school.id && school.availablePages.length > 0 && (
+                <>
+                  <ListSubheader>{school.name}</ListSubheader>
+                  {school.availablePages.map((page) => (
+                    <ListItem key={page.path} disablePadding>
+                      {page.tooltip && !page.enabled ? (
+                        <Tooltip title={page.tooltip} arrow>
+                          <ListItemButton 
+                            onClick={() => handleNavigate(page.path, page.enabled)}
+                            disabled={!page.enabled}
+                            sx={{
+                              opacity: page.enabled ? 1 : 0.6,
+                              cursor: page.enabled ? 'pointer' : 'not-allowed',
+                            }}
+                          >
+                            <ListItemText primary={page.name} />
+                          </ListItemButton>
+                        </Tooltip>
+                      ) : (
+                        <ListItemButton 
+                          onClick={() => handleNavigate(page.path, page.enabled)}
+                          disabled={!page.enabled}
+                          sx={{
+                            opacity: page.enabled ? 1 : 0.6,
+                            cursor: page.enabled ? 'pointer' : 'not-allowed',
+                          }}
+                        >
+                          <ListItemText primary={page.name} />
+                        </ListItemButton>
+                      )}
+                    </ListItem>
+                  ))}
+                  <Divider sx={{ my: 2 }} />
+                </>
+              )}
               
-              <Divider sx={{ my: 2 }} />
-              
-              {/* Conway School District Section */}
-              <ListSubheader>Conway School District</ListSubheader>
-              <ListItem disablePadding>
-                <ListItemButton>
-                  <ListItemText primary="Academic Achievement" />
-                </ListItemButton>
-              </ListItem>
-              <ListItem disablePadding>
-                <ListItemButton>
-                  <ListItemText primary="Graduation / College" />
-                </ListItemButton>
-              </ListItem>
-              <ListItem disablePadding>
-                <ListItemButton>
-                  <ListItemText primary="Financials" />
-                </ListItemButton>
-              </ListItem>
-              <ListItem disablePadding>
-                <ListItemButton>
-                  <ListItemText primary="Safety" />
-                </ListItemButton>
-              </ListItem>
-              <ListItem disablePadding>
-                <ListItemButton>
-                  <ListItemText primary="Education Freedom Accounts" />
-                </ListItemButton>
-              </ListItem>
-              <ListItem disablePadding>
-                <ListItemButton>
-                  <ListItemText primary="Staff" />
-                </ListItemButton>
-              </ListItem>
-              <ListItem disablePadding>
-                <ListItemButton>
-                  <ListItemText primary="Contact Information" />
-                </ListItemButton>
-              </ListItem>
-              
-              <Divider sx={{ my: 2 }} />
+              {/* District Pages (Dynamic) */}
+              {district.id && district.availablePages.length > 0 && (
+                <>
+                  <ListSubheader>{district.name}</ListSubheader>
+                  {district.availablePages.map((page) => (
+                    <ListItem key={page.path} disablePadding>
+                      {page.tooltip && !page.enabled ? (
+                        <Tooltip title={page.tooltip} arrow>
+                          <ListItemButton 
+                            onClick={() => handleNavigate(page.path, page.enabled)}
+                            disabled={!page.enabled}
+                            sx={{
+                              opacity: page.enabled ? 1 : 0.6,
+                              cursor: page.enabled ? 'pointer' : 'not-allowed',
+                            }}
+                          >
+                            <ListItemText primary={page.name} />
+                          </ListItemButton>
+                        </Tooltip>
+                      ) : (
+                        <ListItemButton 
+                          onClick={() => handleNavigate(page.path, page.enabled)}
+                          disabled={!page.enabled}
+                          sx={{
+                            opacity: page.enabled ? 1 : 0.6,
+                            cursor: page.enabled ? 'pointer' : 'not-allowed',
+                          }}
+                        >
+                          <ListItemText primary={page.name} />
+                        </ListItemButton>
+                      )}
+                    </ListItem>
+                  ))}
+                  <Divider sx={{ my: 2 }} />
+                </>
+              )}
               
               {/* State Overview Section */}
               <ListItem disablePadding>
