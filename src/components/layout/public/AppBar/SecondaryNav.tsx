@@ -14,7 +14,10 @@ import { useSelector, useDispatch } from 'react-redux';
 import { 
   selectSchool, 
   selectDistrict, 
-  selectCurrentPage
+  selectCurrentPage,
+  selectCurrentPageId,
+  getPageType,
+  PageType
 } from '@/store/store';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
@@ -52,10 +55,13 @@ const SecondaryNav = () => {
   const school = useSelector(selectSchool);
   const district = useSelector(selectDistrict);
   const currentPage = useSelector(selectCurrentPage);
+  const currentPageId = useSelector(selectCurrentPageId);
+  const pageType = getPageType(currentPageId);
 
-  // Determine which navigation items to use
+  // Determine which navigation items to use based on page type
   const navItems = useMemo(() => {
-    if (school.id) {
+    // If we're on a school page, show school navigation
+    if (pageType === PageType.SCHOOL && school.id) {
       return school.availablePages.map(page => ({ 
         label: page.shortName || page.name, 
         path: page.path,
@@ -64,7 +70,8 @@ const SecondaryNav = () => {
       }));
     } 
     
-    if (district.id) {
+    // If we're on a district page, show district navigation
+    if (pageType === PageType.DISTRICT && district.id) {
       return district.availablePages.map(page => ({ 
         label: page.shortName || page.name, 
         path: page.path,
@@ -73,9 +80,9 @@ const SecondaryNav = () => {
       }));
     }
     
-    // If no school or district, return empty array
+    // If no appropriate navigation, return empty array
     return [] as NavItem[];
-  }, [school, district]);
+  }, [school, district, pageType]);
 
   // Calculate the active tab index based on current location
   const activeTabIndex = useMemo(() => {

@@ -21,7 +21,9 @@ import pageReducer, {
   updateCurrentPage,
   setCurrentPage,
   findPageEntryByPathname,
-  getPageEntryById 
+  getPageEntryById,
+  getPageType,
+  PageType
 } from '@/store/slices/pageSlice';
 
 // Re-export these items to avoid circular dependencies
@@ -34,7 +36,9 @@ export {
   updateCurrentPage,
   setCurrentPage,
   findPageEntryByPathname,
-  getPageEntryById
+  getPageEntryById,
+  getPageType,
+  PageType
 };
 
 export const store = configureStore({

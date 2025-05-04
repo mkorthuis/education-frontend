@@ -17,7 +17,13 @@ import { useTheme } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { selectSchool, selectDistrict } from '@/store/store';
+import { 
+  selectSchool, 
+  selectDistrict,
+  selectCurrentPageId,
+  getPageType,
+  PageType
+} from '@/store/store';
 import { useNavigate } from 'react-router-dom';
 
 interface MainMenuProps {
@@ -41,6 +47,10 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
   // Get school and district data from Redux store
   const school = useSelector(selectSchool);
   const district = useSelector(selectDistrict);
+  
+  // Get current page type
+  const currentPageId = useSelector(selectCurrentPageId);
+  const pageType = getPageType(currentPageId);
   
   // Calculate the top position based on whether secondary nav is present
   const secondaryNavHeight = 48; // Height of the secondary nav in pixels
@@ -147,8 +157,8 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
 
             {/* Menu Content */}
             <List sx={{ p: 0 }}>
-              {/* School Pages (Dynamic) */}
-              {school.id && school.availablePages.length > 0 && (
+              {/* School Pages (show only on school pages) */}
+              {school.id && school.availablePages.length > 0 && pageType === PageType.SCHOOL && (
                 <>
                   <ListSubheader>{school.name}</ListSubheader>
                   {school.availablePages.map((page) => (
@@ -184,8 +194,8 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
                 </>
               )}
               
-              {/* District Pages (Dynamic) */}
-              {district.id && district.availablePages.length > 0 && (
+              {/* District Pages (show on district pages or when on school pages) */}
+              {district.id && district.availablePages.length > 0 && (pageType === PageType.DISTRICT || pageType === PageType.SCHOOL) && (
                 <>
                   <ListSubheader>{district.name}</ListSubheader>
                   {district.availablePages.map((page) => (

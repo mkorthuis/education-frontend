@@ -155,21 +155,28 @@ export const updateDistrictPages = createAsyncThunk(
   (_, { getState, dispatch }) => {
     const state = getState() as RootState;
     const currentDistrict = state.location.currentDistrict;
+    const currentSchools = state.location.currentSchools;
     
     if (!currentDistrict) return;
+    
+    // Create a complete district object with schools for enabled functions
+    const districtWithSchools = {
+      ...currentDistrict,
+      schools: currentSchools || []
+    };
     
     // Convert registry entries to page info objects
     const districtPages: PageInfo[] = Object.values(PAGE_REGISTRY.district).map(entry => {
       const pageInfo = pageEntryToPageInfo(entry, currentDistrict.id);
       
-      // Handle conditional enabling
+      // Handle conditional enabling, passing the enhanced district object
       if (typeof entry.enabled === 'function') {
-        pageInfo.enabled = entry.enabled(currentDistrict);
+        pageInfo.enabled = entry.enabled(districtWithSchools);
       }
       
-      // Handle conditional tooltips
+      // Handle conditional tooltips, passing the enhanced district object
       if (typeof entry.tooltip === 'function') {
-        pageInfo.tooltip = entry.tooltip(currentDistrict);
+        pageInfo.tooltip = entry.tooltip(districtWithSchools);
       }
       
       return pageInfo;
@@ -190,21 +197,28 @@ export const updateSchoolPages = createAsyncThunk(
   (_, { getState, dispatch }) => {
     const state = getState() as RootState;
     const currentSchool = state.location.currentSchool;
+    const currentDistrict = state.location.currentDistrict;
     
     if (!currentSchool) return;
+    
+    // Create a complete school object with district reference for enabled functions
+    const schoolWithContext = {
+      ...currentSchool,
+      district: currentDistrict || null
+    };
     
     // Convert registry entries to page info objects
     const schoolPages: PageInfo[] = Object.values(PAGE_REGISTRY.school).map(entry => {
       const pageInfo = pageEntryToPageInfo(entry, currentSchool.id);
       
-      // Handle conditional enabling
+      // Handle conditional enabling with context
       if (typeof entry.enabled === 'function') {
-        pageInfo.enabled = entry.enabled(currentSchool);
+        pageInfo.enabled = entry.enabled(schoolWithContext);
       }
       
-      // Handle conditional tooltips
+      // Handle conditional tooltips with context
       if (typeof entry.tooltip === 'function') {
-        pageInfo.tooltip = entry.tooltip(currentSchool);
+        pageInfo.tooltip = entry.tooltip(schoolWithContext);
       }
       
       return pageInfo;
@@ -284,6 +298,33 @@ export const getPageEntryById = (pageId: string): PageEntry => {
   
   // Fallback to home
   return PAGE_REGISTRY.general.home;
+};
+
+// Define page type enum
+export enum PageType {
+  DISTRICT = 'district',
+  SCHOOL = 'school',
+  GENERAL = 'general'
+}
+
+// Helper function to determine the type of page (district, school, general)
+export const getPageType = (pageId: string): PageType => {
+  // Check if page exists in district registry
+  for (const key of Object.keys(PAGE_REGISTRY.district || {})) {
+    if (PAGE_REGISTRY.district[key].id === pageId) {
+      return PageType.DISTRICT;
+    }
+  }
+  
+  // Check if page exists in school registry
+  for (const key of Object.keys(PAGE_REGISTRY.school || {})) {
+    if (PAGE_REGISTRY.school[key].id === pageId) {
+      return PageType.SCHOOL;
+    }
+  }
+  
+  // Default to general
+  return PageType.GENERAL;
 };
 
 // Selectors
