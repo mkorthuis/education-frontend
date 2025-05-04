@@ -6,11 +6,15 @@ import { PATHS } from '@/routes/paths';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useEffect, useRef, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { 
-  fetchDistricts,
-  District
-} from '@/store/slices/locationSlice';
 import SearchIcon from '@mui/icons-material/Search';
+import { locationApi } from '@/services/api/endpoints/locations';
+
+// Define District interface locally
+interface District {
+  id: number;
+  name: string;
+  grades?: { id: number; name: string }[];
+}
 
 export default function Top() {
   const theme = useTheme();
@@ -22,12 +26,9 @@ export default function Top() {
   const prevPathsRef = useRef<string[]>([]);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   
-  // District search state using direct state access
-  const locationState = useAppSelector((state) => state.location);
-  const districts = locationState.districts;
-  const loading = locationState.loadingStates?.districts || false;
-  const currentDistrict = locationState.currentDistrict;
-  const currentSchool = locationState.currentSchool;
+  // Local state for districts instead of Redux
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [loading, setLoading] = useState(false);
   const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
 
   // Track navigation history within our app
@@ -42,10 +43,22 @@ export default function Top() {
     }
   }, [location]);
 
-  // Load districts when component mounts
+  // Load districts when component mounts using direct API call
   useEffect(() => {
-    dispatch(fetchDistricts());
-  }, [dispatch]);
+    const fetchDistricts = async () => {
+      try {
+        setLoading(true);
+        const districtsData = await locationApi.getDistricts();
+        setDistricts(districtsData);
+      } catch (error) {
+        console.error('Failed to fetch districts:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDistricts();
+  }, []);
 
   // Find the current path title
   let currentTitle = 'NH Education Facts'; // Default title
