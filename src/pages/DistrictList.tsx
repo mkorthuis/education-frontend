@@ -25,8 +25,8 @@ const DistrictList: React.FC = () => {
       try {
         setLoading(true);
         const districtsData = await locationApi.getDistricts();
-        // Sort districts alphabetically by name
-        const sortedDistricts = districtsData.sort((a: District, b: District) => 
+        // Create a copy of the array before sorting to avoid modifying a potentially read-only array
+        const sortedDistricts = [...districtsData].sort((a: District, b: District) => 
           a.name.localeCompare(b.name)
         );
         setDistricts(sortedDistricts);

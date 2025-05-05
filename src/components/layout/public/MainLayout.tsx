@@ -1,5 +1,5 @@
 import { Box, Container, Toolbar, useTheme, useMediaQuery } from "@mui/material";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import Footer from "./Footer/index";
 
 interface MainLayoutProps {
@@ -11,10 +11,16 @@ interface MainLayoutProps {
  */
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const theme = useTheme();
+  const location = useLocation();
   const isMediumOrLarger = useMediaQuery(theme.breakpoints.up('md'));
   
-  // Calculate padding based on screen size - add extra for secondary nav on desktop
-  const topPadding = isMediumOrLarger ? 104 : 56; // 56px AppBar + 48px SecondaryNav on desktop
+  // Determine if we're on a page that needs secondary nav
+  const isHomePage = location.pathname === '/' || location.pathname === '/home';
+  const isGeneralPage = ['/privacy', '/terms', '/districts'].includes(location.pathname);
+  const needsSecondaryNav = isMediumOrLarger && !isHomePage && !isGeneralPage;
+  
+  // Calculate padding based on whether secondary nav is needed
+  const topPadding = needsSecondaryNav ? 104 : 56; // 56px AppBar + 48px SecondaryNav if needed
   
   return (
     <Box
@@ -27,8 +33,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       {/* Spacing for fixed AppBar */}
       <Box sx={{ height: 56 }} />
       
-      {/* Extra spacing for SecondaryNav on desktop */}
-      {isMediumOrLarger && <Box sx={{ height: 48 }} />}
+      {/* Extra spacing for SecondaryNav on desktop (only if needed) */}
+      {needsSecondaryNav && <Box sx={{ height: 48 }} />}
       
       {/* Page Content */}
       <Container 

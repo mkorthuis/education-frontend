@@ -80,7 +80,13 @@ const Footer = () => {
               >
                 Privacy Policy
               </MuiLink>
-              <MuiLink href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
+              <MuiLink 
+                component={RouterLink} 
+                to="/terms" 
+                color="inherit" 
+                display="block" 
+                sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}
+              >
                 Terms of Use
               </MuiLink>
               <MuiLink href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>

@@ -53,6 +53,9 @@ const AppBar: React.FC<AppBarProps> = ({
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   const isHomePage = location.pathname === '/' || location.pathname === '/home';
+  
+  // Check if the current page is a general page like privacy or terms
+  const isGeneralPage = ['/privacy', '/terms', '/districts'].includes(location.pathname);
 
   const toggleMobileSearch = () => {
     setShowMobileSearch(!showMobileSearch);
@@ -81,8 +84,8 @@ const AppBar: React.FC<AppBarProps> = ({
     setMainMenuOpen(!mainMenuOpen);
   };
   
-  // Check if SecondaryNav should be displayed (only on medium screens and up, and not on homepage)
-  const showSecondaryNav = isMediumOrLarger && !isHomePage;
+  // Check if SecondaryNav should be displayed (only on medium screens and up, and not on general pages)
+  const showSecondaryNav = isMediumOrLarger && !isHomePage && !isGeneralPage;
 
   // Custom Popper for mobile search
   const CustomPopper = function (props: any) {

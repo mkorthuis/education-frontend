@@ -22,7 +22,7 @@ import {
   getPageType,
   PageType
 } from '@/store/store';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface MainMenuProps {
   open: boolean;
@@ -37,6 +37,7 @@ interface MainMenuProps {
 const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSecondaryNav = false }) => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
   const isXlOrLess = useMediaQuery(theme.breakpoints.down('xl'));
   const [menuPosition, setMenuPosition] = useState({ left: 0 });
@@ -50,10 +51,15 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
   const currentPageId = useSelector(selectCurrentPageId);
   const pageType = getPageType(currentPageId);
   
+  // Determine if we're on a page that needs secondary nav
+  const isHomePage = location.pathname === '/' || location.pathname === '/home';
+  const isGeneralPage = ['/privacy', '/terms', '/districts'].includes(location.pathname);
+  const needsSecondaryNav = !isSmallScreen && !isHomePage && !isGeneralPage;
+  
   // Calculate the top position based on whether secondary nav is present
   const secondaryNavHeight = 48; // Height of the secondary nav in pixels
   const appBarHeight = 56; // Fixed app bar height
-  const topPosition = hasSecondaryNav ? appBarHeight + secondaryNavHeight : appBarHeight;
+  const topPosition = needsSecondaryNav ? appBarHeight + secondaryNavHeight : appBarHeight;
   
   // Update menu position when anchor element changes or window resizes
   useEffect(() => {
