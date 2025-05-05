@@ -12,7 +12,7 @@ import {
   Popper
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { useLocation, matchPath, useNavigate } from 'react-router-dom';
+import { useLocation, matchPath, useNavigate, Link } from 'react-router-dom';
 import SearchIcon from '@mui/icons-material/Search';
 import MenuIcon from '@mui/icons-material/Menu';
 import { useRef, useState } from 'react';
@@ -133,13 +133,15 @@ const AppBar: React.FC<AppBarProps> = ({
             </IconButton>
 
             {/* Page Title */}
-            <Typography
-              variant="h5"
-              noWrap
-              sx={{ flexGrow: isMediumOrLarger ? 0 : 1, color: 'white', fontWeight: 'bold' }}
-            >
-              NH Education Facts
-            </Typography>
+            <Link to="/" style={{ textDecoration: 'none' }}>
+              <Typography
+                variant="h5"
+                noWrap
+                sx={{ flexGrow: isMediumOrLarger ? 0 : 1, color: 'white', fontWeight: 'bold' }}
+              >
+                NH Education Facts
+              </Typography>
+            </Link>
             <Box sx={{ flexGrow: 1 }} />
             
             {/* Desktop Search (medium+ screens) */}
