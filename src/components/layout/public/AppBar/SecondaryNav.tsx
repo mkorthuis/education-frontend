@@ -119,7 +119,9 @@ const SecondaryNav = () => {
       
       // Only navigate if the tab is enabled
       if (navItem.enabled) {
-        navigate(navItem.path);
+        // Remove any optional path parameters and ensure a trailing slash
+        const baseUrl = navItem.path.replace(/\/:[^/]+(\?)?$/, '/');
+        navigate(baseUrl);
       }
     }
   };
@@ -174,7 +176,7 @@ const SecondaryNav = () => {
           >
             {navItems.map((item, index) => (
               item.tooltip ? (
-                <Tooltip key={item.path} title={item.tooltip} arrow>
+                <Tooltip key={`nav-${index}-${item.label}`} title={item.tooltip} arrow>
                   <span>
                     <NavTab 
                       label={item.label}
@@ -188,7 +190,7 @@ const SecondaryNav = () => {
                 </Tooltip>
               ) : (
                 <NavTab 
-                  key={item.path}
+                  key={`nav-${index}-${item.label}`}
                   label={item.label}
                   disabled={!item.enabled}
                   sx={{
