@@ -38,6 +38,7 @@ type NavItem = {
   path: string;
   enabled: boolean;
   tooltip: string;
+  section: string; // Store the section name for matching
 };
 
 /**
@@ -58,59 +59,70 @@ const SecondaryNav = () => {
   const currentPageId = useSelector(selectCurrentPageId);
   const pageType = getPageType(currentPageId);
 
+  // Get the current section from URL (e.g., "academic" from "/district/142/academic/")
+  const currentSection = useMemo(() => {
+    const pathParts = location.pathname.split('/');
+    // For district or school pages, the section is the 4th part of the path
+    if (pathParts.length >= 4 && (pathParts[1] === 'district' || pathParts[1] === 'school')) {
+      return pathParts[3] || 'overview'; // Default to 'overview' if no section
+    }
+    return '';
+  }, [location.pathname]);
+
   // Determine which navigation items to use based on page type
   const navItems = useMemo(() => {
     // If we're on a school page, show school navigation
     if (pageType === PageType.SCHOOL && school.id) {
-      return school.availablePages.map(page => ({ 
-        label: page.shortName || page.name, 
-        path: page.path,
-        enabled: page.enabled !== undefined ? page.enabled : true,
-        tooltip: page.tooltip || '' 
-      }));
+      return school.availablePages.map(page => {
+        // Extract section from path (e.g., "academic" from "/school/123/academic")
+        const pathParts = page.path.split('/');
+        const section = pathParts.length >= 4 ? pathParts[3] : 'overview';
+        
+        return { 
+          label: page.shortName || page.name, 
+          path: page.path,
+          enabled: page.enabled !== undefined ? page.enabled : true,
+          tooltip: page.tooltip || '',
+          section: section || 'overview'
+        };
+      });
     } 
     
     // If we're on a district page, show district navigation
     if (pageType === PageType.DISTRICT && district.id) {
-      return district.availablePages.map(page => ({ 
-        label: page.shortName || page.name, 
-        path: page.path,
-        enabled: page.enabled !== undefined ? page.enabled : true,
-        tooltip: page.tooltip || '' 
-      }));
+      return district.availablePages.map(page => {
+        // Extract section from path (e.g., "academic" from "/district/123/academic")
+        const pathParts = page.path.split('/');
+        const section = pathParts.length >= 4 ? pathParts[3] : 'overview';
+        
+        return { 
+          label: page.shortName || page.name, 
+          path: page.path,
+          enabled: page.enabled !== undefined ? page.enabled : true,
+          tooltip: page.tooltip || '',
+          section: section || 'overview'
+        };
+      });
     }
     
     // If no appropriate navigation, return empty array
     return [] as NavItem[];
   }, [school, district, pageType]);
 
-  // Calculate the active tab index based on current location
+  // Calculate the active tab index based on the current section
   const activeTabIndex = useMemo(() => {
-    // First try to match based on current page urlPatterns
-    if (currentPage && currentPage.urlPatterns && navItems.length > 0) {
-      // Extract the base path from the first URL pattern
-      const basePath = currentPage.urlPatterns[0].split('/').slice(0, 3).join('/');
-      
-      const indexFromStore = navItems.findIndex(item => 
-        item.path.startsWith(basePath)
-      );
-      
-      if (indexFromStore !== -1) return indexFromStore;
-    }
+    if (navItems.length === 0) return 0;
     
-    // Then try pattern matching against the current URL pathname
-    for (let i = 0; i < navItems.length; i++) {
-      const item = navItems[i];
-      // Convert the path pattern to handle route params
-      const pattern = item.path.replace(/\/:[^/]+(\?)?/g, '/:param');
-      if (matchPath({ path: pattern }, location.pathname)) {
-        return i;
-      }
-    }
+    // Find the nav item with matching section
+    const indexFromSection = navItems.findIndex(item => 
+      item.section === currentSection
+    );
     
-    // Default to first tab if no match found
+    if (indexFromSection !== -1) return indexFromSection;
+    
+    // If no match found, fall back to the first tab
     return 0;
-  }, [navItems, currentPage, location.pathname]);
+  }, [navItems, currentSection]);
 
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);
