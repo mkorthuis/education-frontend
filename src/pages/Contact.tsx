@@ -16,7 +16,7 @@ const Contact: React.FC = () => {
         </Typography>
         
         <Typography variant="body1" paragraph sx={{ fontSize: '1.1rem' }}>
-          Email me at <Link href="mailto:webmaster@nhfacts.com">webmaster@nhfacts.com</Link> and we will be in touch.
+          Email <Link href="mailto:webmaster@nhfacts.com">webmaster@nhfacts.com</Link> and we will be in touch.
         </Typography>
       </Box>
     </Container>
