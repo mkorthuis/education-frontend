@@ -11,6 +11,35 @@ import enrollmentReducer from '@/store/slices/enrollmentSlice';
 import outcomeReducer from '@/store/slices/outcomeSlice';
 import staffReducer from '@/store/slices/staffSlice';
 import classSizeReducer from '@/store/slices/classSizeSlice';
+import pageReducer, { 
+  createSyncLocationWithPageMiddleware,
+  selectDistrict,
+  selectSchool,
+  selectCurrentPage,
+  selectCurrentPageId,
+  selectShowSecondaryNav,
+  updateCurrentPage,
+  setCurrentPage,
+  findPageEntryByPathname,
+  getPageEntryById,
+  getPageType,
+  PageType
+} from '@/store/slices/pageSlice';
+
+// Re-export these items to avoid circular dependencies
+export {
+  selectDistrict,
+  selectSchool,
+  selectCurrentPage,
+  selectCurrentPageId,
+  selectShowSecondaryNav,
+  updateCurrentPage,
+  setCurrentPage,
+  findPageEntryByPathname,
+  getPageEntryById,
+  getPageType,
+  PageType
+};
 
 export const store = configureStore({
   reducer: {
@@ -25,10 +54,18 @@ export const store = configureStore({
     enrollment: enrollmentReducer,
     outcomes: outcomeReducer,
     staff: staffReducer,
-    classSize: classSizeReducer
+    classSize: classSizeReducer,
+    page: pageReducer
   },
   middleware: getDefaultMiddleware =>
-      getDefaultMiddleware()
+    getDefaultMiddleware({
+      serializableCheck: {
+        // These paths no longer need to be ignored since we're only storing IDs
+        // Empty objects are kept for easy restoration if needed
+        ignoredPaths: [],
+        ignoredActionPaths: []
+      }
+    }).concat(createSyncLocationWithPageMiddleware())
 });
 
 export type AppDispatch = typeof store.dispatch;
@@ -38,4 +75,4 @@ export type AppThunk<ReturnType = void> = ThunkAction<
   RootState,
   unknown,
   Action<string>
->;
+>; 

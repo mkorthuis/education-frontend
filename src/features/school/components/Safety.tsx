@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Typography, CircularProgress, Divider, useTheme, useMediaQuery } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentSchool,
-  fetchAllSchoolData,
-  selectSchoolLoading
+  selectLocationLoading
 } from '@/store/slices/locationSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
 import * as safetySlice from '@/store/slices/safetySlice';
@@ -27,22 +26,24 @@ import SeriousSafetyCategoryDetails from './safety/category/SeriousSafetyCategor
 import SuspensionCategoryDetails from './safety/category/SuspensionCategoryDetails';
 import TruancyCategoryDetails from './safety/category/TruancyCategoryDetails';
 import DefaultCategoryDetails from './safety/category/DefaultCategoryDetails';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const Safety: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const schoolId = id ? parseInt(id) : 0;
+  const { category } = useParams<{ category?: string }>();
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
-  // Memoize the parameter objects to avoid recreating them on each render
-  const schoolParams = useMemo(() => ({ school_id: schoolId }), [schoolId]);
-  const stateParams = useMemo(() => ({}), []);
-  
   // School and location data
   const school = useAppSelector(selectCurrentSchool);
-  const schoolLoading = useAppSelector(selectSchoolLoading);
+  const schoolLoading = useAppSelector(selectLocationLoading);
+  
+  // Memoize the parameter objects to avoid recreating them on each render
+  const schoolId = school?.id || 0;
+  const schoolParams = useMemo(() => ({ school_id: schoolId }), [schoolId]);
+  const stateParams = useMemo(() => ({}), []);
   
   // Safety data selectors
   const schoolSafetyData = useAppSelector(state => safetySlice.selectSchoolSafetyData(state, schoolParams));
@@ -102,18 +103,28 @@ const Safety: React.FC = () => {
 
   const selectedSafetyPage = useAppSelector(safetySlice.selectSelectedSafetyPage);
 
+  // Effect to sync URL with selected category
+  useEffect(() => {
+    if (!category && selectedSafetyPage) {
+      // Clear selected category when visiting base safety page
+      dispatch(safetySlice.setSelectedSafetyPage(null));
+    } else if (category && !selectedSafetyPage) {
+      // Only set the category if it's a valid safety page
+      const validCategories = ['bullying', 'harassment', 'restraint', 'serious', 'suspension', 'truancy'];
+      if (validCategories.includes(category)) {
+        dispatch(safetySlice.setSelectedSafetyPage(category as safetySlice.SafetyPage));
+      }
+    }
+  }, [category, selectedSafetyPage, dispatch]);
+
   // Helper function to check if data needs to be fetched
   const shouldFetchData = (loadingState: safetySlice.LoadingState, data: any[]) => {
     return loadingState === safetySlice.LoadingState.IDLE && data.length === 0;
   };
 
+  // Fetch safety data when school is available
   useEffect(() => {
-    if (!id) return;
-
-    // Fetch school data if needed
-    if(!schoolLoading && !school) {
-      dispatch(fetchAllSchoolData(schoolId));
-    }
+    if (!schoolId) return;
 
     // Fetch school safety data
     const schoolDataFetches = [
@@ -174,8 +185,8 @@ const Safety: React.FC = () => {
       }
     });
   }, [
-    dispatch, id, schoolId, schoolLoading, school,
-    loadingStates, schoolParams, stateParams,
+    dispatch, schoolId, schoolParams, stateParams,
+    loadingStates,
     schoolSafetyData, schoolHarassmentData, schoolTruancyData,
     schoolSeclusionData, schoolRestraintData, schoolBullyingData,
     schoolBullyingClassificationData, schoolBullyingImpactData,
@@ -331,9 +342,10 @@ const Safety: React.FC = () => {
 
   return (
     <>
-      <SectionTitle>
-        {school?.name || 'School'}
-      </SectionTitle>
+      <SectionTitle 
+        displayName={PAGE_REGISTRY.school.safety.displayName}
+        schoolName={school?.name}
+      /> 
       
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>

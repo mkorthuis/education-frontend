@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
+import { useNavigate, useParams } from 'react-router-dom';
 import DefaultSafetyCard from './DefaultSafetyCard';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -7,9 +8,13 @@ import { selectDistrictSafetyData, selectSelectedSafetyPage, setSelectedSafetyPa
 import { selectCurrentDistrict } from '@/store/slices/locationSlice';
 import { EARLIEST_YEAR } from '@/utils/safetyCalculations';
 import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const SeriousSafetyCard: React.FC = () => {
     const dispatch = useAppDispatch();
+    const navigate = useNavigate();
+    const { id } = useParams<{ id: string }>();
+    
     const selectedSafetyPage = useAppSelector(selectSelectedSafetyPage);
     const isSelected = selectedSafetyPage === 'serious';
     
@@ -25,6 +30,7 @@ const SeriousSafetyCard: React.FC = () => {
 
     const handleClick = () => {
         dispatch(setSelectedSafetyPage('serious'));
+        navigate(PAGE_REGISTRY.district.safety.urlPatterns[0].replace(':id', id || '').replace(':category?', 'serious'));
     };
 
     return (

@@ -7,9 +7,14 @@ import { selectSelectedSafetyPage, setSelectedSafetyPage, selectSchoolHarassment
 import { selectCurrentSchool } from '@/store/slices/locationSlice';
 import { calculatePer100Students, calculatePercentageDifference } from '@/utils/safetyCalculations';
 import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
+import { useNavigate, useParams } from 'react-router-dom';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const HarassmentCard: React.FC = () => {
     const dispatch = useAppDispatch();
+    const navigate = useNavigate();
+    const { id } = useParams<{ id: string }>();
+    
     const selectedSafetyPage = useAppSelector(selectSelectedSafetyPage);
     const isSelected = selectedSafetyPage === 'harassment';
 
@@ -39,6 +44,8 @@ const HarassmentCard: React.FC = () => {
     const percentDifference = calculatePercentageDifference(schoolIncidentsPer100, stateIncidentsPer100);
 
     const handleClick = () => {
+        const path = PAGE_REGISTRY.school.safety.urlPatterns[0].replace(':id', id || '').replace(':category?', 'harassment');
+        navigate(path);
         dispatch(setSelectedSafetyPage('harassment'));
     };
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Divider, Typography } from '@mui/material';
+import { useNavigate, useParams } from 'react-router-dom';
 import DefaultSafetyCard from './DefaultSafetyCard';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -7,9 +8,13 @@ import { selectDistrictTruancyData,selectStateEnrollmentData,  selectDistrictEnr
 import { selectCurrentDistrict } from '@/store/slices/locationSlice';
 import { calculatePer100Students, calculatePercentageDifference } from '@/utils/safetyCalculations';
 import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const TruancyCard: React.FC = () => {
     const dispatch = useAppDispatch();
+    const navigate = useNavigate();
+    const { id } = useParams<{ id: string }>();
+    
     const selectedSafetyPage = useAppSelector(selectSelectedSafetyPage);
     const isSelected = selectedSafetyPage === 'truancy';
     
@@ -36,6 +41,7 @@ const TruancyCard: React.FC = () => {
     
     const handleClick = () => {
         dispatch(setSelectedSafetyPage('truancy'));
+        navigate(PAGE_REGISTRY.district.safety.urlPatterns[0].replace(':id', id || '').replace(':category?', 'truancy'));
     };
 
     return (

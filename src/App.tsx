@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { createTheme, CssBaseline, ThemeProvider } from "@mui/material";
+import { CssBaseline, ThemeProvider } from "@mui/material";
 import ErrorBoundary from "./components/ErrorBoundary/ErrorBoundary";
 import { RouterProvider } from "react-router-dom";
 import { selectThemeMode } from "@/store/slices/appSlice";
@@ -7,14 +7,13 @@ import { useAppSelector } from "@store/hooks";
 import router from "@routes/index";
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import theme from './theme';
 
 import "./App.css"
 
 const App = () => {
   const themeMode = useAppSelector(selectThemeMode);
 
-  const baseTheme = createTheme(); // Create a base theme first
-  const theme = createTheme({ });
   return (
     <ErrorBoundary>
       <LocalizationProvider dateAdapter={AdapterDateFns}>

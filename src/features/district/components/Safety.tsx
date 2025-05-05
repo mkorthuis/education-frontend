@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Typography, CircularProgress, Divider, useTheme, useMediaQuery } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentDistrict,
   selectLocationLoading,
-  fetchAllDistrictData,
   selectCurrentSchools
 } from '@/store/slices/locationSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
@@ -28,23 +27,25 @@ import SeriousSafetyCategoryDetails from './safety/category/SeriousSafetyCategor
 import SuspensionCategoryDetails from './safety/category/SuspensionCategoryDetails';
 import TruancyCategoryDetails from './safety/category/TruancyCategoryDetails';
 import DefaultCategoryDetails from './safety/category/DefaultCategoryDetails';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const Safety: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const districtId = id ? parseInt(id) : 0;
+  const { category } = useParams<{ category?: string }>();
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
+  // District and location data
+  const district = useAppSelector(selectCurrentDistrict);
+  const districtId = district?.id;
+  const districtLoading = useAppSelector(selectLocationLoading);
+  const schools = useAppSelector(selectCurrentSchools);
+  
   // Memoize the parameter objects to avoid recreating them on each render
   const districtParams = useMemo(() => ({ district_id: districtId }), [districtId]);
   const stateParams = useMemo(() => ({}), []);
-  
-  // District and location data
-  const district = useAppSelector(selectCurrentDistrict);
-  const districtLoading = useAppSelector(selectLocationLoading);
-  const schools = useAppSelector(selectCurrentSchools);
   
   // Safety data selectors
   const schoolSafetyData = useAppSelector(state => safetySlice.selectSchoolSafetyData(state, districtParams));
@@ -110,18 +111,27 @@ const Safety: React.FC = () => {
 
   const selectedSafetyPage = useAppSelector(safetySlice.selectSelectedSafetyPage);
 
+  // Effect to sync URL with selected category
+  useEffect(() => {
+    if (!category && selectedSafetyPage) {
+      // Clear selected category when visiting base safety page
+      dispatch(safetySlice.setSelectedSafetyPage(null));
+    } else if (category && !selectedSafetyPage) {
+      // Only set the category if it's a valid safety page
+      const validCategories = ['bullying', 'harassment', 'restraint', 'serious', 'suspension', 'truancy'];
+      if (validCategories.includes(category)) {
+        dispatch(safetySlice.setSelectedSafetyPage(category as safetySlice.SafetyPage));
+      }
+    }
+  }, [category, selectedSafetyPage, dispatch]);
+
   // Helper function to check if data needs to be fetched
   const shouldFetchData = (loadingState: safetySlice.LoadingState, data: any[]) => {
     return loadingState === safetySlice.LoadingState.IDLE && data.length === 0;
   };
 
   useEffect(() => {
-    if (!id) return;
-
-    // Only fetch district data if we don't have it and aren't already loading it
-    if (!district && !districtLoading) {
-      dispatch(fetchAllDistrictData(districtId));
-    }
+    if (!districtId) return;
 
     // Only fetch other data if we have the district data
     if (district) {
@@ -194,7 +204,7 @@ const Safety: React.FC = () => {
       });
     }
   }, [
-    dispatch, id, districtId, district, districtLoading,
+    dispatch, districtId, district,
     loadingStates, districtParams, stateParams,
     schoolSafetyData, schoolHarassmentData,
     districtSafetyData, districtHarassmentData, districtTruancyData,
@@ -347,8 +357,10 @@ const Safety: React.FC = () => {
 
   return (
     <>
-      <SectionTitle>{district?.name || 'District'} School District</SectionTitle>
-      {isLoading ? (
+        <SectionTitle 
+          displayName={PAGE_REGISTRY.district.safety.displayName}
+          districtName={district?.name}
+        />      {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
           <CircularProgress />
         </Box>

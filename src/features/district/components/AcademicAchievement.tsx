@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentDistrict,
-  selectAnyLocationLoading,
-  fetchAllDistrictData
+  selectAnyLocationLoading
 } from '@/store/slices/locationSlice';
 import {
   fetchAssessmentDistrictData,
@@ -30,44 +29,55 @@ import AcademicDefaultView from '@/features/district/components/academic/Academi
 import { filterAssessmentResults, ALL_GRADES_ID } from '@/features/district/utils/assessmentDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { LoadingState } from '@/store/slices/safetySlice';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const AcademicAchievement: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { subjectName } = useParams<{ subjectName?: string }>();
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
   // Selectors
   const district = useAppSelector(selectCurrentDistrict);
+  const districtId = district?.id;
   const districtLoading = useAppSelector(selectAnyLocationLoading);
   
   // Create query params for initial district data fetch
   const initialQueryParams = useMemo(() => ({
-    district_id: id ? parseInt(id) : undefined
-  }), [id]);
+    district_id: districtId
+  }), [districtId]);
   
   // Use parameterized loading selector
   const districtAssessmentLoading = useAppSelector(state => selectAssessmentDistrictLoadingStatus(state, initialQueryParams));
   const stateAssessmentLoading = useAppSelector(state => selectAssessmentStateLoadingStatus(state, {}));
   
   const districtAssessmentData = useAppSelector(state => selectAssessmentDistrictData(state, initialQueryParams));
-  //const districtAssessmentData = useAppSelector(selectCurrentAssessmentDistrictData);
   const stateAssessmentData = useAppSelector(selectCurrentAssessmentStateData);
 
   const selectedSubjectId = useAppSelector(selectSelectedSubjectId);
   const selectedSubject = useAppSelector(selectSelectedSubject);
 
-  // Effect to reset selected subject - runs only once when component mounts
+  // Effect to sync URL with selected subject
   useEffect(() => {
-    dispatch(setSelectedSubjectId(null));
-  }, [dispatch]);
+    if (!subjectName && selectedSubjectId) {
+      // Clear selected subject when visiting base academic page
+      dispatch(setSelectedSubjectId(null));
+    } else if (subjectName && districtAssessmentData.length > 0) {
+      // Find the subject ID that matches the URL subject name
+      const matchingSubject = districtAssessmentData.find(data => {
+        const subjectDescription = data.assessment_subject?.description || '';
+        const urlSafeSubjectName = encodeURIComponent(subjectDescription.toLowerCase().replace(/\s+/g, '-'));
+        return urlSafeSubjectName === subjectName;
+      });
+
+      if (matchingSubject?.assessment_subject?.id) {
+        dispatch(setSelectedSubjectId(matchingSubject.assessment_subject.id));
+      }
+    }
+  }, [subjectName, districtAssessmentData, dispatch]);
 
   // Fetch all required data
   useEffect(() => {
-    if (!id) return;
-
-    // If district data isn't loaded yet, fetch it
-    if (!district && !districtLoading) {
-      dispatch(fetchAllDistrictData(parseInt(id)));
-    }
+    if (!districtId) return;
 
     // Only fetch assessment data if we have the district data
     if (district) {
@@ -95,9 +105,8 @@ const AcademicAchievement: React.FC = () => {
     }
   }, [
     dispatch, 
-    id, 
-    district,  // Add district as dependency
-    districtLoading,
+    districtId, 
+    district,
     districtAssessmentLoading, 
     districtAssessmentData.length, 
     stateAssessmentLoading,
@@ -133,13 +142,16 @@ const AcademicAchievement: React.FC = () => {
 
   return (
     <>
-      <SectionTitle>{district?.name} School District</SectionTitle>    
+      <SectionTitle 
+        displayName={PAGE_REGISTRY.district.academic.displayName}
+        districtName={district?.name}
+      />
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
           <CircularProgress />
         </Box>
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'flex-start' }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'flex-start', width: '100%' }}>
           {/* Mobile instruction text - only visible on mobile and when no subject is selected */}
           {!selectedSubjectId && (
             <Box sx={{ display: { xs: 'block', md: 'none' }, mb: 1 }}>
@@ -163,7 +175,9 @@ const AcademicAchievement: React.FC = () => {
           
           {/* Conditionally render AcademicSubjectDetails or AcademicDefaultView */}
           {selectedSubjectId ? (
-            <AcademicSubjectDetails subject={selectedSubject} />
+            <Box sx={{ flex: 1, width: { xs: '100%', sm: '100%' } }}>
+              <AcademicSubjectDetails subject={selectedSubject} />
+            </Box>
           ) : (
             <Box sx={{ display: { xs: 'none', md: 'block' }, flex: 1 }}>
               <AcademicDefaultView 

@@ -1,16 +1,20 @@
 import React from 'react';
 import { Box, Divider, Typography } from '@mui/material';
+import { useNavigate, useParams } from 'react-router-dom';
 import DefaultSafetyCard from './DefaultSafetyCard';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { selectDistrictRestraintData, selectStateRestraintData, selectSelectedSafetyPage, setSelectedSafetyPage, selectStateEnrollmentData, selectDistrictEnrollmentData } from '@/store/slices/safetySlice';
+import { selectSelectedSafetyPage, setSelectedSafetyPage, selectDistrictRestraintData, selectStateRestraintData, selectDistrictEnrollmentData, selectStateEnrollmentData } from '@/store/slices/safetySlice';
 import { selectCurrentDistrict } from '@/store/slices/locationSlice';
-import { calculatePercentageDifference } from '@/utils/safetyCalculations';
-import { calculatePer100Students } from '@/utils/safetyCalculations';
+import { calculatePer100Students, calculatePercentageDifference } from '@/utils/safetyCalculations';
 import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const RestraintCard: React.FC = () => {
     const dispatch = useAppDispatch();
+    const navigate = useNavigate();
+    const { id } = useParams<{ id: string }>();
+    
     const selectedSafetyPage = useAppSelector(selectSelectedSafetyPage);
     const isSelected = selectedSafetyPage === 'restraint';
     
@@ -35,10 +39,9 @@ const RestraintCard: React.FC = () => {
     const stateRestraintsPer100 = calculatePer100Students(stateGeneratedRestraints, stateEnrollment2024);
     const percentDifference = calculatePercentageDifference(districtRestraintsPer100, stateRestraintsPer100);
 
-
-
     const handleClick = () => {
         dispatch(setSelectedSafetyPage('restraint'));
+        navigate(PAGE_REGISTRY.district.safety.urlPatterns[0].replace(':id', id || '').replace(':category?', 'restraint'));
     };
 
     return (

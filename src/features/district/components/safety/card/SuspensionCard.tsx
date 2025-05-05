@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Divider, Typography } from '@mui/material';
+import { useNavigate, useParams } from 'react-router-dom';
 import DefaultSafetyCard from './DefaultSafetyCard';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectDistrictEnrollmentData, selectSelectedSafetyPage, selectStateEnrollmentData, setSelectedSafetyPage, selectDistrictDisciplineCountData, selectStateDisciplineCountData, selectDisciplineCountTypes } from '@/store/slices/safetySlice';
@@ -7,9 +8,13 @@ import { selectCurrentDistrict } from '@/store/slices/locationSlice';
 import { calculatePer100Students, calculatePercentageDifference, IN_SCHOOL_SUSPENSION_TYPE, OUT_OF_SCHOOL_SUSPENSION_TYPE } from '@/utils/safetyCalculations';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const SuspensionCard: React.FC = () => {
     const dispatch = useAppDispatch();
+    const navigate = useNavigate();
+    const { id } = useParams<{ id: string }>();
+    
     const selectedSafetyPage = useAppSelector(selectSelectedSafetyPage);
     const isSelected = selectedSafetyPage === 'suspension';
     
@@ -58,6 +63,7 @@ const SuspensionCard: React.FC = () => {
 
     const handleClick = () => {
         dispatch(setSelectedSafetyPage('suspension'));
+        navigate(PAGE_REGISTRY.district.safety.urlPatterns[0].replace(':id', id || '').replace(':category?', 'suspension'));
     };
 
     return (

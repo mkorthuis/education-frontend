@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentSchool,
-  selectAnyLocationLoading,
-  fetchAllSchoolData
+  selectAnyLocationLoading
 } from '@/store/slices/locationSlice';
 import {
   fetchAssessmentSchoolData,
@@ -28,9 +27,11 @@ import AcademicDefaultView from '@/features/school/components/academic/AcademicD
 import { filterAssessmentResults, ALL_GRADES_ID } from '@/features/district/utils/assessmentDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { LoadingState } from '@/store/slices/safetySlice';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const AcademicAchievement: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { subjectName } = useParams<{ subjectName?: string }>();
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
   // Selectors
@@ -39,8 +40,8 @@ const AcademicAchievement: React.FC = () => {
   
   // Create query params for initial school data fetch
   const initialQueryParams = useMemo(() => ({
-    school_id: id || ''
-  }), [id]);
+    school_id: school?.id.toString() || ''
+  }), [school?.id]);
   
   // Use parameterized loading selector
   const schoolAssessmentLoading = useAppSelector(state => selectAssessmentSchoolLoadingStatus(state, initialQueryParams));
@@ -52,26 +53,35 @@ const AcademicAchievement: React.FC = () => {
   const selectedSubjectId = useAppSelector(selectSelectedSubjectId);
   const selectedSubject = useAppSelector(selectSelectedSubject);
 
-  // Effect to reset selected subject - runs only once when component mounts
+  // Effect to sync URL with selected subject
   useEffect(() => {
-    dispatch(setSelectedSubjectId(null));
-  }, [dispatch]);
+    if (!subjectName && selectedSubjectId) {
+      // Clear selected subject when visiting base academic page
+      dispatch(setSelectedSubjectId(null));
+    } else if (subjectName && schoolAssessmentData.length > 0) {
+      // Find the subject ID that matches the URL subject name
+      const matchingSubject = schoolAssessmentData.find(data => {
+        const subjectDescription = data.assessment_subject?.description || '';
+        const urlSafeSubjectName = encodeURIComponent(subjectDescription.toLowerCase().replace(/\s+/g, '-'));
+        return urlSafeSubjectName === subjectName;
+      });
 
-  // Fetch all required data
-  useEffect(() => {
-    if (id) {
-      // If school data isn't loaded yet, fetch it
-      if (!school && !schoolLoading) {
-        dispatch(fetchAllSchoolData(parseInt(id)));
+      if (matchingSubject?.assessment_subject?.id) {
+        dispatch(setSelectedSubjectId(matchingSubject.assessment_subject.id));
       }
+    }
+  }, [subjectName, schoolAssessmentData, dispatch]);
 
+  // Fetch assessment data when school is available
+  useEffect(() => {
+    if (school?.id) {
       // Fetch state assessment data if not already loaded
       if (stateAssessmentLoading === LoadingState.IDLE && stateAssessmentData.length === 0) {
         dispatch(fetchAssessmentStateData({}));
       }
 
       // Fetch school assessment data if not already loaded
-      if ((school && schoolAssessmentLoading === LoadingState.IDLE && schoolAssessmentData.length === 0)) {
+      if (schoolAssessmentLoading === LoadingState.IDLE && schoolAssessmentData.length === 0) {
         dispatch(setCurrentSchoolDataKey("-1"));
         dispatch(fetchAssessmentSchoolData(initialQueryParams)).then((action) => {
           // After fetching is complete, set the current school data key manually
@@ -88,7 +98,7 @@ const AcademicAchievement: React.FC = () => {
       }
     }
   }, [
-    dispatch, id, school, schoolLoading, schoolAssessmentLoading, 
+    dispatch, school?.id, schoolAssessmentLoading, 
     schoolAssessmentData.length, stateAssessmentLoading,
     stateAssessmentData.length, initialQueryParams
   ]);
@@ -121,13 +131,16 @@ const AcademicAchievement: React.FC = () => {
 
   return (
     <>
-      <SectionTitle>{school?.name || 'School'}</SectionTitle>    
+      <SectionTitle 
+        displayName={PAGE_REGISTRY.school.academic.displayName}
+        schoolName={school?.name}
+      />    
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
           <CircularProgress />
         </Box>
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'flex-start' }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'flex-start', width: '100%' }}>
           {/* Mobile instruction text - only visible on mobile and when no subject is selected */}
           {!selectedSubjectId && (
             <Box sx={{ display: { xs: 'block', md: 'none' }, mb: 1 }}>
@@ -151,7 +164,9 @@ const AcademicAchievement: React.FC = () => {
           
           {/* Conditionally render AcademicSubjectDetails or AcademicDefaultView */}
           {selectedSubjectId ? (
-            <AcademicSubjectDetails subject={selectedSubject} />
+            <Box sx={{ flex: 1, width: { xs: '100%', sm: '100%' } }}>
+              <AcademicSubjectDetails subject={selectedSubject} />
+            </Box>
           ) : (
             <Box sx={{ display: { xs: 'none', md: 'block' }, flex: 1 }}>
               <AcademicDefaultView 

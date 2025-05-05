@@ -18,8 +18,9 @@ import {
   EARLIEST_YEAR
 } from '@/features/district/utils/assessmentDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useTheme } from '@mui/material/styles';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 interface MeasurementCardProps {
   assessment_subject_id: number;
@@ -31,7 +32,8 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
   assessment_subject_id,
   totalCount = 1
 }) => {
-  const { id } = useParams<{ id: string }>();
+  const { id, subjectName } = useParams<{ id: string; subjectName?: string }>();
+  const navigate = useNavigate();
   const currentSchoolId = id ? parseInt(id) : null;
   const dispatch = useAppDispatch();
   const theme = useTheme();
@@ -70,7 +72,14 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
   }, [dispatch, schoolAssessmentData, queryParams, isSchoolDataLoading]);
 
   const handleCardClick = () => {
-    dispatch(setSelectedSubjectId(assessment_subject_id));
+    if (id) {
+      const subjectDescription = assessmentData?.assessment_subject?.description || '';
+      const urlSafeSubjectName = encodeURIComponent(subjectDescription.toLowerCase().replace(/\s+/g, '-'));
+      const path = PAGE_REGISTRY.school.academic.urlPatterns[0]
+        .replace(':id', id)
+        .replace(':subjectName?', urlSafeSubjectName);
+      navigate(path);
+    }
   };
 
   // Filter the school data based on selected grade and subgroup
