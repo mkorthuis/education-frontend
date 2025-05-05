@@ -255,6 +255,15 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
               {/* State Overview Section */}
               <ListItem disablePadding sx={{ pt: (!school.id && !district.id) ? 1.5 : 0 }}>
                 <ListItemButton 
+                  onClick={() => handleNavigate('/')}
+                  sx={{ py: 0.5 }}
+                >
+                  <ListItemText primary="Home" />
+                </ListItemButton>
+              </ListItem>
+              
+              <ListItem disablePadding>
+                <ListItemButton 
                   disabled={true}
                   sx={{ 
                     py: 0.5,

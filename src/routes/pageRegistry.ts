@@ -31,7 +31,9 @@ export type PageRegistry = {
 
 // Import components lazily for better performance
 const Home = lazy(() => import('@/pages/Home'));
+const DistrictList = lazy(() => import('@/pages/DistrictList'));
 const District = lazy(() => import('@/features/district/pages/District'));
+const Admin = lazy(() => import('@/pages/Admin'));
 
 // District components
 const AcademicAchievement = lazy(() => import('@/features/district/components/AcademicAchievement'));
@@ -61,6 +63,14 @@ export const PAGE_REGISTRY: PageRegistry = {
       urlPatterns: ['/'],
       displayName: 'NH Education Facts',
       order: 1,
+      enabled: true,
+    },
+    districts: {
+      id: 'general.districts',
+      component: DistrictList,
+      urlPatterns: ['/districts'],
+      displayName: 'All Districts',
+      order: 2,
       enabled: true,
     },
   },

@@ -1,4 +1,5 @@
-import { Box, Container, Grid, Typography, Link, Divider, useTheme, useMediaQuery } from '@mui/material';
+import { Box, Container, Grid, Typography, Link as MuiLink, Divider, useTheme, useMediaQuery } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
 
 /**
  * Footer component with links and copyright information
@@ -34,45 +35,51 @@ const Footer = () => {
               <Typography variant="h6" color="inherit" gutterBottom>
                 About
               </Typography>
-              <Link href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
+              <MuiLink href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
                 About Us
-              </Link>
-              <Link href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
+              </MuiLink>
+              <MuiLink href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
                 Our Mission
-              </Link>
-              <Link href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
+              </MuiLink>
+              <MuiLink href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
                 Data Sources
-              </Link>
+              </MuiLink>
             </Grid>
             
             <Grid item xs={12} md={3}>
               <Typography variant="h6" color="inherit" gutterBottom>
                 Resources
               </Typography>
-              <Link href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
+              <MuiLink 
+                component={RouterLink} 
+                to="/districts" 
+                color="inherit" 
+                display="block" 
+                sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}
+              >
                 Available Districts and Schools
-              </Link>
-              <Link href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
+              </MuiLink>
+              <MuiLink href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
                 API Documentation
-              </Link>
-              <Link href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
+              </MuiLink>
+              <MuiLink href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
                 FAQ
-              </Link>
+              </MuiLink>
             </Grid>
             
             <Grid item xs={12} md={3}>
               <Typography variant="h6" color="inherit" gutterBottom>
                 Legal
               </Typography>
-              <Link href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
+              <MuiLink href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
                 Privacy Policy
-              </Link>
-              <Link href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
+              </MuiLink>
+              <MuiLink href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
                 Terms of Use
-              </Link>
-              <Link href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
+              </MuiLink>
+              <MuiLink href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
                 Contact
-              </Link>
+              </MuiLink>
             </Grid>
           </Grid>
           

@@ -137,8 +137,8 @@ const SecondaryNav = () => {
     }
   };
 
-  // Only render on desktop
-  if (!isMediumOrLarger) return null;
+  // Don't render if not on desktop OR if there are no navigation items to show
+  if (!isMediumOrLarger || navItems.length === 0) return null;
 
   return (
     <Box 
@@ -161,58 +161,56 @@ const SecondaryNav = () => {
           boxShadow: '0px 2px 4px -1px rgba(0,0,0,0.2)',
         }}
       >
-        {navItems.length > 0 && (
-          <Tabs
-            value={activeTabIndex}
-            onChange={handleChange}
-            variant="scrollable"
-            scrollButtons="auto"
-            allowScrollButtonsMobile
-            TabIndicatorProps={{
-              style: {
-                backgroundColor: theme.palette.primary.main,
-                height: 3
-              }
-            }}
-            sx={{
-              '& .MuiTabs-flexContainer': {
-                justifyContent: 'flex-start',
-              },
-              '& .MuiTabs-indicator': {
-                backgroundColor: theme.palette.secondary.main,
-              },
-              px: { xs: 2, md: 3 },
-              height: '100%',
-            }}
-          >
-            {navItems.map((item, index) => (
-              item.tooltip ? (
-                <Tooltip key={`nav-${index}-${item.label}`} title={item.tooltip} arrow>
-                  <span>
-                    <NavTab 
-                      label={item.label}
-                      disabled={!item.enabled}
-                      sx={{
-                        opacity: item.enabled ? 1 : 0.6,
-                        cursor: item.enabled ? 'pointer' : 'not-allowed',
-                      }}
-                    />
-                  </span>
-                </Tooltip>
-              ) : (
-                <NavTab 
-                  key={`nav-${index}-${item.label}`}
-                  label={item.label}
-                  disabled={!item.enabled}
-                  sx={{
-                    opacity: item.enabled ? 1 : 0.6,
-                    cursor: item.enabled ? 'pointer' : 'not-allowed',
-                  }}
-                />
-              )
-            ))}
-          </Tabs>
-        )}
+        <Tabs
+          value={activeTabIndex}
+          onChange={handleChange}
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
+          TabIndicatorProps={{
+            style: {
+              backgroundColor: theme.palette.primary.main,
+              height: 3
+            }
+          }}
+          sx={{
+            '& .MuiTabs-flexContainer': {
+              justifyContent: 'flex-start',
+            },
+            '& .MuiTabs-indicator': {
+              backgroundColor: theme.palette.secondary.main,
+            },
+            px: { xs: 2, md: 3 },
+            height: '100%',
+          }}
+        >
+          {navItems.map((item, index) => (
+            item.tooltip ? (
+              <Tooltip key={`nav-${index}-${item.label}`} title={item.tooltip} arrow>
+                <span>
+                  <NavTab 
+                    label={item.label}
+                    disabled={!item.enabled}
+                    sx={{
+                      opacity: item.enabled ? 1 : 0.6,
+                      cursor: item.enabled ? 'pointer' : 'not-allowed',
+                    }}
+                  />
+                </span>
+              </Tooltip>
+            ) : (
+              <NavTab 
+                key={`nav-${index}-${item.label}`}
+                label={item.label}
+                disabled={!item.enabled}
+                sx={{
+                  opacity: item.enabled ? 1 : 0.6,
+                  cursor: item.enabled ? 'pointer' : 'not-allowed',
+                }}
+              />
+            )
+          ))}
+        </Tabs>
       </Container>
     </Box>
   );
