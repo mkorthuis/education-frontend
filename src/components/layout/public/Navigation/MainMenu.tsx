@@ -1,7 +1,5 @@
 import { 
   Box,
-  TextField, 
-  InputAdornment, 
   List, 
   ListItem, 
   ListItemText, 
@@ -14,7 +12,6 @@ import {
   Tooltip
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import SearchIcon from '@mui/icons-material/Search';
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { 
@@ -131,30 +128,6 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Menu Search Box */}
-            <Box sx={{ 
-              padding: 2,
-              position: 'sticky',
-              top: 0,
-              backgroundColor: 'background.paper',
-              zIndex: 1,
-            }}>
-              <TextField
-                fullWidth
-                placeholder="Search..."
-                variant="outlined"
-                size="small"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Box>
-            <Divider />
-
             {/* Menu Content */}
             <List sx={{ p: 0 }}>
               {/* School Pages (show only on school pages) */}

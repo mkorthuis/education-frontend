@@ -43,7 +43,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       </Container>
       
       {/* Footer */}
-      <Container maxWidth="xl">
+      <Container maxWidth="xl" disableGutters>
         <Footer />
       </Container>
     </Box>
