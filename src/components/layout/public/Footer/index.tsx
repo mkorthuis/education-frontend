@@ -71,7 +71,13 @@ const Footer = () => {
               <Typography variant="h6" color="inherit" gutterBottom>
                 Legal
               </Typography>
-              <MuiLink href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
+              <MuiLink 
+                component={RouterLink} 
+                to="/privacy" 
+                color="inherit" 
+                display="block" 
+                sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}
+              >
                 Privacy Policy
               </MuiLink>
               <MuiLink href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>

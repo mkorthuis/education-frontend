@@ -34,6 +34,7 @@ const Home = lazy(() => import('@/pages/Home'));
 const DistrictList = lazy(() => import('@/pages/DistrictList'));
 const District = lazy(() => import('@/features/district/pages/District'));
 const Admin = lazy(() => import('@/pages/Admin'));
+const Privacy = lazy(() => import('@/pages/Privacy'));
 
 // District components
 const AcademicAchievement = lazy(() => import('@/features/district/components/AcademicAchievement'));
@@ -71,6 +72,14 @@ export const PAGE_REGISTRY: PageRegistry = {
       urlPatterns: ['/districts'],
       displayName: 'All Districts',
       order: 2,
+      enabled: true,
+    },
+    privacy: {
+      id: 'general.privacy',
+      component: Privacy,
+      urlPatterns: ['/privacy'],
+      displayName: 'Privacy Policy',
+      order: 3,
       enabled: true,
     },
   },
