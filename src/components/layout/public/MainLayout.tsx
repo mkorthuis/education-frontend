@@ -14,7 +14,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const isMediumOrLarger = useMediaQuery(theme.breakpoints.up('md'));
   
   // Calculate padding based on screen size - add extra for secondary nav on desktop
-  const topPadding = isMediumOrLarger ? 112 : 64; // 64px AppBar + 48px SecondaryNav on desktop
+  const topPadding = isMediumOrLarger ? 104 : 56; // 56px AppBar + 48px SecondaryNav on desktop
   
   return (
     <Box
@@ -25,7 +25,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       }}
     >
       {/* Spacing for fixed AppBar */}
-      <Toolbar />
+      <Box sx={{ height: 56 }} />
       
       {/* Extra spacing for SecondaryNav on desktop */}
       {isMediumOrLarger && <Box sx={{ height: 48 }} />}

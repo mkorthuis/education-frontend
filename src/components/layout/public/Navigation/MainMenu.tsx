@@ -51,11 +51,8 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
   
   // Calculate the top position based on whether secondary nav is present
   const secondaryNavHeight = 48; // Height of the secondary nav in pixels
-  const appBarHeight = { xs: 56, sm: 64 };
-  const topPosition = {
-    xs: hasSecondaryNav ? appBarHeight.xs + secondaryNavHeight : appBarHeight.xs,
-    sm: hasSecondaryNav ? appBarHeight.sm + secondaryNavHeight : appBarHeight.sm
-  };
+  const appBarHeight = 56; // Fixed app bar height
+  const topPosition = hasSecondaryNav ? appBarHeight + secondaryNavHeight : appBarHeight;
   
   // Update menu position when anchor element changes or window resizes
   useEffect(() => {
@@ -117,13 +114,13 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
               left: `${menuPosition.left}px`, // Use position from state
               width: isSmallScreen ? '80vw' : drawerWidth,
               maxWidth: '90vw',
-              height: `calc(100vh - ${topPosition.sm}px)`,
+              height: `calc(100vh - ${topPosition}px)`,
               maxHeight: 'none',
               overflow: 'auto',
               borderRadius: isXlOrLess ? '0 4px 4px 0' : '0 0 4px 4px', // Only round right corners when flush left
               pointerEvents: 'auto', // Enable clicks on the Paper
               [theme.breakpoints.down('sm')]: {
-                height: `calc(100vh - ${topPosition.xs}px)`,
+                height: `calc(100vh - ${topPosition}px)`,
               },
             }}
             onClick={(e) => e.stopPropagation()}

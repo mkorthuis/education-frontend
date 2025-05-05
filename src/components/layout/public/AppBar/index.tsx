@@ -81,7 +81,7 @@ const AppBar: React.FC<AppBarProps> = ({
       {/* Outer AppBar container with full width but transparent background */}
       <Box sx={{ 
         width: '100%', 
-        height: { xs: 56, md: 64 }, 
+        height: 56, 
         position: 'fixed',
         top: 0,
         zIndex: theme.zIndex.appBar + 50,
@@ -99,7 +99,14 @@ const AppBar: React.FC<AppBarProps> = ({
             position: 'relative'
           }}
         >
-          <Toolbar disableGutters sx={{ px: { xs: 2, md: 3 } }}>
+          <Toolbar 
+            disableGutters 
+            sx={{ 
+              px: { xs: 2, md: 3 },
+              height: '100%',
+              minHeight: '56px !important'
+            }}
+          >
             {/* Hamburger Menu Button */}
             <IconButton
               color="inherit"
@@ -114,9 +121,9 @@ const AppBar: React.FC<AppBarProps> = ({
 
             {/* Page Title */}
             <Typography
-              variant={isMediumOrLarger ? "h4" : "h5"}
+              variant="h5"
               noWrap
-              sx={{ flexGrow: isMediumOrLarger ? 0 : 1, color: 'white' }}
+              sx={{ flexGrow: isMediumOrLarger ? 0 : 1, color: 'white', fontWeight: 'bold' }}
             >
               NH Education Facts
             </Typography>

@@ -134,7 +134,7 @@ const SecondaryNav = () => {
       sx={{ 
         width: '100%',
         position: 'fixed',
-        top: 64, // Position below the main AppBar
+        top: 56, // Position below the main AppBar (fixed at 56px height)
         height: 48,
         zIndex: theme.zIndex.appBar,
         bgcolor: 'transparent',
