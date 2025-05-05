@@ -4,6 +4,7 @@ import usePageTracking from "@/hooks/usePageTracking";
 import { useEffect } from "react";
 import { useAppDispatch } from "@/store/hooks";
 import { updateCurrentPage } from "@/store/store";
+import ScrollToTop from "@/components/ScrollToTop";
 
 const PrivateLayout = () => {
   // Track page views
@@ -25,7 +26,14 @@ const PrivateLayout = () => {
     </Container>
   );
 
-  return isMediumOrLarger ? content : content;
+  return (
+    <>
+      <ScrollToTop />
+      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        {isMediumOrLarger ? content : content}
+      </Box>
+    </>
+  );
 };
 
 export default PrivateLayout;

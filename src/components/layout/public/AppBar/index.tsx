@@ -62,15 +62,11 @@ const AppBar: React.FC<AppBarProps> = ({
     onDistrictChange(event, district);
     if (district) {
       setShowMobileSearch(false);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handleDesktopDistrictChange = (event: React.SyntheticEvent, district: District | null) => {
     onDistrictChange(event, district);
-    if (district) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
   };
 
   const handleSearchFocus = () => {

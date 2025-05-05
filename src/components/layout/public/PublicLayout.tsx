@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import usePageTracking from "@/hooks/usePageTracking";
 import AppBar from "./AppBar";
 import MainLayout from "./MainLayout";
+import ScrollToTop from "@/components/ScrollToTop";
 import { locationApi } from "@/services/api/endpoints/locations";
 import { useAppDispatch } from "@/store/hooks";
 import { updateCurrentPage } from "@/store/store";
@@ -78,6 +79,9 @@ const PublicLayout = () => {
 
   return (
     <Box sx={{ display: 'flex' }}>
+      {/* ScrollToTop component to handle scrolling on route changes */}
+      <ScrollToTop />
+      
       {/* Top AppBar */}
       <AppBar 
         districts={districts}
