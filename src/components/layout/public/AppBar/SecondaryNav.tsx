@@ -27,7 +27,6 @@ const NavTab = styled(Tab)(({ theme }) => ({
   fontWeight: 500,
   color: theme.palette.custom.secondaryNav.text,
   '&.Mui-selected': {
-    fontWeight: 700,
     color: theme.palette.custom.secondaryNav.text,
   },
 }));

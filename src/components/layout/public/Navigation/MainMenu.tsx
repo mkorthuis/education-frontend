@@ -9,7 +9,8 @@ import {
   Slide, 
   Paper,
   useMediaQuery,
-  Tooltip
+  Tooltip,
+  Typography
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useEffect, useState, useRef, useMemo } from 'react';
@@ -130,7 +131,16 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
               {/* School Pages (show only on school pages) */}
               {school.id && school.availablePages.length > 0 && pageType === PageType.SCHOOL && (
                 <>
-                  <ListSubheader>{school.name}</ListSubheader>
+                  <ListItem disablePadding sx={{ pt: 1.5 }}>
+                    <ListItemButton 
+                      onClick={() => handleNavigate(`/school/${school.id}`)}
+                      sx={{ py: 0.5 }}
+                    >
+                      <Typography variant="subtitle1">
+                        {school.name}
+                      </Typography>
+                    </ListItemButton>
+                  </ListItem>
                   {school.availablePages.map((page) => (
                     <ListItem key={page.path} disablePadding>
                       {page.tooltip && !page.enabled ? (
@@ -141,9 +151,17 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
                             sx={{
                               opacity: page.enabled ? 1 : 0.6,
                               cursor: page.enabled ? 'pointer' : 'not-allowed',
+                              pl: 4, // Add indentation
+                              py: 0.5, // Reduce vertical spacing
                             }}
                           >
-                            <ListItemText primary={page.name} />
+                            <ListItemText 
+                              primary={page.name} 
+                              primaryTypographyProps={{ 
+                                variant: 'body2',
+                                color: 'text.secondary'
+                              }}
+                            />
                           </ListItemButton>
                         </Tooltip>
                       ) : (
@@ -153,21 +171,38 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
                           sx={{
                             opacity: page.enabled ? 1 : 0.6,
                             cursor: page.enabled ? 'pointer' : 'not-allowed',
+                            pl: 4, // Add indentation
+                            py: 0.5, // Reduce vertical spacing
                           }}
                         >
-                          <ListItemText primary={page.name} />
+                          <ListItemText 
+                            primary={page.name} 
+                            primaryTypographyProps={{ 
+                              variant: 'body2',
+                              color: 'text.secondary'
+                            }}
+                          />
                         </ListItemButton>
                       )}
                     </ListItem>
                   ))}
-                  <Divider sx={{ my: 2 }} />
+                  <Divider sx={{ my: 1 }} />
                 </>
               )}
               
               {/* District Pages (show on district pages or when on school pages) */}
               {district.id && district.availablePages.length > 0 && (pageType === PageType.DISTRICT || pageType === PageType.SCHOOL) && (
                 <>
-                  <ListSubheader>{district.name}</ListSubheader>
+                  <ListItem disablePadding sx={{ pt: school.id ? 0 : 1.5 }}>
+                    <ListItemButton 
+                      onClick={() => handleNavigate(`/district/${district.id}`)}
+                      sx={{ py: 0.5 }}
+                    >
+                      <Typography variant="subtitle1">
+                        {district.name}
+                      </Typography>
+                    </ListItemButton>
+                  </ListItem>
                   {district.availablePages.map((page) => (
                     <ListItem key={page.path} disablePadding>
                       {page.tooltip && !page.enabled ? (
@@ -178,9 +213,17 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
                             sx={{
                               opacity: page.enabled ? 1 : 0.6,
                               cursor: page.enabled ? 'pointer' : 'not-allowed',
+                              pl: 4, // Add indentation
+                              py: 0.5, // Reduce vertical spacing
                             }}
                           >
-                            <ListItemText primary={page.name} />
+                            <ListItemText 
+                              primary={page.name} 
+                              primaryTypographyProps={{ 
+                                variant: 'body2',
+                                color: 'text.secondary'
+                              }}
+                            />
                           </ListItemButton>
                         </Tooltip>
                       ) : (
@@ -190,44 +233,87 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
                           sx={{
                             opacity: page.enabled ? 1 : 0.6,
                             cursor: page.enabled ? 'pointer' : 'not-allowed',
+                            pl: 4, // Add indentation
+                            py: 0.5, // Reduce vertical spacing
                           }}
                         >
-                          <ListItemText primary={page.name} />
+                          <ListItemText 
+                            primary={page.name} 
+                            primaryTypographyProps={{ 
+                              variant: 'body2',
+                              color: 'text.secondary'
+                            }}
+                          />
                         </ListItemButton>
                       )}
                     </ListItem>
                   ))}
-                  <Divider sx={{ my: 2 }} />
+                  <Divider sx={{ my: 1 }} />
                 </>
               )}
               
               {/* State Overview Section */}
-              <ListItem disablePadding>
-                <ListItemButton>
+              <ListItem disablePadding sx={{ pt: (!school.id && !district.id) ? 1.5 : 0 }}>
+                <ListItemButton 
+                  disabled={true}
+                  sx={{ 
+                    py: 0.5,
+                    opacity: 0.6,
+                    cursor: 'not-allowed'
+                  }}
+                >
                   <ListItemText primary="State Overview" />
                 </ListItemButton>
               </ListItem>
               
-              <Divider sx={{ my: 2 }} />
+              <Divider sx={{ my: 1 }} />
               
               {/* Footer Links */}
               <ListItem disablePadding>
-                <ListItemButton>
+                <ListItemButton 
+                  disabled={true}
+                  sx={{ 
+                    py: 0.5,
+                    opacity: 0.6,
+                    cursor: 'not-allowed'
+                  }}
+                >
                   <ListItemText primary="About Us" />
                 </ListItemButton>
               </ListItem>
               <ListItem disablePadding>
-                <ListItemButton>
+                <ListItemButton 
+                  disabled={true}
+                  sx={{ 
+                    py: 0.5,
+                    opacity: 0.6,
+                    cursor: 'not-allowed'
+                  }}
+                >
                   <ListItemText primary="Data Sources" />
                 </ListItemButton>
               </ListItem>
               <ListItem disablePadding>
-                <ListItemButton>
+                <ListItemButton 
+                  disabled={true}
+                  sx={{ 
+                    py: 0.5,
+                    opacity: 0.6,
+                    cursor: 'not-allowed'
+                  }}
+                >
                   <ListItemText primary="API Documentation" />
                 </ListItemButton>
               </ListItem>
               <ListItem disablePadding>
-                <ListItemButton>
+                <ListItemButton 
+                  disabled={true}
+                  sx={{ 
+                    py: 0.5,
+                    opacity: 0.6,
+                    cursor: 'not-allowed'
+                  }}
+                >
                   <ListItemText primary="Privacy Policy" />
                 </ListItemButton>
               </ListItem>

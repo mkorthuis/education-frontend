@@ -49,6 +49,7 @@ const AppBar: React.FC<AppBarProps> = ({
   
   const [mainMenuOpen, setMainMenuOpen] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   const isHomePage = location.pathname === '/' || location.pathname === '/home';
@@ -61,7 +62,23 @@ const AppBar: React.FC<AppBarProps> = ({
     onDistrictChange(event, district);
     if (district) {
       setShowMobileSearch(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  };
+
+  const handleDesktopDistrictChange = (event: React.SyntheticEvent, district: District | null) => {
+    onDistrictChange(event, district);
+    if (district) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleSearchFocus = () => {
+    setIsSearchFocused(true);
+  };
+
+  const handleSearchBlur = () => {
+    setIsSearchFocused(false);
   };
 
   const toggleMainMenu = () => {
@@ -136,10 +153,12 @@ const AppBar: React.FC<AppBarProps> = ({
                   id="top-district-search"
                   options={districts}
                   getOptionLabel={(option) => option.name}
-                  value={selectedDistrict}
-                  onChange={onDistrictChange}
+                  value={isSearchFocused ? null : selectedDistrict}
+                  onChange={handleDesktopDistrictChange}
                   loading={loading}
                   size="small"
+                  onFocus={handleSearchFocus}
+                  onBlur={handleSearchBlur}
                   renderInput={(params) => (
                     <TextField
                       {...params}
@@ -197,10 +216,12 @@ const AppBar: React.FC<AppBarProps> = ({
             id="mobile-district-search"
             options={districts}
             getOptionLabel={(option) => option.name}
-            value={selectedDistrict}
+            value={isSearchFocused ? null : selectedDistrict}
             onChange={handleMobileDistrictChange}
             loading={loading}
             PopperComponent={CustomPopper}
+            onFocus={handleSearchFocus}
+            onBlur={handleSearchBlur}
             renderInput={(params) => (
               <TextField
                 {...params}

@@ -151,7 +151,7 @@ const AcademicAchievement: React.FC = () => {
           <CircularProgress />
         </Box>
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'flex-start' }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'flex-start', width: '100%' }}>
           {/* Mobile instruction text - only visible on mobile and when no subject is selected */}
           {!selectedSubjectId && (
             <Box sx={{ display: { xs: 'block', md: 'none' }, mb: 1 }}>
@@ -175,7 +175,9 @@ const AcademicAchievement: React.FC = () => {
           
           {/* Conditionally render AcademicSubjectDetails or AcademicDefaultView */}
           {selectedSubjectId ? (
-            <AcademicSubjectDetails subject={selectedSubject} />
+            <Box sx={{ flex: 1, width: { xs: '100%', sm: '100%' } }}>
+              <AcademicSubjectDetails subject={selectedSubject} />
+            </Box>
           ) : (
             <Box sx={{ display: { xs: 'none', md: 'block' }, flex: 1 }}>
               <AcademicDefaultView 
