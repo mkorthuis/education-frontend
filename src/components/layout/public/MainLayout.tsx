@@ -16,7 +16,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   
   // Determine if we're on a page that needs secondary nav
   const isHomePage = location.pathname === '/' || location.pathname === '/home';
-  const isGeneralPage = ['/privacy', '/terms', '/districts'].includes(location.pathname);
+  const isGeneralPage = ['/privacy', '/terms', '/districts', '/contact', '/faq', '/about', '/datasources'].includes(location.pathname);
   const needsSecondaryNav = isMediumOrLarger && !isHomePage && !isGeneralPage;
   
   // Calculate padding based on whether secondary nav is needed

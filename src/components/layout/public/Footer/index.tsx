@@ -35,13 +35,31 @@ const Footer = () => {
               <Typography variant="h6" color="inherit" gutterBottom>
                 About
               </Typography>
-              <MuiLink href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
+              <MuiLink 
+                component={RouterLink} 
+                to="/about" 
+                color="inherit" 
+                display="block" 
+                sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}
+              >
                 About Us
               </MuiLink>
-              <MuiLink href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
+              <MuiLink 
+                component={RouterLink} 
+                to="/about" 
+                color="inherit" 
+                display="block" 
+                sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}
+              >
                 Our Mission
               </MuiLink>
-              <MuiLink href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
+              <MuiLink 
+                component={RouterLink} 
+                to="/datasources" 
+                color="inherit" 
+                display="block" 
+                sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}
+              >
                 Data Sources
               </MuiLink>
             </Grid>
@@ -59,10 +77,23 @@ const Footer = () => {
               >
                 Available Districts and Schools
               </MuiLink>
-              <MuiLink href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
+              <MuiLink 
+                href="https://api.nhfacts.com/docs#/" 
+                target="_blank"
+                rel="noopener noreferrer"
+                color="inherit" 
+                display="block" 
+                sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}
+              >
                 API Documentation
               </MuiLink>
-              <MuiLink href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
+              <MuiLink 
+                component={RouterLink} 
+                to="/faq" 
+                color="inherit" 
+                display="block" 
+                sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}
+              >
                 FAQ
               </MuiLink>
             </Grid>
@@ -89,7 +120,13 @@ const Footer = () => {
               >
                 Terms of Use
               </MuiLink>
-              <MuiLink href="#" color="inherit" display="block" sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}>
+              <MuiLink 
+                component={RouterLink} 
+                to="/contact" 
+                color="inherit" 
+                display="block" 
+                sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}
+              >
                 Contact
               </MuiLink>
             </Grid>
