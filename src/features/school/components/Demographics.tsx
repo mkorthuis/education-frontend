@@ -13,7 +13,7 @@ import {
 } from '@/store/slices/measurementSlice';
 import MeasurementTable from '@/components/ui/tables/MeasurementTable';
 import SectionTitle from '@/components/ui/SectionTitle';
-
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 const Demographics: React.FC = () => {
   const school = useAppSelector(selectCurrentSchool);
   const schoolLoading = useAppSelector(selectSchoolLoading);
@@ -45,9 +45,10 @@ const Demographics: React.FC = () => {
 
   return (
     <>
-      <SectionTitle>
-        {school?.name || 'School'}
-      </SectionTitle>
+      <SectionTitle 
+        displayName={PAGE_REGISTRY.school.demographics.displayName}
+        schoolName={school?.name}
+      />
       
       <Box sx={{ mt: 3 }}>
         {isLoading ? (

@@ -11,6 +11,7 @@ import {
 } from '@/store/slices/locationSlice';
 import { formatGradesDisplay, sortStaffByTypeAndName } from '@/utils/formatting';
 import SectionTitle from '@/components/ui/SectionTitle';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const ContactInformation: React.FC = () => {
   const sau = useAppSelector(selectCurrentSau);
@@ -57,9 +58,10 @@ const ContactInformation: React.FC = () => {
     <>
         {sau && (
           <>
-            <SectionTitle>
-              Administration Contact Details
-            </SectionTitle>
+            <SectionTitle 
+              displayName={PAGE_REGISTRY.district?.contactInformation?.displayName || "Contact Information"}
+              districtName={district?.name}
+            />
             <Typography variant="body1" sx={{fontWeight: 'bold'}}>
               {sau.name ? `${sau.name}` : ''} (SAU #{sau.id})
             </Typography>

@@ -28,6 +28,7 @@ import {
 } from '@/store/slices/enrollmentSlice';
 import EfaDetailsTable from './efa/EfaDetailsTable';
 import EfaTrendChart from './efa/EfaTrendChart';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 
 const EducationFreedomAccount: React.FC = () => {
@@ -137,9 +138,10 @@ const EducationFreedomAccount: React.FC = () => {
       width: isLargeScreen ? '60%' : '100%',
       marginRight: 'auto' // Ensures left justification
     }}>
-      <SectionTitle>
-        {district?.name || 'District'} School District
-      </SectionTitle>
+      <SectionTitle 
+        displayName={PAGE_REGISTRY.district.efa.displayName}
+        districtName={district?.name}
+      />
       
       <EfaDetailsTable />
       <EfaTrendChart />

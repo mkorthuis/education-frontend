@@ -13,6 +13,7 @@ import {
 } from '@/store/slices/measurementSlice';
 import MeasurementTable from '@/components/ui/tables/MeasurementTable';
 import SectionTitle from '@/components/ui/SectionTitle';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const Financials: React.FC = () => {
   const school = useAppSelector(selectCurrentSchool);
@@ -46,9 +47,11 @@ const Financials: React.FC = () => {
 
   return (
     <>
-      <SectionTitle>
-        {school?.name || 'School'}
-      </SectionTitle>
+      <SectionTitle 
+        displayName={PAGE_REGISTRY.school.financials.displayName}
+        schoolName={school?.name}
+        withDivider={false}
+      />
       
       <Box sx={{ mt: 3 }}>
         {isLoading ? (

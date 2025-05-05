@@ -15,6 +15,7 @@ import OutcomeSummaryCard from './outcome/OutcomeSummaryCard';
 import WhatIsNextDetails from './outcome/WhatIsNextDetails';
 import GraduationRateChart from './outcome/GraduationRateChart';
 import WhatIsNextChart from './outcome/WhatIsNextChart';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const Outcomes: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -138,9 +139,10 @@ const Outcomes: React.FC = () => {
 
   return (
     <>
-      <SectionTitle>
-        {district?.name || 'District'} School District
-      </SectionTitle>
+      <SectionTitle 
+        displayName={PAGE_REGISTRY.district.outcomes.displayName}
+        districtName={district?.name}
+      />
       
       <Box sx={{ mt: 3 }}>
         {isLoading ? (

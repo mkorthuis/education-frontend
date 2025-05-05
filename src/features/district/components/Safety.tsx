@@ -27,6 +27,7 @@ import SeriousSafetyCategoryDetails from './safety/category/SeriousSafetyCategor
 import SuspensionCategoryDetails from './safety/category/SuspensionCategoryDetails';
 import TruancyCategoryDetails from './safety/category/TruancyCategoryDetails';
 import DefaultCategoryDetails from './safety/category/DefaultCategoryDetails';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const Safety: React.FC = () => {
   const { category } = useParams<{ category?: string }>();
@@ -356,8 +357,10 @@ const Safety: React.FC = () => {
 
   return (
     <>
-      <SectionTitle>{district?.name || 'District'} School District</SectionTitle>
-      {isLoading ? (
+        <SectionTitle 
+          displayName={PAGE_REGISTRY.district.safety.displayName}
+          districtName={district?.name}
+        />      {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
           <CircularProgress />
         </Box>

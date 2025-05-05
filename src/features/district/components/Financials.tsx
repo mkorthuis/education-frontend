@@ -222,9 +222,11 @@ const Financials: React.FC = () => {
     <>
       {district && (
         <>
-          <SectionTitle>
-            {district.name} School District
-          </SectionTitle>
+          <SectionTitle 
+            displayName={PAGE_REGISTRY.district.financials.displayName}
+            districtName={district.name}
+            withDivider={false}
+          />
 
           {/* Main Tabs */}
           <Box sx={{ position: 'relative', mb: isMobile ? 2 : 3 }}>

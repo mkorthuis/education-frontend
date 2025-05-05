@@ -27,6 +27,7 @@ import AcademicDefaultView from '@/features/school/components/academic/AcademicD
 import { filterAssessmentResults, ALL_GRADES_ID } from '@/features/district/utils/assessmentDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { LoadingState } from '@/store/slices/safetySlice';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const AcademicAchievement: React.FC = () => {
   const { subjectName } = useParams<{ subjectName?: string }>();
@@ -130,7 +131,10 @@ const AcademicAchievement: React.FC = () => {
 
   return (
     <>
-      <SectionTitle>{school?.name || 'School'}</SectionTitle>    
+      <SectionTitle 
+        displayName={PAGE_REGISTRY.school.academic.displayName}
+        schoolName={school?.name}
+      />    
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
           <CircularProgress />

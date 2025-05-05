@@ -9,6 +9,7 @@ import {
   selectCurrentSau
 } from '@/store/slices/locationSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const ContactInformation: React.FC = () => {
   const sau = useAppSelector(selectCurrentSau);
@@ -80,9 +81,10 @@ const ContactInformation: React.FC = () => {
 
   return (
     <>
-      <SectionTitle>
-        {school.name}
-      </SectionTitle>
+      <SectionTitle 
+        displayName={PAGE_REGISTRY.school.contact.displayName}
+        schoolName={school?.name}
+      />
       
       <Box sx={{ mt: 3 }}>
         <Typography variant="body1" sx={{fontWeight: 'bold'}}>Contact Information</Typography>

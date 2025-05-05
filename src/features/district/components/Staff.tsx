@@ -28,6 +28,7 @@ import TeacherEducation from './staff/TeacherEducation';
 import TeacherSalaryBand from './staff/TeacherSalaryBand';
 import TeacherAverageSalaryChart from './staff/TeacherAverageSalaryChart';
 import AverageClassSizeChart from './staff/AverageClassSizeChart';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const Staff: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -201,9 +202,10 @@ const Staff: React.FC = () => {
 
   return (
     <>
-      <SectionTitle>
-        {district?.name || 'District'} School District
-      </SectionTitle>
+      <SectionTitle 
+        displayName={PAGE_REGISTRY.district.staff.displayName}
+        districtName={district?.name}
+      />
       
       <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>
         {/* Top Row - Cards */}

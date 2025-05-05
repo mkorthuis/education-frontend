@@ -14,7 +14,7 @@ import {
 import { fetchTownEnrollment } from '@/store/slices/enrollmentSlice';
 import MeasurementTable from '@/components/ui/tables/MeasurementTable';
 import SectionTitle from '@/components/ui/SectionTitle';
-
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 const Staff: React.FC = () => {
   const school = useAppSelector(selectCurrentSchool);
   const schoolLoading = useAppSelector(selectSchoolLoading);
@@ -49,9 +49,10 @@ const Staff: React.FC = () => {
 
   return (
     <>
-      <SectionTitle>
-        {school?.name || 'School'}
-      </SectionTitle>
+      <SectionTitle 
+        displayName={PAGE_REGISTRY.school.staff.displayName}
+        schoolName={school?.name}
+      />
       
       <Box sx={{ mt: 3 }}>
         {isLoading ? (
