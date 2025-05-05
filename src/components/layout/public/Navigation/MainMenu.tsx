@@ -53,7 +53,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
   
   // Determine if we're on a page that needs secondary nav
   const isHomePage = location.pathname === '/' || location.pathname === '/home';
-  const isGeneralPage = ['/privacy', '/terms', '/districts'].includes(location.pathname);
+  const isGeneralPage = ['/privacy', '/terms', '/districts', '/contact', '/faq', '/about', '/datasources'].includes(location.pathname);
   const needsSecondaryNav = !isSmallScreen && !isHomePage && !isGeneralPage;
   
   // Calculate the top position based on whether secondary nav is present

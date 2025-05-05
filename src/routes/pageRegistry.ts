@@ -36,7 +36,10 @@ const District = lazy(() => import('@/features/district/pages/District'));
 const Admin = lazy(() => import('@/pages/Admin'));
 const Privacy = lazy(() => import('@/pages/Privacy'));
 const Terms = lazy(() => import('@/pages/Terms'));
-
+const Contact = lazy(() => import('@/pages/Contact'));
+const FAQ = lazy(() => import('@/pages/FAQ'));
+const About = lazy(() => import('@/pages/About'));
+const DataSources = lazy(() => import('@/pages/DataSources'));
 // District components
 const AcademicAchievement = lazy(() => import('@/features/district/components/AcademicAchievement'));
 const Outcomes = lazy(() => import('@/features/district/components/Outcomes'));
@@ -67,12 +70,28 @@ export const PAGE_REGISTRY: PageRegistry = {
       order: 1,
       enabled: true,
     },
+    about: {
+      id: 'general.about',
+      component: About,
+      urlPatterns: ['/about'],
+      displayName: 'About Us',
+      order: 2,
+      enabled: true,
+    },
     districts: {
       id: 'general.districts',
       component: DistrictList,
       urlPatterns: ['/districts'],
       displayName: 'All Districts',
-      order: 2,
+      order: 3,
+      enabled: true,
+    },
+    datasources: {
+      id: 'general.datasources',
+      component: DataSources,
+      urlPatterns: ['/datasources'],
+      displayName: 'Data Sources',
+      order: 4,
       enabled: true,
     },
     privacy: {
@@ -80,7 +99,7 @@ export const PAGE_REGISTRY: PageRegistry = {
       component: Privacy,
       urlPatterns: ['/privacy'],
       displayName: 'Privacy Policy',
-      order: 3,
+      order: 5,
       enabled: true,
     },
     terms: {
@@ -88,7 +107,23 @@ export const PAGE_REGISTRY: PageRegistry = {
       component: Terms,
       urlPatterns: ['/terms'],
       displayName: 'Terms of Use',
-      order: 4,
+      order: 6,
+      enabled: true,
+    },
+    contact: {
+      id: 'general.contact',
+      component: Contact,
+      urlPatterns: ['/contact'],
+      displayName: 'Contact Us',
+      order: 7,
+      enabled: true,
+    },
+    faq: {
+      id: 'general.faq',
+      component: FAQ,
+      urlPatterns: ['/faq'],
+      displayName: 'FAQ',
+      order: 8,
       enabled: true,
     },
   },

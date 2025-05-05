@@ -55,7 +55,7 @@ const AppBar: React.FC<AppBarProps> = ({
   const isHomePage = location.pathname === '/' || location.pathname === '/home';
   
   // Check if the current page is a general page like privacy or terms
-  const isGeneralPage = ['/privacy', '/terms', '/districts'].includes(location.pathname);
+  const isGeneralPage = ['/privacy', '/terms', '/districts', '/contact', '/faq', '/about', '/datasources'].includes(location.pathname);
 
   const toggleMobileSearch = () => {
     setShowMobileSearch(!showMobileSearch);
