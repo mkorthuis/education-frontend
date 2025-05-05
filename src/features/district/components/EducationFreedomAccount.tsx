@@ -1,11 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
 import { Box, Typography, CircularProgress, Grid, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, useTheme, useMediaQuery } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentDistrict,
-  selectLocationLoading, 
-  fetchAllDistrictData
+  selectLocationLoading
 } from '@/store/slices/locationSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
 import { 
@@ -33,14 +31,13 @@ import EfaTrendChart from './efa/EfaTrendChart';
 
 
 const EducationFreedomAccount: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const districtId = id ? parseInt(id) : 0;
   const dispatch = useAppDispatch();
   const theme = useTheme();
   const isLargeScreen = useMediaQuery(theme.breakpoints.up('md'));
 
   // District data
   const district = useAppSelector(selectCurrentDistrict);
+  const districtId = district?.id;
   const districtLoading = useAppSelector(selectLocationLoading);
 
   // EFA data
@@ -73,13 +70,7 @@ const EducationFreedomAccount: React.FC = () => {
 
   // Load data if it's not already loaded
   useEffect(() => {
-    if (!id) return;
-
-
-    // Only fetch district data if we don't have it and aren't already loading it
-    if (!district && !districtLoading) {
-      dispatch(fetchAllDistrictData(districtId));
-    }
+    if (!districtId) return;
 
     // Only fetch other data if we have the district data
     if (district) {
@@ -110,9 +101,8 @@ const EducationFreedomAccount: React.FC = () => {
     }
 
   }, [
-    id, 
     districtId, 
-    district,  // Add district as dependency
+    district, 
     dispatch, 
     efaLoading, 
     efaData, 

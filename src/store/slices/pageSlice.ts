@@ -5,7 +5,9 @@ import {
   fetchDistrictById, 
   fetchDistrictBySchoolId, 
   fetchSchoolById,
-  Grade 
+  Grade,
+  fetchAllDistrictData,
+  fetchAllSchoolData
 } from '@/store/slices/locationSlice';
 import { matchPath } from 'react-router-dom';
 
@@ -257,8 +259,8 @@ export const createSyncLocationWithPageMiddleware = () => {
       const districtId = action.payload;
       
       if (districtId) {
-        // Fetch the district data based on the ID
-        store.dispatch(fetchDistrictById(districtId));
+        // Fetch all district data at once using the thunk
+        store.dispatch(fetchAllDistrictData(districtId));
       } else {
         // Clear district and school states if ID is null
         store.dispatch(setDistrict({ id: null, name: '', availablePages: [] }));
@@ -270,11 +272,8 @@ export const createSyncLocationWithPageMiddleware = () => {
       const schoolId = action.payload;
       
       if (schoolId) {
-        // Fetch the school data based on the ID
-        store.dispatch(fetchSchoolById(schoolId));
-        
-        // Fetch the parent district for this school
-        store.dispatch(fetchDistrictBySchoolId(schoolId));
+        // Fetch all school data at once using the thunk
+        store.dispatch(fetchAllSchoolData(schoolId));
       } else {
         // Clear school state if ID is null
         store.dispatch(setSchool({ id: null, name: '', availablePages: [] }));

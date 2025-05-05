@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
 import { Box, CircularProgress, useTheme, useMediaQuery, Divider } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import SectionTitle from '@/components/ui/SectionTitle';
@@ -7,8 +6,7 @@ import SectionTitle from '@/components/ui/SectionTitle';
 // Store imports
 import { 
   selectCurrentDistrict,
-  selectLocationLoading,
-  fetchAllDistrictData
+  selectLocationLoading
 } from '@/store/slices/locationSlice';
 import * as staffSlice from '@/store/slices/staffSlice';
 import * as classSizeSlice from '@/store/slices/classSizeSlice';
@@ -32,19 +30,19 @@ import TeacherAverageSalaryChart from './staff/TeacherAverageSalaryChart';
 import AverageClassSizeChart from './staff/AverageClassSizeChart';
 
 const Staff: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const districtId = id ? parseInt(id) : 0;
   const dispatch = useAppDispatch();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
+
+  // District and location data
+  const district = useAppSelector(selectCurrentDistrict);
+  const districtId = district?.id;
+  const districtLoading = useAppSelector(selectLocationLoading);
 
   // Memoize parameters
   const districtParams = useMemo(() => ({ district_id: districtId }), [districtId]);
   const stateParams = useMemo(() => ({}), []);
 
-  // District and location data
-  const district = useAppSelector(selectCurrentDistrict);
-  const districtLoading = useAppSelector(selectLocationLoading);
   const measurementsLoading = useAppSelector(selectMeasurementsLoadingState);
   const measurements = useAppSelector(selectAllMeasurements);
 
@@ -122,18 +120,13 @@ const Staff: React.FC = () => {
     loadingState === staffSlice.LoadingState.IDLE && data.length === 0;
 
   useEffect(() => {
-    if (!id) return;
-
-    // Only fetch district data if we don't have it and aren't already loading it
-    if (!district && !districtLoading) {
-      dispatch(fetchAllDistrictData(districtId));
-    }
+    if (!districtId) return;
 
     // Only fetch other data if we have the district data
     if (district) {
       // Fetch measurements if needed
       if (measurementsLoading === safetySlice.LoadingState.IDLE && measurements.length === 0) {
-        dispatch(fetchAllMeasurements({ entityId: id, entityType: 'district' }));
+        dispatch(fetchAllMeasurements({ entityId: String(districtId), entityType: 'district' }));
       }
 
       // Fetch types
@@ -188,7 +181,7 @@ const Staff: React.FC = () => {
       }
     }
   }, [
-    dispatch, id, districtId, district, districtLoading,
+    dispatch, districtId, district,
     measurementsLoading, measurements, loadingStates,
     districtParams, stateParams, staffTypes, teacherEducationTypes,
     teacherSalaryBandTypes, districtStaffData, districtTeacherEducationData,

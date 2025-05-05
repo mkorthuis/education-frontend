@@ -1,11 +1,9 @@
 import React, { useEffect } from 'react';
-import { useParams } from 'react-router-dom';
 import { Box, Typography, CircularProgress } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentSchool, 
-  selectSchoolLoading, 
-  fetchAllSchoolData
+  selectSchoolLoading
 } from '@/store/slices/locationSlice';
 import { 
   selectAllMeasurements, 
@@ -17,7 +15,6 @@ import MeasurementTable from '@/components/ui/tables/MeasurementTable';
 import SectionTitle from '@/components/ui/SectionTitle';
 
 const Demographics: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
   const school = useAppSelector(selectCurrentSchool);
   const schoolLoading = useAppSelector(selectSchoolLoading);
   const dispatch = useAppDispatch();
@@ -29,15 +26,14 @@ const Demographics: React.FC = () => {
   const demographicMeasurementTypeIds = [23, 24, 25, 26, 27, 28, 29, 30, 31, 32];
 
   useEffect(() => {
-    if (id) {
-      if(!schoolLoading && !school) {
-        dispatch(fetchAllSchoolData(parseInt(id)));
-      }
-      if (!measurementsLoading && measurements.length === 0) {
-        dispatch(fetchAllMeasurements({ entityId: id, entityType: 'school' }));
-      }
+    // Only fetch measurements if we have the school data
+    if (school && !measurementsLoading && measurements.length === 0) {
+      dispatch(fetchAllMeasurements({ 
+        entityId: school.id.toString(), 
+        entityType: 'school' 
+      }));
     }
-  }, [id, schoolLoading, dispatch, measurementsLoading, measurements]);
+  }, [school, dispatch, measurementsLoading, measurements]);
 
   // Filter measurements to only include demographic measurement type IDs
   const demographicMeasurements = measurements.filter(

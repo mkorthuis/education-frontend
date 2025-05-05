@@ -1,10 +1,8 @@
 import React, { useEffect } from 'react';
-import { useParams } from 'react-router-dom';
 import { Box, Typography, CircularProgress } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentSchool,
-  fetchAllSchoolData,
   selectSchoolLoading
 } from '@/store/slices/locationSlice';
 import { 
@@ -18,7 +16,6 @@ import MeasurementTable from '@/components/ui/tables/MeasurementTable';
 import SectionTitle from '@/components/ui/SectionTitle';
 
 const Staff: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
   const school = useAppSelector(selectCurrentSchool);
   const schoolLoading = useAppSelector(selectSchoolLoading);
   const dispatch = useAppDispatch();
@@ -30,17 +27,17 @@ const Staff: React.FC = () => {
   const teacherMeasurementTypeIds = [13, 14, 15, 43, 44, 45];
 
   useEffect(() => {
-    if (id) {
-      if(!schoolLoading && !school) {
-        dispatch(fetchAllSchoolData(parseInt(id)));
-      }
+    if (school?.id) {
       if (!measurementsLoading && measurements.length === 0) {
-        dispatch(fetchAllMeasurements({ entityId: id, entityType: 'school' }));
+        dispatch(fetchAllMeasurements({ 
+          entityId: school.id.toString(), 
+          entityType: 'school' 
+        }));
       }
       // Fetch enrollment data
-      dispatch(fetchTownEnrollment({ town_id: parseInt(id) }));
+      dispatch(fetchTownEnrollment({ town_id: school.id }));
     }
-  }, [id, schoolLoading, dispatch, measurementsLoading, measurements]);
+  }, [school, dispatch, measurementsLoading, measurements]);
 
   // Filter measurements to only include teacher-related measurement type IDs
   const teacherMeasurements = measurements.filter(

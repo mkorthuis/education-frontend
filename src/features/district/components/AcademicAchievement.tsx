@@ -4,8 +4,7 @@ import { Box, CircularProgress, Typography } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentDistrict,
-  selectAnyLocationLoading,
-  fetchAllDistrictData
+  selectAnyLocationLoading
 } from '@/store/slices/locationSlice';
 import {
   fetchAssessmentDistrictData,
@@ -32,18 +31,19 @@ import { FISCAL_YEAR } from '@/utils/environment';
 import { LoadingState } from '@/store/slices/safetySlice';
 
 const AcademicAchievement: React.FC = () => {
-  const { id, subjectName } = useParams<{ id: string; subjectName?: string }>();
+  const { subjectName } = useParams<{ subjectName?: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
   // Selectors
   const district = useAppSelector(selectCurrentDistrict);
+  const districtId = district?.id;
   const districtLoading = useAppSelector(selectAnyLocationLoading);
   
   // Create query params for initial district data fetch
   const initialQueryParams = useMemo(() => ({
-    district_id: id ? parseInt(id) : undefined
-  }), [id]);
+    district_id: districtId
+  }), [districtId]);
   
   // Use parameterized loading selector
   const districtAssessmentLoading = useAppSelector(state => selectAssessmentDistrictLoadingStatus(state, initialQueryParams));
@@ -76,12 +76,7 @@ const AcademicAchievement: React.FC = () => {
 
   // Fetch all required data
   useEffect(() => {
-    if (!id) return;
-
-    // If district data isn't loaded yet, fetch it
-    if (!district && !districtLoading) {
-      dispatch(fetchAllDistrictData(parseInt(id)));
-    }
+    if (!districtId) return;
 
     // Only fetch assessment data if we have the district data
     if (district) {
@@ -109,9 +104,8 @@ const AcademicAchievement: React.FC = () => {
     }
   }, [
     dispatch, 
-    id, 
-    district,  // Add district as dependency
-    districtLoading,
+    districtId, 
+    district,
     districtAssessmentLoading, 
     districtAssessmentData.length, 
     stateAssessmentLoading,

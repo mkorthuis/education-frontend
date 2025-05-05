@@ -7,6 +7,8 @@ import MainLayout from "./MainLayout";
 import { locationApi } from "@/services/api/endpoints/locations";
 import { useAppDispatch } from "@/store/hooks";
 import { updateCurrentPage } from "@/store/store";
+import { extractIdsFromUrl } from "@/routes/pageRegistry";
+import { setCurrentDistrictId, setCurrentSchoolId } from "@/store/slices/locationSlice";
 
 // Define District interface
 interface District {
@@ -31,9 +33,23 @@ const PublicLayout = () => {
   const [loading, setLoading] = useState(false);
   const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
 
-  // Update current page whenever location changes
+  // Update current page and extract IDs whenever location changes
   useEffect(() => {
+    // Update current page in store
     dispatch(updateCurrentPage(location.pathname));
+    
+    // Extract district and school IDs from URL
+    const { districtId, schoolId } = extractIdsFromUrl(location.pathname);
+    
+    // Set district ID if present
+    if (districtId !== undefined) {
+      dispatch(setCurrentDistrictId(districtId));
+    }
+    
+    // Set school ID if present
+    if (schoolId !== undefined) {
+      dispatch(setCurrentSchoolId(schoolId));
+    }
   }, [location.pathname, dispatch]);
 
   // Load districts when component mounts

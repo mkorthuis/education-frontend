@@ -1,39 +1,23 @@
-import React, { useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Box, Typography, Paper, List, ListItem, ListItemIcon, ListItemText, Divider, Link as MuiLink, CircularProgress, Grid } from '@mui/material';
-import {  Phone, Web, LocationOn, Person, School as SchoolIcon } from '@mui/icons-material';
-import { useAppSelector, useAppDispatch } from '@/store/hooks';
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Box, Typography, Divider, Link as MuiLink, CircularProgress } from '@mui/material';
+import { useAppSelector } from '@/store/hooks';
 import { 
   selectCurrentSau, 
   selectCurrentSchools, 
   selectCurrentDistrict,
   selectLocationLoading, 
-  selectLocationError,
-  fetchAllDistrictData
+  selectLocationError
 } from '@/store/slices/locationSlice';
 import { formatGradesDisplay, sortStaffByTypeAndName } from '@/utils/formatting';
 import SectionTitle from '@/components/ui/SectionTitle';
 
 const ContactInformation: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const dispatch = useAppDispatch();
   const sau = useAppSelector(selectCurrentSau);
   const schools = useAppSelector(selectCurrentSchools);
   const district = useAppSelector(selectCurrentDistrict);
   const loading = useAppSelector(selectLocationLoading);
   const error = useAppSelector(selectLocationError);
-
-  // Load district data if it's not already loaded
-  useEffect(() => {
-    if (!id) {
-      return;
-    }
-
-    // Only fetch district data if we don't have it and aren't already loading it
-    if (!district && !loading) {
-      dispatch(fetchAllDistrictData(parseInt(id)));
-    }
-  }, [id, district, loading, dispatch]);
 
   const getSauAddress = () => {
     if (!sau) return 'SAU Address information not available';

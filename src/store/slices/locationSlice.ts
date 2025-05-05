@@ -213,18 +213,23 @@ export const fetchAllSchoolData = createAsyncThunk(
   async (id: number, { dispatch, getState }) => {
     if (!id) return;
     
-    // Fetch all school data in parallel
-    await Promise.all([
-      dispatch(fetchSchoolById(id)),
-      dispatch(fetchDistrictBySchoolId(id))
-    ]);
+    // Fetch school data first
+    await dispatch(fetchSchoolById(id));
+    
+    // Then fetch the district for this school
+    await dispatch(fetchDistrictBySchoolId(id));
 
-    // After fetching the district, get the district ID and fetch the SAU data
+    // After fetching the district, get the district ID and fetch all district-related data
     const state = getState() as RootState;
     const district = state.location.currentDistrict;
     
     if (district && district.id) {
-      await dispatch(fetchSauByDistrictId(district.id));
+      // Fetch all related district data in parallel
+      await Promise.all([
+        dispatch(fetchSchoolsByDistrictId(district.id)),
+        dispatch(fetchTownsByDistrictId(district.id)),
+        dispatch(fetchSauByDistrictId(district.id))
+      ]);
     }
 
     // After all data is loaded, update the school pages
@@ -251,6 +256,16 @@ export const locationSlice = createSlice({
   name: 'location',
   initialState,
   reducers: {
+    setCurrentDistrictId: (state, action) => {
+      // Just store the ID, the middleware will handle fetching the data
+      // Reset currentDistrict to prevent stale data
+      state.currentDistrict = null;
+    },
+    setCurrentSchoolId: (state, action) => {
+      // Just store the ID, the middleware will handle fetching the data
+      // Reset currentSchool to prevent stale data
+      state.currentSchool = null;
+    },
     clearSchoolData: (state) => {
       state.currentSchool = null;
       state.error = null;
@@ -393,7 +408,13 @@ export const locationSlice = createSlice({
 });
 
 // Export actions
-export const { clearSchoolData, clearDistrictData, clearGradesData } = locationSlice.actions;
+export const { 
+  setCurrentDistrictId,
+  setCurrentSchoolId,
+  clearSchoolData, 
+  clearDistrictData, 
+  clearGradesData 
+} = locationSlice.actions;
 
 // Export selectors
 export const selectDistricts = (state: RootState) => state.location.districts;
@@ -419,6 +440,20 @@ export const selectGradesLoading = (state: RootState) => state.location.loadingS
 export const selectAnyLocationLoading = (state: RootState) => {
   const loadingStates = state.location.loadingStates;
   return Object.values(loadingStates).some(isLoading => isLoading);
+};
+
+// Helper function to check if we need to load data for a district
+export const shouldLoadDistrictData = (state: RootState, districtId: number): boolean => {
+  if (!state.location.currentDistrict) return true;
+  if (state.location.currentDistrict.id !== districtId) return true;
+  return false;
+};
+
+// Helper function to check if we need to load data for a school
+export const shouldLoadSchoolData = (state: RootState, schoolId: number): boolean => {
+  if (!state.location.currentSchool) return true;
+  if (state.location.currentSchool.id !== schoolId) return true;
+  return false;
 };
 
 // Export the reducer

@@ -1,31 +1,20 @@
-import React, { useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { Box, Typography,  Divider, CircularProgress, Link as MuiLink, Paper, Grid } from '@mui/material';
-import { useAppSelector, useAppDispatch } from '@/store/hooks';
-import {  sortStaffByTypeAndName } from '@/utils/formatting';
+import React from 'react';
+import { Box, Typography, Divider, CircularProgress, Link as MuiLink } from '@mui/material';
+import { useAppSelector } from '@/store/hooks';
+import { sortStaffByTypeAndName } from '@/utils/formatting';
 import { 
   selectCurrentSchool, 
   selectSchoolLoading, 
   selectLocationError,
-  fetchAllSchoolData,
   selectCurrentSau
 } from '@/store/slices/locationSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
 
 const ContactInformation: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const dispatch = useAppDispatch();
   const sau = useAppSelector(selectCurrentSau);
   const school = useAppSelector(selectCurrentSchool);
   const schoolLoading = useAppSelector(selectSchoolLoading);
   const error = useAppSelector(selectLocationError);
-
-  // Load school data if it's not already loaded
-  useEffect(() => {
-    if(id && !schoolLoading && !school) {
-      dispatch(fetchAllSchoolData(parseInt(id)));
-    }
-  }, [id, school, schoolLoading, dispatch]);
 
   const getSauAddress = () => {
     if (!sau) return 'SAU Address information not available';

@@ -1,9 +1,8 @@
-import React, { useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { Box, Typography, Divider, CircularProgress, Alert, Button, Stack } from '@mui/material';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { useAppSelector } from '@/store/hooks';
 import { 
-  fetchAllSchoolData, 
   selectCurrentSchool, 
   selectCurrentDistrict,
   selectCurrentSau,
@@ -25,12 +24,9 @@ const navigationButtonStyle = {
 
 /**
  * Represents the School page/feature.
- * Displays school information based on the ID from the URL.
+ * Displays school information from the Redux store.
  */
 const School: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const dispatch = useAppDispatch();
-  
   // Select from Redux store
   const school = useAppSelector(selectCurrentSchool);
   const district = useAppSelector(selectCurrentDistrict);
@@ -38,18 +34,7 @@ const School: React.FC = () => {
   const loading = useAppSelector(selectLocationLoading);
   const error = useAppSelector(selectLocationError);
 
-  useEffect(() => {
-    if (id) {
-      dispatch(fetchAllSchoolData(Number(id)));
-    }
-  }, [id, dispatch]);
-
-  // Show loading when:
-  // 1. We're explicitly in a loading state
-  // 2. OR we've initiated a fetch (id exists) but don't have school data yet
-  const isLoading = loading || (!!id && !school && !error);
-
-  if (isLoading) {
+  if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
         <CircularProgress />
@@ -98,7 +83,7 @@ const School: React.FC = () => {
           variant="outlined" 
           color="inherit"
           component={Link} 
-          to={`/school/${id}/academic`}
+          to={`/school/${school.id}/academic`}
           fullWidth
           sx={navigationButtonStyle}
         >
@@ -108,7 +93,7 @@ const School: React.FC = () => {
           variant="outlined" 
           color="inherit"
           component={Link} 
-          to={`/school/${id}/safety`}
+          to={`/school/${school.id}/safety`}
           fullWidth
           sx={navigationButtonStyle}
         >
@@ -118,7 +103,7 @@ const School: React.FC = () => {
           variant="outlined" 
           color="inherit"
           component={Link} 
-          to={`/school/${id}/contact`}
+          to={`/school/${school.id}/contact`}
           fullWidth
           sx={navigationButtonStyle}
         >

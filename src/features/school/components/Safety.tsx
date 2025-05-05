@@ -4,8 +4,7 @@ import { Box, Typography, CircularProgress, Divider, useTheme, useMediaQuery } f
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentSchool,
-  selectLocationLoading,
-  fetchAllSchoolData
+  selectLocationLoading
 } from '@/store/slices/locationSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
 import * as safetySlice from '@/store/slices/safetySlice';
@@ -29,21 +28,21 @@ import TruancyCategoryDetails from './safety/category/TruancyCategoryDetails';
 import DefaultCategoryDetails from './safety/category/DefaultCategoryDetails';
 
 const Safety: React.FC = () => {
-  const { id, category } = useParams<{ id: string; category?: string }>();
+  const { category } = useParams<{ category?: string }>();
   const navigate = useNavigate();
-  const schoolId = id ? parseInt(id) : 0;
   const dispatch = useAppDispatch();
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
-  // Memoize the parameter objects to avoid recreating them on each render
-  const schoolParams = useMemo(() => ({ school_id: schoolId }), [schoolId]);
-  const stateParams = useMemo(() => ({}), []);
-  
   // School and location data
   const school = useAppSelector(selectCurrentSchool);
   const schoolLoading = useAppSelector(selectLocationLoading);
+  
+  // Memoize the parameter objects to avoid recreating them on each render
+  const schoolId = school?.id || 0;
+  const schoolParams = useMemo(() => ({ school_id: schoolId }), [schoolId]);
+  const stateParams = useMemo(() => ({}), []);
   
   // Safety data selectors
   const schoolSafetyData = useAppSelector(state => safetySlice.selectSchoolSafetyData(state, schoolParams));
@@ -122,13 +121,9 @@ const Safety: React.FC = () => {
     return loadingState === safetySlice.LoadingState.IDLE && data.length === 0;
   };
 
+  // Fetch safety data when school is available
   useEffect(() => {
-    if (!id) return;
-
-    // Fetch school data if needed
-    if(!schoolLoading && !school) {
-      dispatch(fetchAllSchoolData(schoolId));
-    }
+    if (!schoolId) return;
 
     // Fetch school safety data
     const schoolDataFetches = [
@@ -189,8 +184,8 @@ const Safety: React.FC = () => {
       }
     });
   }, [
-    dispatch, id, schoolId, schoolLoading, school,
-    loadingStates, schoolParams, stateParams,
+    dispatch, schoolId, schoolParams, stateParams,
+    loadingStates,
     schoolSafetyData, schoolHarassmentData, schoolTruancyData,
     schoolSeclusionData, schoolRestraintData, schoolBullyingData,
     schoolBullyingClassificationData, schoolBullyingImpactData,

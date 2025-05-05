@@ -9,6 +9,10 @@ export type PageEntry = {
   shortName?: string;
   order: number;
   requiresId?: boolean;
+  paramExtraction?: {
+    districtIdParam?: string;
+    schoolIdParam?: string;
+  };
   dataRequirements?: {
     district?: string[];
     school?: string[];
@@ -70,6 +74,9 @@ export const PAGE_REGISTRY: PageRegistry = {
       shortName: 'Overview',
       order: 1,
       requiresId: true,
+      paramExtraction: {
+        districtIdParam: 'id'
+      },
       dataRequirements: {
         district: ['basic', 'schools', 'towns', 'sau']
       },
@@ -83,6 +90,9 @@ export const PAGE_REGISTRY: PageRegistry = {
       shortName: 'Academics',
       order: 2,
       requiresId: true,
+      paramExtraction: {
+        districtIdParam: 'id'
+      },
       dataRequirements: {
         district: ['basic', 'schools']
       },
@@ -99,6 +109,9 @@ export const PAGE_REGISTRY: PageRegistry = {
       shortName: 'Graduation',
       order: 3,
       requiresId: true,
+      paramExtraction: {
+        districtIdParam: 'id'
+      },
       dataRequirements: {
         district: ['basic', 'schools', 'grades']
       },
@@ -129,6 +142,9 @@ export const PAGE_REGISTRY: PageRegistry = {
       shortName: 'Financials',
       order: 4,
       requiresId: true,
+      paramExtraction: {
+        districtIdParam: 'id'
+      },
       dataRequirements: {
         district: ['basic']
       },
@@ -142,6 +158,9 @@ export const PAGE_REGISTRY: PageRegistry = {
       shortName: 'Demographics',
       order: 5,
       requiresId: true,
+      paramExtraction: {
+        districtIdParam: 'id'
+      },
       dataRequirements: {
         district: ['basic']
       },
@@ -156,6 +175,9 @@ export const PAGE_REGISTRY: PageRegistry = {
       shortName: 'Safety',
       order: 6,
       requiresId: true,
+      paramExtraction: {
+        districtIdParam: 'id'
+      },
       dataRequirements: {
         district: ['basic', 'schools']
       },
@@ -172,6 +194,9 @@ export const PAGE_REGISTRY: PageRegistry = {
       shortName: 'Staff',
       order: 7,
       requiresId: true,
+      paramExtraction: {
+        districtIdParam: 'id'
+      },
       dataRequirements: {
         district: ['basic', 'schools']
       },
@@ -188,6 +213,9 @@ export const PAGE_REGISTRY: PageRegistry = {
       shortName: 'EFA\'s',
       order: 8,
       requiresId: true,
+      paramExtraction: {
+        districtIdParam: 'id'
+      },
       dataRequirements: {
         district: ['basic']
       },
@@ -201,6 +229,9 @@ export const PAGE_REGISTRY: PageRegistry = {
       shortName: 'Contact',
       order: 9,
       requiresId: true,
+      paramExtraction: {
+        districtIdParam: 'id'
+      },
       dataRequirements: {
         district: ['basic', 'sau']
       },
@@ -217,6 +248,9 @@ export const PAGE_REGISTRY: PageRegistry = {
       shortName: 'Overview',
       order: 1,
       requiresId: true,
+      paramExtraction: {
+        schoolIdParam: 'id'
+      },
       dataRequirements: {
         school: ['basic'],
         district: ['basic', 'sau']
@@ -231,6 +265,9 @@ export const PAGE_REGISTRY: PageRegistry = {
       shortName: 'Academics',
       order: 2,
       requiresId: true,
+      paramExtraction: {
+        schoolIdParam: 'id'
+      },
       dataRequirements: {
         school: ['basic'],
         district: ['basic']
@@ -245,6 +282,9 @@ export const PAGE_REGISTRY: PageRegistry = {
       shortName: 'Financials',
       order: 3,
       requiresId: true,
+      paramExtraction: {
+        schoolIdParam: 'id'
+      },
       dataRequirements: {
         school: ['basic'],
         district: ['basic']
@@ -260,6 +300,9 @@ export const PAGE_REGISTRY: PageRegistry = {
       shortName: 'Demographics',
       order: 4,
       requiresId: true,
+      paramExtraction: {
+        schoolIdParam: 'id'
+      },
       dataRequirements: {
         school: ['basic'],
         district: ['basic']
@@ -275,6 +318,9 @@ export const PAGE_REGISTRY: PageRegistry = {
       shortName: 'Safety',
       order: 5,
       requiresId: true,
+      paramExtraction: {
+        schoolIdParam: 'id'
+      },
       dataRequirements: {
         school: ['basic'],
         district: ['basic']
@@ -289,6 +335,9 @@ export const PAGE_REGISTRY: PageRegistry = {
       shortName: 'Staff',
       order: 6,
       requiresId: true,
+      paramExtraction: {
+        schoolIdParam: 'id'
+      },
       dataRequirements: {
         school: ['basic'],
         district: ['basic']
@@ -304,6 +353,9 @@ export const PAGE_REGISTRY: PageRegistry = {
       shortName: 'Contact',
       order: 7,
       requiresId: true,
+      paramExtraction: {
+        schoolIdParam: 'id'
+      },
       dataRequirements: {
         school: ['basic'],
         district: ['basic']
@@ -348,4 +400,56 @@ export const findPageByUrl = (url: string): PageEntry | undefined => {
       return regex.test(url);
     })
   );
+};
+
+// Helper function to extract IDs from URL
+export const extractIdsFromUrl = (url: string): { districtId?: number, schoolId?: number } => {
+  const result: { districtId?: number, schoolId?: number } = { };
+  
+  for (const category of Object.values(PAGE_REGISTRY)) {
+    for (const pageKey of Object.keys(category)) {
+      const pageEntry = category[pageKey];
+      // Skip if no param extraction defined
+      if (!pageEntry.paramExtraction) continue;
+      
+      // Try to match URL with each pattern
+      for (const pattern of pageEntry.urlPatterns) {
+        // Convert route pattern to regex for matching
+        const regexPattern = pattern
+          .replace(/:\w+\?/g, '([^/]*)') // Optional parameters
+          .replace(/:\w+/g, '([^/]+)');  // Required parameters
+        const regex = new RegExp(`^${regexPattern}$`);
+        const match = regex.exec(url);
+        
+        if (match) {
+          // Extract parameter values
+          const paramNames = (pattern.match(/:\w+(\?)?/g) || [])
+            .map(param => param.replace(/^:/, '').replace(/\?$/, ''));
+          
+          // Create params object from match groups
+          const params: Record<string, string> = {};
+          paramNames.forEach((name, index) => {
+            params[name] = match[index + 1];
+          });
+          
+          // Extract district ID if configured
+          if (pageEntry.paramExtraction.districtIdParam && 
+              params[pageEntry.paramExtraction.districtIdParam]) {
+            result.districtId = parseInt(params[pageEntry.paramExtraction.districtIdParam]);
+          }
+          
+          // Extract school ID if configured
+          if (pageEntry.paramExtraction.schoolIdParam && 
+              params[pageEntry.paramExtraction.schoolIdParam]) {
+            result.schoolId = parseInt(params[pageEntry.paramExtraction.schoolIdParam]);
+          }
+          
+          // Return early once we find a match
+          return result;
+        }
+      }
+    }
+  }
+  
+  return result;
 }; 

@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Box, Typography, Divider, CircularProgress, Alert, Button, Stack, Tooltip } from '@mui/material';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { useAppSelector } from '@/store/hooks';
 import { 
-  fetchAllDistrictData, 
   selectCurrentDistrict, 
   selectCurrentTowns, 
   selectCurrentSchools, 
@@ -26,11 +25,9 @@ const GRADUATION_GRADE = import.meta.env.VITE_GRADUATION_GRADE;
 
 /**
  * Represents the District page/feature.
- * Displays district information based on the ID from the URL.
+ * Displays district information from the Redux store.
  */
 const District: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const dispatch = useAppDispatch();
   const [showAllSchools, setShowAllSchools] = useState(false);
   
   // Select from Redux store
@@ -46,18 +43,7 @@ const District: React.FC = () => {
     (grade) => grade.name === GRADUATION_GRADE
   );
 
-  useEffect(() => {
-    if (id) {
-      dispatch(fetchAllDistrictData(Number(id)));
-    }
-  }, [id, dispatch]);
-
-  // Show loading when:
-  // 1. We're explicitly in a loading state
-  // 2. OR we've initiated a fetch (id exists) but don't have district data yet
-  const isLoading = loading || (!!id && !district && !error);
-
-  if (isLoading) {
+  if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
         <CircularProgress />
@@ -178,7 +164,7 @@ const District: React.FC = () => {
             variant="outlined" 
             color="inherit"
             component={Link} 
-            to={`/district/${id}/academic`}
+            to={`/district/${district.id}/academic`}
             fullWidth
             sx={navigationButtonStyle}
           >
@@ -218,7 +204,7 @@ const District: React.FC = () => {
             variant="outlined" 
             color="inherit"
             component={Link} 
-            to={`/district/${id}/outcomes`}
+            to={`/district/${district.id}/outcomes`}
             fullWidth
             sx={navigationButtonStyle}
           >
@@ -257,7 +243,7 @@ const District: React.FC = () => {
           variant="outlined" 
           color="inherit"
           component={Link} 
-          to={`/district/${id}/financials`}
+          to={`/district/${district.id}/financials`}
           fullWidth
           sx={navigationButtonStyle}
         >
@@ -296,7 +282,7 @@ const District: React.FC = () => {
             variant="outlined" 
             color="inherit"
             component={Link} 
-            to={`/district/${id}/safety`}
+            to={`/district/${district.id}/safety`}
             fullWidth
             sx={navigationButtonStyle}
           >
@@ -308,7 +294,7 @@ const District: React.FC = () => {
           variant="outlined" 
           color="inherit"
           component={Link} 
-          to={`/district/${id}/efa`}
+          to={`/district/${district.id}/efa`}
           fullWidth
           sx={navigationButtonStyle}
         >
@@ -347,7 +333,7 @@ const District: React.FC = () => {
             variant="outlined" 
             color="inherit"
             component={Link} 
-            to={`/district/${id}/staff`}
+            to={`/district/${district.id}/staff`}
             fullWidth
             sx={navigationButtonStyle}
           >
@@ -359,7 +345,7 @@ const District: React.FC = () => {
           variant="outlined" 
           color="inherit"
           component={Link} 
-          to={`/district/${id}/contact`}
+          to={`/district/${district.id}/contact`}
           fullWidth
           sx={navigationButtonStyle}
         >

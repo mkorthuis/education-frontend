@@ -4,8 +4,7 @@ import { Box, CircularProgress, Typography } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentSchool,
-  selectAnyLocationLoading,
-  fetchAllSchoolData
+  selectAnyLocationLoading
 } from '@/store/slices/locationSlice';
 import {
   fetchAssessmentSchoolData,
@@ -30,7 +29,7 @@ import { FISCAL_YEAR } from '@/utils/environment';
 import { LoadingState } from '@/store/slices/safetySlice';
 
 const AcademicAchievement: React.FC = () => {
-  const { id, subjectName } = useParams<{ id: string; subjectName?: string }>();
+  const { subjectName } = useParams<{ subjectName?: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
@@ -40,8 +39,8 @@ const AcademicAchievement: React.FC = () => {
   
   // Create query params for initial school data fetch
   const initialQueryParams = useMemo(() => ({
-    school_id: id || ''
-  }), [id]);
+    school_id: school?.id.toString() || ''
+  }), [school?.id]);
   
   // Use parameterized loading selector
   const schoolAssessmentLoading = useAppSelector(state => selectAssessmentSchoolLoadingStatus(state, initialQueryParams));
@@ -72,21 +71,16 @@ const AcademicAchievement: React.FC = () => {
     }
   }, [subjectName, schoolAssessmentData, dispatch]);
 
-  // Fetch all required data
+  // Fetch assessment data when school is available
   useEffect(() => {
-    if (id) {
-      // If school data isn't loaded yet, fetch it
-      if (!school && !schoolLoading) {
-        dispatch(fetchAllSchoolData(parseInt(id)));
-      }
-
+    if (school?.id) {
       // Fetch state assessment data if not already loaded
       if (stateAssessmentLoading === LoadingState.IDLE && stateAssessmentData.length === 0) {
         dispatch(fetchAssessmentStateData({}));
       }
 
       // Fetch school assessment data if not already loaded
-      if ((school && schoolAssessmentLoading === LoadingState.IDLE && schoolAssessmentData.length === 0)) {
+      if (schoolAssessmentLoading === LoadingState.IDLE && schoolAssessmentData.length === 0) {
         dispatch(setCurrentSchoolDataKey("-1"));
         dispatch(fetchAssessmentSchoolData(initialQueryParams)).then((action) => {
           // After fetching is complete, set the current school data key manually
@@ -103,7 +97,7 @@ const AcademicAchievement: React.FC = () => {
       }
     }
   }, [
-    dispatch, id, school, schoolLoading, schoolAssessmentLoading, 
+    dispatch, school?.id, schoolAssessmentLoading, 
     schoolAssessmentData.length, stateAssessmentLoading,
     stateAssessmentData.length, initialQueryParams
   ]);

@@ -1,11 +1,9 @@
 import React, { useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
 import { Box, Typography, CircularProgress, Divider } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentDistrict,
-  selectLocationLoading,
-  fetchAllDistrictData
+  selectLocationLoading
 } from '@/store/slices/locationSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
 import * as outcomeSlice from '@/store/slices/outcomeSlice';
@@ -19,11 +17,14 @@ import GraduationRateChart from './outcome/GraduationRateChart';
 import WhatIsNextChart from './outcome/WhatIsNextChart';
 
 const Outcomes: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const districtId = id ? parseInt(id) : 0;
   const dispatch = useAppDispatch();
   // List of teacher-related measurement type IDs
   const outcomeMeasurementTypeIds = [9, 10, 11];
+
+  // District and location data
+  const district = useAppSelector(selectCurrentDistrict);
+  const districtId = district?.id;
+  const districtLoading = useAppSelector(selectLocationLoading);
 
   // Memoize the parameter objects to avoid recreating them on each render
   const districtParams = useMemo(() => ({ district_id: districtId }), [districtId]);
@@ -31,10 +32,6 @@ const Outcomes: React.FC = () => {
   
   const measurementsLoading = useAppSelector(selectMeasurementsLoadingState);
   const measurements = useAppSelector(selectAllMeasurements);
-
-  // District and location data
-  const district = useAppSelector(selectCurrentDistrict);
-  const districtLoading = useAppSelector(selectLocationLoading);
 
   const districtPostGraduationData = useAppSelector(state => 
     outcomeSlice.selectDistrictPostGraduationData(state, districtParams));
@@ -91,18 +88,16 @@ const Outcomes: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!id) return;
-
-    // Only fetch district data if we don't have it and aren't already loading it
-    if (!district && !districtLoading) {
-      dispatch(fetchAllDistrictData(districtId));
-    }
+    if (!districtId) return;
 
     // Only fetch other data if we have the district data
     if (district) {
       // Fetch measurements if needed
-      if (measurementsLoading === safetySlice.LoadingState.IDLE && measurements.length === 0) {
-        dispatch(fetchAllMeasurements({ entityId: id, entityType: 'district' }));
+      if (measurementsLoading === safetySlice.LoadingState.IDLE && measurements.length === 0 && districtId) {
+        dispatch(fetchAllMeasurements({ 
+          entityId: String(districtId), 
+          entityType: 'district' 
+        }));
       }
 
       // Fetch post-graduation types if needed
@@ -133,7 +128,7 @@ const Outcomes: React.FC = () => {
       }
     }
   }, [
-    dispatch, id, districtId, district, districtLoading,
+    dispatch, districtId, district,
     measurementsLoading, measurements,
     loadingStates, districtParams, stateParams,
     districtPostGraduationData, districtEarlyExitData, districtGraduationCohortData,

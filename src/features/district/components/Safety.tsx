@@ -5,7 +5,6 @@ import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentDistrict,
   selectLocationLoading,
-  fetchAllDistrictData,
   selectCurrentSchools
 } from '@/store/slices/locationSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
@@ -30,22 +29,22 @@ import TruancyCategoryDetails from './safety/category/TruancyCategoryDetails';
 import DefaultCategoryDetails from './safety/category/DefaultCategoryDetails';
 
 const Safety: React.FC = () => {
-  const { id, category } = useParams<{ id: string; category?: string }>();
+  const { category } = useParams<{ category?: string }>();
   const navigate = useNavigate();
-  const districtId = id ? parseInt(id) : 0;
   const dispatch = useAppDispatch();
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
+  // District and location data
+  const district = useAppSelector(selectCurrentDistrict);
+  const districtId = district?.id;
+  const districtLoading = useAppSelector(selectLocationLoading);
+  const schools = useAppSelector(selectCurrentSchools);
+  
   // Memoize the parameter objects to avoid recreating them on each render
   const districtParams = useMemo(() => ({ district_id: districtId }), [districtId]);
   const stateParams = useMemo(() => ({}), []);
-  
-  // District and location data
-  const district = useAppSelector(selectCurrentDistrict);
-  const districtLoading = useAppSelector(selectLocationLoading);
-  const schools = useAppSelector(selectCurrentSchools);
   
   // Safety data selectors
   const schoolSafetyData = useAppSelector(state => safetySlice.selectSchoolSafetyData(state, districtParams));
@@ -131,12 +130,7 @@ const Safety: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!id) return;
-
-    // Only fetch district data if we don't have it and aren't already loading it
-    if (!district && !districtLoading) {
-      dispatch(fetchAllDistrictData(districtId));
-    }
+    if (!districtId) return;
 
     // Only fetch other data if we have the district data
     if (district) {
@@ -209,7 +203,7 @@ const Safety: React.FC = () => {
       });
     }
   }, [
-    dispatch, id, districtId, district, districtLoading,
+    dispatch, districtId, district,
     loadingStates, districtParams, stateParams,
     schoolSafetyData, schoolHarassmentData,
     districtSafetyData, districtHarassmentData, districtTruancyData,

@@ -1,24 +1,20 @@
 import React, { useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { Box, Typography, Paper, CircularProgress } from '@mui/material';
+import { Box, Typography, CircularProgress } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentDistrict, 
-  selectLocationLoading, 
-  fetchAllDistrictData  
+  selectLocationLoading
 } from '@/store/slices/locationSlice';
 import { 
   selectAllMeasurements, 
   selectMeasurementsLoadingState,
   selectMeasurementsError,
-  fetchAllMeasurements,
-  FetchMeasurementsParams
+  fetchAllMeasurements
 } from '@/store/slices/measurementSlice';
 import MeasurementTable from '@/components/ui/tables/MeasurementTable';
 import SectionTitle from '@/components/ui/SectionTitle';
 
 const Demographics: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
   const district = useAppSelector(selectCurrentDistrict);
   const districtLoading = useAppSelector(selectLocationLoading);
   const dispatch = useAppDispatch();
@@ -30,18 +26,14 @@ const Demographics: React.FC = () => {
   const demographicMeasurementTypeIds = [23, 24, 25, 26, 27, 28, 29, 30, 31, 32];
 
   useEffect(() => {
-    if (!id) return;
-
-    // Only fetch district data if we don't have it and aren't already loading it
-    if (!district && !districtLoading) {
-      dispatch(fetchAllDistrictData(parseInt(id)));
-    }
-
     // Only fetch measurements if we have the district data
     if (district && !measurementsLoading && measurements.length === 0) {
-      dispatch(fetchAllMeasurements({ entityId: id, entityType: 'district' }));
+      dispatch(fetchAllMeasurements({ 
+        entityId: district.id.toString(), 
+        entityType: 'district' 
+      }));
     }
-  }, [id, district, districtLoading, dispatch, measurementsLoading, measurements]);
+  }, [district, dispatch, measurementsLoading, measurements]);
 
   // Filter measurements to only include demographic measurement type IDs
   const demographicMeasurements = measurements.filter(
