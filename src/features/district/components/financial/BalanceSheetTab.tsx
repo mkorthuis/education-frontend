@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Box } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
 import { FinancialComparisonTable } from '@/components/ui/tables';
@@ -7,7 +7,7 @@ import {
   prepareDetailedAssetsComparisonData,
   prepareDetailedLiabilitiesComparisonData
 } from '../../utils/financialDataProcessing';
-import { selectFinancialReports } from '@/store/slices/financeSlice';
+import { selectFinancialReports, selectAdjustForInflation } from '@/store/slices/financeSlice';
 import { FISCAL_YEAR } from '@/utils/environment';
 
 interface BalanceSheetTabProps {
@@ -19,6 +19,9 @@ const BalanceSheetTab: React.FC<BalanceSheetTabProps> = ({
 }) => {
   // Get financial reports from Redux
   const financialReports = useAppSelector(state => selectFinancialReports(state));
+  
+  // Get inflation adjustment state from Redux
+  const adjustForInflation = useAppSelector(selectAdjustForInflation);
   
   // Set current year from environment variable
   const currentYear = FISCAL_YEAR;
@@ -34,17 +37,23 @@ const BalanceSheetTab: React.FC<BalanceSheetTabProps> = ({
   const assetsComparisonItems = useMemo(() => 
     prepareDetailedAssetsComparisonData(
       financialReports[currentYear], 
-      financialReports[parseInt(currentYear)-1]
+      financialReports[parseInt(currentYear)-1],
+      adjustForInflation,
+      parseInt(currentYear),
+      parseInt(currentYear)-1
     ),
-    [financialReports, currentYear]
+    [financialReports, currentYear, adjustForInflation]
   );
   
   const liabilitiesComparisonItems = useMemo(() => 
     prepareDetailedLiabilitiesComparisonData(
       financialReports[currentYear], 
-      financialReports[parseInt(currentYear)-1]
+      financialReports[parseInt(currentYear)-1],
+      adjustForInflation,
+      parseInt(currentYear),
+      parseInt(currentYear)-1
     ),
-    [financialReports, currentYear]
+    [financialReports, currentYear, adjustForInflation]
   );
 
   return (
@@ -65,6 +74,7 @@ const BalanceSheetTab: React.FC<BalanceSheetTabProps> = ({
         onComparisonYearChange={() => {}}
         valueType="Assets"
         totalRowLabel="Total Assets"
+        adjustForInflation={adjustForInflation}
       />
       
       {/* Liabilities Table */}
@@ -84,6 +94,7 @@ const BalanceSheetTab: React.FC<BalanceSheetTabProps> = ({
           onComparisonYearChange={() => {}}
           valueType="Debts"
           totalRowLabel="Total Liabilities"
+          adjustForInflation={adjustForInflation}
         />
       </Box>
     </>

@@ -1,12 +1,13 @@
 import React, { useMemo, useState } from 'react';
-import { Typography, Card, CardContent, Box, Divider, Button, useTheme, useMediaQuery } from '@mui/material';
+import { Typography, Card, CardContent, Box, Divider, Button, useTheme, useMediaQuery, Chip } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
-import { selectLatestStateExpenditureRollupDetails, selectStateExpenditureRollupsByYear, selectTotalExpendituresByYear } from '@/store/slices/financeSlice';
+import { selectLatestStateExpenditureRollupDetails, selectStateExpenditureRollupsByYear, selectTotalExpendituresByYear, selectAdjustForInflation } from '@/store/slices/financeSlice';
 import { formatCompactNumber } from '@/utils/formatting';
 import { formatFiscalYear } from '../../../utils/financialDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
 import InstructionalVsSupportTrendChart from './InstructionalVsSupportTrendChart';
 import CostBreakdownTable from './CostBreakdownTable';
+import { calculateInflationAdjustedAmount } from '@/utils/calculations';
 
 interface ExpendituresCardProps {
   className?: string;
@@ -18,13 +19,30 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className, district
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [showTrendChart, setShowTrendChart] = useState(false);
   const [showCostTable, setShowCostTable] = useState(false);
+  
+  // Get inflation adjustment state from Redux
+  const adjustForInflation = useAppSelector(selectAdjustForInflation);
 
   const TEN_YEARS_AGO = parseInt(FISCAL_YEAR) - 10;
+  const currentYear = parseInt(FISCAL_YEAR);
   // Get the total expenditures for the current fiscal year
   const totalCurrentExpenditures = useAppSelector(state => selectTotalExpendituresByYear(state, FISCAL_YEAR));
-  const totalPreviousExpenditures = useAppSelector(state => selectTotalExpendituresByYear(state, (parseInt(FISCAL_YEAR) - 1).toString()));
+  const rawPreviousExpenditures = useAppSelector(state => selectTotalExpendituresByYear(state, (parseInt(FISCAL_YEAR) - 1).toString()));
   const latestStateExpenditureRollupData = useAppSelector(selectLatestStateExpenditureRollupDetails);
   const previousStateExpenditureRollupData = useAppSelector(state => selectStateExpenditureRollupsByYear(state, TEN_YEARS_AGO));
+  
+  // Apply inflation adjustment if needed
+  const totalPreviousExpenditures = useMemo(() => {
+    if (!rawPreviousExpenditures) return 0;
+    
+    return adjustForInflation 
+      ? calculateInflationAdjustedAmount(
+          rawPreviousExpenditures, 
+          currentYear - 1, 
+          currentYear
+        )
+      : rawPreviousExpenditures;
+  }, [rawPreviousExpenditures, adjustForInflation, currentYear]);
   
   // Calculate year-over-year percentage change
   const percentageChange = totalPreviousExpenditures 
@@ -38,9 +56,22 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className, district
   const tenYearsAgo = TEN_YEARS_AGO;
   
   // Get expenditures for 10 years ago
-  const expendituresTenYearsAgo = useAppSelector(state => 
+  const rawExpendituresTenYearsAgo = useAppSelector(state => 
     selectTotalExpendituresByYear(state, tenYearsAgo.toString())
   );
+  
+  // Apply inflation adjustment to 10-year-ago data if needed
+  const expendituresTenYearsAgo = useMemo(() => {
+    if (!rawExpendituresTenYearsAgo) return 0;
+    
+    return adjustForInflation 
+      ? calculateInflationAdjustedAmount(
+          rawExpendituresTenYearsAgo, 
+          tenYearsAgo, 
+          currentYear
+        )
+      : rawExpendituresTenYearsAgo;
+  }, [rawExpendituresTenYearsAgo, adjustForInflation, tenYearsAgo, currentYear]);
   
   // Calculate 10-year average change
   const tenYearChange = useMemo(() => {
@@ -68,9 +99,19 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className, district
       return null;
     }
     
+    // Get state data with inflation adjustment if needed
+    const latestStateTotal = latestStateExpenditureRollupData.total;
+    const previousStateTotal = adjustForInflation 
+      ? calculateInflationAdjustedAmount(
+          previousStateExpenditureRollupData.total, 
+          tenYearsAgo, 
+          currentYear
+        )
+      : previousStateExpenditureRollupData.total;
+    
     // Calculate state average annual change over 10 years
     const stateAverageAnnualChange = (Math.pow(
-      latestStateExpenditureRollupData.total / previousStateExpenditureRollupData.total, 
+      latestStateTotal / previousStateTotal, 
       1/10
     ) - 1) * 100;
     
@@ -85,7 +126,7 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className, district
       districtRate,
       stateRate
     };
-  }, [latestStateExpenditureRollupData, previousStateExpenditureRollupData, tenYearChange]);
+  }, [latestStateExpenditureRollupData, previousStateExpenditureRollupData, tenYearChange, adjustForInflation, tenYearsAgo, currentYear]);
 
   // Handle chart toggle for mobile view
   const handleToggleChart = () => {
@@ -123,9 +164,9 @@ const ExpendituresCard: React.FC<ExpendituresCardProps> = ({ className, district
       className={className}
     >
       <CardContent>
-        <Typography variant="h6">
-          {formatFiscalYear(FISCAL_YEAR)} Expenditures: {formatCompactNumber(totalCurrentExpenditures || 0)}
-        </Typography>
+          <Typography variant="h6">
+            {formatFiscalYear(FISCAL_YEAR)} Expenditures: {formatCompactNumber(totalCurrentExpenditures || 0)}
+          </Typography>
         
         <Box component="ul" sx={{ mt: 1, pl: 2 }}>
           <Typography component="li" variant="body2">

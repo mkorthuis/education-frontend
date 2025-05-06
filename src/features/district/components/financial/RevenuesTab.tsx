@@ -1,11 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useAppSelector } from '@/store/hooks';
 import { FinancialComparisonTable } from '@/components/ui/tables';
 import { formatCompactNumber } from '@/utils/formatting';
 import { 
   prepareDetailedRevenueComparisonData 
 } from '../../utils/financialDataProcessing';
-import { selectFinancialReports } from '@/store/slices/financeSlice';
+import { selectFinancialReports, selectAdjustForInflation } from '@/store/slices/financeSlice';
 import { FISCAL_YEAR } from '@/utils/environment';
 
 interface RevenuesTabProps {
@@ -17,6 +17,9 @@ const RevenuesTab: React.FC<RevenuesTabProps> = ({
 }) => {
   // Get financial reports from Redux
   const financialReports = useAppSelector(state => selectFinancialReports(state));
+  
+  // Get inflation adjustment state from Redux
+  const adjustForInflation = useAppSelector(selectAdjustForInflation);
   
   // Set current year from environment variable
   const currentYear = FISCAL_YEAR;
@@ -32,9 +35,12 @@ const RevenuesTab: React.FC<RevenuesTabProps> = ({
   const revenueComparisonItems = useMemo(() => 
     prepareDetailedRevenueComparisonData(
       financialReports[currentYear], 
-      financialReports[parseInt(currentYear)-1]
+      financialReports[parseInt(currentYear)-1],
+      adjustForInflation,
+      parseInt(currentYear),
+      parseInt(currentYear)-1
     ),
-    [financialReports, currentYear]
+    [financialReports, currentYear, adjustForInflation]
   );
 
   return (
@@ -52,6 +58,7 @@ const RevenuesTab: React.FC<RevenuesTabProps> = ({
       availableComparisonYears={availableComparisonYears}
       onComparisonYearChange={() => {}}
       valueType="Revenue"
+      adjustForInflation={adjustForInflation}
     />
   );
 };

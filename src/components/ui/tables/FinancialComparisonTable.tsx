@@ -116,6 +116,11 @@ export interface FinancialComparisonTableProps {
    * Custom label for total row
    */
   totalRowLabel?: string;
+
+  /**
+   * Whether to adjust comparison year values for inflation
+   */
+  adjustForInflation?: boolean;
 }
 
 interface CategorySummary {
@@ -150,7 +155,8 @@ const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> = ({
   availableComparisonYears = [],
   onComparisonYearChange,
   valueType,
-  totalRowLabel
+  totalRowLabel,
+  adjustForInflation = false
 }) => {
   // Access all financial reports from Redux
   const financialReports = useAppSelector(selectFinancialReports);
@@ -207,29 +213,41 @@ const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> = ({
       if (title.includes('Revenue')) {
         return prepareDetailedRevenueComparisonData(
           financialReports[currentYear],
-          financialReports[selectedComparisonYear]
+          financialReports[selectedComparisonYear],
+          adjustForInflation,
+          parseInt(currentYear),
+          parseInt(selectedComparisonYear)
         );
       } else if (title.includes('Expenditure')) {
         return prepareDetailedExpenditureComparisonData(
           financialReports[currentYear],
-          financialReports[selectedComparisonYear]
+          financialReports[selectedComparisonYear],
+          adjustForInflation,
+          parseInt(currentYear),
+          parseInt(selectedComparisonYear)
         );
       } else if (title.includes('Assets')) {
         return prepareDetailedAssetsComparisonData(
           financialReports[currentYear],
-          financialReports[selectedComparisonYear]
+          financialReports[selectedComparisonYear],
+          adjustForInflation,
+          parseInt(currentYear),
+          parseInt(selectedComparisonYear)
         );
       } else if (title.includes('Liabilities')) {
         return prepareDetailedLiabilitiesComparisonData(
           financialReports[currentYear],
-          financialReports[selectedComparisonYear]
+          financialReports[selectedComparisonYear],
+          adjustForInflation,
+          parseInt(currentYear),
+          parseInt(selectedComparisonYear)
         );
       }
     }
     
     // If we can't recalculate, use the initial items
     return initialItems;
-  }, [initialItems, financialReports, currentYear, selectedComparisonYear, title]);
+  }, [initialItems, financialReports, currentYear, selectedComparisonYear, title, adjustForInflation]);
 
   const formattedCurrentYear = formatFiscalYear(currentYear);
   const formattedPreviousYear = formatFiscalYear(selectedComparisonYear);

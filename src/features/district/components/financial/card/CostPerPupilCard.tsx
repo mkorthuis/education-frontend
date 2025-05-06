@@ -1,18 +1,20 @@
 import React, { useMemo, useCallback, useState } from 'react';
-import { Typography, Box, Card, CardContent, useMediaQuery, useTheme, Button, Divider, Tooltip } from '@mui/material';
+import { Typography, Box, Card, CardContent, useMediaQuery, useTheme, Button, Divider, Tooltip, Chip } from '@mui/material';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import { useAppSelector } from '@/store/hooks';
 import {
   selectLatestPerPupilExpenditureDetails,
   selectLatestStatePerPupilExpenditureDetails,
   selectPerPupilExpenditureByYear,
-  selectStatePerPupilExpenditureByYear
+  selectStatePerPupilExpenditureByYear,
+  selectAdjustForInflation
 } from '@/store/slices/financeSlice';
 import { formatCompactNumber } from '@/utils/formatting';
 import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import PerPupilExpenditureTrendChart from './PerPupilExpenditureTrendChart';
 import PerPupilCostBreakdownTable from './PerPupilCostBreakdownTable';
+import { calculateInflationAdjustedAmount } from '@/utils/calculations';
 
 interface CostPerPupilCardProps {
   className?: string;
@@ -56,6 +58,9 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
   const [showTrendChart, setShowTrendChart] = useState(false);
   const [showCostBreakdown, setShowCostBreakdown] = useState(false);
   
+  // Get inflation adjustment state from Redux
+  const adjustForInflation = useAppSelector(selectAdjustForInflation);
+  
   // Finance data from Redux
   const latestPerPupilExpenditureDetails = useAppSelector(selectLatestPerPupilExpenditureDetails);
   const latestStatePerPupilExpenditureDetails = useAppSelector(selectLatestStatePerPupilExpenditureDetails);
@@ -66,26 +71,32 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
   // Get the state per pupil expenditure data using memoized selector
   const statePerPupilExpenditureData = useAppSelector(selectStatePerPupilExpenditureData);
   
-  // Helper to calculate change between two values
-  const calculateChange = useCallback((currentValue: number, previousValue: number) => {
+  // Helper to calculate change between two values, accounting for inflation
+  const calculateChange = useCallback((currentValue: number, previousValue: number, previousYear: number) => {
     if (!previousValue) return null;
     
-    const difference = currentValue - previousValue;
-    const percentChange = (difference / previousValue) * 100;
+    // If adjusting for inflation, adjust previousValue to current dollars
+    const adjustedPreviousValue = adjustForInflation 
+      ? calculateInflationAdjustedAmount(previousValue, previousYear, latestPerPupilExpenditureDetails?.year || 0)
+      : previousValue;
+    
+    const difference = currentValue - adjustedPreviousValue;
+    const percentChange = (difference / adjustedPreviousValue) * 100;
     
     return {
       difference,
       percentChange,
-      previousValue
+      previousValue: adjustedPreviousValue,
+      originalPreviousValue: previousValue
     };
-  }, []);
+  }, [adjustForInflation, latestPerPupilExpenditureDetails]);
   
   // Calculate year-over-year change for district per pupil expenditure
   const perPupilYearOverYearChange = useMemo(() => {
     const { current, previousYear } = perPupilExpenditureData;
     if (!current || !previousYear) return null;
     
-    return calculateChange(current.total, previousYear.total);
+    return calculateChange(current.total, previousYear.total, previousYear.year);
   }, [perPupilExpenditureData, calculateChange]);
   
   // Calculate 10-year change for district per pupil expenditure
@@ -93,7 +104,7 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
     const { current, tenYearsAgo } = perPupilExpenditureData;
     if (!current || !tenYearsAgo) return null;
     
-    return calculateChange(current.total, tenYearsAgo.total);
+    return calculateChange(current.total, tenYearsAgo.total, tenYearsAgo.year);
   }, [perPupilExpenditureData, calculateChange]);
   
   // Calculate 10-year change for state average per pupil expenditure
@@ -101,7 +112,7 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
     const { current, tenYearsAgo } = statePerPupilExpenditureData;
     if (!current || !tenYearsAgo) return null;
     
-    return calculateChange(current.total, tenYearsAgo.total);
+    return calculateChange(current.total, tenYearsAgo.total, tenYearsAgo.year);
   }, [statePerPupilExpenditureData, calculateChange]);
   
   // Calculate percentage difference between district and state values

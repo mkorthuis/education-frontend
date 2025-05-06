@@ -2,6 +2,7 @@ import { ProcessedReport, Expenditure, Revenue, BalanceSheet } from '@/store/sli
 import { FinancialComparisonItem } from '@/components/ui/tables';
 import { EXPENDITURE_CATEGORY_ORDER, REVENUE_CATEGORY_ORDER } from '@/utils/categoryOrdering';
 import { FISCAL_YEAR, FISCAL_START_YEAR } from '@/utils/environment';
+import { calculateInflationAdjustedAmount } from '@/utils/calculations';
 
 /**
  * Normalizes category names based on specified rules for expenditure categories
@@ -98,11 +99,17 @@ export const createComparisonYearItemsMap = <T extends Expenditure | Revenue | B
  * 
  * @param processedReport - Current year's processed financial report
  * @param comparisonYearProcessedReport - Comparison year's processed financial report
+ * @param adjustForInflation - Whether to adjust previous year values for inflation
+ * @param currentYear - The fiscal year of the current report
+ * @param comparisonYear - The fiscal year of the comparison report
  * @returns Array of financial comparison items
  */
 export const prepareDetailedExpenditureComparisonData = (
   processedReport: ProcessedReport | null,
-  comparisonYearProcessedReport: ProcessedReport | null
+  comparisonYearProcessedReport: ProcessedReport | null,
+  adjustForInflation: boolean = false,
+  currentYear: number = parseInt(FISCAL_YEAR),
+  comparisonYear: number = parseInt(FISCAL_YEAR) - 1
 ): FinancialComparisonItem[] => {
   if (!processedReport || !comparisonYearProcessedReport) {
     return [];
@@ -176,6 +183,15 @@ export const prepareDetailedExpenditureComparisonData = (
     for (const entryTypeId of entryTypeIds) {
       const comparisonYearExpenditures = comparisonYearExpendituresMap.get(entryTypeId) || [];
       group.previousValue += comparisonYearExpenditures.reduce((sum, exp) => sum + exp.value, 0);
+    }
+    
+    // Apply inflation adjustment if requested
+    if (adjustForInflation && group.previousValue > 0) {
+      group.previousValue = calculateInflationAdjustedAmount(
+        group.previousValue,
+        comparisonYear,
+        currentYear
+      );
     }
   }
   
@@ -263,11 +279,17 @@ const sortExpenditureComparisonItems = (
  * 
  * @param processedReport - Current year's processed financial report
  * @param comparisonYearProcessedReport - Comparison year's processed financial report
+ * @param adjustForInflation - Whether to adjust previous year values for inflation
+ * @param currentYear - The fiscal year of the current report
+ * @param comparisonYear - The fiscal year of the comparison report
  * @returns Array of financial comparison items
  */
 export const prepareDetailedRevenueComparisonData = (
   processedReport: ProcessedReport | null,
-  comparisonYearProcessedReport: ProcessedReport | null
+  comparisonYearProcessedReport: ProcessedReport | null,
+  adjustForInflation: boolean = false,
+  currentYear: number = parseInt(FISCAL_YEAR),
+  comparisonYear: number = parseInt(FISCAL_YEAR) - 1
 ): FinancialComparisonItem[] => {
   if (!processedReport || !comparisonYearProcessedReport) {
     return [];
@@ -319,6 +341,15 @@ export const prepareDetailedRevenueComparisonData = (
     for (const entryTypeId of entryTypeIds) {
       const comparisonYearRevenues = comparisonYearRevenuesMap.get(entryTypeId) || [];
       group.previousValue += comparisonYearRevenues.reduce((sum, rev) => sum + rev.value, 0);
+    }
+    
+    // Apply inflation adjustment if requested
+    if (adjustForInflation && group.previousValue > 0) {
+      group.previousValue = calculateInflationAdjustedAmount(
+        group.previousValue,
+        comparisonYear,
+        currentYear
+      );
     }
   }
   
@@ -426,11 +457,17 @@ const sortRevenueComparisonItems = (
  * 
  * @param processedReport - Current year's processed financial report
  * @param comparisonYearProcessedReport - Comparison year's processed financial report
+ * @param adjustForInflation - Whether to adjust previous year values for inflation
+ * @param currentYear - The fiscal year of the current report
+ * @param comparisonYear - The fiscal year of the comparison report
  * @returns Array of financial comparison items
  */
 export const prepareDetailedAssetsComparisonData = (
   processedReport: ProcessedReport | null,
-  comparisonYearProcessedReport: ProcessedReport | null
+  comparisonYearProcessedReport: ProcessedReport | null,
+  adjustForInflation: boolean = false,
+  currentYear: number = parseInt(FISCAL_YEAR),
+  comparisonYear: number = parseInt(FISCAL_YEAR) - 1
 ): FinancialComparisonItem[] => {
   if (!processedReport) {
     return [];
@@ -489,6 +526,15 @@ export const prepareDetailedAssetsComparisonData = (
         const comparisonYearAssets = comparisonYearBalanceSheetMap.get(entryTypeId) || [];
         group.previousValue += comparisonYearAssets.reduce((sum, asset) => sum + asset.value, 0);
       }
+      
+      // Apply inflation adjustment if requested
+      if (adjustForInflation && group.previousValue > 0) {
+        group.previousValue = calculateInflationAdjustedAmount(
+          group.previousValue,
+          comparisonYear,
+          currentYear
+        );
+      }
     }
   }
   
@@ -529,11 +575,17 @@ export const prepareDetailedAssetsComparisonData = (
  * 
  * @param processedReport - Current year's processed financial report
  * @param comparisonYearProcessedReport - Comparison year's processed financial report
+ * @param adjustForInflation - Whether to adjust previous year values for inflation
+ * @param currentYear - The fiscal year of the current report
+ * @param comparisonYear - The fiscal year of the comparison report
  * @returns Array of financial comparison items
  */
 export const prepareDetailedLiabilitiesComparisonData = (
   processedReport: ProcessedReport | null,
-  comparisonYearProcessedReport: ProcessedReport | null
+  comparisonYearProcessedReport: ProcessedReport | null,
+  adjustForInflation: boolean = false,
+  currentYear: number = parseInt(FISCAL_YEAR),
+  comparisonYear: number = parseInt(FISCAL_YEAR) - 1
 ): FinancialComparisonItem[] => {
   if (!processedReport) {
     return [];
@@ -591,6 +643,15 @@ export const prepareDetailedLiabilitiesComparisonData = (
       for (const entryTypeId of entryTypeIds) {
         const comparisonYearLiabilities = comparisonYearBalanceSheetMap.get(entryTypeId) || [];
         group.previousValue += comparisonYearLiabilities.reduce((sum, liability) => sum + liability.value, 0);
+      }
+      
+      // Apply inflation adjustment if requested
+      if (adjustForInflation && group.previousValue > 0) {
+        group.previousValue = calculateInflationAdjustedAmount(
+          group.previousValue,
+          comparisonYear,
+          currentYear
+        );
       }
     }
   }

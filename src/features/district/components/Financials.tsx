@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Typography, Box, CircularProgress, Tabs, Tab, useMediaQuery, useTheme, Divider } from '@mui/material';
+import { Typography, Box, CircularProgress, Tabs, Tab, useMediaQuery, useTheme, Divider, Button, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentDistrict,
@@ -28,7 +28,9 @@ import {
   fetchStateExpenditure,
   selectLatestStateExpenditureDetails,
   selectLatestStateADM,
-  fetchStateADM
+  fetchStateADM,
+  selectAdjustForInflation,
+  toggleInflationAdjustment
 } from '@/store/slices/financeSlice';
 
 // Import tab components
@@ -45,6 +47,85 @@ const TABS = [
   { value: 2, label: 'Revenues', mobileLabel: 'Income', path: 'revenues' },
   { value: 3, label: 'Balance Sheet', mobileLabel: 'Capital', path: 'balance-sheet' }
 ];
+
+/**
+ * Custom component to display financial title with inflation adjustment indicator
+ */
+const FinancialsTitle: React.FC<{
+  displayName: string;
+  districtName: string;
+  adjustForInflation: boolean;
+}> = ({ displayName, districtName, adjustForInflation }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
+  if (!adjustForInflation) {
+    // When not inflation adjusted, use regular SectionTitle
+    return (
+      <SectionTitle 
+        displayName={displayName}
+        districtName={districtName}
+        withDivider={false}
+      />
+    );
+  }
+  
+  if (isMobile) {
+    // On mobile, replace subtitle with "In Current Dollars" in red
+    return (
+      <Box>
+        <Typography 
+          variant="h5" 
+          gutterBottom 
+          sx={{ 
+            fontWeight: 500,
+            mt: 0,
+            mb: 0,
+            lineHeight: 1.2
+          }}
+        >
+          {displayName}
+        </Typography>
+        <Typography 
+          variant="subtitle1" 
+          sx={{ 
+            mb: 2,
+            color: 'error.main',
+            fontStyle: 'italic'
+          }}
+        >
+          In Current Dollars
+        </Typography>
+      </Box>
+    );
+  } else {
+    // On desktop, append "In Current Dollars" to the title in red
+    return (
+      <Box>
+        <Typography 
+          variant="h5" 
+          gutterBottom 
+          sx={{ 
+            fontWeight: 500,
+            mt: 1,
+            mb: 0.5,
+            lineHeight: 1.5
+          }}
+        >
+          {displayName} <Box component="span">for {districtName} School District</Box>
+          <Box 
+            component="span" 
+            sx={{ 
+              color: 'error.main',
+            }}
+          >
+            &nbsp;In Current Dollars
+          </Box>
+        </Typography>
+      </Box>
+    );
+  }
+};
 
 /**
  * Custom hook to fetch and manage district financial data
@@ -147,6 +228,9 @@ const Financials: React.FC = () => {
   const dispatch = useAppDispatch();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
+  // Get inflation adjustment state from Redux
+  const adjustForInflation = useAppSelector(selectAdjustForInflation);
+  
   // Find the initial tab value based on the URL parameter
   const getInitialTabValue = () => {
     if (!tab) return 0;
@@ -188,6 +272,11 @@ const Financials: React.FC = () => {
     }
   };
 
+  // Handler for inflation adjustment toggle
+  const handleToggleInflationAdjustment = () => {
+    dispatch(toggleInflationAdjustment());
+  };
+
   // Loading and data availability states
   const isLoading = districtLoading || financeLoading;
   
@@ -222,31 +311,63 @@ const Financials: React.FC = () => {
     <>
       {district && (
         <>
-          <SectionTitle 
-            displayName={PAGE_REGISTRY.district.financials.displayName}
-            districtName={district.name}
-            withDivider={false}
-          />
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: isMobile ? 'flex-start' : 'center', 
+            justifyContent: 'space-between' 
+          }}>
+            <FinancialsTitle
+              displayName={PAGE_REGISTRY.district.financials.displayName}
+              districtName={district.name}
+              adjustForInflation={adjustForInflation}
+            />
+            
+            {/* Inflation adjustment button */}
+            <ToggleButtonGroup
+              value={adjustForInflation}
+              exclusive
+              onChange={() => handleToggleInflationAdjustment()}
+              size="small"
+              sx={{
+                '& .MuiToggleButton-root': {
+                  color: 'rgba(0, 0, 0, 0.87)',
+                  fontWeight: 500,
+                  minWidth: '140px'
+                },
+                '& .MuiToggleButton-root.Mui-selected': {
+                  bgcolor: 'rgba(0, 0, 0, 0.08)',
+                  color: 'rgba(0, 0, 0, 0.87)',
+                  '&:hover': {
+                    bgcolor: 'rgba(0, 0, 0, 0.12)'
+                  }
+                }
+              }}
+            >
+              <ToggleButton value={true}>
+                Adjust For Inflation
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
 
           {/* Main Tabs */}
           <Box sx={{ position: 'relative', mb: isMobile ? 2 : 3 }}>
-            <Tabs 
-              value={mainTabValue} 
-              onChange={handleMainTabChange} 
-              sx={{ mb: 0 }}
-              variant={isMobile ? "scrollable" : "standard"}
-              scrollButtons={isMobile ? "auto" : false}
-            >
-              {TABS.map(tab => (
-                <Tab 
-                  key={tab.value}
-                  label={isMobile ? tab.mobileLabel : tab.label} 
-                  sx={isMobile ? { px: 0 } : undefined} 
-                />
-              ))}
-            </Tabs>
+              <Tabs 
+                value={mainTabValue} 
+                onChange={handleMainTabChange} 
+                sx={{ mb: 0 }}
+                variant={isMobile ? "scrollable" : "standard"}
+                scrollButtons={isMobile ? "auto" : false}
+              >
+                {TABS.map(tab => (
+                  <Tab 
+                    key={tab.value}
+                    label={isMobile ? tab.mobileLabel : tab.label} 
+                    sx={isMobile ? { px: 0 } : undefined} 
+                  />
+                ))}
+              </Tabs>
             
-            {/* Full-width divider line */}
+          {/* Full-width divider line */}
             <Divider sx={{ width: '100%', position: 'absolute', bottom: 0, left: 0, right: 0 }} />
           </Box>
 

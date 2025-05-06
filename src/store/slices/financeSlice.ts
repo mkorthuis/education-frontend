@@ -157,6 +157,9 @@ export interface FinanceState {
   stateExpenditureAllData: StateExpenditure[];
   stateADMData: StateADM[];
 
+  // Adjustments
+  adjustForInflation: boolean;
+
   // Status
   loadingStates: {
     entryTypes: LoadingState;
@@ -192,6 +195,7 @@ const initialState: FinanceState = {
   stateRevenueAllData: [],
   stateExpenditureAllData: [],
   stateADMData: [],
+  adjustForInflation: false,
   loadingStates: {
     entryTypes: LoadingState.IDLE,
     fundTypes: LoadingState.IDLE,
@@ -543,7 +547,14 @@ export const financeSlice = createSlice({
       // Don't reset stateExpenditureRollupsData as it's not district specific
       // Don't reset stateADMData as it's not district specific
     },
-    resetFinanceState: () => initialState
+    resetFinanceState: () => initialState,
+    // Add a reducer to toggle inflation adjustment
+    toggleInflationAdjustment: (state) => {
+      state.adjustForInflation = !state.adjustForInflation;
+    },
+    setInflationAdjustment: (state, action: PayloadAction<boolean>) => {
+      state.adjustForInflation = action.payload;
+    }
   },
   extraReducers: (builder) => {
     builder
@@ -733,7 +744,12 @@ export const financeSlice = createSlice({
 // ================ EXPORTS ================
 
 // Export actions
-export const { clearFinanceState, resetFinanceState } = financeSlice.actions;
+export const { 
+  clearFinanceState, 
+  resetFinanceState, 
+  toggleInflationAdjustment,
+  setInflationAdjustment
+} = financeSlice.actions;
 
 // ================ SELECTORS ================
 
@@ -914,6 +930,9 @@ export const selectStateADMByYear = (state: RootState, year: number) => {
   // Find the entry matching the requested year
   return allData.find(item => item.year === year) || null;
 };
+
+// Inflation adjustment selector
+export const selectAdjustForInflation = (state: RootState) => state.finance.adjustForInflation;
 
 // Export reducer
 export default financeSlice.reducer; 

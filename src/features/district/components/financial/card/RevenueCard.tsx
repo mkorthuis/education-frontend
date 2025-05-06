@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Typography, Card, CardContent, Box, useMediaQuery, useTheme, Button, Divider } from '@mui/material';
+import { Typography, Card, CardContent, Box, useMediaQuery, useTheme, Button, Divider, Chip } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
 import { 
   selectTotalRevenuesByYear, 
@@ -8,7 +8,8 @@ import {
   Revenue, 
   selectStateRevenueAllData,
   selectRevenueEntryTypes,
-  selectEntryTypesLoaded
+  selectEntryTypesLoaded,
+  selectAdjustForInflation
 } from '@/store/slices/financeSlice';
 import { formatCompactNumber } from '@/utils/formatting';
 import { formatFiscalYear } from '../../../utils/financialDataProcessing';
@@ -16,6 +17,7 @@ import { FISCAL_YEAR } from '@/utils/environment';
 import RevenuePieChart from './RevenuePieChart';
 import RevenueFundingComparisonTable from './RevenueFundingComparisonTable';
 import { selectCurrentDistrict } from '@/store/slices/locationSlice';
+import { calculateInflationAdjustedAmount } from '@/utils/calculations';
 
 interface RevenueCardProps {
   className?: string;
@@ -68,6 +70,9 @@ const RevenueCard: React.FC<RevenueCardProps> = ({ className }) => {
   const [showPieChart, setShowPieChart] = useState(false);
   const [showFundingTable, setShowFundingTable] = useState(false);
   
+  // Get inflation adjustment state from Redux
+  const adjustForInflation = useAppSelector(selectAdjustForInflation);
+  
   const district = useAppSelector(selectCurrentDistrict);
   const financialReports = useAppSelector(selectFinancialReports);
   const entryTypesLoaded = useAppSelector(selectEntryTypesLoaded);
@@ -80,8 +85,35 @@ const RevenueCard: React.FC<RevenueCardProps> = ({ className }) => {
   const tenYearsAgo = (currentYear - 10).toString();
   
   const totalCurrentRevenues = useAppSelector(state => selectTotalRevenuesByYear(state, FISCAL_YEAR));
-  const totalPreviousRevenues = useAppSelector(state => selectTotalRevenuesByYear(state, previousYear));
-  const revenuesTenYearsAgo = useAppSelector(state => selectTotalRevenuesByYear(state, tenYearsAgo));
+  
+  // Get previous year and 10 years ago values from Redux
+  const rawPreviousRevenues = useAppSelector(state => selectTotalRevenuesByYear(state, previousYear));
+  const rawRevenuesTenYearsAgo = useAppSelector(state => selectTotalRevenuesByYear(state, tenYearsAgo));
+  
+  // Apply inflation adjustment if needed
+  const totalPreviousRevenues = useMemo(() => {
+    if (!rawPreviousRevenues) return 0;
+    
+    return adjustForInflation 
+      ? calculateInflationAdjustedAmount(
+          rawPreviousRevenues, 
+          parseInt(previousYear), 
+          currentYear
+        )
+      : rawPreviousRevenues;
+  }, [rawPreviousRevenues, adjustForInflation, previousYear, currentYear]);
+  
+  const revenuesTenYearsAgo = useMemo(() => {
+    if (!rawRevenuesTenYearsAgo) return 0;
+    
+    return adjustForInflation 
+      ? calculateInflationAdjustedAmount(
+          rawRevenuesTenYearsAgo, 
+          parseInt(tenYearsAgo), 
+          currentYear
+        )
+      : rawRevenuesTenYearsAgo;
+  }, [rawRevenuesTenYearsAgo, adjustForInflation, tenYearsAgo, currentYear]);
   
   // Calculate year-over-year percentage change
   const percentageChange = useMemo(() => {
@@ -223,9 +255,9 @@ const RevenueCard: React.FC<RevenueCardProps> = ({ className }) => {
       className={className}
     >
       <CardContent>
-        <Typography variant="h6">
-          {formatFiscalYear(FISCAL_YEAR)} Revenue: {formatCompactNumber(totalCurrentRevenues || 0)}
-        </Typography>
+          <Typography variant="h6">
+            {formatFiscalYear(FISCAL_YEAR)} Revenue: {formatCompactNumber(totalCurrentRevenues || 0)}
+          </Typography>
         
         <Box component="ul" sx={{ mt: 1, pl: 2 }}>
           <Typography component="li" variant="body2">

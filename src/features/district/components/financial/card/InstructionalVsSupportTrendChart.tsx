@@ -3,10 +3,11 @@ import { useTheme } from '@mui/material/styles';
 import { Typography, Box, useMediaQuery } from '@mui/material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useAppSelector } from '@/store/hooks';
-import { selectFinancialReports } from '@/store/slices/financeSlice';
+import { selectFinancialReports, selectAdjustForInflation } from '@/store/slices/financeSlice';
 import { formatCompactNumber } from '@/utils/formatting';
 import { formatFiscalYear } from '../../../utils/financialDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
+import { calculateInflationAdjustedAmount } from '@/utils/calculations';
 
 interface InstructionalVsSupportTrendChartProps {
   className?: string;
@@ -23,6 +24,9 @@ interface ChartDataPoint {
 const InstructionalVsSupportTrendChart: React.FC<InstructionalVsSupportTrendChartProps> = ({ className }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
+  // Get inflation adjustment state from Redux
+  const adjustForInflation = useAppSelector(selectAdjustForInflation);
   
   // Get all financial reports from Redux
   const financialReports = useAppSelector(selectFinancialReports);
@@ -76,6 +80,13 @@ const InstructionalVsSupportTrendChart: React.FC<InstructionalVsSupportTrendChar
           }
         });
         
+        // Apply inflation adjustment if needed
+        const yearInt = parseInt(year);
+        if (adjustForInflation && yearInt !== currentYear) {
+          instructionalTotal = calculateInflationAdjustedAmount(instructionalTotal, yearInt, currentYear);
+          supportTotal = calculateInflationAdjustedAmount(supportTotal, yearInt, currentYear);
+        }
+        
         return {
           year,
           formattedYear: formatFiscalYear(parseInt(year)) || year,
@@ -84,7 +95,7 @@ const InstructionalVsSupportTrendChart: React.FC<InstructionalVsSupportTrendChar
         };
       })
       .sort((a, b) => parseInt(a.year) - parseInt(b.year)); // Ensure ascending order by year
-  }, [financialReports]);
+  }, [financialReports, adjustForInflation]);
   
   // Find min values to set the Y-axis domain
   const minValue = useMemo(() => {
@@ -149,6 +160,11 @@ const InstructionalVsSupportTrendChart: React.FC<InstructionalVsSupportTrendChar
           gutterBottom
         >
             Instructional & Support Services Spend 
+            {adjustForInflation && (
+              <Typography component="span" variant="caption" sx={{ ml: 1, fontStyle: 'italic' }}>
+                (Inflation Adjusted)
+              </Typography>
+            )}
         </Typography>
         
         <Box sx={{ height: isMobile ? 300 : 400, width: '100%' }}>

@@ -3,9 +3,10 @@ import { useTheme } from '@mui/material/styles';
 import { Card, CardContent, Typography, Box, useMediaQuery } from '@mui/material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useAppSelector } from '@/store/hooks';
-import { selectPerPupilExpenditureAllData, selectStatePerPupilExpenditureAllData } from '@/store/slices/financeSlice';
+import { selectPerPupilExpenditureAllData, selectStatePerPupilExpenditureAllData, selectAdjustForInflation } from '@/store/slices/financeSlice';
 import { formatCompactNumber } from '@/utils/formatting';
 import { formatFiscalYear } from '../../../utils/financialDataProcessing';
+import { calculateInflationAdjustedAmount } from '@/utils/calculations';
 
 interface PerPupilExpenditureTrendChartProps {
   className?: string;
@@ -16,11 +17,15 @@ interface ChartDataPoint {
   year: string;
   district: number;
   state: number | null;
+  formattedYear: string;
 }
 
 const PerPupilExpenditureTrendChart: React.FC<PerPupilExpenditureTrendChartProps> = ({ className }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
+  // Get inflation adjustment state from Redux
+  const adjustForInflation = useAppSelector(selectAdjustForInflation);
   
   // Get the district and state per pupil expenditure data
   const districtPerPupilData = useAppSelector(selectPerPupilExpenditureAllData);
@@ -53,15 +58,36 @@ const PerPupilExpenditureTrendChart: React.FC<PerPupilExpenditureTrendChartProps
         // Get corresponding state data for this year
         const stateItem = stateDataByYear.get(districtItem.year);
         
+        // Apply inflation adjustment if needed
+        let districtValue = districtItem.total;
+        let stateValue = stateItem ? stateItem.total : null;
+        
+        if (adjustForInflation && districtItem.year < latestYear) {
+          // Adjust historical values to current year dollars
+          districtValue = calculateInflationAdjustedAmount(
+            districtValue, 
+            districtItem.year, 
+            latestYear
+          );
+          
+          if (stateValue !== null) {
+            stateValue = calculateInflationAdjustedAmount(
+              stateValue, 
+              districtItem.year, 
+              latestYear
+            );
+          }
+        }
+        
         return {
           year: districtItem.year.toString(),
           formattedYear: formatFiscalYear(districtItem.year) || districtItem.year.toString(),
-          district: districtItem.total,
-          state: stateItem ? stateItem.total : null
+          district: districtValue,
+          state: stateValue
         };
       })
       .sort((a, b) => parseInt(a.year) - parseInt(b.year)); // Ensure ascending order by year
-  }, [districtPerPupilData, statePerPupilData]);
+  }, [districtPerPupilData, statePerPupilData, adjustForInflation]);
   
   // Find min values to set the Y-axis domain
   const minValue = useMemo(() => {
@@ -131,7 +157,7 @@ const PerPupilExpenditureTrendChart: React.FC<PerPupilExpenditureTrendChartProps
           }} 
           gutterBottom
         >
-            Cost Per Pupil Trend
+            Cost Per Pupil Trend {adjustForInflation && "(Inflation Adjusted)"}
         </Typography>
         
         <Box sx={{ height: isMobile ? 300 : 400, width: '100%' }}>
