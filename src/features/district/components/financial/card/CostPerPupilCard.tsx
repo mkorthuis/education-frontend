@@ -15,6 +15,7 @@ import { RootState } from '@/store/store';
 import PerPupilExpenditureTrendChart from './PerPupilExpenditureTrendChart';
 import PerPupilCostBreakdownTable from './PerPupilCostBreakdownTable';
 import { calculateInflationAdjustedAmount } from '@/utils/calculations';
+import { FISCAL_YEAR } from '@/utils/environment';
 
 interface CostPerPupilCardProps {
   className?: string;
@@ -77,7 +78,11 @@ const CostPerPupilCard: React.FC<CostPerPupilCardProps> = ({ className }) => {
     
     // If adjusting for inflation, adjust previousValue to current dollars
     const adjustedPreviousValue = adjustForInflation 
-      ? calculateInflationAdjustedAmount(previousValue, previousYear, latestPerPupilExpenditureDetails?.year || 0)
+      ? calculateInflationAdjustedAmount(
+          previousValue, 
+          previousYear, 
+          latestPerPupilExpenditureDetails?.year || parseInt(FISCAL_YEAR)
+        )
       : previousValue;
     
     const difference = currentValue - adjustedPreviousValue;
