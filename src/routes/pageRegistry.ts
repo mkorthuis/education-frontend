@@ -367,24 +367,6 @@ export const PAGE_REGISTRY: PageRegistry = {
         return '';
       },
     },
-    financials: {
-      id: 'school.financials',
-      component: SchoolFinancials,
-      urlPatterns: ['/school/:id/financials/:tab?'],
-      displayName: 'Financials',
-      shortName: 'Financials',
-      order: 4,
-      requiresId: true,
-      paramExtraction: {
-        schoolIdParam: 'id'
-      },
-      dataRequirements: {
-        school: ['basic'],
-        district: ['basic']
-      },
-      enabled: false,
-      tooltip: 'Coming Soon',
-    },
     demographics: {
       id: 'school.demographics',
       component: SchoolDemographics,
@@ -419,24 +401,6 @@ export const PAGE_REGISTRY: PageRegistry = {
         district: ['basic']
       },
       enabled: true,
-    },
-    staff: {
-      id: 'school.staff',
-      component: SchoolStaff,
-      urlPatterns: ['/school/:id/staff'],
-      displayName: 'Staff',
-      shortName: 'Staff',
-      order: 7,
-      requiresId: true,
-      paramExtraction: {
-        schoolIdParam: 'id'
-      },
-      dataRequirements: {
-        school: ['basic'],
-        district: ['basic']
-      },
-      enabled: false,
-      tooltip: 'Coming Soon',
     },
     contact: {
       id: 'school.contact',

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Box, Typography, Divider, CircularProgress, Alert, Button, Stack } from '@mui/material';
+import { Box, Typography, Divider, CircularProgress, Alert, Button, Stack, Tooltip } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
 import { 
   selectCurrentSchool, 
@@ -22,6 +22,8 @@ const navigationButtonStyle = {
   }
 };
 
+const GRADUATION_GRADE = import.meta.env.VITE_GRADUATION_GRADE;
+
 /**
  * Represents the School page/feature.
  * Displays school information from the Redux store.
@@ -33,6 +35,11 @@ const School: React.FC = () => {
   const sau = useAppSelector(selectCurrentSau);
   const loading = useAppSelector(selectLocationLoading);
   const error = useAppSelector(selectLocationError);
+
+  // Determine if the school includes the graduation grade
+  const hasGraduationGrade = school?.grades?.some(
+    (grade) => grade.name === GRADUATION_GRADE
+  );
 
   if (loading) {
     return (
@@ -89,16 +96,45 @@ const School: React.FC = () => {
         >
           Academic Achievement
         </Button>
-        <Button 
-          variant="outlined" 
-          color="inherit"
-          component={Link} 
-          to={`/school/${school.id}/outcomes`}
-          fullWidth
-          sx={navigationButtonStyle}
-        >
-          Graduation / College
-        </Button>
+        {hasGraduationGrade ? (
+          <Button 
+            variant="outlined" 
+            color="inherit"
+            component={Link} 
+            to={`/school/${school.id}/outcomes`}
+            fullWidth
+            sx={navigationButtonStyle}
+          >
+            Graduation / College
+          </Button>
+        ) : (
+          <Tooltip 
+            title={`This school does not educate ${GRADUATION_GRADE} students.`} 
+            arrow
+          >
+            <span style={{ width: '100%' }}>
+              <Button 
+                variant="outlined" 
+                color="inherit"
+                component="div" 
+                disabled
+                fullWidth
+                sx={{
+                  ...navigationButtonStyle,
+                  opacity: 0.6,
+                  cursor: 'not-allowed',
+                  '&.Mui-disabled': {
+                    color: 'text.secondary',
+                    backgroundColor: 'grey.100',
+                    borderColor: 'divider'
+                  }
+                }}
+              >
+                Graduation / College
+              </Button>
+            </span>
+          </Tooltip>
+        )}
         <Button 
           variant="outlined" 
           color="inherit"
@@ -137,45 +173,7 @@ const School: React.FC = () => {
             }
           }}
         >
-          Financials
-        </Button>
-        <Button 
-          variant="outlined" 
-          color="inherit"
-          component="div" 
-          disabled
-          fullWidth
-          sx={{
-            ...navigationButtonStyle,
-            opacity: 0.6,
-            cursor: 'not-allowed',
-            '&.Mui-disabled': {
-              color: 'text.secondary',
-              backgroundColor: 'grey.100',
-              borderColor: 'divider'
-            }
-          }}
-        >
           Demographics
-        </Button>
-        <Button 
-          variant="outlined" 
-          color="inherit"
-          component="div" 
-          disabled
-          fullWidth
-          sx={{
-            ...navigationButtonStyle,
-            opacity: 0.6,
-            cursor: 'not-allowed',
-            '&.Mui-disabled': {
-              color: 'text.secondary',
-              backgroundColor: 'grey.100',
-              borderColor: 'divider'
-            }
-          }}
-        >
-          Staff Metrics
         </Button>
       </Stack>
     </Box>
