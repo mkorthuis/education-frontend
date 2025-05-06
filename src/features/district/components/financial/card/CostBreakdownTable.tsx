@@ -346,7 +346,7 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
             console.log('Skipping high school expense', item);
             return; // Skip this expense
           }
-          console.log('Processing expense', item);
+          //console.log('Processing expense', item);
         }
         
         let valueToProcess: number;
