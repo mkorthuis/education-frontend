@@ -1,6 +1,6 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Box, Typography, Divider, CircularProgress, Alert, Button, Stack, Tooltip } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
+import { Box, Typography, Divider, CircularProgress, Alert, Button, Stack, Tooltip, Link } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
 import { 
   selectCurrentSchool, 
@@ -77,7 +77,9 @@ const School: React.FC = () => {
       <Typography variant="body1">Grades: {gradesDisplay}</Typography>
       <Typography variant="body1">Total Enrollment: {totalEnrollment} students</Typography>
       {district && (
-        <Typography variant="body1">District: {district.name}</Typography>
+        <Typography variant="body1">
+          District: <Link component={RouterLink} to={`/district/${district.id}`} color="primary" underline="hover">{district.name}</Link>
+        </Typography>
       )}
       {sau && (
         <Typography variant="body1">SAU: {sau.id}</Typography>
@@ -89,7 +91,7 @@ const School: React.FC = () => {
       <Button 
           variant="outlined" 
           color="inherit"
-          component={Link} 
+          component={RouterLink} 
           to={`/school/${school.id}/academic`}
           fullWidth
           sx={navigationButtonStyle}
@@ -100,7 +102,7 @@ const School: React.FC = () => {
           <Button 
             variant="outlined" 
             color="inherit"
-            component={Link} 
+            component={RouterLink} 
             to={`/school/${school.id}/outcomes`}
             fullWidth
             sx={navigationButtonStyle}
@@ -138,7 +140,7 @@ const School: React.FC = () => {
         <Button 
           variant="outlined" 
           color="inherit"
-          component={Link} 
+          component={RouterLink} 
           to={`/school/${school.id}/safety`}
           fullWidth
           sx={navigationButtonStyle}
@@ -148,7 +150,7 @@ const School: React.FC = () => {
         <Button 
           variant="outlined" 
           color="inherit"
-          component={Link} 
+          component={RouterLink} 
           to={`/school/${school.id}/contact`}
           fullWidth
           sx={navigationButtonStyle}
