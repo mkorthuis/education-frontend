@@ -286,50 +286,37 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
               {/* Footer Links */}
               <ListItem disablePadding>
                 <ListItemButton 
-                  disabled={true}
-                  sx={{ 
-                    py: 0.5,
-                    opacity: 0.6,
-                    cursor: 'not-allowed'
-                  }}
+                  onClick={() => handleNavigate('/about')}
+                  sx={{ py: 0.5 }}
                 >
                   <ListItemText primary="About Us" />
                 </ListItemButton>
               </ListItem>
               <ListItem disablePadding>
                 <ListItemButton 
-                  disabled={true}
-                  sx={{ 
-                    py: 0.5,
-                    opacity: 0.6,
-                    cursor: 'not-allowed'
-                  }}
+                  onClick={() => handleNavigate('/districts')}
+                  sx={{ py: 0.5 }}
+                >
+                  <ListItemText primary="Available Districts and Schools" />
+                </ListItemButton>
+              </ListItem>
+              <ListItem disablePadding>
+                <ListItemButton 
+                  onClick={() => handleNavigate('/datasources')}
+                  sx={{ py: 0.5 }}
                 >
                   <ListItemText primary="Data Sources" />
                 </ListItemButton>
               </ListItem>
               <ListItem disablePadding>
                 <ListItemButton 
-                  disabled={true}
-                  sx={{ 
-                    py: 0.5,
-                    opacity: 0.6,
-                    cursor: 'not-allowed'
+                  onClick={() => {
+                    window.open('https://api.nhfacts.com/docs#/', '_blank', 'noopener,noreferrer');
+                    onClose();
                   }}
+                  sx={{ py: 0.5 }}
                 >
                   <ListItemText primary="API Documentation" />
-                </ListItemButton>
-              </ListItem>
-              <ListItem disablePadding>
-                <ListItemButton 
-                  disabled={true}
-                  sx={{ 
-                    py: 0.5,
-                    opacity: 0.6,
-                    cursor: 'not-allowed'
-                  }}
-                >
-                  <ListItemText primary="Privacy Policy" />
                 </ListItemButton>
               </ListItem>
             </List>
