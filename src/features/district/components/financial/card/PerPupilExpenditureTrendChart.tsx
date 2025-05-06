@@ -157,7 +157,7 @@ const PerPupilExpenditureTrendChart: React.FC<PerPupilExpenditureTrendChartProps
           }} 
           gutterBottom
         >
-            Cost Per Pupil Trend {adjustForInflation && "(Inflation Adjusted)"}
+            Cost Per Pupil Trend
         </Typography>
         
         <Box sx={{ height: isMobile ? 300 : 400, width: '100%' }}>

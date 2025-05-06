@@ -160,11 +160,6 @@ const InstructionalVsSupportTrendChart: React.FC<InstructionalVsSupportTrendChar
           gutterBottom
         >
             Instructional & Support Services Spend 
-            {adjustForInflation && (
-              <Typography component="span" variant="caption" sx={{ ml: 1, fontStyle: 'italic' }}>
-                (Inflation Adjusted)
-              </Typography>
-            )}
         </Typography>
         
         <Box sx={{ height: isMobile ? 300 : 400, width: '100%' }}>
