@@ -469,6 +469,24 @@ export const findPageByUrl = (url: string): PageEntry | undefined => {
 export const extractIdsFromUrl = (url: string): { districtId?: number, schoolId?: number } => {
   const result: { districtId?: number, schoolId?: number } = { };
   
+  // Direct pattern matching for common URLs to avoid regex issues
+  if (url.match(/^\/district\/(\d+)(\/.*)?$/)) {
+    const match = url.match(/^\/district\/(\d+)(\/.*)?$/);
+    if (match && match[1]) {
+      result.districtId = parseInt(match[1]);
+      return result;
+    }
+  }
+  
+  if (url.match(/^\/school\/(\d+)(\/.*)?$/)) {
+    const match = url.match(/^\/school\/(\d+)(\/.*)?$/);
+    if (match && match[1]) {
+      result.schoolId = parseInt(match[1]);
+      return result;
+    }
+  }
+  
+  // Continue with the more detailed pattern matching as a fallback
   for (const category of Object.values(PAGE_REGISTRY)) {
     for (const pageKey of Object.keys(category)) {
       const pageEntry = category[pageKey];
@@ -481,7 +499,10 @@ export const extractIdsFromUrl = (url: string): { districtId?: number, schoolId?
         const regexPattern = pattern
           .replace(/:\w+\?/g, '([^/]*)') // Optional parameters
           .replace(/:\w+/g, '([^/]+)');  // Required parameters
+        
+        // Create regex with the properly converted pattern - no escaping needed
         const regex = new RegExp(`^${regexPattern}$`);
+        
         const match = regex.exec(url);
         
         if (match) {
