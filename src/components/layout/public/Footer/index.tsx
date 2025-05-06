@@ -1,4 +1,4 @@
-import { Box, Container, Grid, Typography, Link as MuiLink, Divider, useTheme, useMediaQuery } from '@mui/material';
+import { Box, Container, Typography, Link as MuiLink, Divider, useTheme, useMediaQuery } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 
 /**
@@ -13,7 +13,7 @@ const Footer = () => {
     <Box
       component="footer"
       sx={{
-        py: 3,
+        py: 2,
         mt: 'auto',
         backgroundColor: theme.palette.custom.footer.background,
         color: theme.palette.custom.footer.text,
@@ -21,18 +21,32 @@ const Footer = () => {
     >
       <Container maxWidth="xl" disableGutters>
         <Box sx={{ px: { xs: 2, md: 3 } }}>
-          <Grid container spacing={4}>
-            <Grid item xs={12} md={3}>
-              <Typography variant="h6" color="inherit" gutterBottom>
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              flexWrap: 'wrap', 
+              gap: {xs: 2, md: 4},
+              mb: 2,
+              justifyContent: { xs: 'center', md: 'flex-start' }
+            }}
+          >
+            <Box sx={{ 
+              flexBasis: { xs: '100%', md: '27%' },
+              textAlign: { xs: 'center', md: 'left' }
+            }}>
+              <Typography variant="body1" sx={{ fontWeight: 'bold' }} color="inherit">
                 New Hampshire Education Facts
               </Typography>
               <Typography variant="body2" color="inherit" sx={{ opacity: 0.8 }}>
-                Your Education Data Made Accessible
+                State Education Data Made Accessible
               </Typography>
-            </Grid>
+            </Box>
             
-            <Grid item xs={12} md={3}>
-              <Typography variant="h6" color="inherit" gutterBottom>
+            <Box sx={{ 
+              flexBasis: { xs: '100%', md: '17%' },
+              textAlign: { xs: 'center', md: 'left' }
+            }}>
+              <Typography variant="body1" sx={{ fontWeight: 'bold' }} color="inherit">
                 About
               </Typography>
               <MuiLink 
@@ -40,32 +54,28 @@ const Footer = () => {
                 to="/about" 
                 color="inherit" 
                 display="block" 
-                sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}
+                variant="body2"
+                sx={{ opacity: 0.8, '&:hover': { opacity: 1 } }}
               >
                 About Us
               </MuiLink>
               <MuiLink 
                 component={RouterLink} 
-                to="/about" 
+                to="/contact" 
                 color="inherit" 
                 display="block" 
-                sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}
+                variant="body2"
+                sx={{ opacity: 0.8, '&:hover': { opacity: 1 } }}
               >
-                Our Mission
+                Contact
               </MuiLink>
-              <MuiLink 
-                component={RouterLink} 
-                to="/datasources" 
-                color="inherit" 
-                display="block" 
-                sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}
-              >
-                Data Sources
-              </MuiLink>
-            </Grid>
+            </Box>
             
-            <Grid item xs={12} md={3}>
-              <Typography variant="h6" color="inherit" gutterBottom>
+            <Box sx={{ 
+              flexBasis: { xs: '100%', md: '27%' },
+              textAlign: { xs: 'center', md: 'left' }
+            }}>
+              <Typography variant="body1" sx={{ fontWeight: 'bold' }} color="inherit">
                 Resources
               </Typography>
               <MuiLink 
@@ -73,9 +83,20 @@ const Footer = () => {
                 to="/districts" 
                 color="inherit" 
                 display="block" 
-                sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}
+                variant="body2"
+                sx={{ opacity: 0.8, '&:hover': { opacity: 1 } }}
               >
                 Available Districts and Schools
+              </MuiLink>
+              <MuiLink 
+                component={RouterLink} 
+                to="/datasources" 
+                color="inherit" 
+                display="block" 
+                variant="body2"
+                sx={{ opacity: 0.8, '&:hover': { opacity: 1 } }}
+              >
+                Data Sources
               </MuiLink>
               <MuiLink 
                 href="https://api.nhfacts.com/docs#/" 
@@ -83,23 +104,18 @@ const Footer = () => {
                 rel="noopener noreferrer"
                 color="inherit" 
                 display="block" 
-                sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}
+                variant="body2" 
+                sx={{ opacity: 0.8, '&:hover': { opacity: 1 } }}
               >
                 API Documentation
               </MuiLink>
-              <MuiLink 
-                component={RouterLink} 
-                to="/faq" 
-                color="inherit" 
-                display="block" 
-                sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}
-              >
-                FAQ
-              </MuiLink>
-            </Grid>
+            </Box>
             
-            <Grid item xs={12} md={3}>
-              <Typography variant="h6" color="inherit" gutterBottom>
+            <Box sx={{ 
+              flexBasis: { xs: '100%', md: '17%' },
+              textAlign: { xs: 'center', md: 'left' }
+            }}>
+              <Typography variant="body1" sx={{ fontWeight: 'bold' }} color="inherit">
                 Legal
               </Typography>
               <MuiLink 
@@ -107,7 +123,8 @@ const Footer = () => {
                 to="/privacy" 
                 color="inherit" 
                 display="block" 
-                sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}
+                variant="body2"
+                sx={{ opacity: 0.8, '&:hover': { opacity: 1 } }}
               >
                 Privacy Policy
               </MuiLink>
@@ -116,23 +133,15 @@ const Footer = () => {
                 to="/terms" 
                 color="inherit" 
                 display="block" 
-                sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}
+                variant="body2"
+                sx={{ opacity: 0.8, '&:hover': { opacity: 1 } }}
               >
                 Terms of Use
               </MuiLink>
-              <MuiLink 
-                component={RouterLink} 
-                to="/contact" 
-                color="inherit" 
-                display="block" 
-                sx={{ mb: 1, opacity: 0.8, '&:hover': { opacity: 1 } }}
-              >
-                Contact
-              </MuiLink>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
           
-          <Divider sx={{ my: 2, bgcolor: 'rgba(255, 255, 255, 0.2)' }} />
+          <Divider sx={{ mb: 2, bgcolor: 'rgba(255, 255, 255, 0.2)' }} />
           
           <Typography variant="body2" color="inherit" align="center" sx={{ opacity: 0.7 }}>
             ©{currentYear} NH Education Facts. All data sourced from public education records.
