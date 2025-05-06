@@ -53,6 +53,7 @@ const ContactInformation = lazy(() => import('@/features/district/components/Con
 // School components
 const School = lazy(() => import('@/features/school/pages/School'));
 const SchoolAcademic = lazy(() => import('@/features/school/components/AcademicAchievement'));
+const SchoolOutcomes = lazy(() => import('@/features/school/components/Outcomes'));
 const SchoolFinancials = lazy(() => import('@/features/school/components/Financials'));
 const SchoolDemographics = lazy(() => import('@/features/school/components/Demographics'));
 const SchoolSafety = lazy(() => import('@/features/school/components/Safety'));
@@ -337,13 +338,42 @@ export const PAGE_REGISTRY: PageRegistry = {
       },
       enabled: true,
     },
+    outcomes: {
+      id: 'school.outcomes',
+      component: SchoolOutcomes,
+      urlPatterns: ['/school/:id/outcomes'],
+      displayName: 'Graduation / College',
+      shortName: 'Graduation',
+      order: 3,
+      requiresId: true,
+      paramExtraction: {
+        schoolIdParam: 'id'
+      },
+      dataRequirements: {
+        school: ['basic', 'grades']
+      },
+      enabled: (school) => {
+        const hasGraduationGrade = school && school.grades && 
+          school.grades.some((grade: any) => grade.name === import.meta.env.VITE_GRADUATION_GRADE);
+        return hasGraduationGrade;
+      },
+      tooltip: (school) => {
+        const hasGraduationGrade = school && school.grades && 
+          school.grades.some((grade: any) => grade.name === import.meta.env.VITE_GRADUATION_GRADE);
+        
+        if (!hasGraduationGrade) {
+          return `This school does not educate ${import.meta.env.VITE_GRADUATION_GRADE} students.`;
+        }
+        return '';
+      },
+    },
     financials: {
       id: 'school.financials',
       component: SchoolFinancials,
       urlPatterns: ['/school/:id/financials/:tab?'],
       displayName: 'Financials',
       shortName: 'Financials',
-      order: 3,
+      order: 4,
       requiresId: true,
       paramExtraction: {
         schoolIdParam: 'id'
@@ -361,7 +391,7 @@ export const PAGE_REGISTRY: PageRegistry = {
       urlPatterns: ['/school/:id/demographics'],
       displayName: 'Demographics',
       shortName: 'Demographics',
-      order: 4,
+      order: 5,
       requiresId: true,
       paramExtraction: {
         schoolIdParam: 'id'
@@ -379,7 +409,7 @@ export const PAGE_REGISTRY: PageRegistry = {
       urlPatterns: ['/school/:id/safety/:category?'],
       displayName: 'Safety',
       shortName: 'Safety',
-      order: 5,
+      order: 6,
       requiresId: true,
       paramExtraction: {
         schoolIdParam: 'id'
@@ -396,7 +426,7 @@ export const PAGE_REGISTRY: PageRegistry = {
       urlPatterns: ['/school/:id/staff'],
       displayName: 'Staff',
       shortName: 'Staff',
-      order: 6,
+      order: 7,
       requiresId: true,
       paramExtraction: {
         schoolIdParam: 'id'
@@ -414,7 +444,7 @@ export const PAGE_REGISTRY: PageRegistry = {
       urlPatterns: ['/school/:id/contact'],
       displayName: 'Contact Information',
       shortName: 'Contact',
-      order: 7,
+      order: 8,
       requiresId: true,
       paramExtraction: {
         schoolIdParam: 'id'

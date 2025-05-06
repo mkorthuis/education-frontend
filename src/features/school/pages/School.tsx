@@ -93,6 +93,16 @@ const School: React.FC = () => {
           variant="outlined" 
           color="inherit"
           component={Link} 
+          to={`/school/${school.id}/outcomes`}
+          fullWidth
+          sx={navigationButtonStyle}
+        >
+          Graduation / College
+        </Button>
+        <Button 
+          variant="outlined" 
+          color="inherit"
+          component={Link} 
           to={`/school/${school.id}/safety`}
           fullWidth
           sx={navigationButtonStyle}
