@@ -1,7 +1,7 @@
 import { BASE_API_URL } from '../config/constants';
 import { buildUrl, fetchData } from '../utils/apiUtils';
 
-const BASE_ENDPOINT_URL = BASE_API_URL + 'measurement/';
+const BASE_ENDPOINT_URL = BASE_API_URL + 'measurement';
 
 // Define interfaces for measurement options
 interface LatestMeasurementOptions {
@@ -18,13 +18,13 @@ const buildMeasurementUrl = (endpoint: string, options: Record<string, any> = {}
 
 export const measurementApi = {
     getLatestMeasurements: (options: LatestMeasurementOptions, forceRefresh = false) => 
-        fetchData(buildMeasurementUrl('latest', options), forceRefresh),
+        fetchData(buildMeasurementUrl('/latest', options), forceRefresh),
     
     getLatestDistrictMeasurements: (districtId: string, forceRefresh = false) => 
-        fetchData(buildMeasurementUrl('latest', { district_id: districtId }), forceRefresh),
+        fetchData(buildMeasurementUrl('/latest', { district_id: districtId }), forceRefresh),
     
     getLatestSchoolMeasurements: (schoolId: string, forceRefresh = false) => 
-        fetchData(buildMeasurementUrl('latest', { school_id: schoolId }), forceRefresh),
+        fetchData(buildMeasurementUrl('/latest', { school_id: schoolId }), forceRefresh),
     
     getAllDistrictMeasurements: (districtId: string, forceRefresh = false) => 
         fetchData(buildMeasurementUrl('', { district_id: districtId }), forceRefresh),
@@ -33,5 +33,5 @@ export const measurementApi = {
         fetchData(buildMeasurementUrl('', { school_id: schoolId }), forceRefresh),
     
     getMeasurementTypes: (forceRefresh = false) => 
-        fetchData(buildMeasurementUrl('type'), forceRefresh)
+        fetchData(buildMeasurementUrl('/type'), forceRefresh)
 };
