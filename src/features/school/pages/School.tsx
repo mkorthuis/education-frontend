@@ -1,6 +1,6 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Box, Typography, Divider, CircularProgress, Alert, Button, Stack } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
+import { Box, Typography, Divider, CircularProgress, Alert, Button, Stack, Tooltip, Link } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
 import { 
   selectCurrentSchool, 
@@ -22,6 +22,8 @@ const navigationButtonStyle = {
   }
 };
 
+const GRADUATION_GRADE = import.meta.env.VITE_GRADUATION_GRADE;
+
 /**
  * Represents the School page/feature.
  * Displays school information from the Redux store.
@@ -33,6 +35,11 @@ const School: React.FC = () => {
   const sau = useAppSelector(selectCurrentSau);
   const loading = useAppSelector(selectLocationLoading);
   const error = useAppSelector(selectLocationError);
+
+  // Determine if the school includes the graduation grade
+  const hasGraduationGrade = school?.grades?.some(
+    (grade) => grade.name === GRADUATION_GRADE
+  );
 
   if (loading) {
     return (
@@ -70,7 +77,9 @@ const School: React.FC = () => {
       <Typography variant="body1">Grades: {gradesDisplay}</Typography>
       <Typography variant="body1">Total Enrollment: {totalEnrollment} students</Typography>
       {district && (
-        <Typography variant="body1">District: {district.name}</Typography>
+        <Typography variant="body1">
+          District: <Link component={RouterLink} to={`/district/${district.id}`} color="primary" underline="hover">{district.name}</Link>
+        </Typography>
       )}
       {sau && (
         <Typography variant="body1">SAU: {sau.id}</Typography>
@@ -82,17 +91,56 @@ const School: React.FC = () => {
       <Button 
           variant="outlined" 
           color="inherit"
-          component={Link} 
+          component={RouterLink} 
           to={`/school/${school.id}/academic`}
           fullWidth
           sx={navigationButtonStyle}
         >
           Academic Achievement
         </Button>
+        {hasGraduationGrade ? (
+          <Button 
+            variant="outlined" 
+            color="inherit"
+            component={RouterLink} 
+            to={`/school/${school.id}/outcomes`}
+            fullWidth
+            sx={navigationButtonStyle}
+          >
+            Graduation / College
+          </Button>
+        ) : (
+          <Tooltip 
+            title={`This school does not educate ${GRADUATION_GRADE} students.`} 
+            arrow
+          >
+            <span style={{ width: '100%' }}>
+              <Button 
+                variant="outlined" 
+                color="inherit"
+                component="div" 
+                disabled
+                fullWidth
+                sx={{
+                  ...navigationButtonStyle,
+                  opacity: 0.6,
+                  cursor: 'not-allowed',
+                  '&.Mui-disabled': {
+                    color: 'text.secondary',
+                    backgroundColor: 'grey.100',
+                    borderColor: 'divider'
+                  }
+                }}
+              >
+                Graduation / College
+              </Button>
+            </span>
+          </Tooltip>
+        )}
         <Button 
           variant="outlined" 
           color="inherit"
-          component={Link} 
+          component={RouterLink} 
           to={`/school/${school.id}/safety`}
           fullWidth
           sx={navigationButtonStyle}
@@ -102,7 +150,17 @@ const School: React.FC = () => {
         <Button 
           variant="outlined" 
           color="inherit"
-          component={Link} 
+          component={RouterLink} 
+          to={`/school/${school.id}/enrollment`}
+          fullWidth
+          sx={navigationButtonStyle}
+        >
+          Enrollment
+        </Button>
+        <Button 
+          variant="outlined" 
+          color="inherit"
+          component={RouterLink} 
           to={`/school/${school.id}/contact`}
           fullWidth
           sx={navigationButtonStyle}
@@ -110,63 +168,6 @@ const School: React.FC = () => {
           Contact Information
         </Button>
         <Divider sx={{ my: 2 }} />
-        <Button 
-          variant="outlined" 
-          color="inherit"
-          component="div" 
-          disabled
-          fullWidth
-          sx={{
-            ...navigationButtonStyle,
-            opacity: 0.6,
-            cursor: 'not-allowed',
-            '&.Mui-disabled': {
-              color: 'text.secondary',
-              backgroundColor: 'grey.100',
-              borderColor: 'divider'
-            }
-          }}
-        >
-          Financials
-        </Button>
-        <Button 
-          variant="outlined" 
-          color="inherit"
-          component="div" 
-          disabled
-          fullWidth
-          sx={{
-            ...navigationButtonStyle,
-            opacity: 0.6,
-            cursor: 'not-allowed',
-            '&.Mui-disabled': {
-              color: 'text.secondary',
-              backgroundColor: 'grey.100',
-              borderColor: 'divider'
-            }
-          }}
-        >
-          Demographics
-        </Button>
-        <Button 
-          variant="outlined" 
-          color="inherit"
-          component="div" 
-          disabled
-          fullWidth
-          sx={{
-            ...navigationButtonStyle,
-            opacity: 0.6,
-            cursor: 'not-allowed',
-            '&.Mui-disabled': {
-              color: 'text.secondary',
-              backgroundColor: 'grey.100',
-              borderColor: 'divider'
-            }
-          }}
-        >
-          Staff Metrics
-        </Button>
       </Stack>
     </Box>
   );

@@ -14,11 +14,11 @@ interface ChartDataPoint {
 
 const WhatIsNextChart: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const districtId = id ? parseInt(id) : 0;
+  const schoolId = id ? parseInt(id) : 0;
 
   const postGraduationTypes = useAppSelector(outcomeSlice.selectPostGraduationTypes);
-  const districtData = useAppSelector(state => 
-    outcomeSlice.selectDistrictPostGraduationData(state, { district_id: districtId }));
+  const schoolData = useAppSelector(state => 
+    outcomeSlice.selectSchoolPostGraduationData(state, { school_id: schoolId }));
   const stateData = useAppSelector(state => 
     outcomeSlice.selectStatePostGraduationData(state, {}));
 
@@ -34,7 +34,7 @@ const WhatIsNextChart: React.FC = () => {
   // Process data for the chart
   const chartData = useMemo(() => {
     // Group data by year
-    const yearGroups = districtData.reduce((acc, item) => {
+    const yearGroups = schoolData.reduce((acc, item) => {
       if (!acc[item.year]) {
         acc[item.year] = {
           year: item.year.toString(),
@@ -48,8 +48,8 @@ const WhatIsNextChart: React.FC = () => {
       return acc;
     }, {} as Record<string, ChartDataPoint>);
 
-    // Calculate district percentages
-    districtData.forEach(item => {
+    // Calculate school percentages
+    schoolData.forEach(item => {
       const yearData = yearGroups[item.year];
       if (yearData && (yearData.total as number) > 0) {
         const percentage = (item.value / (yearData.total as number)) * 100;
@@ -76,7 +76,7 @@ const WhatIsNextChart: React.FC = () => {
 
     // Ensure all years have data points, even if no data exists
     const allYears = new Set([
-      ...districtData.map(item => item.year),
+      ...schoolData.map(item => item.year),
       ...stateData.map(item => item.year)
     ]);
 
@@ -94,7 +94,7 @@ const WhatIsNextChart: React.FC = () => {
 
     return Object.values(yearGroups)
       .sort((a, b) => parseInt(a.year) - parseInt(b.year));
-  }, [districtData, stateData, selectedType]);
+  }, [schoolData, stateData, selectedType]);
 
   // Handle type change
   const handleTypeChange = (typeId: string) => {
@@ -103,7 +103,7 @@ const WhatIsNextChart: React.FC = () => {
 
   return (
     <PostSecondaryPlansChart
-      entityLabel="District"
+      entityLabel="School"
       postGraduationTypes={postGraduationTypes as PostSecondaryPlanType[]}
       chartData={chartData}
       defaultSelectedTypeId={selectedType}

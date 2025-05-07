@@ -44,20 +44,21 @@ const DataSources = lazy(() => import('@/pages/DataSources'));
 const AcademicAchievement = lazy(() => import('@/features/district/components/AcademicAchievement'));
 const Outcomes = lazy(() => import('@/features/district/components/Outcomes'));
 const Financials = lazy(() => import('@/features/district/components/Financials'));
-const Demographics = lazy(() => import('@/features/district/components/Demographics'));
 const Safety = lazy(() => import('@/features/district/components/Safety'));
 const Staff = lazy(() => import('@/features/district/components/Staff'));
 const EducationFreedomAccount = lazy(() => import('@/features/district/components/EducationFreedomAccount'));
 const ContactInformation = lazy(() => import('@/features/district/components/ContactInformation'));
+const Enrollment = lazy(() => import('@/features/district/components/Enrollment'));
 
 // School components
 const School = lazy(() => import('@/features/school/pages/School'));
 const SchoolAcademic = lazy(() => import('@/features/school/components/AcademicAchievement'));
+const SchoolOutcomes = lazy(() => import('@/features/school/components/Outcomes'));
 const SchoolFinancials = lazy(() => import('@/features/school/components/Financials'));
-const SchoolDemographics = lazy(() => import('@/features/school/components/Demographics'));
 const SchoolSafety = lazy(() => import('@/features/school/components/Safety'));
 const SchoolStaff = lazy(() => import('@/features/school/components/Staff'));
 const SchoolContact = lazy(() => import('@/features/school/components/ContactInformation'));
+const SchoolEnrollment = lazy(() => import('@/features/school/components/Enrollment'));
 
 // Create the page registry
 export const PAGE_REGISTRY: PageRegistry = {
@@ -213,23 +214,6 @@ export const PAGE_REGISTRY: PageRegistry = {
       },
       enabled: true,
     },
-    demographics: {
-      id: 'district.demographics',
-      component: Demographics,
-      urlPatterns: ['/district/:id/demographics'],
-      displayName: 'Demographics',
-      shortName: 'Demographics',
-      order: 5,
-      requiresId: true,
-      paramExtraction: {
-        districtIdParam: 'id'
-      },
-      dataRequirements: {
-        district: ['basic']
-      },
-      enabled: false,
-      tooltip: 'Working with NH DOE to fix a bug in their data. Once resolved, demographic data will be available.',
-    },
     safety: {
       id: 'district.safety',
       component: Safety,
@@ -268,13 +252,29 @@ export const PAGE_REGISTRY: PageRegistry = {
         ? 'Your town does not operate schools. Please view the districts who receive your students for information' 
         : '',
     },
+    enrollment: {
+      id: 'district.enrollment',
+      component: Enrollment,
+      urlPatterns: ['/district/:id/enrollment'],
+      displayName: 'Enrollment',
+      shortName: 'Enrollment',
+      order: 8,
+      requiresId: true,
+      paramExtraction: {
+        districtIdParam: 'id'
+      },
+      dataRequirements: {
+        district: ['basic', 'schools']
+      },
+      enabled: true,
+    },
     efa: {
       id: 'district.efa',
       component: EducationFreedomAccount,
       urlPatterns: ['/district/:id/efa'],
       displayName: 'Education Freedom Accounts',
       shortName: 'EFA\'s',
-      order: 8,
+      order: 9,
       requiresId: true,
       paramExtraction: {
         districtIdParam: 'id'
@@ -290,7 +290,7 @@ export const PAGE_REGISTRY: PageRegistry = {
       urlPatterns: ['/district/:id/contact'],
       displayName: 'Contact Information',
       shortName: 'Contact',
-      order: 9,
+      order: 10,
       requiresId: true,
       paramExtraction: {
         districtIdParam: 'id'
@@ -337,41 +337,34 @@ export const PAGE_REGISTRY: PageRegistry = {
       },
       enabled: true,
     },
-    financials: {
-      id: 'school.financials',
-      component: SchoolFinancials,
-      urlPatterns: ['/school/:id/financials/:tab?'],
-      displayName: 'Financials',
-      shortName: 'Financials',
+    outcomes: {
+      id: 'school.outcomes',
+      component: SchoolOutcomes,
+      urlPatterns: ['/school/:id/outcomes'],
+      displayName: 'Graduation / College',
+      shortName: 'Graduation',
       order: 3,
       requiresId: true,
       paramExtraction: {
         schoolIdParam: 'id'
       },
       dataRequirements: {
-        school: ['basic'],
-        district: ['basic']
+        school: ['basic', 'grades']
       },
-      enabled: false,
-      tooltip: 'Coming Soon',
-    },
-    demographics: {
-      id: 'school.demographics',
-      component: SchoolDemographics,
-      urlPatterns: ['/school/:id/demographics'],
-      displayName: 'Demographics',
-      shortName: 'Demographics',
-      order: 4,
-      requiresId: true,
-      paramExtraction: {
-        schoolIdParam: 'id'
+      enabled: (school) => {
+        const hasGraduationGrade = school && school.grades && 
+          school.grades.some((grade: any) => grade.name === import.meta.env.VITE_GRADUATION_GRADE);
+        return hasGraduationGrade;
       },
-      dataRequirements: {
-        school: ['basic'],
-        district: ['basic']
+      tooltip: (school) => {
+        const hasGraduationGrade = school && school.grades && 
+          school.grades.some((grade: any) => grade.name === import.meta.env.VITE_GRADUATION_GRADE);
+        
+        if (!hasGraduationGrade) {
+          return `This school does not educate ${import.meta.env.VITE_GRADUATION_GRADE} students.`;
+        }
+        return '';
       },
-      enabled: false,
-      tooltip: 'Coming Soon',
     },
     safety: {
       id: 'school.safety',
@@ -379,7 +372,7 @@ export const PAGE_REGISTRY: PageRegistry = {
       urlPatterns: ['/school/:id/safety/:category?'],
       displayName: 'Safety',
       shortName: 'Safety',
-      order: 5,
+      order: 6,
       requiresId: true,
       paramExtraction: {
         schoolIdParam: 'id'
@@ -390,13 +383,13 @@ export const PAGE_REGISTRY: PageRegistry = {
       },
       enabled: true,
     },
-    staff: {
-      id: 'school.staff',
-      component: SchoolStaff,
-      urlPatterns: ['/school/:id/staff'],
-      displayName: 'Staff',
-      shortName: 'Staff',
-      order: 6,
+    enrollment: {
+      id: 'school.enrollment',
+      component: SchoolEnrollment,
+      urlPatterns: ['/school/:id/enrollment'],
+      displayName: 'Enrollment',
+      shortName: 'Enrollment',
+      order: 7,
       requiresId: true,
       paramExtraction: {
         schoolIdParam: 'id'
@@ -405,8 +398,7 @@ export const PAGE_REGISTRY: PageRegistry = {
         school: ['basic'],
         district: ['basic']
       },
-      enabled: false,
-      tooltip: 'Coming Soon',
+      enabled: true,
     },
     contact: {
       id: 'school.contact',
@@ -414,7 +406,7 @@ export const PAGE_REGISTRY: PageRegistry = {
       urlPatterns: ['/school/:id/contact'],
       displayName: 'Contact Information',
       shortName: 'Contact',
-      order: 7,
+      order: 8,
       requiresId: true,
       paramExtraction: {
         schoolIdParam: 'id'

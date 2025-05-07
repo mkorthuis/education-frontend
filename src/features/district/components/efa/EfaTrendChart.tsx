@@ -131,11 +131,11 @@ const ChartHeader = ({
             ? isMobile ? '(% of Public Enrollment)' : '(% of Public School Enrollment)'
             : '(# of Students)'}
         </Typography>
-        {displayMode === 'percentage' && (
+        {/* {displayMode === 'percentage' && (
           <Tooltip title="This percentage is OVERSTATED.  This is a percentage of PUBLIC SCHOOL ENROLLMENT, not total student population.  The state does not report total student population data." arrow>
             <HelpOutlineIcon fontSize="small" sx={{ color: 'text.secondary', fontSize: 16 }} />
           </Tooltip>
-        )}
+        )} */}
       </Box>
     </Box>
     

@@ -72,36 +72,38 @@ const SecondaryNav = () => {
   const navItems = useMemo(() => {
     // If we're on a school page, show school navigation
     if (pageType === PageType.SCHOOL && school.id) {
-      return school.availablePages.map(page => {
-        // Extract section from path (e.g., "academic" from "/school/123/academic")
-        const pathParts = page.path.split('/');
-        const section = pathParts.length >= 4 ? pathParts[3] : 'overview';
-        
-        return { 
-          label: page.shortName || page.name, 
-          path: page.path,
-          enabled: page.enabled !== undefined ? page.enabled : true,
-          tooltip: page.tooltip || '',
-          section: section || 'overview'
-        };
-      });
+      return school.availablePages
+        .map(page => {
+          // Extract section from path (e.g., "academic" from "/school/123/academic")
+          const pathParts = page.path.split('/');
+          const section = pathParts.length >= 4 ? pathParts[3] : 'overview';
+          
+          return { 
+            label: page.shortName || page.name, 
+            path: page.path,
+            enabled: page.enabled !== undefined ? page.enabled : true,
+            tooltip: page.tooltip || '',
+            section: section || 'overview'
+          };
+        });
     } 
     
     // If we're on a district page, show district navigation
     if (pageType === PageType.DISTRICT && district.id) {
-      return district.availablePages.map(page => {
-        // Extract section from path (e.g., "academic" from "/district/123/academic")
-        const pathParts = page.path.split('/');
-        const section = pathParts.length >= 4 ? pathParts[3] : 'overview';
-        
-        return { 
-          label: page.shortName || page.name, 
-          path: page.path,
-          enabled: page.enabled !== undefined ? page.enabled : true,
-          tooltip: page.tooltip || '',
-          section: section || 'overview'
-        };
-      });
+      return district.availablePages
+        .map(page => {
+          // Extract section from path (e.g., "academic" from "/district/123/academic")
+          const pathParts = page.path.split('/');
+          const section = pathParts.length >= 4 ? pathParts[3] : 'overview';
+          
+          return { 
+            label: page.shortName || page.name, 
+            path: page.path,
+            enabled: page.enabled !== undefined ? page.enabled : true,
+            tooltip: page.tooltip || '',
+            section: section || 'overview'
+          };
+        });
     }
     
     // If no appropriate navigation, return empty array

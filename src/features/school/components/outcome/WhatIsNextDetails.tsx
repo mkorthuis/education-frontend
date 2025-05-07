@@ -18,27 +18,27 @@ interface PostGraduationDataItem {
 
 const WhatIsNextDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const districtId = id ? parseInt(id) : 0;
+  const schoolId = id ? parseInt(id) : 0;
   const defaultFiscalYear = parseInt(FISCAL_YEAR);
   const [comparisonYear, setComparisonYear] = useState<number>(defaultFiscalYear - 1);
   const [viewMode, setViewMode] = useState<'comparison' | 'state'>('state');
 
   const postGraduationTypes = useAppSelector(outcomeSlice.selectPostGraduationTypes);
-  const districtData = useAppSelector(state => 
-    outcomeSlice.selectDistrictPostGraduationData(state, { district_id: districtId }));
+  const schoolData = useAppSelector(state => 
+    outcomeSlice.selectSchoolPostGraduationData(state, { school_id: schoolId }));
   const stateData = useAppSelector(state => 
     outcomeSlice.selectStatePostGraduationData(state, {}));
 
   // Get available years for comparison, excluding current fiscal year
   const availableYears = useMemo(() => {
     const years = new Set<number>();
-    districtData.forEach(item => {
+    schoolData.forEach(item => {
       if (item.year < defaultFiscalYear) {
         years.add(item.year);
       }
     });
     return Array.from(years).sort((a, b) => b - a);
-  }, [districtData, defaultFiscalYear]);
+  }, [schoolData, defaultFiscalYear]);
 
   // Set initial comparison year to the most recent available year
   useEffect(() => {
@@ -52,8 +52,8 @@ const WhatIsNextDetails: React.FC = () => {
     const currentYear = defaultFiscalYear.toString();
     const compareYear = comparisonYear.toString();
 
-    // Calculate district totals and percentages for both years
-    const districtTotals = districtData.reduce((acc, item) => {
+    // Calculate school totals and percentages for both years
+    const schoolTotals = schoolData.reduce((acc, item) => {
       if (!acc[item.year]) {
         acc[item.year] = 0;
       }
@@ -78,12 +78,12 @@ const WhatIsNextDetails: React.FC = () => {
         return aIndex - bIndex;
       })
       .map(type => {
-        const currentItem = districtData.find(
+        const currentItem = schoolData.find(
           item => item.year.toString() === currentYear && 
           item.post_graduation_type.id === type.id
         );
         const comparisonItem = viewMode === 'comparison' 
-          ? districtData.find(
+          ? schoolData.find(
               item => item.year.toString() === compareYear && 
               item.post_graduation_type.id === type.id
             )
@@ -92,12 +92,12 @@ const WhatIsNextDetails: React.FC = () => {
               item.post_graduation_type.id === type.id
             );
 
-        const currentPercentage = currentItem && districtTotals[currentYear] > 0
-          ? (currentItem.value / districtTotals[currentYear]) * 100
+        const currentPercentage = currentItem && schoolTotals[currentYear] > 0
+          ? (currentItem.value / schoolTotals[currentYear]) * 100
           : 0;
         const comparisonPercentage = comparisonItem && 
-          (viewMode === 'comparison' ? districtTotals[compareYear] : stateTotals[currentYear]) > 0
-          ? (comparisonItem.value / (viewMode === 'comparison' ? districtTotals[compareYear] : stateTotals[currentYear])) * 100
+          (viewMode === 'comparison' ? schoolTotals[compareYear] : stateTotals[currentYear]) > 0
+          ? (comparisonItem.value / (viewMode === 'comparison' ? schoolTotals[compareYear] : stateTotals[currentYear])) * 100
           : 0;
 
         return {
@@ -107,16 +107,16 @@ const WhatIsNextDetails: React.FC = () => {
           difference: currentPercentage - comparisonPercentage
         } as PostSecondaryPlanRow;
       });
-  }, [districtData, stateData, postGraduationTypes, defaultFiscalYear, comparisonYear, viewMode]);
+  }, [schoolData, stateData, postGraduationTypes, defaultFiscalYear, comparisonYear, viewMode]);
 
   // Calculate totals
   const totals = useMemo(() => {
-    const districtTotal = tableData.reduce((total, item) => total + item.entityPercentage, 0);
+    const schoolTotal = tableData.reduce((total, item) => total + item.entityPercentage, 0);
     const comparisonTotal = tableData.reduce((total, item) => total + item.comparisonPercentage, 0);
-    const differenceTotal = districtTotal - comparisonTotal;
+    const differenceTotal = schoolTotal - comparisonTotal;
 
     return {
-      entityTotal: districtTotal,
+      entityTotal: schoolTotal,
       comparisonTotal,
       differenceTotal
     };
@@ -138,7 +138,7 @@ const WhatIsNextDetails: React.FC = () => {
 
   return (
     <PostSecondaryPlansTable
-      entityLabel="District"
+      entityLabel="School"
       availableYears={availableYears}
       tableData={tableData}
       totalEntityPercentage={totals.entityTotal}

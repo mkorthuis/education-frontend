@@ -230,6 +230,9 @@ export const fetchAllSchoolData = createAsyncThunk(
         dispatch(fetchTownsByDistrictId(district.id)),
         dispatch(fetchSauByDistrictId(district.id))
       ]);
+      
+      // Update the district pages after loading all district data
+      dispatch(updateDistrictPages());
     }
 
     // After all data is loaded, update the school pages

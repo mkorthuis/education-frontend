@@ -40,7 +40,7 @@ const TeacherAverageSalaryCard: React.FC = () => {
 
   // Calculate yearly percentage increase
   const yearsElapsed = latestYear - earliestYear;
-  const totalPercentageChange = ((currentYearSalary - earliestYearSalary) / earliestYearSalary) * 100;
+  const totalPercentageChange = Math.abs(((currentYearSalary - earliestYearSalary) / earliestYearSalary) * 100);
   const yearlyPercentageIncrease = yearsElapsed > 0 ? totalPercentageChange / yearsElapsed : 0;
 
   // Format salary as currency

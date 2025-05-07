@@ -2,7 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { Box, CircularProgress, Divider } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
-  selectCurrentDistrict,
+  selectCurrentSchool,
   selectLocationLoading
 } from '@/store/slices/locationSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
@@ -15,28 +15,30 @@ import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const Outcomes: React.FC = () => {
   const dispatch = useAppDispatch();
+  // List of outcome-related measurement type IDs
+  const outcomeMeasurementTypeIds = [9, 10, 11];
 
-  // District and location data
-  const district = useAppSelector(selectCurrentDistrict);
-  const districtId = district?.id;
-  const districtLoading = useAppSelector(selectLocationLoading);
+  // School and location data
+  const school = useAppSelector(selectCurrentSchool);
+  const schoolId = school?.id;
+  const schoolLoading = useAppSelector(selectLocationLoading);
 
   // Memoize the parameter objects to avoid recreating them on each render
-  const districtParams = useMemo(() => ({ district_id: districtId }), [districtId]);
+  const schoolParams = useMemo(() => ({ school_id: schoolId }), [schoolId]);
   const stateParams = useMemo(() => ({}), []);
 
-  const districtPostGraduationData = useAppSelector(state => 
-    outcomeSlice.selectDistrictPostGraduationData(state, districtParams));
+  const schoolPostGraduationData = useAppSelector(state => 
+    outcomeSlice.selectSchoolPostGraduationData(state, schoolParams));
   const statePostGraduationData = useAppSelector(state => 
     outcomeSlice.selectStatePostGraduationData(state, stateParams));
 
-  const districtEarlyExitData = useAppSelector(state => 
-    outcomeSlice.selectDistrictEarlyExitData(state, districtParams));
+  const schoolEarlyExitData = useAppSelector(state => 
+    outcomeSlice.selectSchoolEarlyExitData(state, schoolParams));
   const stateEarlyExitData = useAppSelector(state => 
     outcomeSlice.selectStateEarlyExitData(state, stateParams));
 
-  const districtGraduationCohortData = useAppSelector(state => 
-    outcomeSlice.selectDistrictGraduationCohortData(state, districtParams));
+  const schoolGraduationCohortData = useAppSelector(state => 
+    outcomeSlice.selectSchoolGraduationCohortData(state, schoolParams));
   const stateGraduationCohortData = useAppSelector(state => 
     outcomeSlice.selectStateGraduationCohortData(state, stateParams));
 
@@ -48,13 +50,13 @@ const Outcomes: React.FC = () => {
     types: {
       postGraduationTypes: useAppSelector(outcomeSlice.selectPostGraduationTypesLoadingStatus)
     },
-    district: {
+    school: {
       postGraduation: useAppSelector(state => 
-        outcomeSlice.selectDistrictPostGraduationLoadingStatus(state, districtParams)),
+        outcomeSlice.selectSchoolPostGraduationLoadingStatus(state, schoolParams)),
       earlyExit: useAppSelector(state => 
-        outcomeSlice.selectDistrictEarlyExitLoadingStatus(state, districtParams)),
+        outcomeSlice.selectSchoolEarlyExitLoadingStatus(state, schoolParams)),
       graduationCohort: useAppSelector(state => 
-        outcomeSlice.selectDistrictGraduationCohortLoadingStatus(state, districtParams))
+        outcomeSlice.selectSchoolGraduationCohortLoadingStatus(state, schoolParams))
     },
     state: {
       postGraduation: useAppSelector(state => 
@@ -68,11 +70,11 @@ const Outcomes: React.FC = () => {
 
   // Check if any data is still loading
   const isLoading = useMemo(() => {
-    return districtLoading || 
+    return schoolLoading || 
       loadingStates.types.postGraduationTypes !== outcomeSlice.LoadingState.SUCCEEDED ||
-      Object.values(loadingStates.district).some(state => state !== outcomeSlice.LoadingState.SUCCEEDED) ||
+      Object.values(loadingStates.school).some(state => state !== outcomeSlice.LoadingState.SUCCEEDED) ||
       Object.values(loadingStates.state).some(state => state !== outcomeSlice.LoadingState.SUCCEEDED);
-  }, [districtLoading, loadingStates]);
+  }, [schoolLoading, loadingStates]);
 
   // Helper function to check if data needs to be fetched
   const shouldFetchData = (loadingState: outcomeSlice.LoadingState, data: any[]) => {
@@ -80,25 +82,25 @@ const Outcomes: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!districtId) return;
+    if (!schoolId) return;
 
-    // Only fetch other data if we have the district data
-    if (district) {
+    // Only fetch other data if we have the school data
+    if (school) {
 
       // Fetch post-graduation types if needed
       if (shouldFetchData(loadingStates.types.postGraduationTypes, postGraduationTypes)) {
         dispatch(outcomeSlice.fetchPostGraduationTypes());
       }
 
-      // Fetch district data
-      if (shouldFetchData(loadingStates.district.postGraduation, districtPostGraduationData)) {
-        dispatch(outcomeSlice.fetchDistrictPostGraduationOutcomes(districtParams));
+      // Fetch school data
+      if (shouldFetchData(loadingStates.school.postGraduation, schoolPostGraduationData)) {
+        dispatch(outcomeSlice.fetchSchoolPostGraduationOutcomes(schoolParams));
       }
-      if (shouldFetchData(loadingStates.district.earlyExit, districtEarlyExitData)) {
-        dispatch(outcomeSlice.fetchDistrictEarlyExitData(districtParams));
+      if (shouldFetchData(loadingStates.school.earlyExit, schoolEarlyExitData)) {
+        dispatch(outcomeSlice.fetchSchoolEarlyExitData(schoolParams));
       }
-      if (shouldFetchData(loadingStates.district.graduationCohort, districtGraduationCohortData)) {
-        dispatch(outcomeSlice.fetchDistrictGraduationCohortData(districtParams));
+      if (shouldFetchData(loadingStates.school.graduationCohort, schoolGraduationCohortData)) {
+        dispatch(outcomeSlice.fetchSchoolGraduationCohortData(schoolParams));
       }
 
       // Fetch state data
@@ -113,9 +115,9 @@ const Outcomes: React.FC = () => {
       }
     }
   }, [
-    dispatch, districtId, district,
-    loadingStates, districtParams, stateParams,
-    districtPostGraduationData, districtEarlyExitData, districtGraduationCohortData,
+    dispatch, schoolId, school,
+    loadingStates, schoolParams, stateParams,
+    schoolPostGraduationData, schoolEarlyExitData, schoolGraduationCohortData,
     statePostGraduationData, stateEarlyExitData, stateGraduationCohortData,
     postGraduationTypes
   ]);
@@ -123,8 +125,8 @@ const Outcomes: React.FC = () => {
   return (
     <>
       <SectionTitle 
-        displayName={PAGE_REGISTRY.district.outcomes.displayName}
-        districtName={district?.name}
+        displayName={PAGE_REGISTRY.school.outcomes.displayName}
+        schoolName={school?.name}
       />
       
       <Box sx={{ mt: 3 }}>

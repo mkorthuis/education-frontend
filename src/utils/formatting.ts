@@ -4,24 +4,26 @@ import { School, Staff } from '@/store/slices/locationSlice';
  * Formats a number to a compact representation (e.g., 1.25M, 250K)
  * 
  * @param value - The number to format
- * @returns A string with the compact representation including dollar sign
+ * @param isCurrency - Whether to include a dollar sign
+ * @returns A string with the compact representation
  */
-export const formatCompactNumber = (value: number): string => {
+export const formatCompactNumber = (value: number, isCurrency: boolean = true): string => {
   // Handle null, undefined, or NaN values
   if (value === null || value === undefined || isNaN(value)) {
     return 'N/A';
   }
   
   const absValue = Math.abs(value);
+  const prefix = isCurrency ? '$' : '';
   
   if (absValue >= 1000000000) {
-    return `$${(value / 1000000000).toFixed(2)}B`;
+    return `${prefix}${(value / 1000000000).toFixed(2)}B`;
   } else if (absValue >= 1000000) {
-    return `$${(value / 1000000).toFixed(2)}M`;
+    return `${prefix}${(value / 1000000).toFixed(2)}M`;
   } else if (absValue >= 1000) {
-    return `$${(value / 1000).toFixed(1)}K`;
+    return `${prefix}${(value / 1000).toFixed(1)}K`;
   } else {
-    return `$${value.toFixed(0)}`;
+    return `${prefix}${value.toFixed(0)}`;
   }
 };
 

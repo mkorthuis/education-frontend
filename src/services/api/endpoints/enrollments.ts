@@ -70,6 +70,10 @@ export const enrollmentApi = {
     getLatestSchoolEnrollment: (schoolId: number, forceRefresh = false) => 
         fetchData(buildUrl(BASE_ENDPOINT_URL, `school/${schoolId}/latest`), forceRefresh),
     
+    // Get school enrollments with optional year filtering
+    getSchoolEnrollments: (schoolId: number, options: BaseEnrollmentOptions = {}, forceRefresh = false) =>
+        fetchData(buildUrl(BASE_ENDPOINT_URL, `school/${schoolId}`, options), forceRefresh),
+    
     // State enrollment endpoint
     getStateEnrollment: (options: BaseEnrollmentOptions = {}, forceRefresh = false) => 
         fetchData(buildEnrollmentUrl('state', options), forceRefresh),
