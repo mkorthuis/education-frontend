@@ -1,37 +1,13 @@
 import React, { useMemo } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Paper, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TableRow,
-  FormControl,
-  Select,
-  MenuItem,
-  SelectChangeEvent,
-  useTheme,
-  useMediaQuery
-} from '@mui/material';
 import { TownEnrollmentData, StateTownEnrollmentData } from '@/services/api/endpoints/enrollments';
 import { FISCAL_YEAR } from '@/utils/environment';
-import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
 import { Town } from '@/store/slices/locationSlice';
+import SharedEnrollmentDetails from '@/components/ui/enrollment/SharedEnrollmentDetails';
 
 // Define interface for Grade type
 interface Grade {
   id: number;
   name: string;
-}
-
-// Define the structure for enrollment row data
-interface EnrollmentRow {
-  gradeName: string;
-  gradeId: number;
-  studentCount: number;
 }
 
 export interface TownEnrollmentDetailsProps {
@@ -40,31 +16,6 @@ export interface TownEnrollmentDetailsProps {
   stateEnrollmentData?: StateTownEnrollmentData[];
   towns?: Town[];
 }
-
-// Add tableStyles at the top of the file after imports
-const tableStyles = {
-  yearSelect: {
-    minWidth: 40,
-    '& .MuiSelect-select': {
-      textAlign: 'right',
-    }
-  },
-  selectInput: (theme: any) => ({
-    color: theme.palette.primary.main,
-    marginTop: '5px',
-    fontWeight: 500,
-    height: '20px',
-    '&:hover': {
-      color: theme.palette.primary.dark
-    },
-    '& .MuiSvgIcon-root': {
-      color: theme.palette.primary.main,
-      '&:hover': {
-        color: theme.palette.primary.dark
-      }
-    }
-  })
-};
 
 /**
  * Component that displays detailed enrollment information for towns in a district
@@ -75,9 +26,6 @@ const TownEnrollmentDetails: React.FC<TownEnrollmentDetailsProps> = ({
   stateEnrollmentData = [],
   towns = []
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
   // TODO: grades should be pulled from the API.  /api/v1/location/grade
   const grades: Grade[] = [
     { id: 2, name: 'Kindergarten' },
@@ -101,11 +49,6 @@ const TownEnrollmentDetails: React.FC<TownEnrollmentDetailsProps> = ({
   
   // State for selected year
   const [selectedYear, setSelectedYear] = React.useState<number>(defaultYear);
-  
-  // Handle year selection change
-  const handleYearChange = (event: SelectChangeEvent<number>) => {
-    setSelectedYear(Number(event.target.value));
-  };
   
   // Process enrollment data into rows
   const enrollmentRows = useMemo(() => {
@@ -146,190 +89,24 @@ const TownEnrollmentDetails: React.FC<TownEnrollmentDetailsProps> = ({
         return a.gradeName.localeCompare(b.gradeName);
       });
   }, [enrollmentData, selectedYear, grades]);
-  
-  // Calculate total
-  const totalStudentCount = useMemo(() => 
-    enrollmentRows.reduce((sum, row) => sum + row.studentCount, 0),
-    [enrollmentRows]
-  );
 
-  // Determine title based on number of towns
-  const titleText = towns.length === 1
-    ? towns[0].name
-    : 'All District Towns';
+  // Determine title and subtitle based on number of towns
+  const title = towns.length === 1 
+    ? `${towns[0].name} Students By Grade`
+    : 'All District Towns Students By Grade';
+  const subtitle = towns.length === 1 
+    ? undefined
+    : 'In All District Towns';
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: isMobile ? 'column' : 'row', 
-        alignItems: isMobile ? 'center' : 'center', 
-        justifyContent: 'space-between',
-        mb: 2 
-      }}>
-        <Box sx={{ 
-          flex: 1,
-          display: 'flex',
-          flexDirection: isMobile ? 'row' : 'column',
-          alignItems: isMobile ? 'center' : 'flex-start',
-          mb: isMobile ? 0 : 0,
-          width: '100%'
-        }}>
-          {isMobile ? (
-            <>
-              <FormControl 
-                size="small" 
-                sx={{ 
-                  minWidth: 50,
-                  mr: 1
-                }}
-              >
-                <Select
-                  value={selectedYear}
-                  onChange={handleYearChange}
-                  variant="standard"
-                  sx={tableStyles.selectInput(theme)}
-                  MenuProps={{
-                    PaperProps: {
-                      sx: { maxHeight: 300 }
-                    }
-                  }}
-                >
-                  {availableYears.map((year) => (
-                    <MenuItem 
-                      key={year} 
-                      value={year}
-                      sx={{
-                        fontWeight: 500
-                      }}
-                    >
-                      {formatFiscalYear(year)}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <Typography 
-                variant="body1" 
-                sx={{ 
-                  fontWeight: 'medium'
-                }} 
-              >
-                {towns.length === 1 
-                  ? `${towns[0].name} Students By Grade`
-                  : 'All District Towns Students By Grade'}
-              </Typography>
-            </>
-          ) : (
-            <>
-              <Typography 
-                variant="body1" 
-                sx={{ 
-                  textAlign: "left",
-                  width: "100%",
-                  fontWeight: 'medium'
-                }} 
-              >
-                Students By Grade
-              </Typography>
-              <Typography
-                variant="body2" 
-                sx={{ 
-                  textAlign: "left",
-                  width: "100%",
-                  fontWeight: 'medium',
-                  fontStyle: 'italic',
-                  color: 'text.secondary'
-                }}
-              >
-                {towns.length === 1 
-                  ? `In ${towns[0].name}`
-                  : 'In All District Towns'}
-              </Typography>
-            </>
-          )}
-        </Box>
-
-        {!isMobile && (
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            width: 'auto',
-            flexDirection: 'row',
-            justifyContent: 'flex-end'
-          }}>
-            <FormControl 
-              size="small" 
-              sx={{ 
-                minWidth: 150,
-                ml: 2,
-              }}
-            >
-              <Select
-                value={selectedYear}
-                onChange={handleYearChange}
-                sx={{ 
-                  bgcolor: 'rgba(0, 0, 0, 0.08)',
-                  '&.Mui-focused': {
-                    bgcolor: 'rgba(0, 0, 0, 0.08)'
-                  },
-                  border: '1px solid rgba(0, 0, 0, 0.12)',
-                  borderRadius: '4px',
-                  '& .MuiOutlinedInput-notchedOutline': { 
-                    border: 'none' 
-                  },
-                  '&:hover': {
-                    bgcolor: 'rgba(0, 0, 0, 0.12)'
-                  }
-                }}
-              >
-                {availableYears.map((year) => (
-                  <MenuItem 
-                    key={year} 
-                    value={year}
-                    sx={{
-                      fontWeight: 500
-                    }}
-                  >
-                    {formatFiscalYear(year)}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
-        )}
-      </Box>
-
-      {enrollmentRows.length > 0 ? (
-        <TableContainer sx={{ bgcolor: 'grey.100', border: 1, borderColor: 'grey.300', borderRadius: 1 }}>
-          <Table size="small">
-            <TableHead sx={{ bgcolor: 'grey.200', '& th': { borderBottom: '2px solid', borderColor: 'grey.400', fontWeight: 'bold' } }}>
-              <TableRow>
-                <TableCell>Grade</TableCell>
-                <TableCell align="right">Students</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {enrollmentRows.map((row, index) => (
-                <TableRow key={index}>
-                  <TableCell>{row.gradeName}</TableCell>
-                  <TableCell align="right">{row.studentCount}</TableCell>
-                </TableRow>
-              ))}
-              <TableRow sx={{ bgcolor: 'grey.200', '& td': { borderTop: '2px solid', borderColor: 'grey.400' } }}>
-                <TableCell>Total Students</TableCell>
-                <TableCell align="right">{totalStudentCount}</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </TableContainer>
-      ) : (
-        <Box sx={{ textAlign: 'center', py: 3 }}>
-          <Typography variant="body1" color="text.secondary">
-            No enrollment data available
-          </Typography>
-        </Box>
-      )}
-    </Box>
+    <SharedEnrollmentDetails
+      title={title}
+      subtitle={subtitle}
+      enrollmentRows={enrollmentRows}
+      availableYears={availableYears}
+      selectedYear={selectedYear}
+      onYearChange={setSelectedYear}
+    />
   );
 };
 

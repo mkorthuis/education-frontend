@@ -226,7 +226,7 @@ const SchoolEnrollmentChart: React.FC<SchoolEnrollmentChartProps> = ({
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={chartData}
-              margin={{ top: 5, right: 10, left: -3, bottom: 5 }}
+              margin={{ top: 5, right: 10, left: -20, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis 

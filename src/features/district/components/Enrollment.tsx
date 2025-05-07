@@ -21,12 +21,12 @@ import {
   selectAllMeasurements,
   selectAllMeasurementsLoadingState
 } from '@/store/slices/measurementSlice';
-
-// Import the enrollment components directly with their full paths
 import TownEnrollmentDetails from './enrollment/TownEnrollmentDetails';
 import TownEnrollmentChart from './enrollment/TownEnrollmentChart';
 import SchoolEnrollmentDetails from './enrollment/SchoolEnrollmentDetails';
 import SchoolEnrollmentChart from './enrollment/SchoolEnrollmentChart';
+import EnrollmentSummary from './enrollment/EnrollmentSummary';
+import EnrollmentSummaryChart from './enrollment/EnrollmentSummaryChart';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import SectionTitle from '@/components/ui/SectionTitle';
 
@@ -75,6 +75,14 @@ const Enrollment: React.FC = () => {
   const measurements = useAppSelector(state => 
     selectAllMeasurements(state, measurementParams));
     
+  // State for enrollment summary data
+  const [enrollmentData, setEnrollmentData] = React.useState<{
+    currentClassSizes: { [key: number]: number };
+    projectedClassSizes: { [key: number]: number };
+    endYear: number;
+    futureYear: number;
+  } | null>(null);
+
   // Helper to determine if we should fetch data
   const shouldFetchData = (loadingState: LoadingState, data: any[]) => {
     return loadingState === LoadingState.IDLE && data.length === 0;
@@ -146,6 +154,7 @@ const Enrollment: React.FC = () => {
         These numbers are often different from each another. Many districts send/recieve students to/from other districts. This is especially true in rural areas and higher grades.
       </Typography>
 
+
       <Divider sx={{ my: 3 }} />
 
       {/* Two columns on desktop, one column on mobile using flexbox */}
@@ -173,8 +182,42 @@ const Enrollment: React.FC = () => {
           />
         </Box>
       </Box>
-
       <Divider sx={{ my: 3 }} />
+
+      <Typography variant="h6" >
+        {towns.length === 1 
+          ? `Enrollment Projection For ${towns[0].name}`
+          : 'Enrollment Projection For All Towns '
+        }
+      </Typography>
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          flexDirection: { xs: 'column', md: 'row' }, 
+          gap: 2,
+          mt:2 
+        }}
+      >
+        <Box sx={{ flex: { md: 1 }, width: '100%' }}>
+          <EnrollmentSummary onDataChange={setEnrollmentData} />
+        </Box>
+        <Box sx={{ flex: { md: 1 }, width: '100%' }}>
+          {enrollmentData && (
+            <EnrollmentSummaryChart 
+              currentEnrollment={enrollmentData.currentClassSizes}
+              projectedEnrollment={enrollmentData.projectedClassSizes}
+              endYear={enrollmentData.endYear}
+              futureYear={enrollmentData.futureYear}
+            />
+          )}
+        </Box>
+      </Box>
+
+      <Divider sx={{ my: 3, borderWidth: 2 }} />
+
+<Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
+  District Schools Enrollment
+</Typography>
       
       {/* Two columns on desktop, one column on mobile using flexbox */}
       <Box 
@@ -195,6 +238,7 @@ const Enrollment: React.FC = () => {
           />
         </Box>
       </Box>
+
     </Box>
   );
 };

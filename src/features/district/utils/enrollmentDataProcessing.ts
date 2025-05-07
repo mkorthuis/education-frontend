@@ -65,4 +65,38 @@ export const processEnrollmentMeasurements = (measurements: Measurement[]): Proc
       actualValue
     };
   }).filter((measurement): measurement is ProcessedEnrollmentMeasurement => measurement !== null);
+};
+
+// Grade ID constants
+export const GRADE_IDS = {
+  KINDERGARTEN: 2,
+  GRADE_1: 3,
+  GRADE_2: 4,
+  GRADE_3: 5,
+  GRADE_4: 6,
+  GRADE_5: 7,
+  GRADE_6: 8,
+  GRADE_7: 9,
+  GRADE_8: 10,
+  GRADE_9: 11,
+  GRADE_10: 12,
+  GRADE_11: 13,
+  GRADE_12: 14,
+} as const;
+
+// Grade name mapping
+export const GRADE_NAMES: { [key: number]: string } = {
+  [GRADE_IDS.KINDERGARTEN]: 'Kindergarten',
+  [GRADE_IDS.GRADE_1]: 'Grade 1',
+  [GRADE_IDS.GRADE_2]: 'Grade 2',
+  [GRADE_IDS.GRADE_3]: 'Grade 3',
+  [GRADE_IDS.GRADE_4]: 'Grade 4',
+  [GRADE_IDS.GRADE_5]: 'Grade 5',
+  [GRADE_IDS.GRADE_6]: 'Grade 6',
+  [GRADE_IDS.GRADE_7]: 'Grade 7',
+  [GRADE_IDS.GRADE_8]: 'Grade 8',
+  [GRADE_IDS.GRADE_9]: 'Grade 9',
+  [GRADE_IDS.GRADE_10]: 'Grade 10',
+  [GRADE_IDS.GRADE_11]: 'Grade 11',
+  [GRADE_IDS.GRADE_12]: 'Grade 12',
 }; 

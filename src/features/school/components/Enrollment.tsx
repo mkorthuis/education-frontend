@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Typography, Divider, CircularProgress } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
@@ -15,6 +15,8 @@ import {
 // Import the enrollment components
 import SchoolEnrollmentChart from './enrollment/SchoolEnrollmentChart';
 import SchoolEnrollmentDetails from './enrollment/SchoolEnrollmentDetails';
+import SchoolEnrollmentSummary from './enrollment/SchoolEnrollmentSummary';
+import SchoolEnrollmentSummaryChart from './enrollment/SchoolEnrollmentSummaryChart';
 import SectionTitle from '@/components/ui/SectionTitle';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
@@ -44,6 +46,14 @@ const Enrollment: React.FC = () => {
   const shouldFetchData = (loadingState: LoadingState, data: any[]) => {
     return loadingState === LoadingState.IDLE && data.length === 0;
   };
+
+  // State for enrollment summary data
+  const [enrollmentSummaryData, setEnrollmentSummaryData] = useState<{
+    currentClassSizes: { [key: number]: number };
+    projectedClassSizes: { [key: number]: number };
+    endYear: number;
+    futureYear: number;
+  } | null>(null);
 
   // Load data if it's not already loaded
   useEffect(() => {
@@ -85,7 +95,6 @@ const Enrollment: React.FC = () => {
         schoolName={school?.name}
       />
 
-
       {/* Two columns on desktop, one column on mobile using flexbox */}
       <Box 
         sx={{ 
@@ -105,6 +114,37 @@ const Enrollment: React.FC = () => {
             schoolId={schoolId || 0} 
             enrollmentData={schoolEnrollmentData}
           />
+        </Box>
+      </Box>
+      <Divider sx={{ my: 3}} />
+
+      {/* Enrollment Summary Section */}
+      <Box >
+        <Typography variant="h6" gutterBottom>
+          Enrollment Projections
+        </Typography>
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            flexDirection: { xs: 'column', md: 'row' }, 
+            gap: 2 
+          }}
+        >
+          <Box sx={{ flex: { md: 1 }, width: '100%' }}>
+            <SchoolEnrollmentSummary 
+              onDataChange={setEnrollmentSummaryData}
+            />
+          </Box>
+          <Box sx={{ flex: { md: 1 }, width: '100%' }}>
+            {enrollmentSummaryData && (
+              <SchoolEnrollmentSummaryChart
+                currentEnrollment={enrollmentSummaryData.currentClassSizes}
+                projectedEnrollment={enrollmentSummaryData.projectedClassSizes}
+                endYear={enrollmentSummaryData.endYear}
+                futureYear={enrollmentSummaryData.futureYear}
+              />
+            )}
+          </Box>
         </Box>
       </Box>
     </Box>
