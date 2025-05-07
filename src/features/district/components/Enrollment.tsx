@@ -27,6 +27,8 @@ import TownEnrollmentDetails from './enrollment/TownEnrollmentDetails';
 import TownEnrollmentChart from './enrollment/TownEnrollmentChart';
 import SchoolEnrollmentDetails from './enrollment/SchoolEnrollmentDetails';
 import SchoolEnrollmentChart from './enrollment/SchoolEnrollmentChart';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
+import SectionTitle from '@/components/ui/SectionTitle';
 
 /**
  * Represents the District Enrollment page/feature.
@@ -130,11 +132,13 @@ const Enrollment: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h5" gutterBottom>
-        Enrollment Data for {district?.name || 'District'}
-      </Typography>
 
-      <Typography variant="body2" sx={{ mb: 2 }}>
+      <SectionTitle 
+        displayName={PAGE_REGISTRY.district.enrollment.displayName}
+        districtName={district?.name}
+      />
+
+      <Typography variant="body2" sx={{ mt: 2, mb: 2 }}>
         The <i>first graphs</i> display students <i>part of district towns</i>. The <i>second graphs</i> display students <i>enrolled in district schools</i>.
       </Typography>
 

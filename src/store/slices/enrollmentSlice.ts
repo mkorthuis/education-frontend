@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
-import { enrollmentApi, TownEnrollmentData, StateTownEnrollmentData } from '@/services/api/endpoints/enrollments';
+import { enrollmentApi, TownEnrollmentData, StateTownEnrollmentData, SchoolEnrollmentData } from '@/services/api/endpoints/enrollments';
 import { createSelector } from '@reduxjs/toolkit';
 
 export enum LoadingState {
@@ -26,7 +26,7 @@ export interface StateTownEnrollmentParams extends BaseEnrollmentParams {
 }
 
 // Type definitions
-export type EnrollmentCategory = 'townEnrollments' | 'stateTownEnrollments';
+export type EnrollmentCategory = 'townEnrollments' | 'stateTownEnrollments' | 'schoolEnrollments';
 
 // State interface
 interface EnrollmentState {
@@ -37,6 +37,7 @@ interface EnrollmentState {
     data: {
         townEnrollments: Record<string, TownEnrollmentData[]>;
         stateTownEnrollments: Record<string, StateTownEnrollmentData[]>;
+        schoolEnrollments: Record<string, SchoolEnrollmentData[]>;
     }
 }
 
@@ -44,11 +45,13 @@ interface EnrollmentState {
 const initialState: EnrollmentState = {
     loadingStatus: {
         townEnrollments: {},
-        stateTownEnrollments: {}
+        stateTownEnrollments: {},
+        schoolEnrollments: {}
     },
     data: {
         townEnrollments: {},
-        stateTownEnrollments: {}
+        stateTownEnrollments: {},
+        schoolEnrollments: {}
     }
 }
 
@@ -91,6 +94,20 @@ export const fetchStateTownEnrollment = createAsyncThunk(
     }
 );
 
+export const fetchSchoolEnrollments = createAsyncThunk(
+    'enrollment/fetchSchoolEnrollments',
+    async (params: { schoolId: number } & BaseEnrollmentParams, { rejectWithValue }) => {
+        try {
+            const { schoolId, forceRefresh = false, ...options } = params;
+            const key = createOptionsKey({ schoolId, ...options });
+            const data = await enrollmentApi.getSchoolEnrollments(schoolId, options, forceRefresh);
+            return { key, data };
+        } catch (error: any) {
+            return rejectWithValue(error.message);
+        }
+    }
+);
+
 // Create the slice
 export const enrollmentSlice = createSlice({
     name: 'enrollment',
@@ -126,6 +143,21 @@ export const enrollmentSlice = createSlice({
             .addCase(fetchStateTownEnrollment.rejected, (state, action) => {
                 const key = createOptionsKey(action.meta.arg);
                 state.loadingStatus.stateTownEnrollments[key] = LoadingState.FAILED;
+            })
+            
+        // School Enrollments
+        builder
+            .addCase(fetchSchoolEnrollments.pending, (state, action) => {
+                const key = createOptionsKey(action.meta.arg);
+                state.loadingStatus.schoolEnrollments[key] = LoadingState.LOADING;
+            })
+            .addCase(fetchSchoolEnrollments.fulfilled, (state, action) => {
+                state.data.schoolEnrollments[action.payload.key] = action.payload.data;
+                state.loadingStatus.schoolEnrollments[action.payload.key] = LoadingState.SUCCEEDED;
+            })
+            .addCase(fetchSchoolEnrollments.rejected, (state, action) => {
+                const key = createOptionsKey(action.meta.arg);
+                state.loadingStatus.schoolEnrollments[key] = LoadingState.FAILED;
             });
     }
 });
@@ -144,6 +176,11 @@ export const selectStateTownEnrollmentLoadingStatus = (state: RootState, params:
     return state.enrollment.loadingStatus.stateTownEnrollments[key] || LoadingState.IDLE;
 };
 
+export const selectSchoolEnrollmentLoadingStatus = (state: RootState, params: { schoolId: number } & BaseEnrollmentParams) => {
+    const key = createOptionsKey({ ...params });
+    return state.enrollment.loadingStatus.schoolEnrollments[key] || LoadingState.IDLE;
+};
+
 export const selectTownEnrollment = createSelector(
     [(state: RootState) => state.enrollment.data.townEnrollments, 
      (_: RootState, params: TownEnrollmentParams) => {
@@ -160,6 +197,15 @@ export const selectStateTownEnrollment = createSelector(
         return createOptionsKey(options);
      }],
     (stateTownEnrollmentData, key) => stateTownEnrollmentData[key] || []
+);
+
+export const selectSchoolEnrollment = createSelector(
+    [(state: RootState) => state.enrollment.data.schoolEnrollments, 
+     (_: RootState, params: { schoolId: number } & BaseEnrollmentParams) => {
+        const { forceRefresh = false, ...options } = params;
+        return createOptionsKey(options);
+     }],
+    (schoolEnrollmentData, key) => schoolEnrollmentData[key] || []
 );
 
 export default enrollmentSlice.reducer; 

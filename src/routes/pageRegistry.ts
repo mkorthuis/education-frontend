@@ -55,10 +55,10 @@ const School = lazy(() => import('@/features/school/pages/School'));
 const SchoolAcademic = lazy(() => import('@/features/school/components/AcademicAchievement'));
 const SchoolOutcomes = lazy(() => import('@/features/school/components/Outcomes'));
 const SchoolFinancials = lazy(() => import('@/features/school/components/Financials'));
-const SchoolDemographics = lazy(() => import('@/features/school/components/Demographics'));
 const SchoolSafety = lazy(() => import('@/features/school/components/Safety'));
 const SchoolStaff = lazy(() => import('@/features/school/components/Staff'));
 const SchoolContact = lazy(() => import('@/features/school/components/ContactInformation'));
+const SchoolEnrollment = lazy(() => import('@/features/school/components/Enrollment'));
 
 // Create the page registry
 export const PAGE_REGISTRY: PageRegistry = {
@@ -366,13 +366,13 @@ export const PAGE_REGISTRY: PageRegistry = {
         return '';
       },
     },
-    demographics: {
-      id: 'school.demographics',
-      component: SchoolDemographics,
-      urlPatterns: ['/school/:id/demographics'],
-      displayName: 'Demographics',
-      shortName: 'Demographics',
-      order: 5,
+    safety: {
+      id: 'school.safety',
+      component: SchoolSafety,
+      urlPatterns: ['/school/:id/safety/:category?'],
+      displayName: 'Safety',
+      shortName: 'Safety',
+      order: 6,
       requiresId: true,
       paramExtraction: {
         schoolIdParam: 'id'
@@ -381,16 +381,15 @@ export const PAGE_REGISTRY: PageRegistry = {
         school: ['basic'],
         district: ['basic']
       },
-      enabled: false,
-      tooltip: 'Coming Soon',
+      enabled: true,
     },
-    safety: {
-      id: 'school.safety',
-      component: SchoolSafety,
-      urlPatterns: ['/school/:id/safety/:category?'],
-      displayName: 'Safety',
-      shortName: 'Safety',
-      order: 6,
+    enrollment: {
+      id: 'school.enrollment',
+      component: SchoolEnrollment,
+      urlPatterns: ['/school/:id/enrollment'],
+      displayName: 'Enrollment',
+      shortName: 'Enrollment',
+      order: 7,
       requiresId: true,
       paramExtraction: {
         schoolIdParam: 'id'

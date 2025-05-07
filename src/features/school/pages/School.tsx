@@ -151,6 +151,16 @@ const School: React.FC = () => {
           variant="outlined" 
           color="inherit"
           component={RouterLink} 
+          to={`/school/${school.id}/enrollment`}
+          fullWidth
+          sx={navigationButtonStyle}
+        >
+          Enrollment
+        </Button>
+        <Button 
+          variant="outlined" 
+          color="inherit"
+          component={RouterLink} 
           to={`/school/${school.id}/contact`}
           fullWidth
           sx={navigationButtonStyle}
@@ -158,25 +168,6 @@ const School: React.FC = () => {
           Contact Information
         </Button>
         <Divider sx={{ my: 2 }} />
-        <Button 
-          variant="outlined" 
-          color="inherit"
-          component="div" 
-          disabled
-          fullWidth
-          sx={{
-            ...navigationButtonStyle,
-            opacity: 0.6,
-            cursor: 'not-allowed',
-            '&.Mui-disabled': {
-              color: 'text.secondary',
-              backgroundColor: 'grey.100',
-              borderColor: 'divider'
-            }
-          }}
-        >
-          Demographics
-        </Button>
       </Stack>
     </Box>
   );
