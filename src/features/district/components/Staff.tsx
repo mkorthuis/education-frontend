@@ -45,8 +45,18 @@ const Staff: React.FC = () => {
   const districtParams = useMemo(() => ({ district_id: districtId }), [districtId]);
   const stateParams = useMemo(() => ({}), []);
 
-  const measurementsLoading = useAppSelector(selectLatestMeasurementsLoadingState);
-  const measurements = useAppSelector(selectLatestMeasurements);
+  const measurementsLoading = useAppSelector(state => 
+    selectLatestMeasurementsLoadingState(state, {
+      entityId: districtId?.toString() || '',
+      entityType: 'district'
+    })
+  );
+  const measurements = useAppSelector(state => 
+    selectLatestMeasurements(state, {
+      entityId: districtId?.toString() || '',
+      entityType: 'district'
+    })
+  );
 
   // Data selectors
   const {

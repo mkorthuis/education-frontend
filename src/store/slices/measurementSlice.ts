@@ -94,6 +94,12 @@ export const ensureMeasurementTypesLoaded = async (state: RootState, dispatch: a
 
 // Helper to create a key for measurements
 const createMeasurementKey = (params: FetchMeasurementsParams): string => {
+  if (!params) {
+    return '';
+  }
+  if (!params.entityType) {
+    return '';
+  }
   return `${params.entityType}_${params.entityId}`;
 };
 
@@ -297,6 +303,9 @@ export const selectMeasurementTypesLoadingState = (state: RootState) =>
   state.measurement.loadingStates.measurementTypes;
 
 export const selectLatestMeasurementsLoadingState = (state: RootState, params: FetchMeasurementsParams) => {
+  if (!params) {
+    return LoadingState.IDLE;
+  }
   const key = createMeasurementKey(params);
   return state.measurement.loadingStates.measurements[key] || LoadingState.IDLE;
 };

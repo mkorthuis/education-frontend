@@ -102,7 +102,7 @@ const AverageClassSizeCard: React.FC = () => {
  
   // Calculate yearly percentage change
   const totalPercentageChange = earliestYearClassSize > 0 
-    ? ((fiscalYearClassSize - earliestYearClassSize) / earliestYearClassSize) * 100 
+    ? Math.abs(((fiscalYearClassSize - earliestYearClassSize) / earliestYearClassSize) * 100)
     : 0;
 
   // Format class size
