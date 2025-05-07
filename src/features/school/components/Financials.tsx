@@ -6,10 +6,11 @@ import {
   selectSchoolLoading
 } from '@/store/slices/locationSlice';
 import { 
-  selectAllMeasurements, 
-  selectMeasurementsLoadingState,
-  selectMeasurementsError,
-  fetchAllMeasurements
+  fetchLatestMeasurements,
+  selectLatestMeasurements,
+  selectLatestMeasurementsLoadingState,
+  selectLatestMeasurementsError,
+  selectMeasurementsByCategory
 } from '@/store/slices/measurementSlice';
 import MeasurementTable from '@/components/ui/tables/MeasurementTable';
 import SectionTitle from '@/components/ui/SectionTitle';
@@ -19,9 +20,9 @@ const Financials: React.FC = () => {
   const school = useAppSelector(selectCurrentSchool);
   const schoolLoading = useAppSelector(selectSchoolLoading);
   const dispatch = useAppDispatch();
-  const measurements = useAppSelector(selectAllMeasurements);
-  const measurementsLoading = useAppSelector(selectMeasurementsLoadingState);
-  const measurementsError = useAppSelector(selectMeasurementsError);
+  const measurements = useAppSelector(selectLatestMeasurements);
+  const measurementsLoading = useAppSelector(selectLatestMeasurementsLoadingState);
+  const measurementsError = useAppSelector(selectLatestMeasurementsError);
 
   // List of financial measurement type IDs
   const financialMeasurementTypeIds = [16, 17, 18, 19, 20, 21, 22];
@@ -29,7 +30,7 @@ const Financials: React.FC = () => {
   useEffect(() => {
     if (school?.id) {
       if (!measurementsLoading && measurements.length === 0) {
-        dispatch(fetchAllMeasurements({ 
+        dispatch(fetchLatestMeasurements({
           entityId: school.id.toString(), 
           entityType: 'school' 
         }));

@@ -12,9 +12,10 @@ import * as staffSlice from '@/store/slices/staffSlice';
 import * as classSizeSlice from '@/store/slices/classSizeSlice';
 import * as enrollmentSlice from '@/store/slices/enrollmentSlice';
 import { 
-  fetchAllMeasurements,
-  selectAllMeasurements,
-  selectMeasurementsLoadingState 
+  fetchLatestMeasurements,
+  selectLatestMeasurements,
+  selectLatestMeasurementsLoadingState,
+  selectMeasurementsByCategory
 } from '@/store/slices/measurementSlice';
 import * as safetySlice from '@/store/slices/safetySlice';
 
@@ -44,8 +45,8 @@ const Staff: React.FC = () => {
   const districtParams = useMemo(() => ({ district_id: districtId }), [districtId]);
   const stateParams = useMemo(() => ({}), []);
 
-  const measurementsLoading = useAppSelector(selectMeasurementsLoadingState);
-  const measurements = useAppSelector(selectAllMeasurements);
+  const measurementsLoading = useAppSelector(selectLatestMeasurementsLoadingState);
+  const measurements = useAppSelector(selectLatestMeasurements);
 
   // Data selectors
   const {
@@ -125,9 +126,12 @@ const Staff: React.FC = () => {
 
     // Only fetch other data if we have the district data
     if (district) {
-      // Fetch measurements if needed
-      if (measurementsLoading === safetySlice.LoadingState.IDLE && measurements.length === 0) {
-        dispatch(fetchAllMeasurements({ entityId: String(districtId), entityType: 'district' }));
+      // Fetch measurement data if needed
+      if (shouldFetchData(measurementsLoading, measurements)) {
+        dispatch(fetchLatestMeasurements({
+          entityId: districtId.toString(),
+          entityType: 'district'
+        }));
       }
 
       // Fetch types

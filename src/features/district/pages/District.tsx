@@ -294,6 +294,17 @@ const District: React.FC = () => {
           variant="outlined" 
           color="inherit"
           component={Link} 
+          to={`/district/${district.id}/enrollment`}
+          fullWidth
+          sx={navigationButtonStyle}
+        >
+          Enrollment
+        </Button>
+
+        <Button 
+          variant="outlined" 
+          color="inherit"
+          component={Link} 
           to={`/district/${district.id}/efa`}
           fullWidth
           sx={navigationButtonStyle}
@@ -351,33 +362,6 @@ const District: React.FC = () => {
         >
           Contact Information
         </Button>
-        <Divider sx={{ my: 2 }} />
-        <Tooltip 
-          title="Working with NH DOE to fix a bug in their data. Once resolved, demographic data will be available." 
-          arrow
-        >
-          <span style={{ width: '100%' }}>
-            <Button 
-              variant="outlined" 
-              color="inherit"
-              component="div" 
-              disabled
-              fullWidth
-              sx={{
-                ...navigationButtonStyle,
-                opacity: 0.6,
-                cursor: 'not-allowed',
-                '&.Mui-disabled': {
-                  color: 'text.secondary',
-                  backgroundColor: 'grey.100',
-                  borderColor: 'divider'
-                }
-              }}
-            >
-              Demographics
-            </Button>
-          </span>
-        </Tooltip>
       </Stack>
     </Box>
   );

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { Box, Typography, CircularProgress, Divider } from '@mui/material';
+import { Box, CircularProgress, Divider } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentSchool,
@@ -7,10 +7,6 @@ import {
 } from '@/store/slices/locationSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
 import * as outcomeSlice from '@/store/slices/outcomeSlice';
-import { fetchAllMeasurements } from '@/store/slices/measurementSlice';
-import * as safetySlice from '@/store/slices/safetySlice';
-import { selectAllMeasurements } from '@/store/slices/measurementSlice';
-import { selectMeasurementsLoadingState } from '@/store/slices/measurementSlice';
 import OutcomeSummaryCard from './outcome/OutcomeSummaryCard';
 import WhatIsNextDetails from './outcome/WhatIsNextDetails';
 import GraduationRateChart from './outcome/GraduationRateChart';
@@ -30,9 +26,6 @@ const Outcomes: React.FC = () => {
   // Memoize the parameter objects to avoid recreating them on each render
   const schoolParams = useMemo(() => ({ school_id: schoolId }), [schoolId]);
   const stateParams = useMemo(() => ({}), []);
-  
-  const measurementsLoading = useAppSelector(selectMeasurementsLoadingState);
-  const measurements = useAppSelector(selectAllMeasurements);
 
   const schoolPostGraduationData = useAppSelector(state => 
     outcomeSlice.selectSchoolPostGraduationData(state, schoolParams));
@@ -93,13 +86,6 @@ const Outcomes: React.FC = () => {
 
     // Only fetch other data if we have the school data
     if (school) {
-      // Fetch measurements if needed
-      if (measurementsLoading === safetySlice.LoadingState.IDLE && measurements.length === 0 && schoolId) {
-        dispatch(fetchAllMeasurements({ 
-          entityId: String(schoolId), 
-          entityType: 'school' 
-        }));
-      }
 
       // Fetch post-graduation types if needed
       if (shouldFetchData(loadingStates.types.postGraduationTypes, postGraduationTypes)) {
@@ -130,7 +116,6 @@ const Outcomes: React.FC = () => {
     }
   }, [
     dispatch, schoolId, school,
-    measurementsLoading, measurements,
     loadingStates, schoolParams, stateParams,
     schoolPostGraduationData, schoolEarlyExitData, schoolGraduationCohortData,
     statePostGraduationData, stateEarlyExitData, stateGraduationCohortData,

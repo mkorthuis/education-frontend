@@ -26,6 +26,12 @@ export const measurementApi = {
     getLatestSchoolMeasurements: (schoolId: string, forceRefresh = false) => 
         fetchData(buildMeasurementUrl('latest', { school_id: schoolId }), forceRefresh),
     
+    getAllDistrictMeasurements: (districtId: string, forceRefresh = false) => 
+        fetchData(buildMeasurementUrl('', { district_id: districtId }), forceRefresh),
+    
+    getAllSchoolMeasurements: (schoolId: string, forceRefresh = false) => 
+        fetchData(buildMeasurementUrl('', { school_id: schoolId }), forceRefresh),
+    
     getMeasurementTypes: (forceRefresh = false) => 
         fetchData(buildMeasurementUrl('type'), forceRefresh)
 };
