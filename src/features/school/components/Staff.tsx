@@ -7,33 +7,33 @@ import {
 } from '@/store/slices/locationSlice';
 import { 
   fetchLatestMeasurements,
-  selectLatestMeasurements,
-  selectLatestMeasurementsLoadingState,
-  selectLatestMeasurementsError,
-  selectMeasurementsByCategory
+  FetchMeasurementsParams
 } from '@/store/slices/measurementSlice';
 import { fetchTownEnrollment } from '@/store/slices/enrollmentSlice';
+import { useMeasurements } from '@/hooks/useMeasurements';
 import MeasurementTable from '@/components/ui/tables/MeasurementTable';
 import SectionTitle from '@/components/ui/SectionTitle';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
+
 const Staff: React.FC = () => {
   const school = useAppSelector(selectCurrentSchool);
   const schoolLoading = useAppSelector(selectSchoolLoading);
   const dispatch = useAppDispatch();
-  const measurements = useAppSelector(selectLatestMeasurements);
-  const measurementsLoading = useAppSelector(selectLatestMeasurementsLoadingState);
-  const measurementsError = useAppSelector(selectLatestMeasurementsError);
 
   // List of teacher-related measurement type IDs
   const teacherMeasurementTypeIds = [13, 14, 15, 43, 44, 45];
 
+  const params: FetchMeasurementsParams = {
+    entityId: school?.id?.toString() || '',
+    entityType: 'school'
+  };
+
+  const { measurements, loadingState: measurementsLoading, error: measurementsError } = useMeasurements(params);
+
   useEffect(() => {
     if (school?.id) {
       if (!measurementsLoading && measurements.length === 0) {
-        dispatch(fetchLatestMeasurements({
-          entityId: school.id.toString(), 
-          entityType: 'school' 
-        }));
+        dispatch(fetchLatestMeasurements(params));
       }
       // Fetch enrollment data
       dispatch(fetchTownEnrollment({ town_id: school.id }));

@@ -7,11 +7,9 @@ import {
 } from '@/store/slices/locationSlice';
 import { 
   fetchLatestMeasurements,
-  selectLatestMeasurements,
-  selectLatestMeasurementsLoadingState,
-  selectLatestMeasurementsError,
-  selectMeasurementsByCategory
+  FetchMeasurementsParams
 } from '@/store/slices/measurementSlice';
+import { useMeasurements } from '@/hooks/useMeasurements';
 import MeasurementTable from '@/components/ui/tables/MeasurementTable';
 import SectionTitle from '@/components/ui/SectionTitle';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
@@ -20,20 +18,21 @@ const Financials: React.FC = () => {
   const school = useAppSelector(selectCurrentSchool);
   const schoolLoading = useAppSelector(selectSchoolLoading);
   const dispatch = useAppDispatch();
-  const measurements = useAppSelector(selectLatestMeasurements);
-  const measurementsLoading = useAppSelector(selectLatestMeasurementsLoadingState);
-  const measurementsError = useAppSelector(selectLatestMeasurementsError);
 
   // List of financial measurement type IDs
   const financialMeasurementTypeIds = [16, 17, 18, 19, 20, 21, 22];
 
+  const params: FetchMeasurementsParams = {
+    entityId: school?.id?.toString() || '',
+    entityType: 'school'
+  };
+
+  const { measurements, loadingState: measurementsLoading, error: measurementsError } = useMeasurements(params);
+
   useEffect(() => {
     if (school?.id) {
       if (!measurementsLoading && measurements.length === 0) {
-        dispatch(fetchLatestMeasurements({
-          entityId: school.id.toString(), 
-          entityType: 'school' 
-        }));
+        dispatch(fetchLatestMeasurements(params));
       }
     }
   }, [school, dispatch, measurementsLoading, measurements]);

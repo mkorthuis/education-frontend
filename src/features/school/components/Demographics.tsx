@@ -6,33 +6,33 @@ import {
   selectSchoolLoading
 } from '@/store/slices/locationSlice';
 import { 
-  selectLatestMeasurements, 
-  selectLatestMeasurementsLoadingState,
-  selectLatestMeasurementsError,
   fetchLatestMeasurements,
-  selectMeasurementsByCategory
+  FetchMeasurementsParams
 } from '@/store/slices/measurementSlice';
+import { useMeasurements } from '@/hooks/useMeasurements';
 import MeasurementTable from '@/components/ui/tables/MeasurementTable';
 import SectionTitle from '@/components/ui/SectionTitle';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
+
 const Demographics: React.FC = () => {
   const school = useAppSelector(selectCurrentSchool);
   const schoolLoading = useAppSelector(selectSchoolLoading);
   const dispatch = useAppDispatch();
-  const measurements = useAppSelector(selectLatestMeasurements);
-  const measurementsLoading = useAppSelector(selectLatestMeasurementsLoadingState);
-  const measurementsError = useAppSelector(selectLatestMeasurementsError);
 
   // List of demographic measurement type IDs
   const demographicMeasurementTypeIds = [23, 24, 25, 26, 27, 28, 29, 30, 31, 32];
 
+  const params: FetchMeasurementsParams = {
+    entityId: school?.id?.toString() || '',
+    entityType: 'school'
+  };
+
+  const { measurements, loadingState: measurementsLoading, error: measurementsError } = useMeasurements(params);
+
   useEffect(() => {
     // Only fetch measurements if we have the school data
     if (school && !measurementsLoading && measurements.length === 0) {
-      dispatch(fetchLatestMeasurements({
-        entityId: school.id.toString(), 
-        entityType: 'school' 
-      }));
+      dispatch(fetchLatestMeasurements(params));
     }
   }, [school, dispatch, measurementsLoading, measurements]);
 

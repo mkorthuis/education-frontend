@@ -36,9 +36,9 @@ const Enrollment: React.FC = () => {
   
   // School enrollment data
   const schoolEnrollmentLoading = useAppSelector(state => 
-    selectSchoolEnrollmentLoadingStatus(state, { schoolId }));
+    selectSchoolEnrollmentLoadingStatus(state, { schoolId: schoolId || 0 }));
   const schoolEnrollmentData = useAppSelector(state => 
-    selectSchoolEnrollment(state, { schoolId }));
+    selectSchoolEnrollment(state, { schoolId: schoolId || 0 }));
     
   // Helper to determine if we should fetch data
   const shouldFetchData = (loadingState: LoadingState, data: any[]) => {
@@ -96,13 +96,13 @@ const Enrollment: React.FC = () => {
       >
         <Box sx={{ flex: { md: 1 }, width: '100%' }}>
           <SchoolEnrollmentChart 
-            schoolId={school?.id} 
+            schoolId={schoolId || 0} 
             enrollmentData={schoolEnrollmentData}
           />
         </Box>
         <Box sx={{ flex: { md: 1 }, width: '100%' }}>
           <SchoolEnrollmentDetails 
-            schoolId={school?.id} 
+            schoolId={schoolId || 0} 
             enrollmentData={schoolEnrollmentData}
           />
         </Box>
