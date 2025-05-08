@@ -1,27 +1,41 @@
 import React from 'react';
-import { TownEnrollmentData } from '@/services/api/endpoints/enrollments';
+import { TownEnrollmentData, StateTownEnrollmentData } from '@/services/api/endpoints/enrollments';
+import { Town } from '@/store/slices/locationSlice';
 import SharedSchoolEnrollmentChart from '@/components/ui/enrollment/SharedSchoolEnrollmentChart';
 
 export interface TownEnrollmentChartProps {
-  townId?: number;
-  enrollmentData?: TownEnrollmentData[];
+  districtId?: number;
+  enrollmentData: TownEnrollmentData[];
+  stateEnrollmentData: StateTownEnrollmentData[];
+  towns: Town[];
 }
 
+const ALL_TOWNS_ID = 'all';
+
 const TownEnrollmentChart: React.FC<TownEnrollmentChartProps> = ({
-  townId,
-  enrollmentData = []
+  districtId,
+  enrollmentData = [],
+  stateEnrollmentData = [],
+  towns = []
 }) => {
+  const [selectedTownId, setSelectedTownId] = React.useState<number | string>(ALL_TOWNS_ID);
+
   // Process data for the chart
   const chartData = React.useMemo(() => {
     if (!enrollmentData.length) return [];
     
+    // Filter data for selected town if one is selected
+    const filteredData = selectedTownId !== ALL_TOWNS_ID
+      ? enrollmentData.filter(item => item.town_id === selectedTownId)
+      : enrollmentData;
+    
     // Get available years
-    const years = [...new Set(enrollmentData.map(item => item.year))].sort();
+    const years = [...new Set(filteredData.map(item => item.year))].sort();
     
     // Create data points for each year
     return years.map(year => {
       // Filter data for the current year
-      const yearData = enrollmentData.filter(item => item.year === year);
+      const yearData = filteredData.filter(item => item.year === year);
       
       // Calculate total enrollment for this year (sum across all grades)
       const totalEnrollment = yearData.reduce((sum, item) => sum + (item.enrollment || 0), 0);
@@ -33,7 +47,16 @@ const TownEnrollmentChart: React.FC<TownEnrollmentChartProps> = ({
         name: "Total Students"
       };
     }).sort((a, b) => parseInt(a.year) - parseInt(b.year));
-  }, [enrollmentData]);
+  }, [enrollmentData, selectedTownId]);
+
+  // Prepare select options from towns
+  const selectOptions = React.useMemo(() => [
+    { id: ALL_TOWNS_ID, name: "All Towns" },
+    ...towns.map(town => ({
+      id: town.id,
+      name: town.name
+    }))
+  ], [towns]);
 
   return (
     <SharedSchoolEnrollmentChart
@@ -41,6 +64,11 @@ const TownEnrollmentChart: React.FC<TownEnrollmentChartProps> = ({
       data={chartData}
       valueKey="value"
       valueName="Total Students"
+      showSelector={towns.length > 1}
+      selectorLabel="Select Town"
+      selectOptions={selectOptions}
+      selectedValue={selectedTownId}
+      onSelectChange={setSelectedTownId}
     />
   );
 };
