@@ -27,7 +27,7 @@ import MeasurementCard from '@/features/district/components/academic/Measurement
 import AcademicSubjectDetails from '@/features/district/components/academic/AcademicSubjectDetails';
 import AcademicDefaultView from '@/features/district/components/academic/AcademicDefaultView';
 import { filterAssessmentResults, ALL_GRADES_ID } from '@/features/district/utils/assessmentDataProcessing';
-import { FISCAL_YEAR } from '@/utils/environment';
+import { ASSESSMENT_YEAR } from '@/utils/environment';
 import { LoadingState } from '@/store/slices/safetySlice';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
@@ -119,7 +119,7 @@ const AcademicAchievement: React.FC = () => {
 
   // Filter assessment data by fiscal year and subgroup_id
   const filteredAssessmentData = filterAssessmentResults(districtAssessmentData, {
-    year: FISCAL_YEAR,
+    year: ASSESSMENT_YEAR,
     assessment_subgroup_id: 1,
     grade_id: ALL_GRADES_ID
   }).filter(item => item.above_proficient_percentage !== null);
@@ -182,7 +182,7 @@ const AcademicAchievement: React.FC = () => {
             <Box sx={{ display: { xs: 'none', md: 'block' }, flex: 1 }}>
               <AcademicDefaultView 
                 assessmentData={districtAssessmentData} 
-                fiscalYear={FISCAL_YEAR} 
+                fiscalYear={ASSESSMENT_YEAR} 
               />
             </Box>
           )}

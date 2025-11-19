@@ -13,7 +13,7 @@ import {
   selectSelectedSubjectId,
   selectAssessmentStateLoadingStatus,
 } from '@/store/slices/assessmentSlice';
-import { FISCAL_YEAR } from '@/utils/environment';
+import { ASSESSMENT_YEAR } from '@/utils/environment';
 import { filterAssessmentResults, getProficiencyRangeIndex, getDistrictRankInfo } from '@/features/district/utils/assessmentDataProcessing';
 import { LoadingState } from '@/store/slices/safetySlice';
 import EntityAcademicPerformance from '@/components/ui/academic/EntityAcademicPerformance';
@@ -89,7 +89,7 @@ const DistrictAcademicPerformance: React.FC = () => {
   
   // Create params object for the selected filters
   const queryParams = useMemo(() => ({
-    year: FISCAL_YEAR,
+    year: ASSESSMENT_YEAR,
     assessment_subgroup_id: selectedSubgroupId || undefined,
     assessment_subject_id: selectedSubjectId || undefined,
     grade_id: selectedGradeId || undefined
@@ -111,7 +111,7 @@ const DistrictAcademicPerformance: React.FC = () => {
         
         if(stateAssessmentData.length === 0 && isStateDataLoading === LoadingState.IDLE) {
           dispatch(fetchAssessmentStateData({
-            year: FISCAL_YEAR,
+            year: ASSESSMENT_YEAR,
             assessment_subgroup_id: selectedSubgroupId,
             assessment_subject_id: selectedSubjectId,
             grade_id: selectedGradeId
@@ -129,7 +129,7 @@ const DistrictAcademicPerformance: React.FC = () => {
   const stateAverage = useMemo(() => {
     // Filter state data using the utility function
     const filteredStateData = filterAssessmentResults(stateAssessmentData, {
-      year: FISCAL_YEAR,
+      year: ASSESSMENT_YEAR,
       assessment_subgroup_id: selectedSubgroupId || undefined,
       assessment_subject_id: selectedSubjectId || undefined,
       grade_id: selectedGradeId || undefined

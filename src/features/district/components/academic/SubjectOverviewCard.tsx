@@ -13,7 +13,7 @@ import {
   ALL_STUDENTS_SUBGROUP_ID,
   ALL_GRADES_ID
 } from '@/features/district/utils/assessmentDataProcessing';
-import { FISCAL_YEAR } from '@/utils/environment';
+import { ASSESSMENT_YEAR } from '@/utils/environment';
 import SubjectOverviewCardUI from '@/components/ui/academic/SubjectOverviewCard';
 
 const SubjectOverviewCard: React.FC = () => {
@@ -30,7 +30,7 @@ const SubjectOverviewCard: React.FC = () => {
   useEffect(() => {
     if (selectedSubjectId && stateData.length === 0) {
       dispatch(fetchAssessmentStateData({
-        year: FISCAL_YEAR,
+        year: ASSESSMENT_YEAR,
         assessment_subject_id: selectedSubjectId,
         grade_id: selectedGradeId || undefined,
         assessment_subgroup_id: selectedSubgroupId || undefined
@@ -40,7 +40,7 @@ const SubjectOverviewCard: React.FC = () => {
   
   // Filter the district data based on selected grade and subgroup
   const filteredDistrictData = filterAssessmentResults(districtData, {
-    year: FISCAL_YEAR,
+    year: ASSESSMENT_YEAR,
     assessment_subject_id: selectedSubjectId || undefined,
     grade_id: selectedGradeId || undefined,
     assessment_subgroup_id: selectedSubgroupId || undefined
@@ -48,7 +48,7 @@ const SubjectOverviewCard: React.FC = () => {
   
   // Filter state data to match the current selected grade and subgroup
   const filteredStateData = filterAssessmentResults(stateData, {
-    year: FISCAL_YEAR,
+    year: ASSESSMENT_YEAR,
     assessment_subject_id: selectedSubjectId || undefined,
     grade_id: selectedGradeId || undefined,
     assessment_subgroup_id: selectedSubgroupId || undefined

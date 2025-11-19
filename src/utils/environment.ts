@@ -11,6 +11,13 @@
  */
 export const FISCAL_YEAR = import.meta.env.VITE_FISCAL_YEAR || '2024';
 
+
+/**
+ * Current assessment year from environment configuration
+ * Used for default financial report fetching
+ */
+export const ASSESSMENT_YEAR = import.meta.env.VITE_ASSESSMENT_YEAR || '2025';
+
 /**
  * Starting fiscal year for historical data
  * Used for comparison year ranges

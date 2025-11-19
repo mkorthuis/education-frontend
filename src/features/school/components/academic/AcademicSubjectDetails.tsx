@@ -20,7 +20,7 @@ import {
   ALL_STUDENTS_SUBGROUP_ID,
   ALL_GRADES_ID
 } from '@/features/district/utils/assessmentDataProcessing';
-import { FISCAL_YEAR } from '@/utils/environment';
+import { ASSESSMENT_YEAR } from '@/utils/environment';
 import AcademicHistoryChart from './AcademicHistoryChart';
 import SchoolAcademicPerformance from './SchoolAcademicPerformance';
 import SubjectOverviewCard from './SubjectOverviewCard';
@@ -43,17 +43,17 @@ const AcademicSubjectDetails: React.FC<AcademicSubjectDetailsProps> = ({ subject
   
   // Filter assessment data by current fiscal year
   const filteredByYearSubjectData = filterAssessmentResults(assessmentData, {
-    year: FISCAL_YEAR,
+    year: ASSESSMENT_YEAR,
     assessment_subject_id: selectedSubjectId || undefined
   });
 
   const filteredByYearAndGradeData = filterAssessmentResults(filteredByYearSubjectData, {
-    year: FISCAL_YEAR,
+    year: ASSESSMENT_YEAR,
     grade_id: selectedGradeId || undefined
   });
 
   const filteredByYearAndSubgroupData = filterAssessmentResults(filteredByYearSubjectData, {
-    year: FISCAL_YEAR,
+    year: ASSESSMENT_YEAR,
     assessment_subgroup_id: selectedSubgroupId || undefined
   });
   
@@ -68,7 +68,7 @@ const AcademicSubjectDetails: React.FC<AcademicSubjectDetailsProps> = ({ subject
   if (selectedSubgroupId !== null && selectedSubgroupId !== ALL_STUDENTS_SUBGROUP_ID) {
     // Get All Students data with other filters
     const allStudentsData = filterAssessmentResults(assessmentData, {
-      year: FISCAL_YEAR,
+      year: ASSESSMENT_YEAR,
       assessment_subject_id: selectedSubjectId || undefined,
       grade_id: selectedGradeId || undefined,
       assessment_subgroup_id: ALL_STUDENTS_SUBGROUP_ID
@@ -76,7 +76,7 @@ const AcademicSubjectDetails: React.FC<AcademicSubjectDetailsProps> = ({ subject
     
     // Get selected subgroup data with other filters
     const selectedSubgroupData = filterAssessmentResults(assessmentData, {
-      year: FISCAL_YEAR,
+      year: ASSESSMENT_YEAR,
       assessment_subject_id: selectedSubjectId || undefined,
       grade_id: selectedGradeId || undefined,
       assessment_subgroup_id: selectedSubgroupId
@@ -87,7 +87,7 @@ const AcademicSubjectDetails: React.FC<AcademicSubjectDetailsProps> = ({ subject
   } else {
     // Just use the regular filtered data for All Students or when no subgroup is selected
     filteredData = filterAssessmentResults(assessmentData, {
-      year: FISCAL_YEAR,
+      year: ASSESSMENT_YEAR,
       assessment_subject_id: selectedSubjectId || undefined,
       grade_id: selectedGradeId || undefined,
       assessment_subgroup_id: selectedSubgroupId || undefined
@@ -109,7 +109,7 @@ const AcademicSubjectDetails: React.FC<AcademicSubjectDetailsProps> = ({ subject
 
     // Get data for the new subject to check available grades and subgroups
     const newSubjectData = filterAssessmentResults(assessmentData, {
-      year: FISCAL_YEAR,
+      year: ASSESSMENT_YEAR,
       assessment_subject_id: selectedSubjectId
     });
 

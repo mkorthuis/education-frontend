@@ -12,7 +12,7 @@ import {
   selectSelectedSubjectId,
   selectAssessmentStateLoadingStatus,
 } from '@/store/slices/assessmentSlice';
-import { FISCAL_YEAR } from '@/utils/environment';
+import { ASSESSMENT_YEAR } from '@/utils/environment';
 import { filterAssessmentResults, getProficiencyRangeIndex, getSchoolRankInfo } from '@/features/district/utils/assessmentDataProcessing';
 import { LoadingState } from '@/store/slices/safetySlice';
 import EntityAcademicPerformance from '@/components/ui/academic/EntityAcademicPerformance';
@@ -83,7 +83,7 @@ const SchoolAcademicPerformance: React.FC = () => {
   
   // Create query params 
   const queryParams = useMemo(() => ({
-    year: FISCAL_YEAR,
+    year: ASSESSMENT_YEAR,
     assessment_subgroup_id: selectedSubgroupId || undefined,
     assessment_subject_id: selectedSubjectId || undefined,
     grade_id: selectedGradeId || undefined

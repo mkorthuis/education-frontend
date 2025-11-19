@@ -17,7 +17,7 @@ import {
   getSchoolRankInfo,
   EARLIEST_YEAR
 } from '@/features/district/utils/assessmentDataProcessing';
-import { FISCAL_YEAR } from '@/utils/environment';
+import { ASSESSMENT_YEAR } from '@/utils/environment';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTheme } from '@mui/material/styles';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
@@ -46,7 +46,7 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
   
   // Create params object for this card's data
   const queryParams = useMemo(() => ({
-    year: FISCAL_YEAR,
+    year: ASSESSMENT_YEAR,
     assessment_subgroup_id: ALL_STUDENTS_SUBGROUP_ID,
     assessment_subject_id: assessment_subject_id,
     grade_id: ALL_GRADES_ID,
@@ -84,7 +84,7 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
 
   // Filter the school data based on selected grade and subgroup
   const filteredSchoolData = filterAssessmentResults(schoolData, {
-    year: FISCAL_YEAR,
+    year: ASSESSMENT_YEAR,
     assessment_subject_id: assessment_subject_id,
     grade_id: ALL_GRADES_ID,
     assessment_subgroup_id: ALL_STUDENTS_SUBGROUP_ID
@@ -92,7 +92,7 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
   
   // Filter state data to match the current selected grade and subgroup
   const filteredStateData = filterAssessmentResults(stateData, {
-    year: FISCAL_YEAR,
+    year: ASSESSMENT_YEAR,
     assessment_subject_id: assessment_subject_id,
     grade_id: ALL_GRADES_ID,
     assessment_subgroup_id: ALL_STUDENTS_SUBGROUP_ID

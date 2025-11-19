@@ -8,7 +8,7 @@ import {
   selectSelectedSubgroupId,
 } from '@/store/slices/assessmentSlice';
 import { filterAssessmentResults } from '@/features/district/utils/assessmentDataProcessing';
-import { FISCAL_YEAR } from '@/utils/environment';
+import { ASSESSMENT_YEAR } from '@/utils/environment';
 import ProficiencyByLevelTableUI from '@/components/ui/academic/ProficiencyByLevelTable';
 
 interface ProficiencyByLevelTableProps {
@@ -27,14 +27,14 @@ const ProficiencyByLevelTable: React.FC<ProficiencyByLevelTableProps> = ({
   
   // Filter both district and state data based on current selections
   const filteredDistrictData = filterAssessmentResults(districtData, {
-    year: FISCAL_YEAR,
+    year: ASSESSMENT_YEAR,
     assessment_subject_id: selectedSubjectId || undefined,
     grade_id: selectedGradeId || undefined,
     assessment_subgroup_id: selectedSubgroupId || undefined
   });
 
   const filteredStateData = filterAssessmentResults(stateData, {
-    year: FISCAL_YEAR,
+    year: ASSESSMENT_YEAR,
     assessment_subject_id: selectedSubjectId || undefined,
     grade_id: selectedGradeId || undefined,
     assessment_subgroup_id: selectedSubgroupId || undefined
