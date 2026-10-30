@@ -285,9 +285,13 @@ export const { clearMeasurements, resetMeasurementState } = measurementSlice.act
 
 // ================ SELECTORS ================
 
+// Shared empty result so selectors return the same reference while data is missing;
+// a new [] on every call makes subscribed components re-render and effects re-run.
+const EMPTY_MEASUREMENTS: Measurement[] = [];
+
 export const selectLatestMeasurements = (state: RootState, params: FetchMeasurementsParams) => {
   const key = createMeasurementKey(params);
-  return state.measurement.latestMeasurements[key] || [];
+  return state.measurement.latestMeasurements[key] || EMPTY_MEASUREMENTS;
 };
 
 // Helper selector to filter measurements by category if needed
@@ -327,7 +331,7 @@ export const selectAnyMeasurementLoading = (state: RootState, params: FetchMeasu
 
 export const selectAllMeasurements = (state: RootState, params: FetchMeasurementsParams) => {
   const key = createMeasurementKey(params);
-  return state.measurement.allMeasurements[key] || [];
+  return state.measurement.allMeasurements[key] || EMPTY_MEASUREMENTS;
 };
 
 // Helper selector to filter all measurements by category if needed
