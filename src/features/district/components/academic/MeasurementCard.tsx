@@ -120,7 +120,7 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
     assessment_subgroup_id: ALL_STUDENTS_SUBGROUP_ID
   })[0];
 
-  const scoreDelta = (assessmentData?.above_proficient_percentage && previousYearData?.above_proficient_percentage) 
+  const scoreDelta = (assessmentData?.above_proficient_percentage != null && previousYearData?.above_proficient_percentage != null) 
     ? assessmentData.above_proficient_percentage - previousYearData.above_proficient_percentage 
     : null;
 

@@ -45,9 +45,8 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
     year: ASSESSMENT_YEAR,
     assessment_subgroup_id: ALL_STUDENTS_SUBGROUP_ID,
     assessment_subject_id: assessment_subject_id,
-    grade_id: ALL_GRADES_ID,
-    school_id: id || ''
-  }), [assessment_subject_id, id]);
+    grade_id: ALL_GRADES_ID
+  }), [assessment_subject_id]);
 
   // Check if any subject is selected and if we're on mobile
   const isCollapsed = isMobile && selectedSubjectId !== null;
@@ -121,7 +120,7 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
     assessment_subgroup_id: ALL_STUDENTS_SUBGROUP_ID
   })[0];
 
-  const scoreDelta = (assessmentData?.above_proficient_percentage && previousYearData?.above_proficient_percentage) 
+  const scoreDelta = (assessmentData?.above_proficient_percentage != null && previousYearData?.above_proficient_percentage != null) 
     ? assessmentData.above_proficient_percentage - previousYearData.above_proficient_percentage 
     : null;
 
