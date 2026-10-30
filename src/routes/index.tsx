@@ -3,6 +3,7 @@ import PrivateLayout from "../components/layout/private/PrivateLayout";
 import PublicLayout from "../components/layout/public/PublicLayout";
 import { PrivateRoute } from "./PrivateRoute";
 import NotFound from "@components/NotFound/NotFound";
+import RouteError from "@components/ErrorBoundary/RouteError";
 import { PAGE_REGISTRY } from './pageRegistry';
 
 // Create router using the page registry
@@ -10,6 +11,7 @@ const router = createBrowserRouter(
   [
     {
       element: <PrivateRoute><PrivateLayout /></PrivateRoute>,
+      errorElement: <RouteError />,
       children: [
         // Map admin routes
         ...Object.values(PAGE_REGISTRY.admin).map(page => ({
@@ -20,6 +22,7 @@ const router = createBrowserRouter(
     },
     {
       element: <PublicLayout />,
+      errorElement: <RouteError />,
       children: [
         // Map general routes (like home)
         ...Object.values(PAGE_REGISTRY.general).map(page => ({
@@ -42,7 +45,8 @@ const router = createBrowserRouter(
     },
     {
       path: '*',
-      element: <NotFound />
+      element: <NotFound />,
+      errorElement: <RouteError />
     }
   ],
   {

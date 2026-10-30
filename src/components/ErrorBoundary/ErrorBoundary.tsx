@@ -1,5 +1,5 @@
-import { Box, Button, Container, Typography } from "@mui/material";
 import React, { Component } from "react";
+import ErrorFallback from "./ErrorFallback";
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -21,32 +21,13 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     return { hasError: true };
   }
 
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Unhandled render error:', error, errorInfo.componentStack);
+  }
+
   render() {
     if (this.state.hasError) {
-      return (
-        <Box sx={{ display: 'flex', alignItems: 'center', minHeight: '100vh' }}>
-          <Container maxWidth="md">
-            <Typography sx={{ fontSize: [35], fontWeight: 700, letterSpacing: 2.5, textAlign: 'center' }}>
-              Uh oh!
-            </Typography>
-            <Typography
-              color="GrayText"
-              sx={{ fontSize: [25], fontWeight: 400, letterSpacing: 2.5, textAlign: 'center' }}
-            >
-              Something went wrong. Please try again.
-            </Typography>
-
-            <Button
-              sx={{ display: 'block', marginX: 'auto', marginTop: '2em', paddingX: '3em', maxWidth: '90%' }}
-              variant="contained"
-              size="large"
-              onClick={() => (window.location.href = window.location.origin)}
-            >
-              Ok
-            </Button>
-          </Container>
-        </Box>
-      );
+      return <ErrorFallback />;
     }
 
     return this.props.children;
