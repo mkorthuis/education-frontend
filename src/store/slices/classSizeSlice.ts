@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk, PayloadAction, createSelector } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
 import { classSizeApi } from '@/services/api/endpoints/classSize';
 import { RootState } from '@/store/store';
 
@@ -152,9 +152,7 @@ const initialState: ClassSizeState = {
 export const classSizeSlice = createSlice({
     name: 'classSize',
     initialState,
-    reducers: {
-        clearClassSize: () => initialState
-    },
+    reducers: {},
     extraReducers: (builder) => {
         // School Class Size Data
         builder
@@ -202,11 +200,6 @@ export const classSizeSlice = createSlice({
 });
 
 // ------------------------------
-// Actions
-// ------------------------------
-export const { clearClassSize } = classSizeSlice.actions;
-
-// ------------------------------
 // Selectors
 // ------------------------------
 // Loading status helpers
@@ -221,25 +214,12 @@ const selectLoadingStatusHelper = (
 };
 
 // Loading selectors
-export const selectSchoolClassSizeLoadingStatus = (state: RootState, params: SchoolClassSizeParams) =>
-    selectLoadingStatusHelper(state, 'schoolData', params);
 export const selectDistrictClassSizeLoadingStatus = (state: RootState, params: DistrictClassSizeParams) =>
     selectLoadingStatusHelper(state, 'districtData', params);
 export const selectStateClassSizeLoadingStatus = (state: RootState, params: StateClassSizeParams) =>
     selectLoadingStatusHelper(state, 'stateData', params);
 
 // Data selectors (memoized)
-export const selectSchoolClassSizeData = createSelector(
-    [
-        (state: RootState) => state.classSize.schoolData,
-        (_: RootState, params: SchoolClassSizeParams) => {
-            const { forceRefresh = false, ...options } = params;
-            return createOptionsKey(options);
-        }
-    ],
-    (data, key) => data[key] || []
-);
-
 export const selectDistrictClassSizeData = createSelector(
     [
         (state: RootState) => state.classSize.districtData,

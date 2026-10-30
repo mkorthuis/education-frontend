@@ -1103,61 +1103,6 @@ export const safetySlice = createSlice({
     name: 'safety',
     initialState,
     reducers: {
-        clearSafety: (state) => initialState,
-        clearSafetyData: (state) => {
-            state.schoolDataLoadingStatus = {
-                truancy: {},
-                safetyIncidents: {},
-                harassment: {},
-                bullying: {},
-                restraint: {},
-                seclusion: {},
-                bullyingClassification: {},
-                bullyingImpact: {},
-                disciplineCount: {},
-                disciplineIncident: {},
-                enrollment: {}
-            };
-            state.schoolData = {
-                truancy: {},
-                safetyIncidents: {},
-                harassment: {},
-                bullying: {},
-                restraint: {},
-                seclusion: {},
-                bullyingClassification: {},
-                bullyingImpact: {},
-                disciplineCount: {},
-                disciplineIncident: {},
-                enrollment: {}
-            };
-            state.districtData = {
-                truancy: {},
-                safetyIncidents: {},
-                harassment: {},
-                bullying: {},
-                restraint: {},
-                seclusion: {},
-                bullyingClassification: {},
-                bullyingImpact: {},
-                disciplineCount: {},
-                disciplineIncident: {},
-                enrollment: {}
-            };
-            state.stateData = {
-                truancy: {},
-                safetyIncidents: {},
-                harassment: {},
-                bullying: {},
-                restraint: {},
-                seclusion: {},
-                bullyingClassification: {},
-                bullyingImpact: {},
-                disciplineCount: {},
-                disciplineIncident: {},
-                enrollment: {}
-            };
-        },
         setSelectedSafetyPage: (state, action: PayloadAction<SafetyPage | null>) => {
             state.selectedSafetyPage = action.payload;
         },
@@ -1707,7 +1652,7 @@ export const safetySlice = createSlice({
     }
 })
 
-export const { clearSafety, clearSafetyData, setSelectedSafetyPage } = safetySlice.actions;
+export const { setSelectedSafetyPage } = safetySlice.actions;
 
 // Helper function for creating loading status selectors
 const selectLoadingStatus = (state: RootState, category: SafetyCategory, params: BaseSchoolParams) => {
@@ -1722,28 +1667,6 @@ const selectLoadingStatus = (state: RootState, category: SafetyCategory, params:
         return state.safety.stateDataLoadingStatus[category][key] || LoadingState.IDLE;
     }
 }
-
-// Type loading status selectors
-export const selectSchoolSafetyTypesLoadingStatus = (state: RootState) => 
-    state.safety.typeLoadingStatus.schoolSafetyTypes;
-
-export const selectHarassmentClassificationLoadingStatus = (state: RootState) => 
-    state.safety.typeLoadingStatus.harassmentClassification;
-
-export const selectBullyingTypesLoadingStatus = (state: RootState) => 
-    state.safety.typeLoadingStatus.bullyingTypes;
-
-export const selectBullyingClassificationTypesLoadingStatus = (state: RootState) => 
-    state.safety.typeLoadingStatus.bullyingClassificationTypes;
-
-export const selectBullyingImpactTypesLoadingStatus = (state: RootState) => 
-    state.safety.typeLoadingStatus.bullyingImpactTypes;
-
-export const selectDisciplineCountTypesLoadingStatus = (state: RootState) => 
-    state.safety.typeLoadingStatus.disciplineCountTypes;
-
-export const selectDisciplineIncidentTypesLoadingStatus = (state: RootState) => 
-    state.safety.typeLoadingStatus.disciplineIncidentTypes;
 
 // School loading status selectors
 export const selectSchoolTruancyLoadingStatus = (state: RootState, params: BaseSchoolParams) => 
@@ -2247,7 +2170,6 @@ export const selectStateEnrollmentData = createSelector(
     (enrollmentData, key) => enrollmentData[key] || []
 );
 
-export const selectSchoolSafetyTypes = (state: RootState) => state.safety.schoolSafetyTypes;
 export const selectHarassmentClassification = (state: RootState) => state.safety.harassmentClassification;
 export const selectBullyingTypes = (state: RootState) => state.safety.bullyingTypes;
 export const selectBullyingClassificationTypes = (state: RootState) => state.safety.bullyingClassificationTypes;

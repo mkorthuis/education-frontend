@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Container, Link, Paper, Grid, Divider } from '@mui/material';
+import { Box, Typography, Container, Link, Divider } from '@mui/material';
 import SectionTitle from '@/components/ui/SectionTitle';
 
 /**

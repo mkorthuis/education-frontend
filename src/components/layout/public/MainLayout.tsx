@@ -1,4 +1,4 @@
-import { Box, Container, Toolbar, useTheme, useMediaQuery } from "@mui/material";
+import { Box, Container, useTheme, useMediaQuery } from "@mui/material";
 import { Outlet, useLocation } from "react-router-dom";
 import Footer from "./Footer/index";
 

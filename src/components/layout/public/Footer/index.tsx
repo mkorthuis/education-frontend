@@ -1,4 +1,4 @@
-import { Box, Container, Typography, Link as MuiLink, Divider, useTheme, useMediaQuery } from '@mui/material';
+import { Box, Container, Typography, Link as MuiLink, Divider, useTheme } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 
 /**
@@ -6,7 +6,6 @@ import { Link as RouterLink } from 'react-router-dom';
  */
 const Footer = () => {
   const theme = useTheme();
-  const isMediumOrLarger = useMediaQuery(theme.breakpoints.up('md'));
   const currentYear = new Date().getFullYear();
 
   return (

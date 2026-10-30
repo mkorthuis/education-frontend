@@ -1,4 +1,4 @@
-import { configureStore, ThunkAction, Action } from '@reduxjs/toolkit';
+import { configureStore } from '@reduxjs/toolkit';
 import appReducer from '@/store/slices/appSlice';
 import authReducer from '@/features/auth/store/authSlice';
 import locationReducer from '@/store/slices/locationSlice';
@@ -17,11 +17,7 @@ import pageReducer, {
   selectSchool,
   selectCurrentPage,
   selectCurrentPageId,
-  selectShowSecondaryNav,
   updateCurrentPage,
-  setCurrentPage,
-  findPageEntryByPathname,
-  getPageEntryById,
   getPageType,
   PageType
 } from '@/store/slices/pageSlice';
@@ -32,11 +28,7 @@ export {
   selectSchool,
   selectCurrentPage,
   selectCurrentPageId,
-  selectShowSecondaryNav,
   updateCurrentPage,
-  setCurrentPage,
-  findPageEntryByPathname,
-  getPageEntryById,
   getPageType,
   PageType
 };
@@ -70,9 +62,3 @@ export const store = configureStore({
 
 export type AppDispatch = typeof store.dispatch;
 export type RootState = ReturnType<typeof store.getState>;
-export type AppThunk<ReturnType = void> = ThunkAction<
-  ReturnType,
-  RootState,
-  unknown,
-  Action<string>
->; 

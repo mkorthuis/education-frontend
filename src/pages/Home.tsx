@@ -4,7 +4,6 @@ import {
   Box, 
   Typography, 
   FormControl, 
-  Button, 
   Autocomplete, 
   TextField 
 } from '@mui/material';
@@ -30,12 +29,6 @@ export default function Home() {
   useEffect(() => {
     dispatch(fetchDistricts());
   }, [dispatch]);
-
-  const handleViewDistrict = () => {
-    if (selectedDistrict?.id) {
-      navigate(`/district/${selectedDistrict.id}`);
-    }
-  };
 
   const handleDistrictChange = (_event: React.SyntheticEvent, district: District | null) => {
     setSelectedDistrict(district);
@@ -88,24 +81,6 @@ export default function Home() {
       <Typography variant="body2" sx={{fontStyle: 'italic', color: 'text.secondary', mt: 2}}>
         * Statewide Data Coming Soon. *
       </Typography>
-{/* 
-      <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Button 
-          variant="contained" 
-          color="primary" 
-          size="large"
-          disabled={!selectedDistrict}
-          onClick={handleViewDistrict}
-        >
-          View District Details
-        </Button>
-        <Button variant="outlined" color="primary" size="large">
-          View Statewide Data
-        </Button>
-        <Button variant="outlined" color="primary" size="large">
-          NH Education FAQ
-        </Button>
-      </Box> */}
     </Box>
   );
 }

@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { enrollmentApi, TownEnrollmentData, StateTownEnrollmentData, SchoolEnrollmentData } from '@/services/api/endpoints/enrollments';
 import { createSelector } from '@reduxjs/toolkit';
@@ -112,9 +112,7 @@ export const fetchSchoolEnrollments = createAsyncThunk(
 export const enrollmentSlice = createSlice({
     name: 'enrollment',
     initialState,
-    reducers: {
-        clearEnrollmentData: (state) => initialState,
-    },
+    reducers: {},
     extraReducers: (builder) => {
         // Town Enrollments
         builder
@@ -161,9 +159,6 @@ export const enrollmentSlice = createSlice({
             });
     }
 });
-
-// Export actions
-export const { clearEnrollmentData } = enrollmentSlice.actions;
 
 // Selectors
 export const selectTownEnrollmentLoadingStatus = (state: RootState, params: TownEnrollmentParams) => {

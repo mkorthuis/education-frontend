@@ -1,11 +1,7 @@
-import { createSlice, createAction, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { PAGE_REGISTRY, PageEntry } from '@/routes/pageRegistry';
 import { 
-  fetchDistrictById, 
-  fetchDistrictBySchoolId, 
-  fetchSchoolById,
-  Grade,
   fetchAllDistrictData,
   fetchAllSchoolData
 } from '@/store/slices/locationSlice';
@@ -49,24 +45,6 @@ export const replacePathParams = (path: string, params: Record<string, string | 
     result = result.replace(`:${key}`, String(value));
   }
   return result;
-};
-
-// Helper function to determine current page from a pathname
-export const determineCurrentPage = (pathname: string, availablePages: PageInfo[]): PageInfo | null => {
-  // Sort pages by path length (descending) to match most specific routes first
-  const sortedPages = [...availablePages].sort((a, b) => b.path.length - a.path.length);
-  
-  for (const page of sortedPages) {
-    // Convert route with params (like "/district/:id/safety") to regex pattern
-    const pattern = page.path.replace(/:\w+(\?)?/g, '[^/]+');
-    const regexPattern = new RegExp(`^${pattern.replace(/\//g, '\\/')}$`);
-    
-    if (regexPattern.test(pathname)) {
-      return page;
-    }
-  }
-  
-  return null;
 };
 
 // Find a PageEntry from PAGE_REGISTRY based on a pathname
@@ -124,9 +102,6 @@ export const pageSlice = createSlice({
     },
     setCurrentPage: (state, action: PayloadAction<{ pageId: string }>) => {
       state.currentPageId = action.payload.pageId;
-    },
-    setShowSecondaryNav: (state, action: PayloadAction<boolean>) => {
-      state.showSecondaryNav = action.payload;
     }
   }
 });
@@ -135,8 +110,7 @@ export const pageSlice = createSlice({
 export const { 
   setDistrict, 
   setSchool, 
-  setCurrentPage, 
-  setShowSecondaryNav 
+  setCurrentPage
 } = pageSlice.actions;
 
 // Helper function to convert a PageEntry to PageInfo with an entity ID
@@ -331,6 +305,5 @@ export const selectDistrict = (state: RootState) => state.page.district;
 export const selectSchool = (state: RootState) => state.page.school;
 export const selectCurrentPageId = (state: RootState) => state.page.currentPageId;
 export const selectCurrentPage = (state: RootState) => getPageEntryById(state.page.currentPageId);
-export const selectShowSecondaryNav = (state: RootState) => state.page.showSecondaryNav;
 
 export default pageSlice.reducer; 

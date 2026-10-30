@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk, PayloadAction, createSelector } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
 import { outcomesApi } from '@/services/api/endpoints/outcomes';
 import { RootState } from '@/store/store';
 
@@ -412,9 +412,7 @@ const initialState: OutcomesState = {
 export const outcomeSlice = createSlice({
     name: 'outcomes',
     initialState,
-    reducers: {
-        clearOutcomes: () => initialState
-    },
+    reducers: {},
     extraReducers: (builder) => {
         // Post-Graduation Types
         builder
@@ -557,11 +555,6 @@ export const outcomeSlice = createSlice({
             });
     }
 });
-
-// ------------------------------
-// Actions
-// ------------------------------
-export const { clearOutcomes } = outcomeSlice.actions;
 
 // ------------------------------
 // Selectors

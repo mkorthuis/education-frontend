@@ -1,15 +1,12 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, Typography, Box, Divider, CardActionArea, useMediaQuery } from '@mui/material';
-import { 
-  setSelectedSubjectId, 
-  fetchAssessmentSchoolData, 
-  selectCurrentAssessmentSchoolData, 
+import {
+  selectCurrentAssessmentSchoolData,
   selectCurrentAssessmentStateData,
   selectSelectedSubjectId,
-  selectAssessmentSchoolLoadingStatus,
   selectAssessmentSchoolData
 } from '@/store/slices/assessmentSlice';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { useAppSelector } from '@/store/hooks';
 import {
   filterAssessmentResults,
   ALL_STUDENTS_SUBGROUP_ID,
@@ -35,7 +32,6 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
   const { id, subjectName } = useParams<{ id: string; subjectName?: string }>();
   const navigate = useNavigate();
   const currentSchoolId = id ? parseInt(id) : null;
-  const dispatch = useAppDispatch();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
@@ -52,10 +48,7 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
     grade_id: ALL_GRADES_ID,
     school_id: id || ''
   }), [assessment_subject_id, id]);
-  
-  // Use parameterized loading selector
-  const isSchoolDataLoading = useAppSelector(state => selectAssessmentSchoolLoadingStatus(state, queryParams));
-  
+
   // Check if any subject is selected and if we're on mobile
   const isCollapsed = isMobile && selectedSubjectId !== null;
   
@@ -65,11 +58,7 @@ const MeasurementCard: React.FC<MeasurementCardProps> = ({
   // Use the memoized selector
   const schoolAssessmentData = useAppSelector(state => selectAssessmentSchoolData(state, queryParams));
 
-  useEffect(() => {
-    if(schoolAssessmentData.length === 0 && !isSchoolDataLoading) {
-      dispatch(fetchAssessmentSchoolData(queryParams));
-    }
-  }, [dispatch, schoolAssessmentData, queryParams, isSchoolDataLoading]);
+  // Data for this card is fetched by the parent page, not by the card.
 
   const handleCardClick = () => {
     if (id) {

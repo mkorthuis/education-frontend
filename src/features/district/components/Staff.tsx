@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { Box, CircularProgress, useTheme, useMediaQuery, Divider } from '@mui/material';
+import { Box, CircularProgress, Divider } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import SectionTitle from '@/components/ui/SectionTitle';
 
@@ -14,10 +14,8 @@ import * as enrollmentSlice from '@/store/slices/enrollmentSlice';
 import { 
   fetchLatestMeasurements,
   selectLatestMeasurements,
-  selectLatestMeasurementsLoadingState,
-  selectMeasurementsByCategory
+  selectLatestMeasurementsLoadingState
 } from '@/store/slices/measurementSlice';
-import * as safetySlice from '@/store/slices/safetySlice';
 
 // Component imports
 import PercentStaffTeachersCard from './staff/PercentStaffTeachersCard';
@@ -33,8 +31,6 @@ import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const Staff: React.FC = () => {
   const dispatch = useAppDispatch();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
 
   // District and location data
   const district = useAppSelector(selectCurrentDistrict);

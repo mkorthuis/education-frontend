@@ -319,16 +319,6 @@ const calculateTotal = (items: FinancialItem[]): number => {
   return items.reduce((sum, item) => sum + item.value, 0);
 };
 
-// Filter balance sheet items by asset type (assets or liabilities)
-const filterBalanceItems = (items: BalanceSheet[], isAsset: boolean): BalanceSheet[] => {
-  return items.filter(item => {
-    const superCategoryId = item.entry_type.category?.super_category?.id;
-    return isAsset 
-      ? (superCategoryId === 1 || superCategoryId === 3) // Assets
-      : (superCategoryId === 2); // Liabilities
-  });
-};
-
 // ================ ASYNC THUNKS ================
 
 // Async thunk for fetching entry types
@@ -547,7 +537,6 @@ export const financeSlice = createSlice({
       // Don't reset stateExpenditureRollupsData as it's not district specific
       // Don't reset stateADMData as it's not district specific
     },
-    resetFinanceState: () => initialState,
     // Add a reducer to toggle inflation adjustment
     toggleInflationAdjustment: (state) => {
       state.adjustForInflation = !state.adjustForInflation;
@@ -746,23 +735,11 @@ export const financeSlice = createSlice({
 // Export actions
 export const { 
   clearFinanceState, 
-  resetFinanceState, 
   toggleInflationAdjustment,
   setInflationAdjustment
 } = financeSlice.actions;
 
 // ================ SELECTORS ================
-
-// Loading state selectors
-export const selectEntryTypesLoadingState = (state: RootState) => state.finance.loadingStates.entryTypes;
-export const selectFundTypesLoadingState = (state: RootState) => state.finance.loadingStates.fundTypes;
-export const selectFinancialReportsLoadingState = (state: RootState) => state.finance.loadingStates.financialReports;
-export const selectPerPupilExpenditureLoadingState = (state: RootState) => state.finance.loadingStates.perPupilExpenditure;
-export const selectStatePerPupilExpenditureLoadingState = (state: RootState) => state.finance.loadingStates.statePerPupilExpenditure;
-export const selectStateExpenditureRollupsLoadingState = (state: RootState) => state.finance.loadingStates.stateExpenditureRollups;
-export const selectStateRevenueLoadingState = (state: RootState) => state.finance.loadingStates.stateRevenue;
-export const selectStateExpenditureLoadingState = (state: RootState) => state.finance.loadingStates.stateExpenditure;
-export const selectStateADMLoadingState = (state: RootState) => state.finance.loadingStates.stateADM;
 
 // Check if any data is currently loading
 export const selectAnyFinanceLoading = (state: RootState) => {
@@ -774,14 +751,9 @@ export const selectAnyFinanceLoading = (state: RootState) => {
 export const selectFinanceError = (state: RootState) => state.finance.error;
 
 // Entry and fund types selectors
-export const selectBalanceEntryTypes = (state: RootState) => state.finance.balanceEntryTypes;
 export const selectRevenueEntryTypes = (state: RootState) => state.finance.revenueEntryTypes;
 export const selectExpenditureEntryTypes = (state: RootState) => state.finance.expenditureEntryTypes;
-export const selectBalanceFundTypes = (state: RootState) => state.finance.balanceFundTypes;
-export const selectRevenueFundTypes = (state: RootState) => state.finance.revenueFundTypes;
-export const selectExpenditureFundTypes = (state: RootState) => state.finance.expenditureFundTypes;
 export const selectEntryTypesLoaded = (state: RootState) => state.finance.entryTypesLoaded;
-export const selectFundTypesLoaded = (state: RootState) => state.finance.fundTypesLoaded;
 
 // Financial reports selectors
 export const selectFinancialReports = (state: RootState) => state.finance.processedReports;
@@ -792,10 +764,7 @@ export const selectPerPupilExpenditureAllData = (state: RootState) => state.fina
 export const selectStatePerPupilExpenditureAllData = (state: RootState) => state.finance.statePerPupilExpenditureAllData;
 
 // State data selectors
-export const selectStateExpenditureRollupData = (state: RootState) => state.finance.stateExpenditureRollupData;
 export const selectStateRevenueAllData = (state: RootState) => state.finance.stateRevenueAllData;
-export const selectStateExpenditureAllData = (state: RootState) => state.finance.stateExpenditureAllData;
-export const selectStateADMAllData = (state: RootState) => state.finance.stateADMData;
 
 // Total calculations selectors
 export const selectTotalExpendituresByYear = (state: RootState, year: string) => {
@@ -808,18 +777,6 @@ export const selectTotalRevenuesByYear = (state: RootState, year: string) => {
   const report = state.finance.processedReports[year];
   if (!report) return 0;
   return calculateTotal(report.revenues);
-};
-
-export const selectTotalAssetsByYear = (state: RootState, year: string) => {
-  const report = state.finance.processedReports[year];
-  if (!report) return 0;
-  return calculateTotal(filterBalanceItems(report.balance_sheets, true));
-};
-
-export const selectTotalLiabilitiesByYear = (state: RootState, year: string) => {
-  const report = state.finance.processedReports[year];
-  if (!report) return 0;
-  return calculateTotal(filterBalanceItems(report.balance_sheets, false));
 };
 
 // Per Pupil Expenditure Selectors
@@ -887,14 +844,6 @@ export const selectLatestStateRevenueDetails = (state: RootState) => {
   return allData.filter(item => item.year === parseInt(FISCAL_YEAR));
 };
 
-export const selectStateRevenueByYear = (state: RootState, year: number) => {
-  const allData = state.finance.stateRevenueAllData;
-  if (!allData || allData.length === 0) return [];
-  
-  // Find all entries matching the requested year
-  return allData.filter(item => item.year === year);
-};
-
 // State Expenditure Selectors
 export const selectLatestStateExpenditureDetails = (state: RootState) => {
   const allData = state.finance.stateExpenditureAllData;
@@ -902,14 +851,6 @@ export const selectLatestStateExpenditureDetails = (state: RootState) => {
   
   // Find all entries for the current fiscal year
   return allData.filter(item => item.year === parseInt(FISCAL_YEAR));
-};
-
-export const selectStateExpenditureByYear = (state: RootState, year: number) => {
-  const allData = state.finance.stateExpenditureAllData;
-  if (!allData || allData.length === 0) return [];
-
-  // Find all entries matching the requested year
-  return allData.filter(item => item.year === year);
 };
 
 // State ADM Selectors
@@ -921,14 +862,6 @@ export const selectLatestStateADM = (state: RootState) => {
   return allData.reduce((latest, current) => {
     return current.year > latest.year ? current : latest;
   }, allData[0]);
-};
-
-export const selectStateADMByYear = (state: RootState, year: number) => {
-  const allData = state.finance.stateADMData;
-  if (!allData || allData.length === 0) return null;
-  
-  // Find the entry matching the requested year
-  return allData.find(item => item.year === year) || null;
 };
 
 // Inflation adjustment selector

@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { efaApi } from '@/services/api/endpoints/efa';
 import { createSelector } from '@reduxjs/toolkit';
@@ -156,9 +156,7 @@ export const fetchEfaStateEntries = createAsyncThunk(
 export const efaSlice = createSlice({
     name: 'efa',
     initialState,
-    reducers: {
-        clearEfaData: (state) => initialState,
-    },
+    reducers: {},
     extraReducers: (builder) => {
         // Entry Types
         builder
@@ -202,9 +200,6 @@ export const efaSlice = createSlice({
             });
     }
 });
-
-// Export actions
-export const { clearEfaData } = efaSlice.actions;
 
 // Selectors
 export const selectEfaEntryTypesLoadingStatus = (state: RootState) => 

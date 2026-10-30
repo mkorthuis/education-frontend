@@ -33,7 +33,6 @@ export type PageRegistry = {
 const Home = lazy(() => import('@/pages/Home'));
 const DistrictList = lazy(() => import('@/pages/DistrictList'));
 const District = lazy(() => import('@/features/district/pages/District'));
-const Admin = lazy(() => import('@/pages/Admin'));
 const Privacy = lazy(() => import('@/pages/Privacy'));
 const Terms = lazy(() => import('@/pages/Terms'));
 const Contact = lazy(() => import('@/pages/Contact'));
@@ -54,9 +53,7 @@ const Enrollment = lazy(() => import('@/features/district/components/Enrollment'
 const School = lazy(() => import('@/features/school/pages/School'));
 const SchoolAcademic = lazy(() => import('@/features/school/components/AcademicAchievement'));
 const SchoolOutcomes = lazy(() => import('@/features/school/components/Outcomes'));
-const SchoolFinancials = lazy(() => import('@/features/school/components/Financials'));
 const SchoolSafety = lazy(() => import('@/features/school/components/Safety'));
-const SchoolStaff = lazy(() => import('@/features/school/components/Staff'));
 const SchoolContact = lazy(() => import('@/features/school/components/ContactInformation'));
 const SchoolEnrollment = lazy(() => import('@/features/school/components/Enrollment'));
 
@@ -435,25 +432,6 @@ export const PAGE_REGISTRY: PageRegistry = {
 export const getAllPages = (): PageEntry[] => {
   return Object.values(PAGE_REGISTRY).flatMap(category => 
     Object.values(category)
-  );
-};
-
-// Helper function to get all URL patterns
-export const getAllUrlPatterns = (): string[] => {
-  return getAllPages().flatMap(page => page.urlPatterns);
-};
-
-// Helper function to find a page entry by URL pattern
-export const findPageByUrl = (url: string): PageEntry | undefined => {
-  return getAllPages().find(page => 
-    page.urlPatterns.some(pattern => {
-      // Convert route pattern to regex for matching
-      const regexPattern = pattern
-        .replace(/:\w+\?/g, '[^/]*') // Optional parameters
-        .replace(/:\w+/g, '[^/]+');  // Required parameters
-      const regex = new RegExp(`^${regexPattern}$`);
-      return regex.test(url);
-    })
   );
 };
 

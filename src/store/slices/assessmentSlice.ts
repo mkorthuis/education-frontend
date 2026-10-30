@@ -481,9 +481,6 @@ export const {
 // ================ SELECTORS ================
 
 
-export const selectAssessmentSubjectsLoadingStatus = (state: RootState) => state.assessment.typeLoadingStatus.subjects;
-export const selectAssessmentSubgroupsLoadingStatus = (state: RootState) => state.assessment.typeLoadingStatus.subgroups;
-
 export const selectAssessmentStateLoadingStatus = (state: RootState, params: FetchAssessmentStateDataParams) => {
   const {forceRefresh = false, ...options} = params;
   const key = createOptionsKey(options);
@@ -500,7 +497,6 @@ export const selectAssessmentSchoolLoadingStatus = (state: RootState, params: Fe
   return state.assessment.dataLoadingStatus.school[key] || LoadingState.IDLE;
 }
 
-export const selectAssessmentSubjects = (state: RootState) => state.assessment.subjects || [];
 export const selectAssessmentSubgroups = (state: RootState) => state.assessment.subgroups || [];
 
 export const selectCurrentAssessmentStateData = createSelector(
@@ -527,15 +523,6 @@ export const selectCurrentAssessmentSchoolData = createSelector(
   }
 );
 
-export const selectAssessmentStateData = createSelector(
-  [(state: RootState) => state.assessment.stateData,
-   (_: RootState, params: FetchAssessmentStateDataParams) => {
-     const {forceRefresh = false, ...options} = params;
-     return createOptionsKey(options);
-   }],
-  (stateData, key) => stateData[key] || []
-);
-
 export const selectAssessmentDistrictData = createSelector(
   [(state: RootState) => state.assessment.districtData,
    (_: RootState, params: FetchAssessmentDistrictDataParams) => {
@@ -553,8 +540,6 @@ export const selectAssessmentSchoolData = createSelector(
    }],
   (schoolData, key) => schoolData[key] || []
 );
-
-export const selectAssessmentError = (state: RootState) => state.assessment.error;
 
 // Selected subject selectors
 export const selectSelectedSubjectId = (state: RootState) => state.assessment.selectedSubjectId;

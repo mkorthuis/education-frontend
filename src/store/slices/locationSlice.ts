@@ -269,27 +269,6 @@ export const locationSlice = createSlice({
       // Reset currentSchool to prevent stale data
       state.currentSchool = null;
     },
-    clearSchoolData: (state) => {
-      state.currentSchool = null;
-      state.error = null;
-      state.loadingStates.school = false;
-    },
-    clearDistrictData: (state) => {
-      state.currentDistrict = null;
-      state.currentSchools = [];
-      state.currentTowns = [];
-      state.currentSau = null;
-      state.error = null;
-      // Reset relevant loading states
-      state.loadingStates.district = false;
-      state.loadingStates.schools = false;
-      state.loadingStates.towns = false;
-      state.loadingStates.sau = false;
-    },
-    clearGradesData: (state) => {
-      state.grades = [];
-      state.loadingStates.grades = false;
-    },
   },
   extraReducers: (builder) => {
     builder
@@ -413,10 +392,7 @@ export const locationSlice = createSlice({
 // Export actions
 export const { 
   setCurrentDistrictId,
-  setCurrentSchoolId,
-  clearSchoolData, 
-  clearDistrictData, 
-  clearGradesData 
+  setCurrentSchoolId
 } = locationSlice.actions;
 
 // Export selectors
@@ -431,32 +407,12 @@ export const selectLocationLoading = (state: RootState) =>
 export const selectLocationError = (state: RootState) => state.location.error;
 
 // Specific loading state selectors
-export const selectDistrictsLoading = (state: RootState) => state.location.loadingStates.districts;
-export const selectDistrictLoading = (state: RootState) => state.location.loadingStates.district;
-export const selectSchoolsLoading = (state: RootState) => state.location.loadingStates.schools;
-export const selectTownsLoading = (state: RootState) => state.location.loadingStates.towns;
-export const selectSauLoading = (state: RootState) => state.location.loadingStates.sau;
 export const selectSchoolLoading = (state: RootState) => state.location.loadingStates.school;
-export const selectGradesLoading = (state: RootState) => state.location.loadingStates.grades;
 
 // Check if any location data is currently loading
 export const selectAnyLocationLoading = (state: RootState) => {
   const loadingStates = state.location.loadingStates;
   return Object.values(loadingStates).some(isLoading => isLoading);
-};
-
-// Helper function to check if we need to load data for a district
-export const shouldLoadDistrictData = (state: RootState, districtId: number): boolean => {
-  if (!state.location.currentDistrict) return true;
-  if (state.location.currentDistrict.id !== districtId) return true;
-  return false;
-};
-
-// Helper function to check if we need to load data for a school
-export const shouldLoadSchoolData = (state: RootState, schoolId: number): boolean => {
-  if (!state.location.currentSchool) return true;
-  if (state.location.currentSchool.id !== schoolId) return true;
-  return false;
 };
 
 // Export the reducer

@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { measurementApi } from '@/services/api/endpoints/measurements';
 import { LoadingState } from './safetySlice';
@@ -218,14 +218,7 @@ export const fetchAllMeasurements = createAsyncThunk(
 export const measurementSlice = createSlice({
   name: 'measurement',
   initialState,
-  reducers: {
-    clearMeasurements: (state) => {
-      state.latestMeasurements = {};
-      state.allMeasurements = {};
-      state.error = null;
-    },
-    resetMeasurementState: () => initialState,
-  },
+  reducers: {},
   extraReducers: (builder) => {
     builder
       // Handle fetchMeasurementTypes
@@ -278,11 +271,6 @@ export const measurementSlice = createSlice({
   },
 });
 
-// ================ EXPORTS ================
-
-// Export actions
-export const { clearMeasurements, resetMeasurementState } = measurementSlice.actions;
-
 // ================ SELECTORS ================
 
 // Shared empty result so selectors return the same reference while data is missing;
@@ -294,18 +282,6 @@ export const selectLatestMeasurements = (state: RootState, params: FetchMeasurem
   return state.measurement.latestMeasurements[key] || EMPTY_MEASUREMENTS;
 };
 
-// Helper selector to filter measurements by category if needed
-export const selectMeasurementsByCategory = (category: string) => 
-  (state: RootState, params: FetchMeasurementsParams) => {
-    const key = createMeasurementKey(params);
-    return (state.measurement.latestMeasurements[key] || []).filter(
-      m => m.measurement_type.category === category
-    );
-  };
-
-export const selectMeasurementTypesLoadingState = (state: RootState) => 
-  state.measurement.loadingStates.measurementTypes;
-
 export const selectLatestMeasurementsLoadingState = (state: RootState, params: FetchMeasurementsParams) => {
   if (!params) {
     return LoadingState.IDLE;
@@ -314,34 +290,10 @@ export const selectLatestMeasurementsLoadingState = (state: RootState, params: F
   return state.measurement.loadingStates.measurements[key] || LoadingState.IDLE;
 };
 
-export const selectLatestMeasurementsError = (state: RootState) => 
-  state.measurement.error;
-
-export const selectMeasurementTypesLoaded = (state: RootState) => 
-  state.measurement.measurementTypesLoaded;
-
-export const selectMeasurementTypes = (state: RootState) => 
-  state.measurement.measurementTypes;
-
-// Check if any data is currently loading
-export const selectAnyMeasurementLoading = (state: RootState, params: FetchMeasurementsParams) => {
-  const key = createMeasurementKey(params);
-  return state.measurement.loadingStates.measurements[key] === LoadingState.LOADING;
-};
-
 export const selectAllMeasurements = (state: RootState, params: FetchMeasurementsParams) => {
   const key = createMeasurementKey(params);
   return state.measurement.allMeasurements[key] || EMPTY_MEASUREMENTS;
 };
-
-// Helper selector to filter all measurements by category if needed
-export const selectAllMeasurementsByCategory = (category: string) => 
-  (state: RootState, params: FetchMeasurementsParams) => {
-    const key = createMeasurementKey(params);
-    return (state.measurement.allMeasurements[key] || []).filter(
-      m => m.measurement_type.category === category
-    );
-  };
 
 export const selectAllMeasurementsLoadingState = (state: RootState, params: FetchMeasurementsParams) => {
   const key = createMeasurementKey(params);

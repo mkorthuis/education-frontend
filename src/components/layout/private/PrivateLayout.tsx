@@ -1,5 +1,5 @@
 import { Outlet, useLocation } from "react-router-dom";
-import { Box, useTheme, Card, Container, useMediaQuery } from "@mui/material";
+import { Box, useTheme, Container, useMediaQuery } from "@mui/material";
 import usePageTracking from "@/hooks/usePageTracking";
 import { useEffect } from "react";
 import { useAppDispatch } from "@/store/hooks";
@@ -30,7 +30,7 @@ const PrivateLayout = () => {
     <>
       <ScrollToTop />
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        {isMediumOrLarger ? content : content}
+        {content}
       </Box>
     </>
   );
