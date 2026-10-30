@@ -1,5 +1,4 @@
 import { configureStore } from '@reduxjs/toolkit';
-import appReducer from '@/store/slices/appSlice';
 import authReducer from '@/features/auth/store/authSlice';
 import locationReducer from '@/store/slices/locationSlice';
 import measurementReducer from '@/store/slices/measurementSlice';
@@ -35,7 +34,6 @@ export {
 
 export const store = configureStore({
   reducer: {
-    app: appReducer,
     auth: authReducer,
     location: locationReducer,
     measurement: measurementReducer,

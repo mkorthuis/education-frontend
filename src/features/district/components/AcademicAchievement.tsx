@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, CircularProgress, Typography } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentDistrict,
@@ -20,7 +20,8 @@ import {
   clearAssessments,
   selectAssessmentDistrictLoadingStatus,
   selectAssessmentStateLoadingStatus,
-  selectAssessmentDistrictData
+  selectAssessmentDistrictData,
+  resetFailedAssessmentLoad
 } from '@/store/slices/assessmentSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
 import MeasurementCard from '@/features/district/components/academic/MeasurementCard';
@@ -117,6 +118,15 @@ const AcademicAchievement: React.FC = () => {
   // Show loading when any data is still loading
   const isLoading = districtLoading || districtAssessmentLoading != LoadingState.SUCCEEDED || stateAssessmentLoading != LoadingState.SUCCEEDED;
 
+  // Show an error with a retry instead of loading forever when an assessment request failed
+  const hasLoadError = !districtLoading && !!districtId && (districtAssessmentLoading === LoadingState.FAILED || stateAssessmentLoading === LoadingState.FAILED);
+
+  // Reset only the failed requests to IDLE so the fetch effect above requests them again
+  const handleRetry = () => {
+    dispatch(resetFailedAssessmentLoad({ category: 'district', params: initialQueryParams }));
+    dispatch(resetFailedAssessmentLoad({ category: 'state', params: {} }));
+  };
+
   // Filter assessment data by fiscal year and subgroup_id
   const filteredAssessmentData = filterAssessmentResults(districtAssessmentData, {
     year: ASSESSMENT_YEAR,
@@ -146,7 +156,20 @@ const AcademicAchievement: React.FC = () => {
         displayName={PAGE_REGISTRY.district.academic.displayName}
         districtName={district?.name}
       />
-      {isLoading ? (
+      {hasLoadError ? (
+        <Box sx={{ my: 4 }}>
+          <Alert
+            severity="error"
+            action={
+              <Button color="inherit" size="small" onClick={handleRetry}>
+                Retry
+              </Button>
+            }
+          >
+            Assessment data could not be loaded.
+          </Alert>
+        </Box>
+      ) : isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
           <CircularProgress />
         </Box>

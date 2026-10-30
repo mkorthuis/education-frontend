@@ -35,7 +35,6 @@ export interface PageState {
     availablePages: PageInfo[];
   };
   currentPageId: string; // Just store the ID instead of the whole entry
-  showSecondaryNav: boolean;
 }
 
 // Helper function to replace path parameters
@@ -77,8 +76,7 @@ const initialState: PageState = {
     name: '',
     availablePages: []
   },
-  currentPageId: PAGE_REGISTRY.general.home.id,
-  showSecondaryNav: true
+  currentPageId: PAGE_REGISTRY.general.home.id
 };
 
 // Create slice

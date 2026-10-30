@@ -128,9 +128,6 @@ export interface AssessmentState {
   selectedSubjectId: number | null;
   selectedGradeId: number | null;
   selectedSubgroupId: number | null;
-  
-  // Error State
-  error: string | null;
 }
 
 // ================ INITIAL STATE ================
@@ -159,9 +156,7 @@ const initialState: AssessmentState = {
   
   selectedSubjectId: null,
   selectedGradeId: ALL_GRADES_ID,
-  selectedSubgroupId: ALL_STUDENTS_SUBGROUP_ID,
-  
-  error: null
+  selectedSubgroupId: ALL_STUDENTS_SUBGROUP_ID
 };
 
 // ================ HELPER FUNCTIONS ================
@@ -392,6 +387,14 @@ export const assessmentSlice = createSlice({
       state.selectedGradeId = ALL_GRADES_ID;
       state.selectedSubgroupId = ALL_STUDENTS_SUBGROUP_ID;
     },
+    // Reset a FAILED data load back to IDLE so the page's fetch effect requests it again
+    resetFailedAssessmentLoad: (state, action: PayloadAction<{ category: AssessmentCategory; params: BaseAssessmentParams & Record<string, any> }>) => {
+      const {forceRefresh = false, ...options} = action.payload.params;
+      const key = createOptionsKey(options);
+      if (state.dataLoadingStatus[action.payload.category][key] === LoadingState.FAILED) {
+        state.dataLoadingStatus[action.payload.category][key] = LoadingState.IDLE;
+      }
+    },
   },
   extraReducers: (builder) => {
 
@@ -475,7 +478,8 @@ export const {
   setSelectedSubjectId,
   setSelectedGradeId,
   setSelectedSubgroupId,
-  resetFilters
+  resetFilters,
+  resetFailedAssessmentLoad
 } = assessmentSlice.actions;
 
 // ================ SELECTORS ================
