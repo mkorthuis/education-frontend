@@ -11,8 +11,10 @@ export const calculateTotalEnrollment = (school: School): number => {
   );
 }; 
 
-// CPI data (1982-84 = 100) based on annual averages.
-// Add each new year here; years outside the table use the nearest year's CPI.
+// CPI data (1982-84 = 100) based on annual averages: BLS CPI-U, U.S. city average,
+// all items, not seasonally adjusted (series CUUR0000SA0), rounded to one decimal.
+// Add each new year when BLS publishes its annual average (mid-January of the following
+// year); years outside the table use the nearest year's CPI.
 const CPI_BY_YEAR: Readonly<Record<number, number>> = {
   2000: 172.2,
   2001: 177.1,
@@ -38,8 +40,9 @@ const CPI_BY_YEAR: Readonly<Record<number, number>> = {
   2021: 271.0,
   2022: 292.7,
   2023: 304.7,
-  2024: 314.4,
-  2025: 319.8  // March 2025 CPI value (most recent)
+  2024: 313.7,
+  2025: 321.9, // BLS annual average from 11 months (October 2025 was not collected)
+  2026: 333.5  // ESTIMATE from Jan-Sep 2026; replace with the BLS annual average in January 2027
 };
 
 const CPI_YEARS = Object.keys(CPI_BY_YEAR).map(Number);
