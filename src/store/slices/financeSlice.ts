@@ -146,7 +146,9 @@ export interface FinanceState {
   financialReports: Record<string, FinancialReport>;
   processedReports: Record<string, ProcessedReport>;
   processedReportDistrictId: number | null;
-  
+  // Request id of the latest fetchFinancialReports call; responses from older calls are ignored
+  reportsRequestId: string | null;
+
   // Per pupil expenditure data
   perPupilExpenditureAllData: PerPupilExpenditure[];
   statePerPupilExpenditureAllData: PerPupilExpenditure[];
@@ -189,6 +191,7 @@ const initialState: FinanceState = {
   financialReports: {},
   processedReports: {},
   processedReportDistrictId: null,
+  reportsRequestId: null,
   perPupilExpenditureAllData: [],
   statePerPupilExpenditureAllData: [],
   stateExpenditureRollupData: [],
@@ -582,16 +585,20 @@ export const financeSlice = createSlice({
       })
       
       // Handle fetchFinancialReport
-      .addCase(fetchFinancialReports.pending, (state) => {
+      .addCase(fetchFinancialReports.pending, (state, action) => {
+        state.reportsRequestId = action.meta.requestId;
         state.loadingStates.financialReports = LoadingState.LOADING;
         state.error = null;
       })
       .addCase(fetchFinancialReports.fulfilled, (state, action) => {
+        // Ignore a response for a district the user has already moved away from
+        if (action.meta.requestId !== state.reportsRequestId) return;
+
         const { reportData } = action.payload;
-        
+
         if (reportData && Array.isArray(reportData)) {
-          // Store the district ID from the first report
-          state.processedReportDistrictId = reportData[0].doe_form.district_id;
+          // Store the district ID from the first report (or the requested one if there are none)
+          state.processedReportDistrictId = reportData[0]?.doe_form?.district_id ?? action.meta.arg.districtId;
           // Process each report in the array
           reportData.forEach(report => {
             if (report && report.doe_form && report.doe_form.year) {
@@ -609,6 +616,7 @@ export const financeSlice = createSlice({
         state.loadingStates.financialReports = LoadingState.SUCCEEDED;
       })
       .addCase(fetchFinancialReports.rejected, (state, action) => {
+        if (action.meta.requestId !== state.reportsRequestId) return;
         state.loadingStates.financialReports = LoadingState.FAILED;
         state.error = action.payload as string;
       })
