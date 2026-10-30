@@ -156,26 +156,6 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
     setViewMode(event.target.value as ViewMode);
   };
 
-  // Fallback dummy data function
-  const getDummyData = (): CostCategory[] => [
-    { name: 'Instruction', district: 49.2, state: 48.3 },
-    { name: 'Regular', isSubcategory: true, district: 33.5, state: 32.0, parent: 'Instruction' },
-    { name: 'Special', isSubcategory: true, district: 9.8, state: 10.6, parent: 'Instruction' },
-    { name: 'Vocational', isSubcategory: true, district: 3.9, state: 3.9, parent: 'Instruction' },
-    { name: 'Other Programs', isSubcategory: true, district: 2.0, state: 1.8, parent: 'Instruction' },
-    { name: 'Support Services', district: 38.4, state: 37.5 },
-    { name: 'Student', isSubcategory: true, district: 8.2, state: 8.2, parent: 'Support Services' },
-    { name: 'Instructional Staff', isSubcategory: true, district: 7.0, state: 6.8, parent: 'Support Services' },
-    { name: 'Building', isSubcategory: true, district: 9.0, state: 8.6, parent: 'Support Services' },
-    { name: 'Administration', isSubcategory: true, district: 7.1, state: 6.5, parent: 'Support Services' },
-    { name: 'Transportation', isSubcategory: true, district: 5.6, state: 6.3, parent: 'Support Services' },
-    { name: 'Other', isSubcategory: true, district: 1.5, state: 1.1, parent: 'Support Services' },
-    { name: 'Other', district: 12.4, state: 14.2 },
-    { name: 'Facilities', isSubcategory: true, district: 7.1, state: 8.2, parent: 'Other' },
-    { name: 'Debt Service', isSubcategory: true, district: 3.9, state: 4.9, parent: 'Other' },
-    { name: 'Miscellaneous', isSubcategory: true, district: 1.4, state: 1.1, parent: 'Other' },
-  ];
-  
   // Get data from Redux store
   const stateExpenditureDetails = useAppSelector(selectLatestStateExpenditureDetails);
   const entryTypes = useAppSelector(selectExpenditureEntryTypes);
@@ -256,11 +236,6 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
   
   // Process the data to create our cost categories - unified function for both percentage and ADM cost
   const processData = (mode: DataProcessingMode): CostCategory[] => {
-    if (!stateExpenditureDetails || !entryTypes) {
-      // Fallback to dummy data if real data is not available
-      return getDummyData();
-    }
-    
     // Create category accumulators
     const categoryTotals = {
       district: {
@@ -495,10 +470,9 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
     return processData('admCost');
   }, [stateExpenditureDetails, entryTypes, districtFinancialReports, stateADM]);
   
-  // Check if real data is loaded (not using dummy data)
-  const isRealDataLoaded = useMemo((): boolean => {
-    return !!(stateExpenditureDetails && entryTypes);
-  }, [stateExpenditureDetails, entryTypes]);
+  // Without entry types nothing can be categorized; without state details the State column is unknown
+  const hasEntryTypes = entryTypes.length > 0;
+  const hasStateData = stateExpenditureDetails.length > 0;
 
   // Filter data based on expanded categories and selected view mode
   const tableData = useMemo((): CostCategory[] => {
@@ -522,11 +496,8 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
     return `${value.toFixed(1)}%`;
   };
   
-  // Display cell data based on loading state and view mode
+  // Display cell data based on view mode
   const displayCellData = (value: number): string => {
-    if (!isRealDataLoaded) {
-      return 'N/A';
-    }
     return viewMode === 'percentage' ? formatPercentage(value) : formatCompactNumber(value);
   };
 
@@ -550,6 +521,13 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
         </Typography>
       </Box>
       
+      {!hasEntryTypes ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+          <Typography variant="body1" color="text.secondary">
+            Cost breakdown is not available for this year.
+          </Typography>
+        </Box>
+      ) : (
       <Box sx={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 2 }}>
         <TableContainer 
           component={Paper} 
@@ -630,7 +608,7 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
                       fontStyle: row.isSubcategory ? 'italic' : 'normal',
                     }}
                   >
-                    {displayCellData(row.state)}
+                    {hasStateData ? displayCellData(row.state) : 'N/A'}
                   </TableCell>
                 </TableRow>
               ))}
@@ -638,6 +616,7 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
           </Table>
         </TableContainer>
       </Box>
+      )}
     </Box>
   );
 };

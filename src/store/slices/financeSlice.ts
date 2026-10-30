@@ -553,9 +553,9 @@ export const financeSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchEntryTypes.fulfilled, (state, action) => {
-        state.balanceEntryTypes = action.payload.balance_entry_types;
-        state.revenueEntryTypes = action.payload.revenue_entry_types;
-        state.expenditureEntryTypes = action.payload.expenditure_entry_types;
+        state.balanceEntryTypes = action.payload.balance_entry_types ?? [];
+        state.revenueEntryTypes = action.payload.revenue_entry_types ?? [];
+        state.expenditureEntryTypes = action.payload.expenditure_entry_types ?? [];
         state.entryTypesLoaded = true;
         state.loadingStates.entryTypes = LoadingState.SUCCEEDED;
       })
