@@ -11,68 +11,84 @@ export const calculateTotalEnrollment = (school: School): number => {
   );
 }; 
 
+// CPI data (1982-84 = 100) based on annual averages.
+// Add each new year here; years outside the table use the nearest year's CPI.
+const CPI_BY_YEAR: Readonly<Record<number, number>> = {
+  2000: 172.2,
+  2001: 177.1,
+  2002: 179.9,
+  2003: 184.0,
+  2004: 188.9,
+  2005: 195.3,
+  2006: 201.6,
+  2007: 207.3,
+  2008: 215.3,
+  2009: 214.5,
+  2010: 218.1,
+  2011: 224.9,
+  2012: 229.6,
+  2013: 233.0,
+  2014: 236.7,
+  2015: 237.0,
+  2016: 240.0,
+  2017: 245.1,
+  2018: 251.1,
+  2019: 255.7,
+  2020: 258.8,
+  2021: 271.0,
+  2022: 292.7,
+  2023: 304.7,
+  2024: 314.4,
+  2025: 319.8  // March 2025 CPI value (most recent)
+};
+
+const CPI_YEARS = Object.keys(CPI_BY_YEAR).map(Number);
+const FIRST_CPI_YEAR = Math.min(...CPI_YEARS);
+const LAST_CPI_YEAR = Math.max(...CPI_YEARS);
+
+// Years already reported as missing from the CPI table, so each is warned about once
+const warnedCpiYears = new Set<number>();
+
+/**
+ * CPI for a year, using the nearest year in the table when the year is outside it
+ * (e.g. data for a year whose CPI hasn't been added yet) instead of failing.
+ */
+const getCpiForYear = (year: number): number => {
+  const nearestYear = Math.min(Math.max(year, FIRST_CPI_YEAR), LAST_CPI_YEAR);
+  if (nearestYear !== year && !warnedCpiYears.has(year)) {
+    warnedCpiYears.add(year);
+    console.warn(`No CPI value for ${year}; using ${nearestYear}. Add ${year} to CPI_BY_YEAR in src/utils/calculations.ts.`);
+  }
+  return CPI_BY_YEAR[nearestYear];
+};
+
 export const calculateInflationAdjustedAmount = (
-  amount: number, 
-  fromYear: number, 
-  toYear: number = 2025
+  amount: number,
+  fromYear: number,
+  toYear: number = LAST_CPI_YEAR
 ): number => {
   // Validate inputs
   if (typeof amount !== 'number' || isNaN(amount)) {
     throw new Error('Amount must be a valid number');
   }
-  
-  if (!Number.isInteger(fromYear) || fromYear < 2000 || fromYear > 2025) {
-    throw new Error('fromYear must be an integer between 2000 and 2025');
+
+  if (!Number.isInteger(fromYear)) {
+    throw new Error('fromYear must be an integer');
   }
-  
-  if (!Number.isInteger(toYear) || toYear < 2000 || toYear > 2025) {
-    throw new Error('toYear must be an integer between 2000 and 2025');
+
+  if (!Number.isInteger(toYear)) {
+    throw new Error('toYear must be an integer');
   }
-  
-  // Define the type for our CPI data object
-  type CPIDataType = {
-    [year: number]: number;
-  };
-  
-  // CPI data (1982-84 = 100) based on annual averages
-  const cpiData: CPIDataType = {
-    2000: 172.2,
-    2001: 177.1,
-    2002: 179.9,
-    2003: 184.0,
-    2004: 188.9,
-    2005: 195.3,
-    2006: 201.6,
-    2007: 207.3,
-    2008: 215.3,
-    2009: 214.5,
-    2010: 218.1,
-    2011: 224.9,
-    2012: 229.6,
-    2013: 233.0,
-    2014: 236.7,
-    2015: 237.0,
-    2016: 240.0,
-    2017: 245.1,
-    2018: 251.1,
-    2019: 255.7,
-    2020: 258.8,
-    2021: 271.0,
-    2022: 292.7,
-    2023: 304.7,
-    2024: 314.4,
-    2025: 319.8  // March 2025 CPI value (most recent)
-  };
-  
+
   // If the years are the same, return the original amount
   if (fromYear === toYear) {
     return amount;
   }
-  
+
   // Calculate the inflation-adjusted amount
   // Formula: originalAmount * (targetCPI / originalCPI)
-  const adjustedAmount: number = amount * (cpiData[toYear] / cpiData[fromYear]);
-  
+  const adjustedAmount: number = amount * (getCpiForYear(toYear) / getCpiForYear(fromYear));
+
   // Round to 2 decimal places for currency
   return Math.round(adjustedAmount * 100) / 100;
 }
