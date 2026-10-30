@@ -27,6 +27,7 @@ import { API_BASE_URL } from '@/utils/environment';
 declare module 'axios' {
   export interface AxiosRequestConfig {
     skipCache?: boolean;
+    requestStartTime?: number;
   }
 }
 
