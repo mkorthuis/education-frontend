@@ -8,6 +8,11 @@ export default defineConfig({
   server: {
     open: true,
     https: true,
+    // Local dev against the production API: VITE_PROXY_API=1 VITE_API_BASE_URL= npm run dev
+    // (the API only allows the www.nhfacts.com origin, so calls go through this same-origin proxy)
+    proxy: process.env.VITE_PROXY_API
+      ? { '/api': { target: 'https://api.nhfacts.com', changeOrigin: true } }
+      : undefined,
   },
   test: {
     globals: true,
