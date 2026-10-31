@@ -5,21 +5,9 @@ import { selectCurrentDistrict, selectCurrentSchools } from '@/store/slices/loca
 import { selectSchoolSafetyData } from '@/store/slices/safetySlice';
 import { EARLIEST_YEAR } from '@/utils/safetyCalculations';
 import DefaultCategoryDetails from '@/components/ui/safety/DefaultCategoryDetails';
-import DistrictSchoolSafetyIncidentsTable from './subCategory/SchoolSafetyIncidentsTable';
+import SchoolSafetyIncidentsTable, { SafetyIncident } from '@/components/ui/safety/SchoolSafetyIncidentsTable';
 
 // Types
-interface SafetyType {
-    name: string;
-}
-
-interface SafetyIncident {
-    id: number;
-    year: number;
-    school_id: number;
-    count: number;
-    safety_type: SafetyType;
-}
-
 interface School {
     id: number;
     name: string;
@@ -87,9 +75,10 @@ const SeriousSafetyCategoryDetails: React.FC = () => {
 
                             return (
                                 <Box key={schoolId}>
-                                    <DistrictSchoolSafetyIncidentsTable
+                                    <SchoolSafetyIncidentsTable
                                         schoolName={schoolName}
                                         incidents={incidents}
+                                        showDivider={true}
                                     />
                                 </Box>
                             );

@@ -5,20 +5,7 @@ import { selectCurrentSchool } from '@/store/slices/locationSlice';
 import { selectSchoolSafetyData } from '@/store/slices/safetySlice';
 import { EARLIEST_YEAR } from '@/utils/safetyCalculations';
 import DefaultCategoryDetails from '@/components/ui/safety/DefaultCategoryDetails';
-import SchoolSafetyIncidentsTable from '@/components/ui/safety/SchoolSafetyIncidentsTable';
-
-// Types
-interface SafetyType {
-    name: string;
-}
-
-interface SafetyIncident {
-    id: number;
-    year: number;
-    school_id: number;
-    count: number;
-    safety_type: SafetyType;
-}
+import SchoolSafetyIncidentsTable, { SafetyIncident } from '@/components/ui/safety/SchoolSafetyIncidentsTable';
 
 const SeriousSafetyCategoryDetails: React.FC = () => {
     const school = useAppSelector(selectCurrentSchool);
