@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "start": "serve -s dist",
+    "start": "serve dist",
     "startdev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
