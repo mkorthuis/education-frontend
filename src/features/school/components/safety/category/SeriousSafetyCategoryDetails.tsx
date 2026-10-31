@@ -4,8 +4,8 @@ import { useAppSelector } from '@/store/hooks';
 import { selectCurrentSchool } from '@/store/slices/locationSlice';
 import { selectSchoolSafetyData } from '@/store/slices/safetySlice';
 import { EARLIEST_YEAR } from '@/utils/safetyCalculations';
-import DefaultCategoryDetails from './DefaultCategoryDetails';
-import SchoolSafetyIncidentsTableWrapper from './subCategory/SchoolSafetyIncidentsTable';
+import DefaultCategoryDetails from '@/components/ui/safety/DefaultCategoryDetails';
+import SchoolSafetyIncidentsTable from '@/components/ui/safety/SchoolSafetyIncidentsTable';
 
 // Types
 interface SafetyType {
@@ -48,7 +48,7 @@ const SeriousSafetyCategoryDetails: React.FC = () => {
 
                 {hasIncidents && (
                     <Box sx={{ display: 'flex', flexDirection: 'column', mt: 3 }}>
-                        <SchoolSafetyIncidentsTableWrapper
+                        <SchoolSafetyIncidentsTable
                             schoolName={school?.name || 'This school'}
                             incidents={schoolSeriousSafetyData}
                         />

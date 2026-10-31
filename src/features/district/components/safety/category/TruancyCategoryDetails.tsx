@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Divider, Typography, useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import DefaultCategoryDetails from './DefaultCategoryDetails';
+import DefaultCategoryDetails from '@/components/ui/safety/DefaultCategoryDetails';
 import TruancyHistoryChart from './subCategory/TruancyHistoryChart';
 import TruancyDetailsTable from './subCategory/TruancyDetailsTable';
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Divider, Typography, useMediaQuery, useTheme, Card } from '@mui/material';
-import DefaultCategoryDetails from './DefaultCategoryDetails';
+import DefaultCategoryDetails from '@/components/ui/safety/DefaultCategoryDetails';
 import RestraintTrendChart from './subCategory/RestraintTrendChart';
 import SeclusionTrendChart from './subCategory/SeclusionTrendChart';
 import { 

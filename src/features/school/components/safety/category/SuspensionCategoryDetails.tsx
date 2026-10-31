@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Card, Divider, Typography, useMediaQuery, useTheme } from '@mui/material';
-import DefaultCategoryDetails from './DefaultCategoryDetails';
+import DefaultCategoryDetails from '@/components/ui/safety/DefaultCategoryDetails';
 import { selectCurrentSchool } from '@/store/slices/locationSlice';
 import { useAppSelector } from '@/store/hooks';
 import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';

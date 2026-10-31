@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Divider, Typography } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
-import DefaultSafetyCard from './DefaultSafetyCard';
+import DefaultSafetyCard from '@/components/ui/safety/DefaultSafetyCard';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectSelectedSafetyPage, setSelectedSafetyPage, selectDistrictRestraintData, selectStateRestraintData, selectDistrictEnrollmentData, selectStateEnrollmentData } from '@/store/slices/safetySlice';

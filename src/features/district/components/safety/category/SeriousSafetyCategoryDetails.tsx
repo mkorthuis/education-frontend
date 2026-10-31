@@ -4,7 +4,7 @@ import { useAppSelector } from '@/store/hooks';
 import { selectCurrentDistrict, selectCurrentSchools } from '@/store/slices/locationSlice';
 import { selectSchoolSafetyData } from '@/store/slices/safetySlice';
 import { EARLIEST_YEAR } from '@/utils/safetyCalculations';
-import DefaultCategoryDetails from './DefaultCategoryDetails';
+import DefaultCategoryDetails from '@/components/ui/safety/DefaultCategoryDetails';
 import DistrictSchoolSafetyIncidentsTable from './subCategory/SchoolSafetyIncidentsTable';
 
 // Types

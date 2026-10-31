@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTheme, useMediaQuery, Divider, Box } from '@mui/material';
-import DefaultCategoryDetails from './DefaultCategoryDetails';
+import DefaultCategoryDetails from '@/components/ui/safety/DefaultCategoryDetails';
 import HarassmentDetailsTable from './subCategory/HarassmentDetailsTable';
 import HarassmentTrendChart from './subCategory/HarassmentTrendChart';
 

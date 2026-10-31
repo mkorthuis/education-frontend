@@ -1,9 +1,9 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { AssessmentDistrictData } from '@/store/slices/assessmentSlice';
+import { AssessmentDistrictData, AssessmentSchoolData } from '@/store/slices/assessmentSlice';
 
 interface AcademicDefaultViewProps {
-  assessmentData: AssessmentDistrictData[];
+  assessmentData: AssessmentSchoolData[] | AssessmentDistrictData[];
   fiscalYear: string;
 }
 

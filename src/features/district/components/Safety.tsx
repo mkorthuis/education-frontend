@@ -26,7 +26,7 @@ import RestraintCategoryDetails from './safety/category/RestraintCategoryDetails
 import SeriousSafetyCategoryDetails from './safety/category/SeriousSafetyCategoryDetails';
 import SuspensionCategoryDetails from './safety/category/SuspensionCategoryDetails';
 import TruancyCategoryDetails from './safety/category/TruancyCategoryDetails';
-import DefaultCategoryDetails from './safety/category/DefaultCategoryDetails';
+import DefaultCategoryDetails from '@/components/ui/safety/DefaultCategoryDetails';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 const Safety: React.FC = () => {

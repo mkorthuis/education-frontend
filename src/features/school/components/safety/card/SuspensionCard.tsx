@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Divider, Typography } from '@mui/material';
-import DefaultSafetyCard from './DefaultSafetyCard';
+import DefaultSafetyCard from '@/components/ui/safety/DefaultSafetyCard';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { 
   selectSchoolDisciplineCountData, 

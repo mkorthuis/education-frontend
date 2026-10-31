@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Divider, Typography } from '@mui/material';
-import DefaultSafetyCard from './DefaultSafetyCard';
+import DefaultSafetyCard from '@/components/ui/safety/DefaultSafetyCard';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectSelectedSafetyPage, setSelectedSafetyPage, selectSchoolHarassmentData, selectStateHarassmentData, selectSchoolEnrollmentData, selectStateEnrollmentData } from '@/store/slices/safetySlice';

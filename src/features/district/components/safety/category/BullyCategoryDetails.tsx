@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, useTheme, useMediaQuery, Divider } from '@mui/material';
-import DefaultCategoryDetails from './DefaultCategoryDetails';
+import DefaultCategoryDetails from '@/components/ui/safety/DefaultCategoryDetails';
 import BullyTrendChart from './subCategory/BullyTrendChart';
 import BullyClassificationTable from './subCategory/BullyClassificationTable';
 import BullyImpactTable from './subCategory/BullyImpactTable';

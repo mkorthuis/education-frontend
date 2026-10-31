@@ -26,7 +26,7 @@ import {
 import SectionTitle from '@/components/ui/SectionTitle';
 import MeasurementCard from '@/features/district/components/academic/MeasurementCard';
 import AcademicSubjectDetails from '@/features/district/components/academic/AcademicSubjectDetails';
-import AcademicDefaultView from '@/features/district/components/academic/AcademicDefaultView';
+import AcademicDefaultView from '@/components/ui/academic/AcademicDefaultView';
 import { filterAssessmentResults, ALL_GRADES_ID } from '@/features/district/utils/assessmentDataProcessing';
 import { ASSESSMENT_YEAR } from '@/utils/environment';
 import { LoadingState } from '@/store/slices/safetySlice';

@@ -11,6 +11,7 @@ import {
 } from '@/store/slices/locationSlice';
 import { formatGradesDisplay } from '@/utils/formatting';
 import { calculateTotalEnrollment } from '@/utils/calculations';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 // Common button styles
 const navigationButtonStyle = {
@@ -21,8 +22,6 @@ const navigationButtonStyle = {
     backgroundColor: 'grey.300',
   }
 };
-
-const GRADUATION_GRADE = import.meta.env.VITE_GRADUATION_GRADE;
 
 /**
  * Represents the School page/feature.
@@ -35,11 +34,6 @@ const School: React.FC = () => {
   const sau = useAppSelector(selectCurrentSau);
   const loading = useAppSelector(selectLocationLoading);
   const error = useAppSelector(selectLocationError);
-
-  // Determine if the school includes the graduation grade
-  const hasGraduationGrade = school?.grades?.some(
-    (grade) => grade.name === GRADUATION_GRADE
-  );
 
   if (loading) {
     return (
@@ -67,6 +61,15 @@ const School: React.FC = () => {
 
   const gradesDisplay = formatGradesDisplay(school);
   const totalEnrollment = calculateTotalEnrollment(school);
+
+  // Outcomes availability and tooltip come from the page registry
+  const outcomesPage = PAGE_REGISTRY.school.outcomes;
+  const hasGraduationGrade = typeof outcomesPage.enabled === 'function'
+    ? outcomesPage.enabled(school)
+    : outcomesPage.enabled;
+  const outcomesTooltip = typeof outcomesPage.tooltip === 'function'
+    ? outcomesPage.tooltip(school)
+    : outcomesPage.tooltip;
 
   return (
     <Box>
@@ -111,7 +114,7 @@ const School: React.FC = () => {
           </Button>
         ) : (
           <Tooltip 
-            title={`This school does not educate ${GRADUATION_GRADE} students.`} 
+            title={outcomesTooltip} 
             arrow
           >
             <span style={{ width: '100%' }}>
