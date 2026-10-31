@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Box, Typography, useTheme, useMediaQuery } from '@mui/material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { formatCompactNumber } from '@/utils/formatting';
-import { GRADE_IDS, GRADE_NAMES } from '@/features/district/utils/enrollmentDataProcessing';
+import { GRADE_IDS } from '@/utils/enrollmentProjection';
 import { useAppSelector } from '@/store/hooks';
 import { selectCurrentSchool } from '@/store/slices/locationSlice';
 

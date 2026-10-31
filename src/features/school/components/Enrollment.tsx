@@ -17,6 +17,7 @@ import SchoolEnrollmentChart from './enrollment/SchoolEnrollmentChart';
 import SchoolEnrollmentDetails from './enrollment/SchoolEnrollmentDetails';
 import SchoolEnrollmentSummary from './enrollment/SchoolEnrollmentSummary';
 import SchoolEnrollmentSummaryChart from './enrollment/SchoolEnrollmentSummaryChart';
+import { EnrollmentProjectionSnapshot } from '@/utils/enrollmentProjection';
 import SectionTitle from '@/components/ui/SectionTitle';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
@@ -48,12 +49,7 @@ const Enrollment: React.FC = () => {
   };
 
   // State for enrollment summary data
-  const [enrollmentSummaryData, setEnrollmentSummaryData] = useState<{
-    currentClassSizes: { [key: number]: number };
-    projectedClassSizes: { [key: number]: number };
-    endYear: number;
-    futureYear: number;
-  } | null>(null);
+  const [enrollmentSummaryData, setEnrollmentSummaryData] = useState<EnrollmentProjectionSnapshot | null>(null);
 
   // Load data if it's not already loaded
   useEffect(() => {
