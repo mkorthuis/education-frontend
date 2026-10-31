@@ -23,7 +23,7 @@ The platform makes valuable educational data transparent and actionable, allowin
 
 ## Prerequisites
 
-- Node.js 20.x
+- Node.js 24.x (the version in `.nvmrc`; production uses the same major version via `engines` in `package.json`)
 - npm 10.x
 
 ## Getting Started
