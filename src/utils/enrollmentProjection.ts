@@ -12,8 +12,8 @@
  * gives the school rules. The differences are:
  * - Rows for one (year, grade): district sums them (one row per town); school
  *   uses the first row for cohort changes, the last row for current class sizes.
- * - Cohort change inclusion: district needs both summed enrollments > 0; school
- *   only needs both rows to exist (0/null enrollments count as 0).
+ * - Cohort change inclusion: both need both enrollments > 0, but district tests
+ *   the summed rows and school tests the first row.
  * - K/G1 averages: district averages per-year totals over the years that have
  *   rows; school averages individual rows and uses 0 for unsupported grades.
  * - Supported grades (school only): unsupported grades are 0 in current class
@@ -121,8 +121,10 @@ const districtCohortChange = (next: Cell | undefined, prev: Cell | undefined): n
 };
 
 /** School: both rows must exist; the first row of each counts. */
+// A 0 or missing enrollment would look like a whole class arriving or leaving, so like
+// the district rule, a year pair only counts when both enrollments are above 0
 const schoolCohortChange = (next: Cell | undefined, prev: Cell | undefined): number | null =>
-  next && prev ? next.first - prev.first : null;
+  next && prev && next.first > 0 && prev.first > 0 ? next.first - prev.first : null;
 
 const averageCohortChanges = (
   index: RowIndex,
