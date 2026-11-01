@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTheme, useMediaQuery } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
@@ -16,13 +16,20 @@ export function useSafetyCategory() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const selectedSafetyPage = useAppSelector(safetySlice.selectSelectedSafetyPage);
+  // The URL category the selection was last synced to (null until the first sync)
+  const syncedCategory = useRef<{ category?: string } | null>(null);
 
-  // Effect to sync URL with selected category
+  // Effect to sync the selected category with the URL. It acts only on mount and when the
+  // URL changes, so a card click (which selects and navigates in either order, and the
+  // navigation commits as a transition) is never undone by a stale URL.
   useEffect(() => {
+    if (syncedCategory.current && syncedCategory.current.category === category) return;
+    syncedCategory.current = { category };
+
     if (!category && selectedSafetyPage) {
       // Clear selected category when visiting base safety page
       dispatch(safetySlice.setSelectedSafetyPage(null));
-    } else if (category && !selectedSafetyPage) {
+    } else if (category && category !== selectedSafetyPage) {
       // Only set the category if it's a valid safety page
       const validCategories = ['bullying', 'harassment', 'restraint', 'serious', 'suspension', 'truancy'];
       if (validCategories.includes(category)) {

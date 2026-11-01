@@ -48,6 +48,9 @@ const TABS = [
   { value: 3, label: 'Balance Sheet', mobileLabel: 'Capital', path: 'balance-sheet' }
 ];
 
+// Tab value for the URL's `:tab?` segment (Overall when missing or unknown)
+const tabValueFromPath = (tab?: string) => TABS.find(t => t.path === tab)?.value ?? 0;
+
 /**
  * Custom component to display financial title with inflation adjustment indicator
  */
@@ -142,6 +145,9 @@ function useDistrictFinancialData(districtId?: number) {
   const latestStateRevenueData = useAppSelector(selectLatestStateRevenueDetails);
   const latestStateExpenditureData = useAppSelector(selectLatestStateExpenditureDetails);
   const latestStateAdmData = useAppSelector(selectLatestStateADM);
+  // The state revenue and expenditure selectors return [] when there is no data
+  const hasStateRevenueData = latestStateRevenueData.length > 0;
+  const hasStateExpenditureData = latestStateExpenditureData.length > 0;
   // Initial load state tracking
   const [hasInitiatedLoads, setHasInitiatedLoads] = useState(false);
   
@@ -153,7 +159,6 @@ function useDistrictFinancialData(districtId?: number) {
     
     // Clear previous state if we're loading a different district
     if (needsReload) {
-      console.log('District changed, clearing financial state');
       dispatch(clearFinanceState());
       setHasInitiatedLoads(false);
     }
@@ -181,7 +186,7 @@ function useDistrictFinancialData(districtId?: number) {
     }
 
     // State revenue data
-    if (!latestStateRevenueData || !latestStateRevenueData.length) {
+    if (!hasStateRevenueData) {
       dispatch(fetchStateRevenue({}));
     }
     // State expenditure rollup data
@@ -189,7 +194,7 @@ function useDistrictFinancialData(districtId?: number) {
       dispatch(fetchStateExpenditureRollups({}));
     }
     // State expenditure data
-    if (!latestStateExpenditureData || !latestStateRevenueData.length) {
+    if (!hasStateExpenditureData) {
       dispatch(fetchStateExpenditure({}));
     }
     // State ADM data
@@ -204,7 +209,11 @@ function useDistrictFinancialData(districtId?: number) {
     loading,
     financialReports,
     latestPerPupilData,
-    latestStatePerPupilData
+    latestStatePerPupilData,
+    hasStateRevenueData,
+    latestStateRollupData,
+    hasStateExpenditureData,
+    latestStateAdmData
   ]);
   
   return {
@@ -231,15 +240,13 @@ const Financials: React.FC = () => {
   // Get inflation adjustment state from Redux
   const adjustForInflation = useAppSelector(selectAdjustForInflation);
   
-  // Find the initial tab value based on the URL parameter
-  const getInitialTabValue = () => {
-    if (!tab) return 0;
-    const tabConfig = TABS.find(t => t.path === tab);
-    return tabConfig ? tabConfig.value : 0;
-  };
-  
-  // Tab state
-  const [mainTabValue, setMainTabValue] = useState(getInitialTabValue());
+  // Tab state, seeded from the URL parameter
+  const [mainTabValue, setMainTabValue] = useState(() => tabValueFromPath(tab));
+
+  // Follow the URL when it changes without a tab click (back/forward)
+  useEffect(() => {
+    setMainTabValue(tabValueFromPath(tab));
+  }, [tab]);
   
   // Fetch district data on component mount - only use URL param if district is not set
   useEffect(() => {
