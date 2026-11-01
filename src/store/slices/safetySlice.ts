@@ -2,13 +2,10 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { safetyApi } from '@/services/api/endpoints/safety';
 import { createSelector } from '@reduxjs/toolkit';
+import { LoadingState } from '@/store/utils/loadingState';
+import { createOptionsKey } from '@/store/utils/cacheKey';
 
-export enum LoadingState {
-    IDLE = 'idle',
-    LOADING = 'loading',
-    SUCCEEDED = 'succeeded',
-    FAILED = 'failed'
-}
+export { LoadingState };
 
 export interface BaseSchoolParams {
     year?: string;
@@ -387,19 +384,6 @@ const initialState: SafetyState = {
 
     selectedSafetyPage: null
 }
-
-// Generic key creation function
-const createOptionsKey = (params: Record<string, any>): string => {
-    const sortedParams = Object.entries(params)
-      .filter(([_, value]) => value !== undefined)
-      .sort(([keyA], [keyB]) => keyA.localeCompare(keyB));
-    
-    const keyString = sortedParams.map(([key, value]) => `${key}=${value}`).join('&');
-    // Ensure we never return an empty string as a key
-    return keyString || '_default';
-  };
-
-
 
 export const fetchSchoolSafetyTypes = createAsyncThunk(
     'safety/fetchSchoolSafetyTypes',

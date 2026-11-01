@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { measurementApi } from '@/services/api/endpoints/measurements';
-import { LoadingState } from './safetySlice';
+import { LoadingState } from '@/store/utils/loadingState';
+import { handleApiError } from '@/store/utils/apiError';
 
 // ================ TYPE DEFINITIONS ================
 
@@ -76,12 +77,6 @@ const initialState: MeasurementState = {
 };
 
 // ================ HELPER FUNCTIONS ================
-
-// Generic error handler function for thunks
-const handleApiError = (error: any, errorMessage: string) => {
-  console.error(errorMessage, error);
-  return errorMessage;
-};
 
 // Helper to ensure measurement types are loaded
 export const ensureMeasurementTypesLoaded = async (state: RootState, dispatch: any) => {

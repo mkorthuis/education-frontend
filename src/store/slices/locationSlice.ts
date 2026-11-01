@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { locationApi } from '@/services/api/endpoints/locations';
+import { handleApiError } from '@/store/utils/apiError';
 import { updateDistrictPages, updateSchoolPages } from './pageSlice';
 
 // Define types for the slice state
@@ -100,12 +101,6 @@ const initialState: LocationState = {
     school: false,
   },
   error: null,
-};
-
-// Generic error handler function for thunks
-const handleApiError = (error: any, errorMessage: string) => {
-  console.error(errorMessage, error);
-  return errorMessage;
 };
 
 // Async thunks for fetching location data

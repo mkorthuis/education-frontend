@@ -1,16 +1,13 @@
 import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
 import { classSizeApi } from '@/services/api/endpoints/classSize';
 import { RootState } from '@/store/store';
+import { LoadingState } from '@/store/utils/loadingState';
+import { createOptionsKey } from '@/store/utils/cacheKey';
 
 // ------------------------------
 // Loading helpers
 // ------------------------------
-export enum LoadingState {
-    IDLE = 'idle',
-    LOADING = 'loading',
-    SUCCEEDED = 'succeeded',
-    FAILED = 'failed'
-}
+export { LoadingState };
 
 // ------------------------------
 // Query-parameter interfaces
@@ -53,18 +50,6 @@ export interface DistrictClassSizeData extends BaseClassSizeData {
 }
 
 export interface StateClassSizeData extends BaseClassSizeData {}
-
-// ------------------------------
-// Utility for caching keys
-// ------------------------------
-const createOptionsKey = (params: Record<string, any>): string => {
-    const sortedParams = Object.entries(params)
-        .filter(([_, value]) => value !== undefined)
-        .sort(([keyA], [keyB]) => keyA.localeCompare(keyB));
-
-    const keyString = sortedParams.map(([key, value]) => `${key}=${value}`).join('&');
-    return keyString || '_default';
-};
 
 // ------------------------------
 // Async thunks

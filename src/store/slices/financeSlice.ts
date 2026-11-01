@@ -2,7 +2,8 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { financeApi } from '@/services/api/endpoints/finances';
 import { FISCAL_YEAR } from '@/utils/environment';
-import { LoadingState } from './safetySlice';
+import { LoadingState } from '@/store/utils/loadingState';
+import { handleApiError } from '@/store/utils/apiError';
 
 // ================ TYPE DEFINITIONS ================
 
@@ -216,12 +217,6 @@ const initialState: FinanceState = {
 };
 
 // ================ HELPER FUNCTIONS ================
-
-// Generic error handler function for thunks
-const handleApiError = (error: any, errorMessage: string) => {
-  console.error(errorMessage, error);
-  return errorMessage;
-};
 
 // Helper functions to create maps from arrays
 const createEntryTypeMap = (entryTypes: EntryType[]): Map<number, EntryType> => {

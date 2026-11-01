@@ -4,7 +4,8 @@ import { RootState } from '@/store/store';
 import { assessmentsApi } from '@/services/api/endpoints/assessments';
 import { fetchGrades, Grade } from '@/store/slices/locationSlice';
 import { ALL_GRADES_ID, ALL_STUDENTS_SUBGROUP_ID } from '@/features/district/utils/assessmentDataProcessing';
-import { LoadingState } from './safetySlice';
+import { LoadingState } from '@/store/utils/loadingState';
+import { createOptionsKey } from '@/store/utils/cacheKey';
 
 // ================ TYPE DEFINITIONS ================
 
@@ -160,17 +161,6 @@ const initialState: AssessmentState = {
 };
 
 // ================ HELPER FUNCTIONS ================
-
-// Generic key creation function
-const createOptionsKey = (params: Record<string, any>): string => {
-  const sortedParams = Object.entries(params)
-    .filter(([_, value]) => value !== undefined)
-    .sort(([keyA], [keyB]) => keyA.localeCompare(keyB));
-  
-  const keyString = sortedParams.map(([key, value]) => `${key}=${value}`).join('&');
-  // Ensure we never return an empty string as a key
-  return keyString || '_default';
-};
 
 // Helper function to enrich assessment data with related objects
 const enrichAssessmentData = <T extends BaseAssessmentData>(

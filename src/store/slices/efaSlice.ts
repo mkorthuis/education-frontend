@@ -2,13 +2,10 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { efaApi } from '@/services/api/endpoints/efa';
 import { createSelector } from '@reduxjs/toolkit';
+import { LoadingState } from '@/store/utils/loadingState';
+import { createOptionsKeyDropNull } from '@/store/utils/cacheKey';
 
-export enum LoadingState {
-    IDLE = 'idle',
-    LOADING = 'loading',
-    SUCCEEDED = 'succeeded',
-    FAILED = 'failed'
-}
+export { LoadingState };
 
 // Parameter interfaces
 export interface BaseEfaParams {
@@ -86,16 +83,6 @@ const initialState: EfaState = {
     entryTypes: []
 }
 
-// Create options key helper function
-const createOptionsKey = (params: Record<string, any>): string => {
-    const sortedParams = Object.entries(params)
-      .filter(([_, value]) => value !== undefined && value !== null)
-      .sort(([keyA], [keyB]) => keyA.localeCompare(keyB));
-    
-    const keyString = sortedParams.map(([key, value]) => `${key}=${value}`).join('&');
-    return keyString || '_default';
-};
-
 // Async thunks
 export const fetchEfaEntryTypes = createAsyncThunk(
     'efa/fetchEfaEntryTypes',
@@ -122,7 +109,7 @@ export const fetchEfaEntries = createAsyncThunk(
                 await dispatch(fetchEfaEntryTypes({})).unwrap();
             }
             
-            const key = createOptionsKey(options);
+            const key = createOptionsKeyDropNull(options);
             const data = await efaApi.getEfaEntries(options, forceRefresh);
             return { key, data };
         } catch (error: any) {
@@ -143,7 +130,7 @@ export const fetchEfaStateEntries = createAsyncThunk(
                 await dispatch(fetchEfaEntryTypes({})).unwrap();
             }
             
-            const key = createOptionsKey(options);
+            const key = createOptionsKeyDropNull(options);
             const data = await efaApi.getEfaStateEntries(options, forceRefresh);
             return { key, data };
         } catch (error: any) {
@@ -173,7 +160,7 @@ export const efaSlice = createSlice({
             
         // EFA Entries
             .addCase(fetchEfaEntries.pending, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
+                const key = createOptionsKeyDropNull(action.meta.arg);
                 state.dataLoadingStatus.entries[key] = LoadingState.LOADING;
             })
             .addCase(fetchEfaEntries.fulfilled, (state, action) => {
@@ -181,13 +168,13 @@ export const efaSlice = createSlice({
                 state.dataLoadingStatus.entries[action.payload.key] = LoadingState.SUCCEEDED;
             })
             .addCase(fetchEfaEntries.rejected, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
+                const key = createOptionsKeyDropNull(action.meta.arg);
                 state.dataLoadingStatus.entries[key] = LoadingState.FAILED;
             })
             
         // EFA State Entries
             .addCase(fetchEfaStateEntries.pending, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
+                const key = createOptionsKeyDropNull(action.meta.arg);
                 state.dataLoadingStatus.stateEntries[key] = LoadingState.LOADING;
             })
             .addCase(fetchEfaStateEntries.fulfilled, (state, action) => {
@@ -195,7 +182,7 @@ export const efaSlice = createSlice({
                 state.dataLoadingStatus.stateEntries[action.payload.key] = LoadingState.SUCCEEDED;
             })
             .addCase(fetchEfaStateEntries.rejected, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
+                const key = createOptionsKeyDropNull(action.meta.arg);
                 state.dataLoadingStatus.stateEntries[key] = LoadingState.FAILED;
             });
     }
@@ -206,12 +193,12 @@ export const selectEfaEntryTypesLoadingStatus = (state: RootState) =>
     state.efa.typeLoadingStatus.entryTypes;
 
 export const selectEfaEntriesLoadingStatus = (state: RootState, params: EfaEntryParams) => {
-    const key = createOptionsKey({ ...params });
+    const key = createOptionsKeyDropNull({ ...params });
     return state.efa.dataLoadingStatus.entries[key] || LoadingState.IDLE;
 };
 
 export const selectEfaStateEntriesLoadingStatus = (state: RootState, params: EfaStateEntryParams) => {
-    const key = createOptionsKey({ ...params });
+    const key = createOptionsKeyDropNull({ ...params });
     return state.efa.dataLoadingStatus.stateEntries[key] || LoadingState.IDLE;
 };
 
@@ -221,7 +208,7 @@ export const selectEfaEntries = createSelector(
     [(state: RootState) => state.efa.data.entries, 
      (_: RootState, params: EfaEntryParams) => {
         const { forceRefresh = false, ...options } = params;
-        return createOptionsKey(options);
+        return createOptionsKeyDropNull(options);
      }],
     (entriesData, key) => entriesData[key] || []
 );
@@ -230,7 +217,7 @@ export const selectEfaStateEntries = createSelector(
     [(state: RootState) => state.efa.data.stateEntries, 
      (_: RootState, params: EfaStateEntryParams) => {
         const { forceRefresh = false, ...options } = params;
-        return createOptionsKey(options);
+        return createOptionsKeyDropNull(options);
      }],
     (stateEntriesData, key) => stateEntriesData[key] || []
 );
