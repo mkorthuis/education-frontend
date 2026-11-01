@@ -1,11 +1,11 @@
 import { createSlice, PayloadAction, type AsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { safetyApi } from '@/services/api/endpoints/safety';
-import { createSelector } from '@reduxjs/toolkit';
 import { LoadingState } from '@/store/utils/loadingState';
 import { createOptionsKey } from '@/store/utils/cacheKey';
 import { addKeyedCases, createKeyedThunk, prefetchIfIdle, type KeyedPayload, type KeyedOptions, type ThunkHooks } from '@/store/utils/keyedResource';
 import { addTypeListCases, createTypeListThunk } from '@/store/utils/typeLists';
+import { makeDataSelector, makeMemoStatusSelector, makeMemoDataSelector } from '@/store/utils/selectors';
 
 export { LoadingState };
 
@@ -587,473 +587,70 @@ export const selectSchoolDisciplineIncidentsLoadingStatus = (state: RootState, p
 export const selectSchoolEnrollmentLoadingStatus = (state: RootState, params: BaseSchoolParams) => 
     selectLoadingStatus(state, 'enrollment', params);
 
-export const selectSchoolTruancyData = (state: RootState, params: BaseSchoolParams) => {
-    const {forceRefresh = false, ...options} = params;
-    const key = createOptionsKey(options);
-    return state.safety.schoolData.truancy[key] || [];
-}   
-
-export const selectSchoolSafetyData = (state: RootState, params: SchoolSafetyParams) => {
-    const {forceRefresh = false, ...options} = params;
-    const key = createOptionsKey(options);
-    return state.safety.schoolData.safetyIncidents[key] || [];
-}   
-
-export const selectSchoolHarassmentData = (state: RootState, params: BaseSchoolParams) => {
-    const {forceRefresh = false, ...options} = params;
-    const key = createOptionsKey(options);
-    return state.safety.schoolData.harassment[key] || [];
-}   
-
-export const selectSchoolSeclusionData = (state: RootState, params: BaseSchoolParams) => {
-    const {forceRefresh = false, ...options} = params;
-    const key = createOptionsKey(options);
-    return state.safety.schoolData.seclusion[key] || [];
-}   
-
-export const selectSchoolRestraintData = (state: RootState, params: BaseSchoolParams) => {
-    const {forceRefresh = false, ...options} = params;
-    const key = createOptionsKey(options);
-    return state.safety.schoolData.restraint[key] || [];
-}   
-
-export const selectSchoolBullyingData = (state: RootState, params: SchoolBullyingParams) => {
-    const {forceRefresh = false, ...options} = params;
-    const key = createOptionsKey(options);
-    return state.safety.schoolData.bullying[key] || [];
-}   
-
-export const selectSchoolBullyingClassificationData = (state: RootState, params: SchoolBullyingClassificationParams) => {
-    const {forceRefresh = false, ...options} = params;
-    const key = createOptionsKey(options);
-    return state.safety.schoolData.bullyingClassification[key] || [];
-}   
-
-export const selectSchoolBullyingImpactData = (state: RootState, params: SchoolBullyingImpactParams) => {
-    const {forceRefresh = false, ...options} = params;
-    const key = createOptionsKey(options);
-    return state.safety.schoolData.bullyingImpact[key] || [];
-}   
-
-export const selectSchoolDisciplineCountData = (state: RootState, params: SchoolDisciplineCountParams) => {
-    const {forceRefresh = false, ...options} = params;
-    const key = createOptionsKey(options);
-    return state.safety.schoolData.disciplineCount[key] || [];
-}   
-
-export const selectSchoolDisciplineIncidentData = (state: RootState, params: SchoolDisciplineIncidentParams) => {
-    const {forceRefresh = false, ...options} = params;
-    const key = createOptionsKey(options);
-    return state.safety.schoolData.disciplineIncident[key] || [];
-}   
-
-export const selectSchoolEnrollmentData = (state: RootState, params: BaseSchoolParams) => {
-    const {forceRefresh = false, ...options} = params;
-    const key = createOptionsKey(options);
-    return state.safety.schoolData.enrollment[key] || [];
-}   
-
-
+// School data selectors stay plain (not memoized), so a miss returns a fresh [] on every call
+export const selectSchoolTruancyData = makeDataSelector<RootState, BaseSchoolParams, SchoolTruancyData>((state) => state.safety.schoolData.truancy);
+export const selectSchoolSafetyData = makeDataSelector<RootState, SchoolSafetyParams, SchoolSafetyData>((state) => state.safety.schoolData.safetyIncidents);
+export const selectSchoolHarassmentData = makeDataSelector<RootState, BaseSchoolParams, SchoolHarassmentData>((state) => state.safety.schoolData.harassment);
+export const selectSchoolSeclusionData = makeDataSelector<RootState, BaseSchoolParams, SchoolSeclusionData>((state) => state.safety.schoolData.seclusion);
+export const selectSchoolRestraintData = makeDataSelector<RootState, BaseSchoolParams, SchoolRestraintData>((state) => state.safety.schoolData.restraint);
+export const selectSchoolBullyingData = makeDataSelector<RootState, SchoolBullyingParams, SchoolBullyingData>((state) => state.safety.schoolData.bullying);
+export const selectSchoolBullyingClassificationData = makeDataSelector<RootState, SchoolBullyingClassificationParams, SchoolBullyingClassificationData>((state) => state.safety.schoolData.bullyingClassification);
+export const selectSchoolBullyingImpactData = makeDataSelector<RootState, SchoolBullyingImpactParams, SchoolBullyingImpactData>((state) => state.safety.schoolData.bullyingImpact);
+export const selectSchoolDisciplineCountData = makeDataSelector<RootState, SchoolDisciplineCountParams, SchoolDisciplineCountData>((state) => state.safety.schoolData.disciplineCount);
+export const selectSchoolDisciplineIncidentData = makeDataSelector<RootState, SchoolDisciplineIncidentParams, SchoolDisciplineIncidentData>((state) => state.safety.schoolData.disciplineIncident);
+export const selectSchoolEnrollmentData = makeDataSelector<RootState, BaseSchoolParams, SchoolEnrollmentData>((state) => state.safety.schoolData.enrollment);
 
 // District loading status selectors with memoization
-export const selectDistrictTruancyLoadingStatus = createSelector(
-    [(state: RootState) => state.safety.districtDataLoadingStatus.truancy,
-     (_: RootState, params: BaseDistrictParams) => {
-        const options = { ...params };
-        return createOptionsKey(options);
-     }],
-    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
-);
-
-export const selectDistrictSafetyIncidentsLoadingStatus = createSelector(
-    [(state: RootState) => state.safety.districtDataLoadingStatus.safetyIncidents,
-     (_: RootState, params: DistrictSafetyParams) => {
-        const options = { ...params };
-        return createOptionsKey(options);
-     }],
-    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
-);
-
-export const selectDistrictHarassmentIncidentsLoadingStatus = createSelector(
-    [(state: RootState) => state.safety.districtDataLoadingStatus.harassment,
-     (_: RootState, params: DistrictHarassmentParams) => {
-        const options = { ...params };
-        return createOptionsKey(options);
-     }],
-    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
-);
-
-export const selectDistrictSeclusionLoadingStatus = createSelector(
-    [(state: RootState) => state.safety.districtDataLoadingStatus.seclusion,
-     (_: RootState, params: BaseDistrictParams) => {
-        const options = { ...params };
-        return createOptionsKey(options);
-     }],
-    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
-);
-
-export const selectDistrictRestraintLoadingStatus = createSelector(
-    [(state: RootState) => state.safety.districtDataLoadingStatus.restraint,
-     (_: RootState, params: BaseDistrictParams) => {
-        const options = { ...params };
-        return createOptionsKey(options);
-     }],
-    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
-);
-
-export const selectDistrictBullyingIncidentsLoadingStatus = createSelector(
-    [(state: RootState) => state.safety.districtDataLoadingStatus.bullying,
-     (_: RootState, params: DistrictBullyingParams) => {
-        const options = { ...params };
-        return createOptionsKey(options);
-     }],
-    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
-);
-
-export const selectDistrictBullyingClassificationsLoadingStatus = createSelector(
-    [(state: RootState) => state.safety.districtDataLoadingStatus.bullyingClassification,
-     (_: RootState, params: DistrictBullyingClassificationParams) => {
-        const options = { ...params };
-        return createOptionsKey(options);
-     }],
-    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
-);
-
-export const selectDistrictBullyingImpactsLoadingStatus = createSelector(
-    [(state: RootState) => state.safety.districtDataLoadingStatus.bullyingImpact,
-     (_: RootState, params: DistrictBullyingImpactParams) => {
-        const options = { ...params };
-        return createOptionsKey(options);
-     }],
-    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
-);
-
-export const selectDistrictDisciplineCountsLoadingStatus = createSelector(
-    [(state: RootState) => state.safety.districtDataLoadingStatus.disciplineCount,
-     (_: RootState, params: DistrictDisciplineCountParams) => {
-        const options = { ...params };
-        return createOptionsKey(options);
-     }],
-    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
-);
-
-export const selectDistrictDisciplineIncidentsLoadingStatus = createSelector(
-    [(state: RootState) => state.safety.districtDataLoadingStatus.disciplineIncident,
-     (_: RootState, params: DistrictDisciplineIncidentParams) => {
-        const options = { ...params };
-        return createOptionsKey(options);
-     }],
-    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
-);
-
-export const selectDistrictEnrollmentLoadingStatus = createSelector(
-    [(state: RootState) => state.safety.districtDataLoadingStatus.enrollment,
-     (_: RootState, params: BaseDistrictParams) => {
-        const options = { ...params };
-        return createOptionsKey(options);
-     }],
-    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
-);
+export const selectDistrictTruancyLoadingStatus = makeMemoStatusSelector<RootState, BaseDistrictParams>((state) => state.safety.districtDataLoadingStatus.truancy);
+export const selectDistrictSafetyIncidentsLoadingStatus = makeMemoStatusSelector<RootState, DistrictSafetyParams>((state) => state.safety.districtDataLoadingStatus.safetyIncidents);
+export const selectDistrictHarassmentIncidentsLoadingStatus = makeMemoStatusSelector<RootState, DistrictHarassmentParams>((state) => state.safety.districtDataLoadingStatus.harassment);
+export const selectDistrictSeclusionLoadingStatus = makeMemoStatusSelector<RootState, BaseDistrictParams>((state) => state.safety.districtDataLoadingStatus.seclusion);
+export const selectDistrictRestraintLoadingStatus = makeMemoStatusSelector<RootState, BaseDistrictParams>((state) => state.safety.districtDataLoadingStatus.restraint);
+export const selectDistrictBullyingIncidentsLoadingStatus = makeMemoStatusSelector<RootState, DistrictBullyingParams>((state) => state.safety.districtDataLoadingStatus.bullying);
+export const selectDistrictBullyingClassificationsLoadingStatus = makeMemoStatusSelector<RootState, DistrictBullyingClassificationParams>((state) => state.safety.districtDataLoadingStatus.bullyingClassification);
+export const selectDistrictBullyingImpactsLoadingStatus = makeMemoStatusSelector<RootState, DistrictBullyingImpactParams>((state) => state.safety.districtDataLoadingStatus.bullyingImpact);
+export const selectDistrictDisciplineCountsLoadingStatus = makeMemoStatusSelector<RootState, DistrictDisciplineCountParams>((state) => state.safety.districtDataLoadingStatus.disciplineCount);
+export const selectDistrictDisciplineIncidentsLoadingStatus = makeMemoStatusSelector<RootState, DistrictDisciplineIncidentParams>((state) => state.safety.districtDataLoadingStatus.disciplineIncident);
+export const selectDistrictEnrollmentLoadingStatus = makeMemoStatusSelector<RootState, BaseDistrictParams>((state) => state.safety.districtDataLoadingStatus.enrollment);
 
 // State loading status selectors with memoization
-export const selectStateTruancyLoadingStatus = createSelector(
-    [(state: RootState) => state.safety.stateDataLoadingStatus.truancy,
-     (_: RootState, params: BaseStateParams) => {
-        const options = { ...params };
-        return createOptionsKey(options);
-     }],
-    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
-);
-
-export const selectStateSafetyIncidentsLoadingStatus = createSelector(
-    [(state: RootState) => state.safety.stateDataLoadingStatus.safetyIncidents,
-     (_: RootState, params: StateSafetyParams) => {
-        const options = { ...params };
-        return createOptionsKey(options);
-     }],
-    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
-);
-
-export const selectStateHarassmentIncidentsLoadingStatus = createSelector(
-    [(state: RootState) => state.safety.stateDataLoadingStatus.harassment,
-     (_: RootState, params: StateHarassmentParams) => {
-        const options = { ...params };
-        return createOptionsKey(options);
-     }],
-    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
-);
-
-export const selectStateSeclusionLoadingStatus = createSelector(
-    [(state: RootState) => state.safety.stateDataLoadingStatus.seclusion,
-     (_: RootState, params: BaseStateParams) => {
-        const options = { ...params };
-        return createOptionsKey(options);
-     }],
-    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
-);
-
-export const selectStateRestraintLoadingStatus = createSelector(
-    [(state: RootState) => state.safety.stateDataLoadingStatus.restraint,
-     (_: RootState, params: BaseStateParams) => {
-        const options = { ...params };
-        return createOptionsKey(options);
-     }],
-    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
-);
-
-export const selectStateBullyingIncidentsLoadingStatus = createSelector(
-    [(state: RootState) => state.safety.stateDataLoadingStatus.bullying,
-     (_: RootState, params: StateBullyingParams) => {
-        const options = { ...params };
-        return createOptionsKey(options);
-     }],
-    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
-);
-
-export const selectStateBullyingClassificationsLoadingStatus = createSelector(
-    [(state: RootState) => state.safety.stateDataLoadingStatus.bullyingClassification,
-     (_: RootState, params: StateBullyingClassificationParams) => {
-        const options = { ...params };
-        return createOptionsKey(options);
-     }],
-    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
-);
-
-export const selectStateBullyingImpactsLoadingStatus = createSelector(
-    [(state: RootState) => state.safety.stateDataLoadingStatus.bullyingImpact,
-     (_: RootState, params: StateBullyingImpactParams) => {
-        const options = { ...params };
-        return createOptionsKey(options);
-     }],
-    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
-);
-
-export const selectStateDisciplineCountsLoadingStatus = createSelector(
-    [(state: RootState) => state.safety.stateDataLoadingStatus.disciplineCount,
-     (_: RootState, params: StateDisciplineCountParams) => {
-        const options = { ...params };
-        return createOptionsKey(options);
-     }],
-    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
-);
-
-export const selectStateDisciplineIncidentsLoadingStatus = createSelector(
-    [(state: RootState) => state.safety.stateDataLoadingStatus.disciplineIncident,
-     (_: RootState, params: StateDisciplineIncidentParams) => {
-        const options = { ...params };
-        return createOptionsKey(options);
-     }],
-    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
-);
-
-export const selectStateEnrollmentLoadingStatus = createSelector(
-    [(state: RootState) => state.safety.stateDataLoadingStatus.enrollment,
-     (_: RootState, params: BaseStateParams) => {
-        const options = { ...params };
-        return createOptionsKey(options);
-     }],
-    (loadingStatus, key) => loadingStatus[key] || LoadingState.IDLE
-);
+export const selectStateTruancyLoadingStatus = makeMemoStatusSelector<RootState, BaseStateParams>((state) => state.safety.stateDataLoadingStatus.truancy);
+export const selectStateSafetyIncidentsLoadingStatus = makeMemoStatusSelector<RootState, StateSafetyParams>((state) => state.safety.stateDataLoadingStatus.safetyIncidents);
+export const selectStateHarassmentIncidentsLoadingStatus = makeMemoStatusSelector<RootState, StateHarassmentParams>((state) => state.safety.stateDataLoadingStatus.harassment);
+export const selectStateSeclusionLoadingStatus = makeMemoStatusSelector<RootState, BaseStateParams>((state) => state.safety.stateDataLoadingStatus.seclusion);
+export const selectStateRestraintLoadingStatus = makeMemoStatusSelector<RootState, BaseStateParams>((state) => state.safety.stateDataLoadingStatus.restraint);
+export const selectStateBullyingIncidentsLoadingStatus = makeMemoStatusSelector<RootState, StateBullyingParams>((state) => state.safety.stateDataLoadingStatus.bullying);
+export const selectStateBullyingClassificationsLoadingStatus = makeMemoStatusSelector<RootState, StateBullyingClassificationParams>((state) => state.safety.stateDataLoadingStatus.bullyingClassification);
+export const selectStateBullyingImpactsLoadingStatus = makeMemoStatusSelector<RootState, StateBullyingImpactParams>((state) => state.safety.stateDataLoadingStatus.bullyingImpact);
+export const selectStateDisciplineCountsLoadingStatus = makeMemoStatusSelector<RootState, StateDisciplineCountParams>((state) => state.safety.stateDataLoadingStatus.disciplineCount);
+export const selectStateDisciplineIncidentsLoadingStatus = makeMemoStatusSelector<RootState, StateDisciplineIncidentParams>((state) => state.safety.stateDataLoadingStatus.disciplineIncident);
+export const selectStateEnrollmentLoadingStatus = makeMemoStatusSelector<RootState, BaseStateParams>((state) => state.safety.stateDataLoadingStatus.enrollment);
 
 // District Data Selectors
-export const selectDistrictTruancyData = createSelector(
-    [(state: RootState) => state.safety.districtData.truancy, 
-     (_: RootState, params: BaseDistrictParams) => {
-        const {forceRefresh = false, ...options} = params;
-        return createOptionsKey(options);
-     }],
-    (truancyData, key) => truancyData[key] || []
-);
-
-export const selectDistrictSafetyData = createSelector(
-    [(state: RootState) => state.safety.districtData.safetyIncidents, 
-     (_: RootState, params: DistrictSafetyParams) => {
-        const {forceRefresh = false, ...options} = params;
-        return createOptionsKey(options);
-     }],
-    (safetyData, key) => safetyData[key] || []
-);
-
-export const selectDistrictHarassmentData = createSelector(
-    [(state: RootState) => state.safety.districtData.harassment, 
-     (_: RootState, params: DistrictHarassmentParams) => {
-        const {forceRefresh = false, ...options} = params;
-        return createOptionsKey(options);
-     }],
-    (harassmentData, key) => harassmentData[key] || []
-);
-
-export const selectDistrictSeclusionData = createSelector(
-    [(state: RootState) => state.safety.districtData.seclusion, 
-     (_: RootState, params: BaseDistrictParams) => {
-        const {forceRefresh = false, ...options} = params;
-        return createOptionsKey(options);
-     }],
-    (seclusionData, key) => seclusionData[key] || []
-);
-
-export const selectDistrictRestraintData = createSelector(
-    [(state: RootState) => state.safety.districtData.restraint, 
-     (_: RootState, params: BaseDistrictParams) => {
-        const {forceRefresh = false, ...options} = params;
-        return createOptionsKey(options);
-     }],
-    (restraintData, key) => restraintData[key] || []
-);
-
-export const selectDistrictBullyingData = createSelector(
-    [(state: RootState) => state.safety.districtData.bullying, 
-     (_: RootState, params: DistrictBullyingParams) => {
-        const {forceRefresh = false, ...options} = params;
-        return createOptionsKey(options);
-     }],
-    (bullyingData, key) => bullyingData[key] || []
-);
-
-export const selectDistrictBullyingClassificationData = createSelector(
-    [(state: RootState) => state.safety.districtData.bullyingClassification, 
-     (_: RootState, params: DistrictBullyingClassificationParams) => {
-        const {forceRefresh = false, ...options} = params;
-        return createOptionsKey(options);
-     }],
-    (bullyingClassificationData, key) => bullyingClassificationData[key] || []
-);
-
-export const selectDistrictBullyingImpactData = createSelector(
-    [(state: RootState) => state.safety.districtData.bullyingImpact, 
-     (_: RootState, params: DistrictBullyingImpactParams) => {
-        const {forceRefresh = false, ...options} = params;
-        return createOptionsKey(options);
-     }],
-    (bullyingImpactData, key) => bullyingImpactData[key] || []
-);
-
-export const selectDistrictDisciplineCountData = createSelector(
-    [(state: RootState) => state.safety.districtData.disciplineCount, 
-     (_: RootState, params: DistrictDisciplineCountParams) => {
-        const {forceRefresh = false, ...options} = params;
-        return createOptionsKey(options);
-     }],
-    (disciplineCountData, key) => disciplineCountData[key] || []
-);
-
-export const selectDistrictDisciplineIncidentData = createSelector(
-    [(state: RootState) => state.safety.districtData.disciplineIncident, 
-     (_: RootState, params: DistrictDisciplineIncidentParams) => {
-        const {forceRefresh = false, ...options} = params;
-        return createOptionsKey(options);
-     }],
-    (disciplineIncidentData, key) => disciplineIncidentData[key] || []
-);
-
-export const selectDistrictEnrollmentData = createSelector(
-    [(state: RootState) => state.safety.districtData.enrollment, 
-     (_: RootState, params: BaseDistrictParams) => {
-        const {forceRefresh = false, ...options} = params;
-        return createOptionsKey(options);
-     }],
-    (enrollmentData, key) => enrollmentData[key] || []
-);
+export const selectDistrictTruancyData = makeMemoDataSelector<RootState, BaseDistrictParams, DistrictTruancyData>((state) => state.safety.districtData.truancy);
+export const selectDistrictSafetyData = makeMemoDataSelector<RootState, DistrictSafetyParams, DistrictSafetyData>((state) => state.safety.districtData.safetyIncidents);
+export const selectDistrictHarassmentData = makeMemoDataSelector<RootState, DistrictHarassmentParams, DistrictHarassmentData>((state) => state.safety.districtData.harassment);
+export const selectDistrictSeclusionData = makeMemoDataSelector<RootState, BaseDistrictParams, DistrictSeclusionData>((state) => state.safety.districtData.seclusion);
+export const selectDistrictRestraintData = makeMemoDataSelector<RootState, BaseDistrictParams, DistrictRestraintData>((state) => state.safety.districtData.restraint);
+export const selectDistrictBullyingData = makeMemoDataSelector<RootState, DistrictBullyingParams, DistrictBullyingData>((state) => state.safety.districtData.bullying);
+export const selectDistrictBullyingClassificationData = makeMemoDataSelector<RootState, DistrictBullyingClassificationParams, DistrictBullyingClassificationData>((state) => state.safety.districtData.bullyingClassification);
+export const selectDistrictBullyingImpactData = makeMemoDataSelector<RootState, DistrictBullyingImpactParams, DistrictBullyingImpactData>((state) => state.safety.districtData.bullyingImpact);
+export const selectDistrictDisciplineCountData = makeMemoDataSelector<RootState, DistrictDisciplineCountParams, DistrictDisciplineCountData>((state) => state.safety.districtData.disciplineCount);
+export const selectDistrictDisciplineIncidentData = makeMemoDataSelector<RootState, DistrictDisciplineIncidentParams, DistrictDisciplineIncidentData>((state) => state.safety.districtData.disciplineIncident);
+export const selectDistrictEnrollmentData = makeMemoDataSelector<RootState, BaseDistrictParams, DistrictEnrollmentData>((state) => state.safety.districtData.enrollment);
 
 // State Data Selectors
-export const selectStateTruancyData = createSelector(
-    [(state: RootState) => state.safety.stateData.truancy, 
-     (_: RootState, params: BaseStateParams) => {
-        const {forceRefresh = false, ...options} = params;
-        return createOptionsKey(options);
-     }],
-    (truancyData, key) => truancyData[key] || []
-);
-
-export const selectStateSafetyData = createSelector(
-    [(state: RootState) => state.safety.stateData.safetyIncidents, 
-     (_: RootState, params: StateSafetyParams) => {
-        const {forceRefresh = false, ...options} = params;
-        return createOptionsKey(options);
-     }],
-    (safetyData, key) => safetyData[key] || []
-);
-
-export const selectStateHarassmentData = createSelector(
-    [(state: RootState) => state.safety.stateData.harassment, 
-     (_: RootState, params: StateHarassmentParams) => {
-        const {forceRefresh = false, ...options} = params;
-        return createOptionsKey(options);
-     }],
-    (harassmentData, key) => harassmentData[key] || []
-);
-
-export const selectStateSeclusionData = createSelector(
-    [(state: RootState) => state.safety.stateData.seclusion, 
-     (_: RootState, params: BaseStateParams) => {
-        const {forceRefresh = false, ...options} = params;
-        return createOptionsKey(options);
-     }],
-    (seclusionData, key) => seclusionData[key] || []
-);
-
-export const selectStateRestraintData = createSelector(
-    [(state: RootState) => state.safety.stateData.restraint, 
-     (_: RootState, params: BaseStateParams) => {
-        const {forceRefresh = false, ...options} = params;
-        return createOptionsKey(options);
-     }],
-    (restraintData, key) => restraintData[key] || []
-);
-
-export const selectStateBullyingData = createSelector(
-    [(state: RootState) => state.safety.stateData.bullying, 
-     (_: RootState, params: StateBullyingParams) => {
-        const {forceRefresh = false, ...options} = params;
-        return createOptionsKey(options);
-     }],
-    (bullyingData, key) => bullyingData[key] || []
-);
-
-export const selectStateBullyingClassificationData = createSelector(
-    [(state: RootState) => state.safety.stateData.bullyingClassification, 
-     (_: RootState, params: StateBullyingClassificationParams) => {
-        const {forceRefresh = false, ...options} = params;
-        return createOptionsKey(options);
-     }],
-    (bullyingClassificationData, key) => bullyingClassificationData[key] || []
-);
-
-export const selectStateBullyingImpactData = createSelector(
-    [(state: RootState) => state.safety.stateData.bullyingImpact, 
-     (_: RootState, params: StateBullyingImpactParams) => {
-        const {forceRefresh = false, ...options} = params;
-        return createOptionsKey(options);
-     }],
-    (bullyingImpactData, key) => bullyingImpactData[key] || []
-);
-
-export const selectStateDisciplineCountData = createSelector(
-    [(state: RootState) => state.safety.stateData.disciplineCount, 
-     (_: RootState, params: StateDisciplineCountParams) => {
-        const {forceRefresh = false, ...options} = params;
-        return createOptionsKey(options);
-     }],
-    (disciplineCountData, key) => disciplineCountData[key] || []
-);
-
-export const selectStateDisciplineIncidentData = createSelector(
-    [(state: RootState) => state.safety.stateData.disciplineIncident, 
-     (_: RootState, params: StateDisciplineIncidentParams) => {
-        const {forceRefresh = false, ...options} = params;
-        return createOptionsKey(options);
-     }],
-    (disciplineIncidentData, key) => disciplineIncidentData[key] || []
-);  
-
-export const selectStateEnrollmentData = createSelector(
-    [(state: RootState) => state.safety.stateData.enrollment, 
-     (_: RootState, params: BaseStateParams) => {
-        const {forceRefresh = false, ...options} = params;
-        return createOptionsKey(options);
-     }],
-    (enrollmentData, key) => enrollmentData[key] || []
-);
+export const selectStateTruancyData = makeMemoDataSelector<RootState, BaseStateParams, StateTruancyData>((state) => state.safety.stateData.truancy);
+export const selectStateSafetyData = makeMemoDataSelector<RootState, StateSafetyParams, StateSafetyData>((state) => state.safety.stateData.safetyIncidents);
+export const selectStateHarassmentData = makeMemoDataSelector<RootState, StateHarassmentParams, StateHarassmentData>((state) => state.safety.stateData.harassment);
+export const selectStateSeclusionData = makeMemoDataSelector<RootState, BaseStateParams, StateSeclusionData>((state) => state.safety.stateData.seclusion);
+export const selectStateRestraintData = makeMemoDataSelector<RootState, BaseStateParams, StateRestraintData>((state) => state.safety.stateData.restraint);
+export const selectStateBullyingData = makeMemoDataSelector<RootState, StateBullyingParams, StateBullyingData>((state) => state.safety.stateData.bullying);
+export const selectStateBullyingClassificationData = makeMemoDataSelector<RootState, StateBullyingClassificationParams, StateBullyingClassificationData>((state) => state.safety.stateData.bullyingClassification);
+export const selectStateBullyingImpactData = makeMemoDataSelector<RootState, StateBullyingImpactParams, StateBullyingImpactData>((state) => state.safety.stateData.bullyingImpact);
+export const selectStateDisciplineCountData = makeMemoDataSelector<RootState, StateDisciplineCountParams, StateDisciplineCountData>((state) => state.safety.stateData.disciplineCount);
+export const selectStateDisciplineIncidentData = makeMemoDataSelector<RootState, StateDisciplineIncidentParams, StateDisciplineIncidentData>((state) => state.safety.stateData.disciplineIncident);
+export const selectStateEnrollmentData = makeMemoDataSelector<RootState, BaseStateParams, StateEnrollmentData>((state) => state.safety.stateData.enrollment);
 
 export const selectHarassmentClassification = (state: RootState) => state.safety.harassmentClassification;
 export const selectBullyingTypes = (state: RootState) => state.safety.bullyingTypes;
