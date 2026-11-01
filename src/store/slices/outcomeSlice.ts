@@ -1,8 +1,10 @@
-import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
+import { createSlice, type AsyncThunk } from '@reduxjs/toolkit';
 import { outcomesApi } from '@/services/api/endpoints/outcomes';
 import { RootState } from '@/store/store';
 import { LoadingState } from '@/store/utils/loadingState';
-import { createOptionsKey } from '@/store/utils/cacheKey';
+import { createKeyedThunk, addKeyedCases, type KeyedPayload, type KeyedOptions } from '@/store/utils/keyedResource';
+import { createTypeListThunk, addTypeListCases } from '@/store/utils/typeLists';
+import { makeStatusSelector, makeMemoDataSelector } from '@/store/utils/selectors';
 
 // ------------------------------
 // Loading helpers
@@ -138,179 +140,56 @@ export interface StateGraduationCohortData extends BaseGraduationCohortData {}
 // ------------------------------
 // Async thunks
 // ------------------------------
-export const fetchPostGraduationTypes = createAsyncThunk(
-    'outcomes/fetchPostGraduationTypes',
-    async (_, { rejectWithValue }) => {
-        try {
-            const data = await outcomesApi.getPostGraduationTypes();
-            return data as PostGraduationType[];
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+export const fetchPostGraduationTypes = createTypeListThunk<PostGraduationType[]>('outcomes/fetchPostGraduationTypes', () => outcomesApi.getPostGraduationTypes());
 
-export const fetchSchoolPostGraduationOutcomes = createAsyncThunk(
-    'outcomes/fetchSchoolPostGraduationOutcomes',
-    async (params: BaseSchoolParams = {}, { getState, rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            const key = createOptionsKey(options);
-            const cached = (getState() as RootState).outcomes.schoolData.postGraduation[key];
-            if (cached && !forceRefresh) {
-                return { key, data: cached };
-            }
-            const data = await outcomesApi.getSchoolPostGraduationOutcomes(options, forceRefresh);
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+type OutcomeLevel = 'school' | 'district' | 'state';
+type OutcomeCategory = keyof OutcomesState['schoolData'];
+type OutcomeRow<L extends OutcomeLevel, C extends OutcomeCategory> = OutcomesState[`${L}Data`][C][string][number];
 
-export const fetchDistrictPostGraduationOutcomes = createAsyncThunk(
-    'outcomes/fetchDistrictPostGraduationOutcomes',
-    async (params: BaseDistrictParams = {}, { getState, rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            const key = createOptionsKey(options);
-            const cached = (getState() as RootState).outcomes.districtData.postGraduation[key];
-            if (cached && !forceRefresh) {
-                return { key, data: cached };
-            }
-            const data = await outcomesApi.getDistrictPostGraduationOutcomes(options, forceRefresh);
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+// Thunk argument per (level, category): exactly the annotations of the hand-written thunks.
+interface OutcomeParamsMap {
+    school: { postGraduation: BaseSchoolParams; earlyExit: BaseSchoolEarlyExitParams; graduationCohort: BaseSchoolGraduationCohortParams };
+    district: { postGraduation: BaseDistrictParams; earlyExit: BaseDistrictEarlyExitParams; graduationCohort: BaseDistrictGraduationCohortParams };
+    state: { postGraduation: BaseStateParams; earlyExit: BaseStateEarlyExitParams; graduationCohort: BaseStateGraduationCohortParams };
+}
 
-export const fetchStatePostGraduationOutcomes = createAsyncThunk(
-    'outcomes/fetchStatePostGraduationOutcomes',
-    async (params: BaseStateParams = {}, { getState, rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            const key = createOptionsKey(options);
-            const cached = (getState() as RootState).outcomes.stateData.postGraduation[key];
-            if (cached && !forceRefresh) {
-                return { key, data: cached };
-            }
-            const data = await outcomesApi.getStatePostGraduationOutcomes(options, forceRefresh);
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+// Filled by outcomeThunk at module evaluation; the extraReducers loop reads it.
+const OUTCOME_THUNKS: Array<{ thunk: AsyncThunk<KeyedPayload<any>, any, any>; level: OutcomeLevel; category: OutcomeCategory }> = [];
 
-export const fetchSchoolEarlyExitData = createAsyncThunk(
-    'outcomes/fetchSchoolEarlyExitData',
-    async (params: BaseSchoolEarlyExitParams = {}, { getState, rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            const key = createOptionsKey(options);
-            const cached = (getState() as RootState).outcomes.schoolData.earlyExit[key];
-            if (cached && !forceRefresh) {
-                return { key, data: cached };
-            }
-            const data = await outcomesApi.getSchoolEarlyExitData(options, forceRefresh);
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+// Every outcome thunk checks the slice cache before calling the API ([] is a hit; status still cycles).
+const outcomeThunk = <L extends OutcomeLevel, C extends OutcomeCategory>(typePrefix: string, level: L, category: C,
+    request: (options: KeyedOptions<OutcomeParamsMap[L][C]>, forceRefresh: boolean) => Promise<any>) => {
+    // Payload rows stay any: EntityOutcomes dispatches a school | district thunk union,
+    // which only type-checks while both payload types are compatible.
+    const thunk = createKeyedThunk<OutcomeParamsMap[L][C], any>(typePrefix, {
+        request,
+        cached: (getState, key) => (getState() as RootState).outcomes[`${level}Data`][category][key] as OutcomeRow<L, C>[] | undefined,
+    });
+    OUTCOME_THUNKS.push({ thunk, level, category });
+    return thunk;
+};
 
-export const fetchDistrictEarlyExitData = createAsyncThunk(
-    'outcomes/fetchDistrictEarlyExitData',
-    async (params: BaseDistrictEarlyExitParams = {}, { getState, rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            const key = createOptionsKey(options);
-            const cached = (getState() as RootState).outcomes.districtData.earlyExit[key];
-            if (cached && !forceRefresh) {
-                return { key, data: cached };
-            }
-            const data = await outcomesApi.getDistrictEarlyExitData(options, forceRefresh); 
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+// Thunk and API names say 'Outcomes'; the selectors say 'PostGraduation'.
+export const fetchSchoolPostGraduationOutcomes = outcomeThunk('outcomes/fetchSchoolPostGraduationOutcomes', 'school', 'postGraduation',
+    (options, forceRefresh) => outcomesApi.getSchoolPostGraduationOutcomes(options, forceRefresh));
+export const fetchDistrictPostGraduationOutcomes = outcomeThunk('outcomes/fetchDistrictPostGraduationOutcomes', 'district', 'postGraduation',
+    (options, forceRefresh) => outcomesApi.getDistrictPostGraduationOutcomes(options, forceRefresh));
+export const fetchStatePostGraduationOutcomes = outcomeThunk('outcomes/fetchStatePostGraduationOutcomes', 'state', 'postGraduation',
+    (options, forceRefresh) => outcomesApi.getStatePostGraduationOutcomes(options, forceRefresh));
 
-export const fetchStateEarlyExitData = createAsyncThunk(
-    'outcomes/fetchStateEarlyExitData',
-    async (params: BaseStateEarlyExitParams = {}, { getState, rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            const key = createOptionsKey(options);
-            const cached = (getState() as RootState).outcomes.stateData.earlyExit[key];
-            if (cached && !forceRefresh) {
-                return { key, data: cached };
-            }
-            const data = await outcomesApi.getStateEarlyExitData(options, forceRefresh);
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+export const fetchSchoolEarlyExitData = outcomeThunk('outcomes/fetchSchoolEarlyExitData', 'school', 'earlyExit',
+    (options, forceRefresh) => outcomesApi.getSchoolEarlyExitData(options, forceRefresh));
+export const fetchDistrictEarlyExitData = outcomeThunk('outcomes/fetchDistrictEarlyExitData', 'district', 'earlyExit',
+    (options, forceRefresh) => outcomesApi.getDistrictEarlyExitData(options, forceRefresh));
+export const fetchStateEarlyExitData = outcomeThunk('outcomes/fetchStateEarlyExitData', 'state', 'earlyExit',
+    (options, forceRefresh) => outcomesApi.getStateEarlyExitData(options, forceRefresh));
 
-export const fetchSchoolGraduationCohortData = createAsyncThunk(
-    'outcomes/fetchSchoolGraduationCohortData',
-    async (params: BaseSchoolGraduationCohortParams = {}, { getState, rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            const key = createOptionsKey(options);
-            const cached = (getState() as RootState).outcomes.schoolData.graduationCohort[key];
-            if (cached && !forceRefresh) {
-                return { key, data: cached };
-            }
-            const data = await outcomesApi.getSchoolGraduationCohortData(options, forceRefresh);
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
-
-export const fetchDistrictGraduationCohortData = createAsyncThunk(
-    'outcomes/fetchDistrictGraduationCohortData',
-    async (params: BaseDistrictGraduationCohortParams = {}, { getState, rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            const key = createOptionsKey(options);
-            const cached = (getState() as RootState).outcomes.districtData.graduationCohort[key];
-            if (cached && !forceRefresh) {
-                return { key, data: cached };
-            }
-            const data = await outcomesApi.getDistrictGraduationCohortData(options, forceRefresh);
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
-
-export const fetchStateGraduationCohortData = createAsyncThunk(
-    'outcomes/fetchStateGraduationCohortData',
-    async (params: BaseStateGraduationCohortParams = {}, { getState, rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            const key = createOptionsKey(options);
-            const cached = (getState() as RootState).outcomes.stateData.graduationCohort[key];
-            if (cached && !forceRefresh) {
-                return { key, data: cached };
-            }
-            const data = await outcomesApi.getStateGraduationCohortData(options, forceRefresh);
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+export const fetchSchoolGraduationCohortData = outcomeThunk('outcomes/fetchSchoolGraduationCohortData', 'school', 'graduationCohort',
+    (options, forceRefresh) => outcomesApi.getSchoolGraduationCohortData(options, forceRefresh));
+export const fetchDistrictGraduationCohortData = outcomeThunk('outcomes/fetchDistrictGraduationCohortData', 'district', 'graduationCohort',
+    (options, forceRefresh) => outcomesApi.getDistrictGraduationCohortData(options, forceRefresh));
+export const fetchStateGraduationCohortData = outcomeThunk('outcomes/fetchStateGraduationCohortData', 'state', 'graduationCohort',
+    (options, forceRefresh) => outcomesApi.getStateGraduationCohortData(options, forceRefresh));
 
 // ------------------------------
 // State definition
@@ -400,144 +279,15 @@ export const outcomeSlice = createSlice({
     reducers: {},
     extraReducers: (builder) => {
         // Post-Graduation Types
-        builder
-            .addCase(fetchPostGraduationTypes.pending, (state) => {
-                state.typeLoadingStatus.postGraduationTypes = LoadingState.LOADING;
-            })
-            .addCase(fetchPostGraduationTypes.fulfilled, (state, action) => {
-                state.postGraduationTypes = action.payload;
-                state.typeLoadingStatus.postGraduationTypes = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchPostGraduationTypes.rejected, (state) => {
-                state.typeLoadingStatus.postGraduationTypes = LoadingState.FAILED;
-            })
+        addTypeListCases(builder, fetchPostGraduationTypes, 'postGraduationTypes');
 
-            // School Post-Graduation Outcomes
-            .addCase(fetchSchoolPostGraduationOutcomes.pending, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.schoolDataLoadingStatus.postGraduation[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchSchoolPostGraduationOutcomes.fulfilled, (state, action) => {
-                state.schoolData.postGraduation[action.payload.key] = action.payload.data;
-                state.schoolDataLoadingStatus.postGraduation[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchSchoolPostGraduationOutcomes.rejected, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.schoolDataLoadingStatus.postGraduation[key] = LoadingState.FAILED;
-            })
-
-            // District Post-Graduation Outcomes
-            .addCase(fetchDistrictPostGraduationOutcomes.pending, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.districtDataLoadingStatus.postGraduation[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchDistrictPostGraduationOutcomes.fulfilled, (state, action) => {
-                state.districtData.postGraduation[action.payload.key] = action.payload.data;
-                state.districtDataLoadingStatus.postGraduation[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchDistrictPostGraduationOutcomes.rejected, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.districtDataLoadingStatus.postGraduation[key] = LoadingState.FAILED;
-            })
-            
-            // State Post-Graduation Outcomes
-            .addCase(fetchStatePostGraduationOutcomes.pending, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.stateDataLoadingStatus.postGraduation[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchStatePostGraduationOutcomes.fulfilled, (state, action) => {
-                state.stateData.postGraduation[action.payload.key] = action.payload.data;
-                state.stateDataLoadingStatus.postGraduation[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchStatePostGraduationOutcomes.rejected, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.stateDataLoadingStatus.postGraduation[key] = LoadingState.FAILED;
-            })
-
-            // School Early-Exit
-            .addCase(fetchSchoolEarlyExitData.pending, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.schoolDataLoadingStatus.earlyExit[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchSchoolEarlyExitData.fulfilled, (state, action) => {
-                state.schoolData.earlyExit[action.payload.key] = action.payload.data;
-                state.schoolDataLoadingStatus.earlyExit[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchSchoolEarlyExitData.rejected, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.schoolDataLoadingStatus.earlyExit[key] = LoadingState.FAILED;
-            })
-
-            // District Early-Exit
-            .addCase(fetchDistrictEarlyExitData.pending, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.districtDataLoadingStatus.earlyExit[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchDistrictEarlyExitData.fulfilled, (state, action) => {
-                state.districtData.earlyExit[action.payload.key] = action.payload.data;
-                state.districtDataLoadingStatus.earlyExit[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchDistrictEarlyExitData.rejected, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.districtDataLoadingStatus.earlyExit[key] = LoadingState.FAILED;
-            })
-
-
-            // State Early-Exit
-            .addCase(fetchStateEarlyExitData.pending, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.stateDataLoadingStatus.earlyExit[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchStateEarlyExitData.fulfilled, (state, action) => {
-                state.stateData.earlyExit[action.payload.key] = action.payload.data;
-                state.stateDataLoadingStatus.earlyExit[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchStateEarlyExitData.rejected, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.stateDataLoadingStatus.earlyExit[key] = LoadingState.FAILED;
-            })
-
-            // School Graduation Cohort
-            .addCase(fetchSchoolGraduationCohortData.pending, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.schoolDataLoadingStatus.graduationCohort[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchSchoolGraduationCohortData.fulfilled, (state, action) => {
-                state.schoolData.graduationCohort[action.payload.key] = action.payload.data;
-                state.schoolDataLoadingStatus.graduationCohort[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchSchoolGraduationCohortData.rejected, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.schoolDataLoadingStatus.graduationCohort[key] = LoadingState.FAILED;
-            })
-
-            // District Graduation Cohort
-            .addCase(fetchDistrictGraduationCohortData.pending, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.districtDataLoadingStatus.graduationCohort[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchDistrictGraduationCohortData.fulfilled, (state, action) => {
-                state.districtData.graduationCohort[action.payload.key] = action.payload.data;
-                state.districtDataLoadingStatus.graduationCohort[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchDistrictGraduationCohortData.rejected, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.districtDataLoadingStatus.graduationCohort[key] = LoadingState.FAILED;
-            })
-
-            // State Graduation Cohort
-            .addCase(fetchStateGraduationCohortData.pending, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.stateDataLoadingStatus.graduationCohort[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchStateGraduationCohortData.fulfilled, (state, action) => {
-                state.stateData.graduationCohort[action.payload.key] = action.payload.data;
-                state.stateDataLoadingStatus.graduationCohort[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchStateGraduationCohortData.rejected, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.stateDataLoadingStatus.graduationCohort[key] = LoadingState.FAILED;
+        // Keyed data: pending/rejected keyed on the raw meta.arg, fulfilled on payload.key
+        for (const { thunk, level, category } of OUTCOME_THUNKS) {
+            addKeyedCases(builder, thunk, {
+                data: (state) => state[`${level}Data`][category],
+                status: (state) => state[`${level}DataLoadingStatus`][category],
             });
+        }
     }
 });
 
@@ -547,160 +297,31 @@ export const outcomeSlice = createSlice({
 export const selectPostGraduationTypes = (state: RootState) => state.outcomes.postGraduationTypes;
 export const selectPostGraduationTypesLoadingStatus = (state: RootState) => state.outcomes.typeLoadingStatus.postGraduationTypes;
 
-// Loading status helpers
-const selectLoadingStatusHelper = (
-    state: RootState,
-    category: 'postGraduation' | 'earlyExit' | 'graduationCohort',
-    params: BaseSchoolParams | BaseStateParams | BaseSchoolGraduationCohortParams | BaseDistrictGraduationCohortParams | BaseStateGraduationCohortParams,
-    level: 'school' | 'district' | 'state'
-) => {
-    const options = { ...params };
-    const key = createOptionsKey(options);
-    return level === 'school'
-        ? state.outcomes.schoolDataLoadingStatus[category][key] || LoadingState.IDLE
-        : level === 'district'
-            ? state.outcomes.districtDataLoadingStatus[category][key] || LoadingState.IDLE
-            : state.outcomes.stateDataLoadingStatus[category][key] || LoadingState.IDLE;
-};
+// Loading selectors: key keeps forceRefresh (as pending does) and undefined params give '_default'
+export const selectSchoolPostGraduationLoadingStatus = makeStatusSelector<RootState, BaseSchoolParams>((state) => state.outcomes.schoolDataLoadingStatus.postGraduation);
+export const selectDistrictPostGraduationLoadingStatus = makeStatusSelector<RootState, BaseDistrictParams>((state) => state.outcomes.districtDataLoadingStatus.postGraduation);
+export const selectStatePostGraduationLoadingStatus = makeStatusSelector<RootState, BaseStateParams>((state) => state.outcomes.stateDataLoadingStatus.postGraduation);
 
-// Loading selectors
-export const selectSchoolPostGraduationLoadingStatus = (state: RootState, params: BaseSchoolParams) =>
-    selectLoadingStatusHelper(state, 'postGraduation', params, 'school');
-export const selectDistrictPostGraduationLoadingStatus = (state: RootState, params: BaseDistrictParams) =>
-    selectLoadingStatusHelper(state, 'postGraduation', params, 'district');
-export const selectStatePostGraduationLoadingStatus = (state: RootState, params: BaseStateParams) =>
-    selectLoadingStatusHelper(state, 'postGraduation', params, 'state');
+export const selectSchoolEarlyExitLoadingStatus = makeStatusSelector<RootState, BaseSchoolEarlyExitParams>((state) => state.outcomes.schoolDataLoadingStatus.earlyExit);
+export const selectDistrictEarlyExitLoadingStatus = makeStatusSelector<RootState, BaseDistrictEarlyExitParams>((state) => state.outcomes.districtDataLoadingStatus.earlyExit);
+export const selectStateEarlyExitLoadingStatus = makeStatusSelector<RootState, BaseStateEarlyExitParams>((state) => state.outcomes.stateDataLoadingStatus.earlyExit);
 
-// Loading status helpers for early exit
-const selectEarlyExitLoadingStatusHelper = (
-    state: RootState,
-    params: BaseSchoolEarlyExitParams | BaseDistrictEarlyExitParams | BaseStateEarlyExitParams,
-    level: 'school' | 'district' | 'state'
-) => {
-    const options = { ...params };
-    const key = createOptionsKey(options);
-    return level === 'school'
-        ? state.outcomes.schoolDataLoadingStatus.earlyExit[key] || LoadingState.IDLE
-        : level === 'district'
-            ? state.outcomes.districtDataLoadingStatus.earlyExit[key] || LoadingState.IDLE
-            : state.outcomes.stateDataLoadingStatus.earlyExit[key] || LoadingState.IDLE;
-};
+export const selectSchoolGraduationCohortLoadingStatus = makeStatusSelector<RootState, BaseSchoolGraduationCohortParams>((state) => state.outcomes.schoolDataLoadingStatus.graduationCohort);
+export const selectDistrictGraduationCohortLoadingStatus = makeStatusSelector<RootState, BaseDistrictGraduationCohortParams>((state) => state.outcomes.districtDataLoadingStatus.graduationCohort);
+export const selectStateGraduationCohortLoadingStatus = makeStatusSelector<RootState, BaseStateGraduationCohortParams>((state) => state.outcomes.stateDataLoadingStatus.graduationCohort);
 
-// Updated early exit loading selectors
-export const selectSchoolEarlyExitLoadingStatus = (state: RootState, params: BaseSchoolEarlyExitParams) =>
-    selectEarlyExitLoadingStatusHelper(state, params, 'school');
-export const selectDistrictEarlyExitLoadingStatus = (state: RootState, params: BaseDistrictEarlyExitParams) =>
-    selectEarlyExitLoadingStatusHelper(state, params, 'district');
-export const selectStateEarlyExitLoadingStatus = (state: RootState, params: BaseStateEarlyExitParams) =>
-    selectEarlyExitLoadingStatusHelper(state, params, 'state');
+// Data selectors (memoized): key strips forceRefresh; undefined params throw
+export const selectSchoolPostGraduationData = makeMemoDataSelector<RootState, BaseSchoolParams, SchoolPostGraduationOutcomeData>((state) => state.outcomes.schoolData.postGraduation);
+export const selectDistrictPostGraduationData = makeMemoDataSelector<RootState, BaseDistrictParams, DistrictPostGraduationOutcomeData>((state) => state.outcomes.districtData.postGraduation);
+export const selectStatePostGraduationData = makeMemoDataSelector<RootState, BaseStateParams, StatePostGraduationOutcomeData>((state) => state.outcomes.stateData.postGraduation);
 
-// Loading status helpers for graduation cohort
-export const selectSchoolGraduationCohortLoadingStatus = (state: RootState, params: BaseSchoolGraduationCohortParams) =>
-    selectLoadingStatusHelper(state, 'graduationCohort', params, 'school');
-export const selectDistrictGraduationCohortLoadingStatus = (state: RootState, params: BaseDistrictGraduationCohortParams) =>
-    selectLoadingStatusHelper(state, 'graduationCohort', params, 'district');
-export const selectStateGraduationCohortLoadingStatus = (state: RootState, params: BaseStateGraduationCohortParams) =>
-    selectLoadingStatusHelper(state, 'graduationCohort', params, 'state');
+export const selectSchoolEarlyExitData = makeMemoDataSelector<RootState, BaseSchoolEarlyExitParams, SchoolEarlyExitData>((state) => state.outcomes.schoolData.earlyExit);
+export const selectDistrictEarlyExitData = makeMemoDataSelector<RootState, BaseDistrictEarlyExitParams, DistrictEarlyExitData>((state) => state.outcomes.districtData.earlyExit);
+export const selectStateEarlyExitData = makeMemoDataSelector<RootState, BaseStateEarlyExitParams, StateEarlyExitData>((state) => state.outcomes.stateData.earlyExit);
 
-// Data selectors (memoized)
-export const selectSchoolPostGraduationData = createSelector(
-    [
-        (state: RootState) => state.outcomes.schoolData.postGraduation,
-        (_: RootState, params: BaseSchoolParams) => {
-            const { forceRefresh = false, ...options } = params;
-            return createOptionsKey(options);
-        }
-    ],
-    (data, key) => data[key] || []
-);
-
-export const selectDistrictPostGraduationData = createSelector(
-    [
-        (state: RootState) => state.outcomes.districtData.postGraduation,
-        (_: RootState, params: BaseDistrictParams) => {
-            const { forceRefresh = false, ...options } = params;
-            return createOptionsKey(options);
-        }
-    ],
-    (data, key) => data[key] || []
-);
-
-export const selectStatePostGraduationData = createSelector(
-    [
-        (state: RootState) => state.outcomes.stateData.postGraduation,
-        (_: RootState, params: BaseStateParams) => {
-            const { forceRefresh = false, ...options } = params;
-            return createOptionsKey(options);
-        }
-    ],
-    (data, key) => data[key] || []
-);
-
-export const selectSchoolEarlyExitData = createSelector(
-    [
-        (state: RootState) => state.outcomes.schoolData.earlyExit,
-        (_: RootState, params: BaseSchoolEarlyExitParams) => {
-            const { forceRefresh = false, ...options } = params;
-            return createOptionsKey(options);
-        }
-    ],
-    (data, key) => data[key] || []
-);
-
-export const selectDistrictEarlyExitData = createSelector(
-    [
-        (state: RootState) => state.outcomes.districtData.earlyExit,
-        (_: RootState, params: BaseDistrictEarlyExitParams) => {
-            const { forceRefresh = false, ...options } = params;
-            return createOptionsKey(options);
-        }
-    ],
-    (data, key) => data[key] || []
-);
-
-export const selectStateEarlyExitData = createSelector(
-    [
-        (state: RootState) => state.outcomes.stateData.earlyExit,
-        (_: RootState, params: BaseStateEarlyExitParams) => {
-            const { forceRefresh = false, ...options } = params;
-            return createOptionsKey(options);
-        }
-    ],
-    (data, key) => data[key] || []
-);
-
-export const selectSchoolGraduationCohortData = createSelector(
-    [
-        (state: RootState) => state.outcomes.schoolData.graduationCohort,
-        (_: RootState, params: BaseSchoolGraduationCohortParams) => {
-            const { forceRefresh = false, ...options } = params;
-            return createOptionsKey(options);
-        }
-    ],
-    (data, key) => data[key] || []
-);
-
-export const selectDistrictGraduationCohortData = createSelector(
-    [
-        (state: RootState) => state.outcomes.districtData.graduationCohort,
-        (_: RootState, params: BaseDistrictGraduationCohortParams) => {
-            const { forceRefresh = false, ...options } = params;
-            return createOptionsKey(options);
-        }
-    ],
-    (data, key) => data[key] || []
-);
-
-export const selectStateGraduationCohortData = createSelector(
-    [
-        (state: RootState) => state.outcomes.stateData.graduationCohort,
-        (_: RootState, params: BaseStateGraduationCohortParams) => {
-            const { forceRefresh = false, ...options } = params;
-            return createOptionsKey(options);
-        }
-    ],
-    (data, key) => data[key] || []
-);
+export const selectSchoolGraduationCohortData = makeMemoDataSelector<RootState, BaseSchoolGraduationCohortParams, SchoolGraduationCohortData>((state) => state.outcomes.schoolData.graduationCohort);
+export const selectDistrictGraduationCohortData = makeMemoDataSelector<RootState, BaseDistrictGraduationCohortParams, DistrictGraduationCohortData>((state) => state.outcomes.districtData.graduationCohort);
+export const selectStateGraduationCohortData = makeMemoDataSelector<RootState, BaseStateGraduationCohortParams, StateGraduationCohortData>((state) => state.outcomes.stateData.graduationCohort);
 
 // ------------------------------
 // Reducer export
