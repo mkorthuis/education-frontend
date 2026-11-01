@@ -1,9 +1,11 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction, type AsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { safetyApi } from '@/services/api/endpoints/safety';
 import { createSelector } from '@reduxjs/toolkit';
 import { LoadingState } from '@/store/utils/loadingState';
 import { createOptionsKey } from '@/store/utils/cacheKey';
+import { createKeyedThunk, prefetchIfIdle, type KeyedPayload, type KeyedOptions, type ThunkHooks } from '@/store/utils/keyedResource';
+import { createTypeListThunk } from '@/store/utils/typeLists';
 
 export { LoadingState };
 
@@ -385,107 +387,74 @@ const initialState: SafetyState = {
     selectedSafetyPage: null
 }
 
-export const fetchSchoolSafetyTypes = createAsyncThunk(
-    'safety/fetchSchoolSafetyTypes',
-    async (_, { rejectWithValue }) => {
-        try {
-            const data = await safetyApi.getSchoolSafetyTypes();
-            return data;
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+type SafetyLevel = 'school' | 'district' | 'state';
+type SafetyRow<L extends SafetyLevel, C extends SafetyCategory> = SafetyState[`${L}Data`][C][string][number];
 
-export const fetchHarassmentClassification = createAsyncThunk(
-    'safety/fetchHarassmentClassification',
-    async (_, {rejectWithValue}) => {
-        try {
-            const data = await safetyApi.getHarassmentClassifications();
-            return data;
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+// Thunk argument per (level, category): exactly the annotations of the hand-written thunks.
+interface SafetyParamsMap {
+    school: {
+        truancy: BaseSchoolParams; safetyIncidents: SchoolSafetyParams; harassment: SchoolHarassmentParams;
+        seclusion: BaseSchoolParams; restraint: BaseSchoolParams; bullying: SchoolBullyingParams;
+        bullyingClassification: SchoolBullyingClassificationParams; bullyingImpact: SchoolBullyingImpactParams;
+        disciplineCount: SchoolDisciplineCountParams; disciplineIncident: SchoolDisciplineIncidentParams; enrollment: BaseSchoolParams;
+    };
+    district: {
+        truancy: BaseDistrictParams; safetyIncidents: DistrictSafetyParams; harassment: DistrictHarassmentParams;
+        seclusion: BaseDistrictParams; restraint: BaseDistrictParams; bullying: DistrictBullyingParams;
+        bullyingClassification: DistrictBullyingClassificationParams; bullyingImpact: DistrictBullyingImpactParams;
+        disciplineCount: DistrictDisciplineCountParams; disciplineIncident: DistrictDisciplineIncidentParams; enrollment: BaseDistrictParams;
+    };
+    state: {
+        truancy: BaseStateParams; safetyIncidents: StateSafetyParams; harassment: StateHarassmentParams;
+        seclusion: BaseStateParams; restraint: BaseStateParams; bullying: StateBullyingParams;
+        bullyingClassification: StateBullyingClassificationParams; bullyingImpact: StateBullyingImpactParams;
+        disciplineCount: StateDisciplineCountParams; disciplineIncident: StateDisciplineIncidentParams; enrollment: BaseStateParams;
+    };
+}
 
-export const fetchBullyingTypes = createAsyncThunk(
-    'safety/fetchBullyingTypes',
-    async (_, {rejectWithValue}) => {
-        try {
-            const data = await safetyApi.getBullyingTypes();
-            return data;
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+// Filled by the export lines below at module evaluation, before createSlice builds its reducer.
+const SAFETY_DATA_THUNKS: Array<{ thunk: AsyncThunk<KeyedPayload<any>, any, any>; level: SafetyLevel; category: SafetyCategory }> = [];
+const SAFETY_TYPE_THUNKS = {} as Record<SafetyTypeCategory, AsyncThunk<any, void, {}>>;
 
-export const fetchBullyingClassificationTypes = createAsyncThunk(
-    'safety/fetchBullyingClassificationTypes',
-    async (_, {rejectWithValue}) => {
-        try {
-            const data = await safetyApi.getBullyingClassificationTypes();
-            return data;
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+const safetyTypeThunk = (typePrefix: string, field: SafetyTypeCategory, request: () => Promise<any>) => {
+    // Payload stays any: the type thunks return the untyped API data.
+    const thunk = createTypeListThunk<any>(typePrefix, request);
+    SAFETY_TYPE_THUNKS[field] = thunk;
+    return thunk;
+};
 
-export const fetchBullyingImpactTypes = createAsyncThunk(
-    'safety/fetchBullyingImpactTypes',
-    async (_, {rejectWithValue}) => {
-        try {
-            const data = await safetyApi.getBullyingImpactTypes();
-            return data;
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+// Types are fetched first only when IDLE && empty: FAILED and SUCCEEDED-but-empty lists are never retried.
+// unwrap() so a types failure aborts the data fetch. The registry is read when the thunk runs, not here.
+const typePrefetch = (types: SafetyTypeCategory) => ({ getState, dispatch }: ThunkHooks) => {
+    const safetyState = (getState() as RootState).safety;
+    return prefetchIfIdle(safetyState.typeLoadingStatus[types], safetyState[types], () => dispatch(SAFETY_TYPE_THUNKS[types]()));
+};
 
-export const fetchDisciplineCountTypes = createAsyncThunk(
-    'safety/fetchDisciplineCountTypes',
-    async (_, {rejectWithValue}) => {
-        try {
-            const data = await safetyApi.getDisciplineCountTypes();
-            return data;
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+const safetyDataThunk = <L extends SafetyLevel, C extends SafetyCategory>(typePrefix: string, level: L, category: C,
+    request: (options: KeyedOptions<SafetyParamsMap[L][C]>, forceRefresh: boolean) => Promise<any>,
+    behaviour: { cache?: true; types?: SafetyTypeCategory } = {}) => {
+    const thunk = createKeyedThunk<SafetyParamsMap[L][C], SafetyRow<L, C>>(typePrefix, {
+        request,
+        cached: behaviour.cache ? (getState, key) => (getState() as RootState).safety[`${level}Data`][category][key] as SafetyRow<L, C>[] | undefined : undefined,
+        before: behaviour.types ? typePrefetch(behaviour.types) : undefined,
+    });
+    SAFETY_DATA_THUNKS.push({ thunk, level, category });
+    return thunk;
+};
 
-export const fetchDisciplineIncidentTypes = createAsyncThunk(
-    'safety/fetchDisciplineIncidentTypes',
-    async (_, {rejectWithValue}) => {
-        try {
-            const data = await safetyApi.getDisciplineIncidentTypes();
-            return data;
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+export const fetchSchoolSafetyTypes = safetyTypeThunk('safety/fetchSchoolSafetyTypes', 'schoolSafetyTypes', () => safetyApi.getSchoolSafetyTypes());
+// Thunk name is singular; the endpoint is plural.
+export const fetchHarassmentClassification = safetyTypeThunk('safety/fetchHarassmentClassification', 'harassmentClassification', () => safetyApi.getHarassmentClassifications());
+export const fetchBullyingTypes = safetyTypeThunk('safety/fetchBullyingTypes', 'bullyingTypes', () => safetyApi.getBullyingTypes());
+export const fetchBullyingClassificationTypes = safetyTypeThunk('safety/fetchBullyingClassificationTypes', 'bullyingClassificationTypes', () => safetyApi.getBullyingClassificationTypes());
+export const fetchBullyingImpactTypes = safetyTypeThunk('safety/fetchBullyingImpactTypes', 'bullyingImpactTypes', () => safetyApi.getBullyingImpactTypes());
+export const fetchDisciplineCountTypes = safetyTypeThunk('safety/fetchDisciplineCountTypes', 'disciplineCountTypes', () => safetyApi.getDisciplineCountTypes());
+export const fetchDisciplineIncidentTypes = safetyTypeThunk('safety/fetchDisciplineIncidentTypes', 'disciplineIncidentTypes', () => safetyApi.getDisciplineIncidentTypes());
 
-export const fetchSchoolTruancyData = createAsyncThunk(
-    'safety/fetchSchoolTruancyData',
-    async (params: BaseSchoolParams = {}, {getState, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-            const key = createOptionsKey(options);
-            const cachedData = (getState() as RootState).safety.schoolData.truancy[key];
-            if (cachedData && !forceRefresh) {
-                return {key, data: cachedData}
-            }
-            const data = await safetyApi.getSchoolTruancies(options, forceRefresh);
-            return { key, data }
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+// Truancy and enrollment are the only safety categories that check the slice cache;
+// seclusion and restraint neither check the cache nor prefetch a type list.
+export const fetchSchoolTruancyData = safetyDataThunk('safety/fetchSchoolTruancyData', 'school', 'truancy',
+    (options, forceRefresh) => safetyApi.getSchoolTruancies(options, forceRefresh), { cache: true });
 
 export const fetchSchoolSafetyIncidents = createAsyncThunk(
     'safety/fetchSchoolSafetyIncidents',
@@ -527,33 +496,11 @@ export const fetchSchoolHarassmentIncidents = createAsyncThunk(
     }
 )
 
-export const fetchSchoolSeclusions = createAsyncThunk(
-    'safety/fetchSchoolSeclusions',
-    async (params: BaseSchoolParams = {}, {getState, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getSchoolSeclusions(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+export const fetchSchoolSeclusions = safetyDataThunk('safety/fetchSchoolSeclusions', 'school', 'seclusion',
+    (options, forceRefresh) => safetyApi.getSchoolSeclusions(options, forceRefresh));
 
-export const fetchSchoolRestraints = createAsyncThunk(
-    'safety/fetchSchoolRestraints',
-    async (params: BaseSchoolParams = {}, {getState, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getSchoolRestraints(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+export const fetchSchoolRestraints = safetyDataThunk('safety/fetchSchoolRestraints', 'school', 'restraint',
+    (options, forceRefresh) => safetyApi.getSchoolRestraints(options, forceRefresh));
 
 export const fetchSchoolBullyingIncidents = createAsyncThunk(
     'safety/fetchSchoolBullyingIncidents',
@@ -655,42 +602,12 @@ export const fetchSchoolDisciplineIncidents = createAsyncThunk(
     }
 )
 
-export const fetchSchoolEnrollmentData = createAsyncThunk(
-    'safety/fetchSchoolEnrollmentData',
-    async (params: BaseSchoolParams = {}, {getState, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-            const key = createOptionsKey(options);
-            const cachedData = (getState() as RootState).safety.schoolData.enrollment[key];
-            if (cachedData && !forceRefresh) {
-                return {key, data: cachedData}
-            }
-            const data = await safetyApi.getSchoolEnrollment(options, forceRefresh);
-            return { key, data }
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+export const fetchSchoolEnrollmentData = safetyDataThunk('safety/fetchSchoolEnrollmentData', 'school', 'enrollment',
+    (options, forceRefresh) => safetyApi.getSchoolEnrollment(options, forceRefresh), { cache: true });
 
 // District Level Thunks
-export const fetchDistrictTruancyData = createAsyncThunk(
-    'safety/fetchDistrictTruancyData',
-    async (params: BaseDistrictParams = {}, {getState, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-            const key = createOptionsKey(options);
-            const cachedData = (getState() as RootState).safety.districtData.truancy[key];
-            if (cachedData && !forceRefresh) {
-                return {key, data: cachedData}
-            }
-            const data = await safetyApi.getDistrictTruancies(options, forceRefresh);
-            return { key, data }
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+export const fetchDistrictTruancyData = safetyDataThunk('safety/fetchDistrictTruancyData', 'district', 'truancy',
+    (options, forceRefresh) => safetyApi.getDistrictTruancies(options, forceRefresh), { cache: true });
 
 export const fetchDistrictSafetyIncidents = createAsyncThunk(
     'safety/fetchDistrictSafetyIncidents',
@@ -732,33 +649,11 @@ export const fetchDistrictHarassmentIncidents = createAsyncThunk(
     }
 )
 
-export const fetchDistrictSeclusions = createAsyncThunk(
-    'safety/fetchDistrictSeclusions',
-    async (params: BaseDistrictParams = {}, {getState, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getDistrictSeclusions(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+export const fetchDistrictSeclusions = safetyDataThunk('safety/fetchDistrictSeclusions', 'district', 'seclusion',
+    (options, forceRefresh) => safetyApi.getDistrictSeclusions(options, forceRefresh));
 
-export const fetchDistrictRestraints = createAsyncThunk(
-    'safety/fetchDistrictRestraints',
-    async (params: BaseDistrictParams = {}, {getState, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getDistrictRestraints(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+export const fetchDistrictRestraints = safetyDataThunk('safety/fetchDistrictRestraints', 'district', 'restraint',
+    (options, forceRefresh) => safetyApi.getDistrictRestraints(options, forceRefresh));
 
 export const fetchDistrictBullyingIncidents = createAsyncThunk(
     'safety/fetchDistrictBullyingIncidents',
@@ -860,42 +755,12 @@ export const fetchDistrictDisciplineIncidents = createAsyncThunk(
     }
 )
 
-export const fetchDistrictEnrollmentData = createAsyncThunk(
-    'safety/fetchDistrictEnrollmentData',
-    async (params: BaseDistrictParams = {}, {getState, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-            const key = createOptionsKey(options);
-            const cachedData = (getState() as RootState).safety.districtData.enrollment[key];
-            if (cachedData && !forceRefresh) {
-                return {key, data: cachedData}
-            }
-            const data = await safetyApi.getDistrictEnrollment(options, forceRefresh);
-            return { key, data }
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+export const fetchDistrictEnrollmentData = safetyDataThunk('safety/fetchDistrictEnrollmentData', 'district', 'enrollment',
+    (options, forceRefresh) => safetyApi.getDistrictEnrollment(options, forceRefresh), { cache: true });
 
 // State Level Thunks
-export const fetchStateTruancyData = createAsyncThunk(
-    'safety/fetchStateTruancyData',
-    async (params: BaseStateParams = {}, {getState, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-            const key = createOptionsKey(options);
-            const cachedData = (getState() as RootState).safety.stateData.truancy[key];
-            if (cachedData && !forceRefresh) {
-                return {key, data: cachedData}
-            }
-            const data = await safetyApi.getStateTruancies(options, forceRefresh);
-            return { key, data }
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+export const fetchStateTruancyData = safetyDataThunk('safety/fetchStateTruancyData', 'state', 'truancy',
+    (options, forceRefresh) => safetyApi.getStateTruancies(options, forceRefresh), { cache: true });
 
 export const fetchStateSafetyIncidents = createAsyncThunk(
     'safety/fetchStateSafetyIncidents',
@@ -937,33 +802,11 @@ export const fetchStateHarassmentIncidents = createAsyncThunk(
     }
 )
 
-export const fetchStateSeclusions = createAsyncThunk(
-    'safety/fetchStateSeclusions',
-    async (params: BaseStateParams = {}, {getState, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getStateSeclusions(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+export const fetchStateSeclusions = safetyDataThunk('safety/fetchStateSeclusions', 'state', 'seclusion',
+    (options, forceRefresh) => safetyApi.getStateSeclusions(options, forceRefresh));
 
-export const fetchStateRestraints = createAsyncThunk(
-    'safety/fetchStateRestraints',
-    async (params: BaseStateParams = {}, {getState, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getStateRestraints(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+export const fetchStateRestraints = safetyDataThunk('safety/fetchStateRestraints', 'state', 'restraint',
+    (options, forceRefresh) => safetyApi.getStateRestraints(options, forceRefresh));
 
 export const fetchStateBullyingIncidents = createAsyncThunk(
     'safety/fetchStateBullyingIncidents',
@@ -1065,23 +908,8 @@ export const fetchStateDisciplineIncidents = createAsyncThunk(
     }
 )
 
-export const fetchStateEnrollmentData = createAsyncThunk(
-    'safety/fetchStateEnrollmentData',
-    async (params: BaseStateParams = {}, {getState, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-            const key = createOptionsKey(options);
-            const cachedData = (getState() as RootState).safety.stateData.enrollment[key];
-            if (cachedData && !forceRefresh) {
-                return {key, data: cachedData}
-            }
-            const data = await safetyApi.getStateEnrollment(options, forceRefresh);
-            return { key, data }
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+export const fetchStateEnrollmentData = safetyDataThunk('safety/fetchStateEnrollmentData', 'state', 'enrollment',
+    (options, forceRefresh) => safetyApi.getStateEnrollment(options, forceRefresh), { cache: true });
 
 export const safetySlice = createSlice({
     name: 'safety',
