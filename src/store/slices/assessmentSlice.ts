@@ -1,11 +1,13 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { createSelector } from 'reselect';
+import { createSlice, createSelector, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { assessmentsApi } from '@/services/api/endpoints/assessments';
 import { fetchGrades, Grade } from '@/store/slices/locationSlice';
 import { ALL_GRADES_ID, ALL_STUDENTS_SUBGROUP_ID } from '@/features/district/utils/assessmentDataProcessing';
 import { LoadingState } from '@/store/utils/loadingState';
 import { createOptionsKey } from '@/store/utils/cacheKey';
+import { createKeyedThunk, addKeyedCases, type ThunkHooks } from '@/store/utils/keyedResource';
+import { createTypeListThunk, addTypeListCases } from '@/store/utils/typeLists';
+import { makeMemoDataSelector } from '@/store/utils/selectors';
 
 // ================ TYPE DEFINITIONS ================
 
@@ -212,28 +214,10 @@ const enrichAssessmentData = <T extends BaseAssessmentData>(
 // ================ ASYNC THUNKS ================
 
 // Async thunk for fetching assessment subjects
-export const fetchAssessmentSubjects = createAsyncThunk(
-  'assessment/fetchAssessmentSubjects',
-  async (_, { rejectWithValue }) => {
-    try {
-      return await assessmentsApi.getAssessmentSubjects();
-    } catch (error : any) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
+export const fetchAssessmentSubjects = createTypeListThunk<any>('assessment/fetchAssessmentSubjects', () => assessmentsApi.getAssessmentSubjects());
 
 // Async thunk for fetching assessment subgroups
-export const fetchAssessmentSubgroups = createAsyncThunk(
-  'assessment/fetchAssessmentSubgroups',
-  async (_, { rejectWithValue }) => {
-    try {
-      return await assessmentsApi.getAssessmentSubgroups();
-    } catch (error : any) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
+export const fetchAssessmentSubgroups = createTypeListThunk<any>('assessment/fetchAssessmentSubgroups', () => assessmentsApi.getAssessmentSubgroups());
 
 // Helper to ensure assessment reference data is loaded
 export const ensureTypesLoaded = async (state: RootState, dispatch: any) => {
@@ -255,82 +239,40 @@ export const ensureTypesLoaded = async (state: RootState, dispatch: any) => {
   if (promises.length > 0) await Promise.all(promises);
 };
 
+// Reference data is always awaited before the request (ensureTypesLoaded returns a promise even when it starts nothing).
+const awaitTypes = ({ getState, dispatch }: ThunkHooks) => ensureTypesLoaded(getState() as RootState, dispatch);
+
+// Enrichment reads subjects, subgroups and grades from the state as it is after the request.
+const enrichFromState = <T>(rawData: any, getState: () => unknown) => {
+  const state = getState() as RootState;
+  return enrichAssessmentData(
+    rawData as unknown as BaseAssessmentData[],
+    state.assessment.subjects,
+    state.assessment.subgroups,
+    state.location.grades
+  ) as unknown as T[];
+};
+
 // Async thunk for fetching assessment district data
-export const fetchAssessmentDistrictData = createAsyncThunk(
-  'assessment/fetchAssessmentDistrictData',
-  async (params: FetchAssessmentDistrictDataParams, { rejectWithValue, dispatch, getState }) => {
-    try {
-      
-      const {forceRefresh = false, ...options} = params;
-      await ensureTypesLoaded(getState() as RootState, dispatch);
-
-      const key = createOptionsKey(options);
-      const rawData = await assessmentsApi.getAssessmentDistrictData(options, forceRefresh);
-      
-      const state = getState() as RootState;
-      const data = enrichAssessmentData(
-        rawData as unknown as BaseAssessmentData[], 
-        state.assessment.subjects, 
-        state.assessment.subgroups,
-        state.location.grades
-      ) as unknown as AssessmentDistrictData[];
-      
-      return { key, data };
-    } catch (error : any) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
+export const fetchAssessmentDistrictData = createKeyedThunk<FetchAssessmentDistrictDataParams, AssessmentDistrictData>('assessment/fetchAssessmentDistrictData', {
+  before: awaitTypes,
+  request: (options, forceRefresh) => assessmentsApi.getAssessmentDistrictData(options, forceRefresh),
+  transform: (rawData, getState) => enrichFromState<AssessmentDistrictData>(rawData, getState),
+});
 
 // Async thunk for fetching assessment state data
-export const fetchAssessmentStateData = createAsyncThunk(
-  'assessment/fetchAssessmentStateData',
-  async (params: FetchAssessmentStateDataParams, { rejectWithValue, dispatch, getState }) => {
-    try {
-      const {forceRefresh = false, ...options} = params;
-      await ensureTypesLoaded(getState() as RootState, dispatch);
-      const key = createOptionsKey(options);
-      const rawData = await assessmentsApi.getAssessmentStateData(options, forceRefresh);
-      
-      const state = getState() as RootState;
-      const data = enrichAssessmentData(
-        rawData as unknown as BaseAssessmentData[], 
-        state.assessment.subjects, 
-        state.assessment.subgroups,
-        state.location.grades
-      ) as unknown as AssessmentStateData[];
-      
-      return {key, data };
-    } catch (error : any) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
+export const fetchAssessmentStateData = createKeyedThunk<FetchAssessmentStateDataParams, AssessmentStateData>('assessment/fetchAssessmentStateData', {
+  before: awaitTypes,
+  request: (options, forceRefresh) => assessmentsApi.getAssessmentStateData(options, forceRefresh),
+  transform: (rawData, getState) => enrichFromState<AssessmentStateData>(rawData, getState),
+});
 
-// Async thunk for fetching assessment state data
-export const fetchAssessmentSchoolData = createAsyncThunk(
-  'assessment/fetchAssessmentSchoolData',
-  async (params: FetchAssessmentSchoolDataParams, { rejectWithValue, dispatch, getState }) => {
-    try {
-      const {forceRefresh = false, ...options} = params;
-      await ensureTypesLoaded(getState() as RootState, dispatch);
-      const key = createOptionsKey(options);
-      const rawData = await assessmentsApi.getAssessmentSchoolData(options, forceRefresh);
-      
-      const state = getState() as RootState;
-      const data = enrichAssessmentData(
-        rawData as unknown as BaseAssessmentData[], 
-        state.assessment.subjects, 
-        state.assessment.subgroups,
-        state.location.grades
-      ) as unknown as AssessmentSchoolData[];
-      
-      return {key, data };
-    } catch (error : any) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
+// Async thunk for fetching assessment school data
+export const fetchAssessmentSchoolData = createKeyedThunk<FetchAssessmentSchoolDataParams, AssessmentSchoolData>('assessment/fetchAssessmentSchoolData', {
+  before: awaitTypes,
+  request: (options, forceRefresh) => assessmentsApi.getAssessmentSchoolData(options, forceRefresh),
+  transform: (rawData, getState) => enrichFromState<AssessmentSchoolData>(rawData, getState),
+});
 
 // ================ SLICE DEFINITION ================
 
@@ -387,70 +329,23 @@ export const assessmentSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
+    addTypeListCases(builder, fetchAssessmentSubjects, 'subjects');
+    addTypeListCases(builder, fetchAssessmentSubgroups, 'subgroups');
 
-    builder
-      .addCase(fetchAssessmentSubjects.pending, (state) => {
-        state.typeLoadingStatus.subjects = LoadingState.LOADING;
-      })
-      .addCase(fetchAssessmentSubjects.fulfilled, (state, action) => {
-        state.subjects = action.payload;
-        state.typeLoadingStatus.subjects = LoadingState.SUCCEEDED;
-      })
-      .addCase(fetchAssessmentSubjects.rejected, (state, action) => {
-        state.typeLoadingStatus.subjects = LoadingState.FAILED;
-      })
-      
-      .addCase(fetchAssessmentSubgroups.pending, (state) => {
-        state.typeLoadingStatus.subgroups = LoadingState.LOADING;
-      })
-      .addCase(fetchAssessmentSubgroups.fulfilled, (state, action) => {
-        state.subgroups = action.payload;
-        state.typeLoadingStatus.subgroups = LoadingState.SUCCEEDED;
-      })
-      .addCase(fetchAssessmentSubgroups.rejected, (state, action) => {
-        state.typeLoadingStatus.subgroups = LoadingState.FAILED;
-      })
-      
-      .addCase(fetchAssessmentDistrictData.pending, (state, action) => {
-        const key = createOptionsKey(action.meta.arg);
-        state.dataLoadingStatus.district[key] = LoadingState.LOADING;
-      })
-      .addCase(fetchAssessmentDistrictData.fulfilled, (state, action) => {
-        state.districtData[action.payload.key] = action.payload.data;
-        state.dataLoadingStatus.district[action.payload.key] = LoadingState.SUCCEEDED;
-      })
-      .addCase(fetchAssessmentDistrictData.rejected, (state, action) => {
-        const key = createOptionsKey(action.meta.arg);
-        state.dataLoadingStatus.district[key] = LoadingState.FAILED;
-      })
-      
-      .addCase(fetchAssessmentStateData.pending, (state, action) => {
-        const key = createOptionsKey(action.meta.arg);
-        state.dataLoadingStatus.state[key] = LoadingState.LOADING;
-      })
-      .addCase(fetchAssessmentStateData.fulfilled, (state, action) => {
-        state.stateData[action.payload.key] = action.payload.data;
-        state.currentStateKey = action.payload.key;
-        state.dataLoadingStatus.state[action.payload.key] = LoadingState.SUCCEEDED;
-      })
-      .addCase(fetchAssessmentStateData.rejected, (state, action) => {
-        const key = createOptionsKey(action.meta.arg);
-        state.dataLoadingStatus.state[key] = LoadingState.FAILED;
-      })
-      
-      // Handle fetchAssessmentSchoolData
-      .addCase(fetchAssessmentSchoolData.pending, (state, action) => {
-        const key = createOptionsKey(action.meta.arg);
-        state.dataLoadingStatus.school[key] = LoadingState.LOADING;
-      })
-      .addCase(fetchAssessmentSchoolData.fulfilled, (state, action) => {
-        state.schoolData[action.payload.key] = action.payload.data;
-        state.dataLoadingStatus.school[action.payload.key] = LoadingState.SUCCEEDED;
-      })
-      .addCase(fetchAssessmentSchoolData.rejected, (state, action) => {
-        const key = createOptionsKey(action.meta.arg);
-        state.dataLoadingStatus.school[key] = LoadingState.FAILED;
-      });
+    addKeyedCases(builder, fetchAssessmentDistrictData, {
+      data: (state) => state.districtData,
+      status: (state) => state.dataLoadingStatus.district,
+    });
+    // Only the state fetch records its key as current; the district and school pages set theirs after the fetch resolves.
+    addKeyedCases(builder, fetchAssessmentStateData, {
+      data: (state) => state.stateData,
+      status: (state) => state.dataLoadingStatus.state,
+      onFulfilled: (state, payload) => { state.currentStateKey = payload.key; },
+    });
+    addKeyedCases(builder, fetchAssessmentSchoolData, {
+      data: (state) => state.schoolData,
+      status: (state) => state.dataLoadingStatus.school,
+    });
   },
 });
 
@@ -517,23 +412,9 @@ export const selectCurrentAssessmentSchoolData = createSelector(
   }
 );
 
-export const selectAssessmentDistrictData = createSelector(
-  [(state: RootState) => state.assessment.districtData,
-   (_: RootState, params: FetchAssessmentDistrictDataParams) => {
-     const {forceRefresh = false, ...options} = params;
-     return createOptionsKey(options);
-   }],
-  (districtData, key) => districtData[key] || []
-);
+export const selectAssessmentDistrictData = makeMemoDataSelector<RootState, FetchAssessmentDistrictDataParams, AssessmentDistrictData>(state => state.assessment.districtData);
 
-export const selectAssessmentSchoolData = createSelector(
-  [(state: RootState) => state.assessment.schoolData,
-   (_: RootState, params: FetchAssessmentSchoolDataParams) => {
-     const {forceRefresh = false, ...options} = params;
-     return createOptionsKey(options);
-   }],
-  (schoolData, key) => schoolData[key] || []
-);
+export const selectAssessmentSchoolData = makeMemoDataSelector<RootState, FetchAssessmentSchoolDataParams, AssessmentSchoolData>(state => state.assessment.schoolData);
 
 // Selected subject selectors
 export const selectSelectedSubjectId = (state: RootState) => state.assessment.selectedSubjectId;
