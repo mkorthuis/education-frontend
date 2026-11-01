@@ -1,319 +1,35 @@
-import { createSlice, PayloadAction, type AsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { safetyApi } from '@/services/api/endpoints/safety';
 import { LoadingState } from '@/store/utils/loadingState';
 import { createOptionsKey } from '@/store/utils/cacheKey';
-import { addKeyedCases, createKeyedThunk, prefetchIfIdle, type KeyedPayload, type KeyedOptions, type ThunkHooks } from '@/store/utils/keyedResource';
-import { addTypeListCases, createTypeListThunk } from '@/store/utils/typeLists';
+import { addKeyedCases } from '@/store/utils/keyedResource';
+import { addTypeListCases } from '@/store/utils/typeLists';
 import { makeDataSelector, makeMemoStatusSelector, makeMemoDataSelector } from '@/store/utils/selectors';
+import type {
+    SafetyPage, SafetyCategory,
+    BaseSchoolParams, SchoolSafetyParams, SchoolBullyingParams, SchoolBullyingClassificationParams, SchoolBullyingImpactParams,
+    SchoolDisciplineIncidentParams, SchoolDisciplineCountParams,
+    BaseDistrictParams, DistrictSafetyParams, DistrictBullyingParams, DistrictBullyingClassificationParams, DistrictBullyingImpactParams,
+    DistrictDisciplineIncidentParams, DistrictDisciplineCountParams, DistrictHarassmentParams,
+    BaseStateParams, StateSafetyParams, StateBullyingParams, StateBullyingClassificationParams, StateBullyingImpactParams,
+    StateDisciplineIncidentParams, StateDisciplineCountParams, StateHarassmentParams,
+    SchoolTruancyData, SchoolSafetyData, SchoolHarassmentData, SchoolBullyingData, SchoolRestraintData, SchoolSeclusionData,
+    SchoolBullyingClassificationData, SchoolBullyingImpactData, SchoolDisciplineCountData, SchoolDisciplineIncidentData, SchoolEnrollmentData,
+    DistrictTruancyData, DistrictSafetyData, DistrictHarassmentData, DistrictRestraintData, DistrictSeclusionData, DistrictBullyingData,
+    DistrictBullyingClassificationData, DistrictBullyingImpactData, DistrictDisciplineCountData, DistrictDisciplineIncidentData, DistrictEnrollmentData,
+    StateTruancyData, StateSafetyData, StateHarassmentData, StateRestraintData, StateSeclusionData, StateBullyingData,
+    StateBullyingClassificationData, StateBullyingImpactData, StateDisciplineCountData, StateDisciplineIncidentData, StateEnrollmentData,
+} from './safety/types';
+// Internal to the slice: imported by name and never re-exported.
+import {
+    categoryMaps, stateDataMaps, safetyDataThunk, safetyTypeThunk, SAFETY_DATA_THUNKS, SAFETY_TYPE_THUNKS,
+    type SafetyState, type SafetyTypeCategory,
+} from './safety/internal';
 
 export { LoadingState };
-
-export interface BaseSchoolParams {
-    year?: string;
-    forceRefresh?: boolean;
-    school_id?: number;
-    district_id?: number;
-}
-export interface SchoolSafetyParams extends BaseSchoolParams { safety_type_id?: number; }
-export interface SchoolBullyingParams extends BaseSchoolParams { bullying_type_id?: number; }
-export interface SchoolBullyingClassificationParams extends BaseSchoolParams { bullying_classification_type_id?: number; }
-export interface SchoolBullyingImpactParams extends BaseSchoolParams { bullying_impact_type_id?: number; }
-export interface SchoolDisciplineIncidentParams extends BaseSchoolParams { discipline_incident_type_id?: number; }
-export interface SchoolDisciplineCountParams extends BaseSchoolParams { discipline_count_type_id?: number; }
-export interface SchoolHarassmentParams extends BaseSchoolParams { harassment_classification_id?: number; }
-
-export interface BaseDistrictParams {
-    year?: string;
-    forceRefresh?: boolean;
-    district_id?: number;
-}
-export interface DistrictSafetyParams extends BaseDistrictParams { safety_type_id?: number; }
-export interface DistrictBullyingParams extends BaseDistrictParams { bullying_type_id?: number; }
-export interface DistrictBullyingClassificationParams extends BaseDistrictParams { bullying_classification_type_id?: number; }
-export interface DistrictBullyingImpactParams extends BaseDistrictParams { bullying_impact_type_id?: number; }
-export interface DistrictDisciplineIncidentParams extends BaseDistrictParams { discipline_incident_type_id?: number; }
-export interface DistrictDisciplineCountParams extends BaseDistrictParams { discipline_count_type_id?: number; }
-export interface DistrictHarassmentParams extends BaseDistrictParams { harassment_classification_id?: number; }
-
-export interface BaseStateParams {
-    year?: string;
-    forceRefresh?: boolean;
-}
-export interface StateSafetyParams extends BaseStateParams { safety_type_id?: number; }
-export interface StateBullyingParams extends BaseStateParams { bullying_type_id?: number; }
-export interface StateBullyingClassificationParams extends BaseStateParams { bullying_classification_type_id?: number; }
-export interface StateBullyingImpactParams extends BaseStateParams { bullying_impact_type_id?: number; }
-export interface StateDisciplineIncidentParams extends BaseStateParams { discipline_incident_type_id?: number; }
-export interface StateDisciplineCountParams extends BaseStateParams { discipline_count_type_id?: number; }
-export interface StateHarassmentParams extends BaseStateParams { harassment_classification_id?: number; }
-
-export interface SchoolSafetyType {
-    id: number;
-    name: string;
-}
-
-export interface BaseTruancyData {
-    id: number;
-    year: number;
-    count: number;
-}
-export interface SchoolTruancyData extends BaseTruancyData { school_id: number; }
-export interface DistrictTruancyData extends BaseTruancyData { district_id: number; }
-export interface StateTruancyData extends BaseTruancyData {}
-
-export interface SafetyTypeData {
-    id: number;
-    name: string;
-}
-
-export interface BaseSafetyData {
-    id: number;
-    year: number;
-    count: number;
-    safety_type: SafetyTypeData;
-}
-export interface SchoolSafetyData extends BaseSafetyData { school_id: number; }
-export interface DistrictSafetyData extends BaseSafetyData { district_id: number; }
-export interface StateSafetyData extends BaseSafetyData {}
-
-export interface BaseHarassmentData {
-    id: number;
-    year: number;
-    incident_count: number;
-    student_impact_count: number;
-    student_engaged_count: number;
-    classification: HarassmentClassificationData;
-}
-export interface SchoolHarassmentData extends BaseHarassmentData { school_id: number; }
-export interface DistrictHarassmentData extends BaseHarassmentData { district_id: number; }
-export interface StateHarassmentData extends BaseHarassmentData {}
-
-export interface HarassmentClassificationData {
-    id: number;
-    name: string;
-}
-export interface BaseSeclusionData {
-    id: number;
-    year: number;
-    generated: number;
-    active_investigation: number;
-    closed_investigation: number;
-}
-export interface SchoolSeclusionData extends BaseSeclusionData { school_id: number; }
-export interface DistrictSeclusionData extends BaseSeclusionData { district_id: number; }
-export interface StateSeclusionData extends BaseSeclusionData {}
-
-export interface BaseRestraintData {
-    id: number;
-    school_id: number;
-    year: number;
-    generated: number;
-    active_investigation: number;
-    closed_investigation: number;
-    bodily_injury: number;
-    serious_injury: number;
-}
-export interface SchoolRestraintData extends BaseRestraintData { school_id: number; }
-export interface DistrictRestraintData extends BaseRestraintData { district_id: number; }
-export interface StateRestraintData extends BaseRestraintData {}
-
-export interface BaseBullyingData {
-    id: number;
-    school_id: number;
-    year: number;
-    reported: number;
-    investigated_actual: number;
-    bullying_type: {
-        id: number;
-        name: string;
-    };
-}
-export interface SchoolBullyingData extends BaseBullyingData { school_id: number; }
-export interface DistrictBullyingData extends BaseBullyingData { district_id: number; }
-export interface StateBullyingData extends BaseBullyingData {}
-
-export interface BaseBullyingClassificationData {
-    id: number;
-    school_id: number;
-    year: number;
-    count: number;
-    classification_type: {
-        id: number;
-        name: string;
-    };
-}
-export interface SchoolBullyingClassificationData extends BaseBullyingClassificationData { school_id: number; }
-export interface DistrictBullyingClassificationData extends BaseBullyingClassificationData { district_id: number; }
-export interface StateBullyingClassificationData extends BaseBullyingClassificationData {}
-
-export interface BaseBullyingImpactData {
-    id: number;
-    school_id: number;
-    year: number;
-    count: number;
-    impact_type: {
-        id: number;
-        name: string;
-    };
-}
-export interface SchoolBullyingImpactData extends BaseBullyingImpactData { school_id: number; }
-export interface DistrictBullyingImpactData extends BaseBullyingImpactData { district_id: number; }
-export interface StateBullyingImpactData extends BaseBullyingImpactData {}
-
-export interface BaseDisciplineCountData {
-    id: number;
-    school_id: number;
-    year: number;
-    count: number;
-    count_type: {
-        id: number;
-        name: string;
-    };
-}
-export interface SchoolDisciplineCountData extends BaseDisciplineCountData { school_id: number; }
-export interface DistrictDisciplineCountData extends BaseDisciplineCountData { district_id: number; }
-export interface StateDisciplineCountData extends BaseDisciplineCountData {}
-
-export interface BaseDisciplineIncidentData {
-    id: number;
-    school_id: number;
-    year: number;
-    count: number;
-    incident_type: {
-        id: number;
-        name: string;
-    };
-}
-export interface SchoolDisciplineIncidentData extends BaseDisciplineIncidentData { school_id: number; }
-export interface DistrictDisciplineIncidentData extends BaseDisciplineIncidentData { district_id: number; }
-export interface StateDisciplineIncidentData extends BaseDisciplineIncidentData {}
-
-export interface BaseEnrollmentData {
-    year: number;
-    total_enrollment: number;
-}
-export interface SchoolEnrollmentData extends BaseEnrollmentData { school_id: number; }
-export interface DistrictEnrollmentData extends BaseEnrollmentData { district_id: number; }
-export interface StateEnrollmentData extends BaseEnrollmentData {}
-
-export interface BullyingTypeData {
-    id: number;
-    name: string;
-}
-
-export interface BullyingClassificationTypeData {
-    id: number;
-    name: string;
-}
-
-export interface BullyingImpactTypeData {
-    id: number;
-    name: string;
-}
-
-export interface DisciplineCountTypeData {
-    id: number;
-    name: string;
-}
-
-export interface DisciplineIncidentTypeData {
-    id: number;
-    name: string;
-}
-
-export type SafetyPage = 'truancy' | 'schoolSafetyIncidents' | 'harassment' | 'bullying' | 'restraint' | 'seclusion' | 'serious' | 'suspension';
-export type SafetyCategory = 'truancy' | 'safetyIncidents' | 'harassment' | 'bullying' | 'restraint' | 'seclusion' | 'bullyingClassification' | 'bullyingImpact' | 'disciplineCount' | 'disciplineIncident' | 'enrollment';
-type SafetyTypeCategory = 'schoolSafetyTypes' | 'harassmentClassification' | 'bullyingTypes' | 'bullyingClassificationTypes' | 'bullyingImpactTypes' | 'disciplineCountTypes' | 'disciplineIncidentTypes';
-
-interface SafetyState {
-    
-    schoolDataLoadingStatus: Record<SafetyCategory, Record<string, LoadingState>>;
-    districtDataLoadingStatus: Record<SafetyCategory, Record<string, LoadingState>>;
-    stateDataLoadingStatus: Record<SafetyCategory, Record<string, LoadingState>>;
-
-    typeLoadingStatus: Record<SafetyTypeCategory, LoadingState>;
-    
-    schoolData: {
-        truancy: Record<string, SchoolTruancyData[]>;
-        safetyIncidents: Record<string, SchoolSafetyData[]>;
-        harassment: Record<string, SchoolHarassmentData[]>;
-        bullying: Record<string, SchoolBullyingData[]>;
-        restraint: Record<string, SchoolRestraintData[]>;
-        seclusion: Record<string, SchoolSeclusionData[]>;
-        bullyingClassification: Record<string, SchoolBullyingClassificationData[]>;
-        bullyingImpact: Record<string, SchoolBullyingImpactData[]>;
-        disciplineCount: Record<string, SchoolDisciplineCountData[]>;
-        disciplineIncident: Record<string, SchoolDisciplineIncidentData[]>;
-        enrollment: Record<string, SchoolEnrollmentData[]>;
-    }
-    districtData: {
-        truancy: Record<string, DistrictTruancyData[]>;
-        safetyIncidents: Record<string, DistrictSafetyData[]>;
-        harassment: Record<string, DistrictHarassmentData[]>;   
-        restraint: Record<string, DistrictRestraintData[]>;
-        seclusion: Record<string, DistrictSeclusionData[]>;
-        bullying: Record<string, DistrictBullyingData[]>;
-        bullyingClassification: Record<string, DistrictBullyingClassificationData[]>;
-        bullyingImpact: Record<string, DistrictBullyingImpactData[]>;
-        disciplineCount: Record<string, DistrictDisciplineCountData[]>;
-        disciplineIncident: Record<string, DistrictDisciplineIncidentData[]>;
-        enrollment: Record<string, DistrictEnrollmentData[]>;
-    }
-    stateData: {
-        truancy: Record<string, StateTruancyData[]>;
-        safetyIncidents: Record<string, StateSafetyData[]>;
-        harassment: Record<string, StateHarassmentData[]>;
-        restraint: Record<string, StateRestraintData[]>;
-        seclusion: Record<string, StateSeclusionData[]>;
-        bullying: Record<string, StateBullyingData[]>;
-        bullyingClassification: Record<string, StateBullyingClassificationData[]>;
-        bullyingImpact: Record<string, StateBullyingImpactData[]>;
-        disciplineCount: Record<string, StateDisciplineCountData[]>;
-        disciplineIncident: Record<string, StateDisciplineIncidentData[]>;
-        enrollment: Record<string, StateEnrollmentData[]>;
-    }   
-
-    schoolSafetyTypes: SchoolSafetyType[];
-    harassmentClassification: HarassmentClassificationData[];
-    bullyingTypes: BullyingTypeData[];
-    bullyingClassificationTypes: BullyingClassificationTypeData[];
-    bullyingImpactTypes: BullyingImpactTypeData[];
-    disciplineCountTypes: DisciplineCountTypeData[];
-    disciplineIncidentTypes: DisciplineIncidentTypeData[];
-    
-    selectedSafetyPage: SafetyPage | null;
-}
-
-// Every loading map and schoolData/districtData share this key order; each call returns fresh, distinct buckets.
-const categoryMaps = () => ({
-    truancy: {},
-    safetyIncidents: {},
-    harassment: {},
-    bullying: {},
-    restraint: {},
-    seclusion: {},
-    bullyingClassification: {},
-    bullyingImpact: {},
-    disciplineCount: {},
-    disciplineIncident: {},
-    enrollment: {}
-});
-
-// stateData lists restraint and seclusion before bullying; kept so the initial state's key order is unchanged.
-const stateDataMaps = () => ({
-    truancy: {},
-    safetyIncidents: {},
-    harassment: {},
-    restraint: {},
-    seclusion: {},
-    bullying: {},
-    bullyingClassification: {},
-    bullyingImpact: {},
-    disciplineCount: {},
-    disciplineIncident: {},
-    enrollment: {}
-});
+// The public interfaces and type aliases live in safety/types.ts; this module path stays the one importers use.
+export * from './safety/types';
 
 const initialState: SafetyState = {
     schoolDataLoadingStatus: categoryMaps(),
@@ -344,61 +60,6 @@ const initialState: SafetyState = {
 
     selectedSafetyPage: null
 }
-
-type SafetyLevel = 'school' | 'district' | 'state';
-type SafetyRow<L extends SafetyLevel, C extends SafetyCategory> = SafetyState[`${L}Data`][C][string][number];
-
-// Thunk argument per (level, category): exactly the annotations of the hand-written thunks.
-interface SafetyParamsMap {
-    school: {
-        truancy: BaseSchoolParams; safetyIncidents: SchoolSafetyParams; harassment: SchoolHarassmentParams;
-        seclusion: BaseSchoolParams; restraint: BaseSchoolParams; bullying: SchoolBullyingParams;
-        bullyingClassification: SchoolBullyingClassificationParams; bullyingImpact: SchoolBullyingImpactParams;
-        disciplineCount: SchoolDisciplineCountParams; disciplineIncident: SchoolDisciplineIncidentParams; enrollment: BaseSchoolParams;
-    };
-    district: {
-        truancy: BaseDistrictParams; safetyIncidents: DistrictSafetyParams; harassment: DistrictHarassmentParams;
-        seclusion: BaseDistrictParams; restraint: BaseDistrictParams; bullying: DistrictBullyingParams;
-        bullyingClassification: DistrictBullyingClassificationParams; bullyingImpact: DistrictBullyingImpactParams;
-        disciplineCount: DistrictDisciplineCountParams; disciplineIncident: DistrictDisciplineIncidentParams; enrollment: BaseDistrictParams;
-    };
-    state: {
-        truancy: BaseStateParams; safetyIncidents: StateSafetyParams; harassment: StateHarassmentParams;
-        seclusion: BaseStateParams; restraint: BaseStateParams; bullying: StateBullyingParams;
-        bullyingClassification: StateBullyingClassificationParams; bullyingImpact: StateBullyingImpactParams;
-        disciplineCount: StateDisciplineCountParams; disciplineIncident: StateDisciplineIncidentParams; enrollment: BaseStateParams;
-    };
-}
-
-// Filled by the export lines below at module evaluation, before createSlice builds its reducer.
-const SAFETY_DATA_THUNKS: Array<{ thunk: AsyncThunk<KeyedPayload<any>, any, any>; level: SafetyLevel; category: SafetyCategory }> = [];
-const SAFETY_TYPE_THUNKS = {} as Record<SafetyTypeCategory, AsyncThunk<any, void, {}>>;
-
-const safetyTypeThunk = (typePrefix: string, field: SafetyTypeCategory, request: () => Promise<any>) => {
-    // Payload stays any: the type thunks return the untyped API data.
-    const thunk = createTypeListThunk<any>(typePrefix, request);
-    SAFETY_TYPE_THUNKS[field] = thunk;
-    return thunk;
-};
-
-// Types are fetched first only when IDLE && empty: FAILED and SUCCEEDED-but-empty lists are never retried.
-// unwrap() so a types failure aborts the data fetch. The registry is read when the thunk runs, not here.
-const typePrefetch = (types: SafetyTypeCategory) => ({ getState, dispatch }: ThunkHooks) => {
-    const safetyState = (getState() as RootState).safety;
-    return prefetchIfIdle(safetyState.typeLoadingStatus[types], safetyState[types], () => dispatch(SAFETY_TYPE_THUNKS[types]()));
-};
-
-const safetyDataThunk = <L extends SafetyLevel, C extends SafetyCategory>(typePrefix: string, level: L, category: C,
-    request: (options: KeyedOptions<SafetyParamsMap[L][C]>, forceRefresh: boolean) => Promise<any>,
-    behaviour: { cache?: true; types?: SafetyTypeCategory } = {}) => {
-    const thunk = createKeyedThunk<SafetyParamsMap[L][C], SafetyRow<L, C>>(typePrefix, {
-        request,
-        cached: behaviour.cache ? (getState, key) => (getState() as RootState).safety[`${level}Data`][category][key] as SafetyRow<L, C>[] | undefined : undefined,
-        before: behaviour.types ? typePrefetch(behaviour.types) : undefined,
-    });
-    SAFETY_DATA_THUNKS.push({ thunk, level, category });
-    return thunk;
-};
 
 export const fetchSchoolSafetyTypes = safetyTypeThunk('safety/fetchSchoolSafetyTypes', 'schoolSafetyTypes', () => safetyApi.getSchoolSafetyTypes());
 // Thunk name is singular; the endpoint is plural.
