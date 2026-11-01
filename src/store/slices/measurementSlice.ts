@@ -3,6 +3,7 @@ import { RootState } from '@/store/store';
 import { measurementApi } from '@/services/api/endpoints/measurements';
 import { LoadingState } from '@/store/utils/loadingState';
 import { handleApiError } from '@/store/utils/apiError';
+import { needsRequest } from '@/store/utils/keyedResource';
 
 // ================ TYPE DEFINITIONS ================
 
@@ -161,6 +162,11 @@ export const fetchLatestMeasurements = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(handleApiError(error, 'Failed to fetch measurements'));
     }
+  },
+  {
+    // A key that is already loading or loaded is not requested again unless forceRefresh is set
+    condition: (params, { getState }) =>
+      !!params?.forceRefresh || needsRequest((getState() as RootState).measurement.loadingStates.measurements[createMeasurementKey(params)])
   }
 );
 
@@ -205,6 +211,11 @@ export const fetchAllMeasurements = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(handleApiError(error, 'Failed to fetch all measurements'));
     }
+  },
+  {
+    // A key that is already loading or loaded is not requested again unless forceRefresh is set
+    condition: (params, { getState }) =>
+      !!params?.forceRefresh || needsRequest((getState() as RootState).measurement.loadingStates.allMeasurements[createMeasurementKey(params)])
   }
 );
 

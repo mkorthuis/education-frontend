@@ -1,17 +1,21 @@
 import { createAsyncThunk, type ActionReducerMapBuilder, type AsyncThunk } from '@reduxjs/toolkit';
 import { LoadingState } from '@/store/utils/loadingState';
+import { needsRequest } from '@/store/utils/keyedResource';
 
 // ------------------------------
 // Type lists: zero-arg lookups stored in state[field], status in typeLoadingStatus[field]
 // ------------------------------
 // Payload is the thunk's payload type exactly as today: any (safety, assessment) or X[] (outcome, staff).
-export const createTypeListThunk = <Payload>(typePrefix: string, request: () => Promise<any>): AsyncThunk<Payload, void, {}> =>
+// `status` reads the list's typeLoadingStatus entry: a list that is loading or loaded is not requested again.
+export const createTypeListThunk = <Payload>(typePrefix: string, request: () => Promise<any>, status: (getState: () => unknown) => LoadingState): AsyncThunk<Payload, void, {}> =>
     createAsyncThunk<Payload, void>(typePrefix, async (_, { rejectWithValue }) => {
         try {
             return await request();
         } catch (error: any) {
             return rejectWithValue(error.message);
         }
+    }, {
+        condition: (_, { getState }) => needsRequest(status(getState)),
     });
 
 // pending: LOADING; fulfilled: state[field] = payload, then SUCCEEDED; rejected: FAILED.

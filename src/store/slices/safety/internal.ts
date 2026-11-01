@@ -146,7 +146,7 @@ export const SAFETY_TYPE_THUNKS = {} as Record<SafetyTypeCategory, AsyncThunk<an
 
 export const safetyTypeThunk = (typePrefix: string, field: SafetyTypeCategory, request: () => Promise<any>) => {
     // Payload stays any: the type thunks return the untyped API data.
-    const thunk = createTypeListThunk<any>(typePrefix, request);
+    const thunk = createTypeListThunk<any>(typePrefix, request, (getState) => (getState() as RootState).safety.typeLoadingStatus[field]);
     SAFETY_TYPE_THUNKS[field] = thunk;
     return thunk;
 };
@@ -160,10 +160,10 @@ const typePrefetch = (types: SafetyTypeCategory) => ({ getState, dispatch }: Thu
 
 export const safetyDataThunk = <L extends SafetyLevel, C extends SafetyCategory>(typePrefix: string, level: L, category: C,
     request: (options: KeyedOptions<SafetyParamsMap[L][C]>, forceRefresh: boolean) => Promise<any>,
-    behaviour: { cache?: true; types?: SafetyTypeCategory } = {}) => {
+    behaviour: { types?: SafetyTypeCategory } = {}) => {
     const thunk = createKeyedThunk<SafetyParamsMap[L][C], SafetyRow<L, C>>(typePrefix, {
         request,
-        cached: behaviour.cache ? (getState, key) => (getState() as RootState).safety[`${level}Data`][category][key] as SafetyRow<L, C>[] | undefined : undefined,
+        status: (getState, key) => (getState() as RootState).safety[`${level}DataLoadingStatus`][category][key],
         before: behaviour.types ? typePrefetch(behaviour.types) : undefined,
     });
     SAFETY_DATA_THUNKS.push({ thunk, level, category });

@@ -23,14 +23,16 @@ export interface KeyedThunkConfig<Arg extends KeyedArg, Row> {
     request: (options: KeyedOptions<Arg>, forceRefresh: boolean) => Promise<any>;
     /** Cache-key builder, default createOptionsKey. */
     key?: KeyFn;
-    /** ONLY where the hand-written thunk had a slice cache check. Hit = `cached && !forceRefresh` ([] counts as a hit). */
-    cached?: (getState: () => unknown, key: string) => Row[] | undefined;
+    /** The status the reducer cases record for this key (the same bucket addKeyedCases writes). */
+    status: (getState: () => unknown, key: string) => LoadingState | undefined;
     /** Synchronous. Return a promise only if it started work that must be awaited (await parity). */
     before?: (hooks: ThunkHooks) => Promise<unknown> | undefined;
     /** Synchronous post-request transform that reads fresh state (assessment enrichment). */
     transform?: (raw: any, getState: () => unknown) => Row[];
 }
 
+// A key that is already loading or loaded is not requested again unless forceRefresh is set.
+// A skipped dispatch sends no actions and resolves with a rejected action (meta.condition true).
 export const createKeyedThunk = <Arg extends KeyedArg, Row>(typePrefix: string, config: KeyedThunkConfig<Arg, Row>): AsyncThunk<KeyedPayload<Row>, Arg, {}> =>
     createAsyncThunk<KeyedPayload<Row>, Arg>(typePrefix, async (params, { getState, dispatch, rejectWithValue }) => {
         try {
@@ -39,19 +41,22 @@ export const createKeyedThunk = <Arg extends KeyedArg, Row>(typePrefix: string, 
             const waitFor = config.before?.({ getState, dispatch });
             if (waitFor) await waitFor;
             const key = (config.key ?? createOptionsKey)(options);
-            if (config.cached) {
-                const cachedData = config.cached(getState, key);
-                if (cachedData && !forceRefresh) {
-                    return { key, data: cachedData };
-                }
-            }
             const raw = await config.request(options as KeyedOptions<Arg>, forceRefresh);
             return { key, data: config.transform ? config.transform(raw, getState) : raw };
         } catch (error: any) {
             // Must stay error.message: a failed type prefetch rethrows a non-Error, so this is rejectWithValue(undefined).
             return rejectWithValue(error.message);
         }
+    }, {
+        condition: (params, { getState }) => {
+            const { forceRefresh = false, ...options } = (params ?? {}) as Arg;
+            return forceRefresh || needsRequest(config.status(getState, (config.key ?? createOptionsKey)(options)));
+        },
     });
+
+/** False while a request is in flight or once it has succeeded; IDLE, FAILED and unknown keys are requested. */
+export const needsRequest = (status: LoadingState | undefined) =>
+    status !== LoadingState.LOADING && status !== LoadingState.SUCCEEDED;
 
 // ------------------------------
 // Reducer cases

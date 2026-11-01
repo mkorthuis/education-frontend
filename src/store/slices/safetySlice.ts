@@ -70,11 +70,10 @@ export const fetchBullyingImpactTypes = safetyTypeThunk('safety/fetchBullyingImp
 export const fetchDisciplineCountTypes = safetyTypeThunk('safety/fetchDisciplineCountTypes', 'disciplineCountTypes', () => safetyApi.getDisciplineCountTypes());
 export const fetchDisciplineIncidentTypes = safetyTypeThunk('safety/fetchDisciplineIncidentTypes', 'disciplineIncidentTypes', () => safetyApi.getDisciplineIncidentTypes());
 
-// Truancy and enrollment are the only safety categories that check the slice cache;
-// seclusion and restraint neither check the cache nor prefetch a type list.
+// Truancy, enrollment, seclusion and restraint don't prefetch a type list.
 // Every other category fetches its type list first; safety incidents use the school safety types at all three levels.
 export const fetchSchoolTruancyData = safetyDataThunk('safety/fetchSchoolTruancyData', 'school', 'truancy',
-    (options, forceRefresh) => safetyApi.getSchoolTruancies(options, forceRefresh), { cache: true });
+    (options, forceRefresh) => safetyApi.getSchoolTruancies(options, forceRefresh));
 
 export const fetchSchoolSafetyIncidents = safetyDataThunk('safety/fetchSchoolSafetyIncidents', 'school', 'safetyIncidents',
     (options, forceRefresh) => safetyApi.getSchoolSafetyIncidents(options, forceRefresh), { types: 'schoolSafetyTypes' });
@@ -104,11 +103,11 @@ export const fetchSchoolDisciplineIncidents = safetyDataThunk('safety/fetchSchoo
     (options, forceRefresh) => safetyApi.getSchoolDisciplineIncidents(options, forceRefresh), { types: 'disciplineIncidentTypes' });
 
 export const fetchSchoolEnrollmentData = safetyDataThunk('safety/fetchSchoolEnrollmentData', 'school', 'enrollment',
-    (options, forceRefresh) => safetyApi.getSchoolEnrollment(options, forceRefresh), { cache: true });
+    (options, forceRefresh) => safetyApi.getSchoolEnrollment(options, forceRefresh));
 
 // District Level Thunks
 export const fetchDistrictTruancyData = safetyDataThunk('safety/fetchDistrictTruancyData', 'district', 'truancy',
-    (options, forceRefresh) => safetyApi.getDistrictTruancies(options, forceRefresh), { cache: true });
+    (options, forceRefresh) => safetyApi.getDistrictTruancies(options, forceRefresh));
 
 export const fetchDistrictSafetyIncidents = safetyDataThunk('safety/fetchDistrictSafetyIncidents', 'district', 'safetyIncidents',
     (options, forceRefresh) => safetyApi.getDistrictSafetyIncidents(options, forceRefresh), { types: 'schoolSafetyTypes' });
@@ -138,11 +137,11 @@ export const fetchDistrictDisciplineIncidents = safetyDataThunk('safety/fetchDis
     (options, forceRefresh) => safetyApi.getDistrictDisciplineIncidents(options, forceRefresh), { types: 'disciplineIncidentTypes' });
 
 export const fetchDistrictEnrollmentData = safetyDataThunk('safety/fetchDistrictEnrollmentData', 'district', 'enrollment',
-    (options, forceRefresh) => safetyApi.getDistrictEnrollment(options, forceRefresh), { cache: true });
+    (options, forceRefresh) => safetyApi.getDistrictEnrollment(options, forceRefresh));
 
 // State Level Thunks
 export const fetchStateTruancyData = safetyDataThunk('safety/fetchStateTruancyData', 'state', 'truancy',
-    (options, forceRefresh) => safetyApi.getStateTruancies(options, forceRefresh), { cache: true });
+    (options, forceRefresh) => safetyApi.getStateTruancies(options, forceRefresh));
 
 export const fetchStateSafetyIncidents = safetyDataThunk('safety/fetchStateSafetyIncidents', 'state', 'safetyIncidents',
     (options, forceRefresh) => safetyApi.getStateSafetyIncidents(options, forceRefresh), { types: 'schoolSafetyTypes' });
@@ -172,7 +171,7 @@ export const fetchStateDisciplineIncidents = safetyDataThunk('safety/fetchStateD
     (options, forceRefresh) => safetyApi.getStateDisciplineIncidents(options, forceRefresh), { types: 'disciplineIncidentTypes' });
 
 export const fetchStateEnrollmentData = safetyDataThunk('safety/fetchStateEnrollmentData', 'state', 'enrollment',
-    (options, forceRefresh) => safetyApi.getStateEnrollment(options, forceRefresh), { cache: true });
+    (options, forceRefresh) => safetyApi.getStateEnrollment(options, forceRefresh));
 
 export const safetySlice = createSlice({
     name: 'safety',

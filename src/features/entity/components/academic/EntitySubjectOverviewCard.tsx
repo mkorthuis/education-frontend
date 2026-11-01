@@ -5,8 +5,10 @@ import {
   selectSelectedGradeId,
   selectSelectedSubgroupId,
   selectSelectedSubjectId,
-  fetchAssessmentStateData
+  fetchAssessmentStateData,
+  setCurrentStateDataKey
 } from '@/store/slices/assessmentSlice';
+import { createOptionsKey } from '@/store/utils/cacheKey';
 import { filterAssessmentResults } from '@/features/district/utils/assessmentDataProcessing';
 import { ASSESSMENT_YEAR } from '@/utils/environment';
 import SubjectOverviewCardUI from '@/components/ui/academic/SubjectOverviewCard';
@@ -34,7 +36,13 @@ const EntitySubjectOverviewCard: React.FC<{ kind: EntityKind }> = ({ kind }) => 
   // Fetch state assessment data if not available
   useEffect(() => {
     if (selectedSubjectId && stateData.length === 0) {
-      dispatch(fetchAssessmentStateData(filterParams));
+      dispatch(fetchAssessmentStateData(filterParams)).then((action) => {
+        // Skipped because these filters are already loaded or loading: make them the current
+        // state data, which the fulfilled case does for a request that runs
+        if (fetchAssessmentStateData.rejected.match(action) && action.meta.condition) {
+          dispatch(setCurrentStateDataKey(createOptionsKey(filterParams)));
+        }
+      });
     }
   }, [dispatch, selectedSubjectId, stateData.length, filterParams]);
   

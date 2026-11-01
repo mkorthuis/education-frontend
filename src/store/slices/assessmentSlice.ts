@@ -214,10 +214,12 @@ const enrichAssessmentData = <T extends BaseAssessmentData>(
 // ================ ASYNC THUNKS ================
 
 // Async thunk for fetching assessment subjects
-export const fetchAssessmentSubjects = createTypeListThunk<any>('assessment/fetchAssessmentSubjects', () => assessmentsApi.getAssessmentSubjects());
+export const fetchAssessmentSubjects = createTypeListThunk<any>('assessment/fetchAssessmentSubjects', () => assessmentsApi.getAssessmentSubjects(),
+  (getState) => (getState() as RootState).assessment.typeLoadingStatus.subjects);
 
 // Async thunk for fetching assessment subgroups
-export const fetchAssessmentSubgroups = createTypeListThunk<any>('assessment/fetchAssessmentSubgroups', () => assessmentsApi.getAssessmentSubgroups());
+export const fetchAssessmentSubgroups = createTypeListThunk<any>('assessment/fetchAssessmentSubgroups', () => assessmentsApi.getAssessmentSubgroups(),
+  (getState) => (getState() as RootState).assessment.typeLoadingStatus.subgroups);
 
 // Helper to ensure assessment reference data is loaded
 export const ensureTypesLoaded = async (state: RootState, dispatch: any) => {
@@ -256,6 +258,7 @@ const enrichFromState = <T>(rawData: any, getState: () => unknown) => {
 // Async thunk for fetching assessment district data
 export const fetchAssessmentDistrictData = createKeyedThunk<FetchAssessmentDistrictDataParams, AssessmentDistrictData>('assessment/fetchAssessmentDistrictData', {
   before: awaitTypes,
+  status: (getState, key) => (getState() as RootState).assessment.dataLoadingStatus.district[key],
   request: (options, forceRefresh) => assessmentsApi.getAssessmentDistrictData(options, forceRefresh),
   transform: (rawData, getState) => enrichFromState<AssessmentDistrictData>(rawData, getState),
 });
@@ -263,6 +266,7 @@ export const fetchAssessmentDistrictData = createKeyedThunk<FetchAssessmentDistr
 // Async thunk for fetching assessment state data
 export const fetchAssessmentStateData = createKeyedThunk<FetchAssessmentStateDataParams, AssessmentStateData>('assessment/fetchAssessmentStateData', {
   before: awaitTypes,
+  status: (getState, key) => (getState() as RootState).assessment.dataLoadingStatus.state[key],
   request: (options, forceRefresh) => assessmentsApi.getAssessmentStateData(options, forceRefresh),
   transform: (rawData, getState) => enrichFromState<AssessmentStateData>(rawData, getState),
 });
@@ -270,6 +274,7 @@ export const fetchAssessmentStateData = createKeyedThunk<FetchAssessmentStateDat
 // Async thunk for fetching assessment school data
 export const fetchAssessmentSchoolData = createKeyedThunk<FetchAssessmentSchoolDataParams, AssessmentSchoolData>('assessment/fetchAssessmentSchoolData', {
   before: awaitTypes,
+  status: (getState, key) => (getState() as RootState).assessment.dataLoadingStatus.school[key],
   request: (options, forceRefresh) => assessmentsApi.getAssessmentSchoolData(options, forceRefresh),
   transform: (rawData, getState) => enrichFromState<AssessmentSchoolData>(rawData, getState),
 });

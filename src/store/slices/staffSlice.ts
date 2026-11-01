@@ -140,9 +140,12 @@ export interface StateTeacherSalaryBandData extends BaseTeacherSalaryBandData {}
 // ------------------------------
 // Async thunks
 // ------------------------------
-export const fetchStaffTypes = createTypeListThunk<StaffType[]>('staff/fetchStaffTypes', () => staffApi.getStaffTypes());
-export const fetchTeacherEducationTypes = createTypeListThunk<TeacherEducationType[]>('staff/fetchTeacherEducationTypes', () => staffApi.getTeacherEducationTypes());
-export const fetchTeacherSalaryBandTypes = createTypeListThunk<TeacherSalaryBandType[]>('staff/fetchTeacherSalaryBandTypes', () => staffApi.getTeacherSalaryBandTypes());
+export const fetchStaffTypes = createTypeListThunk<StaffType[]>('staff/fetchStaffTypes', () => staffApi.getStaffTypes(),
+    (getState) => (getState() as RootState).staff.typeLoadingStatus.staffTypes);
+export const fetchTeacherEducationTypes = createTypeListThunk<TeacherEducationType[]>('staff/fetchTeacherEducationTypes', () => staffApi.getTeacherEducationTypes(),
+    (getState) => (getState() as RootState).staff.typeLoadingStatus.teacherEducationTypes);
+export const fetchTeacherSalaryBandTypes = createTypeListThunk<TeacherSalaryBandType[]>('staff/fetchTeacherSalaryBandTypes', () => staffApi.getTeacherSalaryBandTypes(),
+    (getState) => (getState() as RootState).staff.typeLoadingStatus.teacherSalaryBandTypes);
 
 type StaffLevel = 'district' | 'state';
 type StaffCategory = keyof StaffState['districtData'];
@@ -157,12 +160,11 @@ interface StaffParamsMap {
 // Filled by staffThunk at module evaluation; the extraReducers loop reads it.
 const STAFF_THUNKS: Array<{ thunk: AsyncThunk<KeyedPayload<any>, any, any>; level: StaffLevel; category: StaffCategory }> = [];
 
-// Every staff thunk checks the slice cache before calling the API ([] is a hit; status still cycles).
 const staffThunk = <L extends StaffLevel, C extends StaffCategory>(typePrefix: string, level: L, category: C,
     request: (options: KeyedOptions<StaffParamsMap[L][C]>, forceRefresh: boolean) => Promise<any>) => {
     const thunk = createKeyedThunk<StaffParamsMap[L][C], StaffRow<L, C>>(typePrefix, {
         request,
-        cached: (getState, key) => (getState() as RootState).staff[`${level}Data`][category][key] as StaffRow<L, C>[] | undefined,
+        status: (getState, key) => (getState() as RootState).staff[`${level}DataLoadingStatus`][category][key],
     });
     STAFF_THUNKS.push({ thunk, level, category });
     return thunk;

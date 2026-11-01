@@ -106,15 +106,17 @@ const prefetchEntryTypes = ({ getState, dispatch }: ThunkHooks) => {
     return prefetchIfIdle(efaState.typeLoadingStatus.entryTypes, efaState.entryTypes, () => dispatch(fetchEfaEntryTypes({})));
 };
 
-// No slice cache check; null is dropped from the key but still forwarded to the API.
+// Null is dropped from the key but still forwarded to the API.
 export const fetchEfaEntries = createKeyedThunk<EfaEntryParams, EfaEntryData>('efa/fetchEfaEntries', {
     key: createOptionsKeyDropNull,
+    status: (getState, key) => (getState() as RootState).efa.dataLoadingStatus.entries[key],
     request: (options, forceRefresh) => efaApi.getEfaEntries(options, forceRefresh),
     before: prefetchEntryTypes,
 });
 
 export const fetchEfaStateEntries = createKeyedThunk<EfaStateEntryParams, EfaStateEntryData>('efa/fetchEfaStateEntries', {
     key: createOptionsKeyDropNull,
+    status: (getState, key) => (getState() as RootState).efa.dataLoadingStatus.stateEntries[key],
     request: (options, forceRefresh) => efaApi.getEfaStateEntries(options, forceRefresh),
     before: prefetchEntryTypes,
 });

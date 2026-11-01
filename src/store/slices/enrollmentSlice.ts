@@ -3,7 +3,7 @@ import { RootState } from '@/store/store';
 import { enrollmentApi, TownEnrollmentData, StateTownEnrollmentData, SchoolEnrollmentData } from '@/services/api/endpoints/enrollments';
 import { LoadingState } from '@/store/utils/loadingState';
 import { createOptionsKeyDropNull } from '@/store/utils/cacheKey';
-import { createKeyedThunk, addKeyedCases } from '@/store/utils/keyedResource';
+import { createKeyedThunk, addKeyedCases, needsRequest } from '@/store/utils/keyedResource';
 import { makeStatusSelector, makeMemoDataSelector } from '@/store/utils/selectors';
 
 export { LoadingState };
@@ -54,14 +54,16 @@ const initialState: EnrollmentState = {
 }
 
 // Async thunks
-// No slice cache check; null is dropped from the key but still forwarded to the API.
+// Null is dropped from the key but still forwarded to the API.
 export const fetchTownEnrollment = createKeyedThunk<TownEnrollmentParams, TownEnrollmentData>('enrollment/fetchTownEnrollment', {
     key: createOptionsKeyDropNull,
+    status: (getState, key) => (getState() as RootState).enrollment.loadingStatus.townEnrollments[key],
     request: (options, forceRefresh) => enrollmentApi.getTownEnrollment(options, forceRefresh),
 });
 
 export const fetchStateTownEnrollment = createKeyedThunk<StateTownEnrollmentParams, StateTownEnrollmentData>('enrollment/fetchStateTownEnrollment', {
     key: createOptionsKeyDropNull,
+    status: (getState, key) => (getState() as RootState).enrollment.loadingStatus.stateTownEnrollments[key],
     request: (options, forceRefresh) => enrollmentApi.getStateTownEnrollment(options, forceRefresh),
 });
 
@@ -77,6 +79,14 @@ export const fetchSchoolEnrollments = createAsyncThunk(
         } catch (error: any) {
             return rejectWithValue(error.message);
         }
+    },
+    {
+        // A key that is already loading or loaded is not requested again unless forceRefresh is set
+        condition: (params, { getState }) => {
+            const { schoolId, forceRefresh = false, ...options } = params;
+            const key = createOptionsKeyDropNull({ schoolId, ...options });
+            return forceRefresh || needsRequest((getState() as RootState).enrollment.loadingStatus.schoolEnrollments[key]);
+        },
     }
 );
 

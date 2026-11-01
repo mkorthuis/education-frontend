@@ -68,12 +68,12 @@ interface ClassSizeParamsMap {
 // Filled by classSizeThunk at module evaluation; the extraReducers loop reads it.
 const CLASS_SIZE_THUNKS: Array<{ thunk: AsyncThunk<KeyedPayload<any>, any, any>; level: ClassSizeLevel }> = [];
 
-// Flat buckets (one per level). Every class size thunk checks the slice cache before calling the API ([] is a hit; status still cycles).
+// Flat buckets (one per level).
 const classSizeThunk = <L extends ClassSizeLevel>(typePrefix: string, level: L,
     request: (options: KeyedOptions<ClassSizeParamsMap[L]>, forceRefresh: boolean) => Promise<any>) => {
     const thunk = createKeyedThunk<ClassSizeParamsMap[L], ClassSizeRow<L>>(typePrefix, {
         request,
-        cached: (getState, key) => (getState() as RootState).classSize[`${level}Data`][key] as ClassSizeRow<L>[] | undefined,
+        status: (getState, key) => (getState() as RootState).classSize[`${level}DataLoadingStatus`][key],
     });
     CLASS_SIZE_THUNKS.push({ thunk, level });
     return thunk;

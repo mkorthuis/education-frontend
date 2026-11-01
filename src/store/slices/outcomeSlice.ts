@@ -140,7 +140,8 @@ export interface StateGraduationCohortData extends BaseGraduationCohortData {}
 // ------------------------------
 // Async thunks
 // ------------------------------
-export const fetchPostGraduationTypes = createTypeListThunk<PostGraduationType[]>('outcomes/fetchPostGraduationTypes', () => outcomesApi.getPostGraduationTypes());
+export const fetchPostGraduationTypes = createTypeListThunk<PostGraduationType[]>('outcomes/fetchPostGraduationTypes', () => outcomesApi.getPostGraduationTypes(),
+    (getState) => (getState() as RootState).outcomes.typeLoadingStatus.postGraduationTypes);
 
 type OutcomeLevel = 'school' | 'district' | 'state';
 type OutcomeCategory = keyof OutcomesState['schoolData'];
@@ -156,14 +157,13 @@ interface OutcomeParamsMap {
 // Filled by outcomeThunk at module evaluation; the extraReducers loop reads it.
 const OUTCOME_THUNKS: Array<{ thunk: AsyncThunk<KeyedPayload<any>, any, any>; level: OutcomeLevel; category: OutcomeCategory }> = [];
 
-// Every outcome thunk checks the slice cache before calling the API ([] is a hit; status still cycles).
 const outcomeThunk = <L extends OutcomeLevel, C extends OutcomeCategory>(typePrefix: string, level: L, category: C,
     request: (options: KeyedOptions<OutcomeParamsMap[L][C]>, forceRefresh: boolean) => Promise<any>) => {
     // Payload rows stay any: EntityOutcomes dispatches a school | district thunk union,
     // which only type-checks while both payload types are compatible.
     const thunk = createKeyedThunk<OutcomeParamsMap[L][C], any>(typePrefix, {
         request,
-        cached: (getState, key) => (getState() as RootState).outcomes[`${level}Data`][category][key] as OutcomeRow<L, C>[] | undefined,
+        status: (getState, key) => (getState() as RootState).outcomes[`${level}DataLoadingStatus`][category][key],
     });
     OUTCOME_THUNKS.push({ thunk, level, category });
     return thunk;
