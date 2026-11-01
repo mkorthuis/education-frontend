@@ -1,8 +1,9 @@
-import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
+import { createSlice, type AsyncThunk } from '@reduxjs/toolkit';
 import { classSizeApi } from '@/services/api/endpoints/classSize';
 import { RootState } from '@/store/store';
 import { LoadingState } from '@/store/utils/loadingState';
-import { createOptionsKey } from '@/store/utils/cacheKey';
+import { createKeyedThunk, addKeyedCases, type KeyedPayload, type KeyedOptions } from '@/store/utils/keyedResource';
+import { makeStatusSelector, makeMemoDataSelector } from '@/store/utils/selectors';
 
 // ------------------------------
 // Loading helpers
@@ -54,59 +55,37 @@ export interface StateClassSizeData extends BaseClassSizeData {}
 // ------------------------------
 // Async thunks
 // ------------------------------
-export const fetchSchoolClassSizeData = createAsyncThunk(
-    'classSize/fetchSchoolClassSizeData',
-    async (params: SchoolClassSizeParams = {}, { getState, rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            const key = createOptionsKey(options);
-            const cached = (getState() as RootState).classSize.schoolData[key];
-            if (cached && !forceRefresh) {
-                return { key, data: cached };
-            }
-            const data = await classSizeApi.getSchoolClassSizeData(options, forceRefresh);
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+type ClassSizeLevel = 'school' | 'district' | 'state';
+type ClassSizeRow<L extends ClassSizeLevel> = ClassSizeState[`${L}Data`][string][number];
 
-export const fetchDistrictClassSizeData = createAsyncThunk(
-    'classSize/fetchDistrictClassSizeData',
-    async (params: DistrictClassSizeParams = {}, { getState, rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            const key = createOptionsKey(options);
-            const cached = (getState() as RootState).classSize.districtData[key];
-            if (cached && !forceRefresh) {
-                return { key, data: cached };
-            }
-            const data = await classSizeApi.getDistrictClassSizeData(options, forceRefresh);
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+// Thunk argument per level: exactly the annotations of the hand-written thunks.
+interface ClassSizeParamsMap {
+    school: SchoolClassSizeParams;
+    district: DistrictClassSizeParams;
+    state: StateClassSizeParams;
+}
 
-export const fetchStateClassSizeData = createAsyncThunk(
-    'classSize/fetchStateClassSizeData',
-    async (params: StateClassSizeParams = {}, { getState, rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            const key = createOptionsKey(options);
-            const cached = (getState() as RootState).classSize.stateData[key];
-            if (cached && !forceRefresh) {
-                return { key, data: cached };
-            }
-            const data = await classSizeApi.getStateClassSizeData(options, forceRefresh);
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+// Filled by classSizeThunk at module evaluation; the extraReducers loop reads it.
+const CLASS_SIZE_THUNKS: Array<{ thunk: AsyncThunk<KeyedPayload<any>, any, any>; level: ClassSizeLevel }> = [];
+
+// Flat buckets (one per level). Every class size thunk checks the slice cache before calling the API ([] is a hit; status still cycles).
+const classSizeThunk = <L extends ClassSizeLevel>(typePrefix: string, level: L,
+    request: (options: KeyedOptions<ClassSizeParamsMap[L]>, forceRefresh: boolean) => Promise<any>) => {
+    const thunk = createKeyedThunk<ClassSizeParamsMap[L], ClassSizeRow<L>>(typePrefix, {
+        request,
+        cached: (getState, key) => (getState() as RootState).classSize[`${level}Data`][key] as ClassSizeRow<L>[] | undefined,
+    });
+    CLASS_SIZE_THUNKS.push({ thunk, level });
+    return thunk;
+};
+
+// No school selectors exist for this thunk.
+export const fetchSchoolClassSizeData = classSizeThunk('classSize/fetchSchoolClassSizeData', 'school',
+    (options, forceRefresh) => classSizeApi.getSchoolClassSizeData(options, forceRefresh));
+export const fetchDistrictClassSizeData = classSizeThunk('classSize/fetchDistrictClassSizeData', 'district',
+    (options, forceRefresh) => classSizeApi.getDistrictClassSizeData(options, forceRefresh));
+export const fetchStateClassSizeData = classSizeThunk('classSize/fetchStateClassSizeData', 'state',
+    (options, forceRefresh) => classSizeApi.getStateClassSizeData(options, forceRefresh));
 
 // ------------------------------
 // State definition
@@ -139,93 +118,26 @@ export const classSizeSlice = createSlice({
     initialState,
     reducers: {},
     extraReducers: (builder) => {
-        // School Class Size Data
-        builder
-            .addCase(fetchSchoolClassSizeData.pending, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.schoolDataLoadingStatus[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchSchoolClassSizeData.fulfilled, (state, action) => {
-                state.schoolData[action.payload.key] = action.payload.data;
-                state.schoolDataLoadingStatus[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchSchoolClassSizeData.rejected, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.schoolDataLoadingStatus[key] = LoadingState.FAILED;
-            })
-
-            // District Class Size Data
-            .addCase(fetchDistrictClassSizeData.pending, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.districtDataLoadingStatus[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchDistrictClassSizeData.fulfilled, (state, action) => {
-                state.districtData[action.payload.key] = action.payload.data;
-                state.districtDataLoadingStatus[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchDistrictClassSizeData.rejected, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.districtDataLoadingStatus[key] = LoadingState.FAILED;
-            })
-
-            // State Class Size Data
-            .addCase(fetchStateClassSizeData.pending, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.stateDataLoadingStatus[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchStateClassSizeData.fulfilled, (state, action) => {
-                state.stateData[action.payload.key] = action.payload.data;
-                state.stateDataLoadingStatus[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchStateClassSizeData.rejected, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.stateDataLoadingStatus[key] = LoadingState.FAILED;
+        // Keyed data: pending/rejected keyed on the raw meta.arg, fulfilled on payload.key
+        for (const { thunk, level } of CLASS_SIZE_THUNKS) {
+            addKeyedCases(builder, thunk, {
+                data: (state) => state[`${level}Data`],
+                status: (state) => state[`${level}DataLoadingStatus`],
             });
+        }
     }
 });
 
 // ------------------------------
 // Selectors
 // ------------------------------
-// Loading status helpers
-const selectLoadingStatusHelper = (
-    state: RootState,
-    category: 'schoolData' | 'districtData' | 'stateData',
-    params: BaseClassSizeParams
-) => {
-    const options = { ...params };
-    const key = createOptionsKey(options);
-    return state.classSize[`${category}LoadingStatus`][key] || LoadingState.IDLE;
-};
+// Loading selectors: key keeps forceRefresh (as pending does) and undefined params give '_default'
+export const selectDistrictClassSizeLoadingStatus = makeStatusSelector<RootState, DistrictClassSizeParams>((state) => state.classSize.districtDataLoadingStatus);
+export const selectStateClassSizeLoadingStatus = makeStatusSelector<RootState, StateClassSizeParams>((state) => state.classSize.stateDataLoadingStatus);
 
-// Loading selectors
-export const selectDistrictClassSizeLoadingStatus = (state: RootState, params: DistrictClassSizeParams) =>
-    selectLoadingStatusHelper(state, 'districtData', params);
-export const selectStateClassSizeLoadingStatus = (state: RootState, params: StateClassSizeParams) =>
-    selectLoadingStatusHelper(state, 'stateData', params);
-
-// Data selectors (memoized)
-export const selectDistrictClassSizeData = createSelector(
-    [
-        (state: RootState) => state.classSize.districtData,
-        (_: RootState, params: DistrictClassSizeParams) => {
-            const { forceRefresh = false, ...options } = params;
-            return createOptionsKey(options);
-        }
-    ],
-    (data, key) => data[key] || []
-);
-
-export const selectStateClassSizeData = createSelector(
-    [
-        (state: RootState) => state.classSize.stateData,
-        (_: RootState, params: StateClassSizeParams) => {
-            const { forceRefresh = false, ...options } = params;
-            return createOptionsKey(options);
-        }
-    ],
-    (data, key) => data[key] || []
-);
+// Data selectors (memoized): key strips forceRefresh; undefined params throw
+export const selectDistrictClassSizeData = makeMemoDataSelector<RootState, DistrictClassSizeParams, DistrictClassSizeData>((state) => state.classSize.districtData);
+export const selectStateClassSizeData = makeMemoDataSelector<RootState, StateClassSizeParams, StateClassSizeData>((state) => state.classSize.stateData);
 
 // ------------------------------
 // Reducer export

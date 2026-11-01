@@ -1,8 +1,10 @@
-import { createSlice, createAsyncThunk, PayloadAction, createSelector } from '@reduxjs/toolkit';
+import { createSlice, type AsyncThunk } from '@reduxjs/toolkit';
 import { staffApi } from '@/services/api/endpoints/staff';
 import { RootState } from '@/store/store';
 import { LoadingState } from '@/store/utils/loadingState';
-import { createOptionsKey } from '@/store/utils/cacheKey';
+import { createKeyedThunk, addKeyedCases, type KeyedPayload, type KeyedOptions } from '@/store/utils/keyedResource';
+import { createTypeListThunk, addTypeListCases } from '@/store/utils/typeLists';
+import { makeStatusSelector, makeMemoDataSelector } from '@/store/utils/selectors';
 
 // ------------------------------
 // Loading helpers
@@ -138,185 +140,54 @@ export interface StateTeacherSalaryBandData extends BaseTeacherSalaryBandData {}
 // ------------------------------
 // Async thunks
 // ------------------------------
-export const fetchStaffTypes = createAsyncThunk(
-    'staff/fetchStaffTypes',
-    async (_, { rejectWithValue }) => {
-        try {
-            const data = await staffApi.getStaffTypes();
-            return data as StaffType[];
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+export const fetchStaffTypes = createTypeListThunk<StaffType[]>('staff/fetchStaffTypes', () => staffApi.getStaffTypes());
+export const fetchTeacherEducationTypes = createTypeListThunk<TeacherEducationType[]>('staff/fetchTeacherEducationTypes', () => staffApi.getTeacherEducationTypes());
+export const fetchTeacherSalaryBandTypes = createTypeListThunk<TeacherSalaryBandType[]>('staff/fetchTeacherSalaryBandTypes', () => staffApi.getTeacherSalaryBandTypes());
 
-export const fetchTeacherEducationTypes = createAsyncThunk(
-    'staff/fetchTeacherEducationTypes',
-    async (_, { rejectWithValue }) => {
-        try {
-            const data = await staffApi.getTeacherEducationTypes();
-            return data as TeacherEducationType[];
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+type StaffLevel = 'district' | 'state';
+type StaffCategory = keyof StaffState['districtData'];
+type StaffRow<L extends StaffLevel, C extends StaffCategory> = StaffState[`${L}Data`][C][string][number];
 
-export const fetchTeacherSalaryBandTypes = createAsyncThunk(
-    'staff/fetchTeacherSalaryBandTypes',
-    async (_, { rejectWithValue }) => {
-        try {
-            const data = await staffApi.getTeacherSalaryBandTypes();
-            return data as TeacherSalaryBandType[];
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+// Thunk argument per (level, category): exactly the annotations of the hand-written thunks.
+interface StaffParamsMap {
+    district: { staff: DistrictStaffParams; teacherEducation: DistrictTeacherEducationParams; teacherAverageSalary: DistrictTeacherAverageSalaryParams; teacherSalaryBand: DistrictTeacherSalaryBandParams };
+    state: { staff: StateStaffParams; teacherEducation: StateTeacherEducationParams; teacherAverageSalary: StateTeacherAverageSalaryParams; teacherSalaryBand: StateTeacherSalaryBandParams };
+}
 
-export const fetchDistrictStaffData = createAsyncThunk(
-    'staff/fetchDistrictStaffData',
-    async (params: DistrictStaffParams = {}, { getState, rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            const key = createOptionsKey(options);
-            const cached = (getState() as RootState).staff.districtData.staff[key];
-            if (cached && !forceRefresh) {
-                return { key, data: cached };
-            }
-            const data = await staffApi.getDistrictStaffData(options, forceRefresh);
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+// Filled by staffThunk at module evaluation; the extraReducers loop reads it.
+const STAFF_THUNKS: Array<{ thunk: AsyncThunk<KeyedPayload<any>, any, any>; level: StaffLevel; category: StaffCategory }> = [];
 
-export const fetchStateStaffData = createAsyncThunk(
-    'staff/fetchStateStaffData',
-    async (params: StateStaffParams = {}, { getState, rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            const key = createOptionsKey(options);
-            const cached = (getState() as RootState).staff.stateData.staff[key];
-            if (cached && !forceRefresh) {
-                return { key, data: cached };
-            }
-            const data = await staffApi.getStateStaffData(options, forceRefresh);
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+// Every staff thunk checks the slice cache before calling the API ([] is a hit; status still cycles).
+const staffThunk = <L extends StaffLevel, C extends StaffCategory>(typePrefix: string, level: L, category: C,
+    request: (options: KeyedOptions<StaffParamsMap[L][C]>, forceRefresh: boolean) => Promise<any>) => {
+    const thunk = createKeyedThunk<StaffParamsMap[L][C], StaffRow<L, C>>(typePrefix, {
+        request,
+        cached: (getState, key) => (getState() as RootState).staff[`${level}Data`][category][key] as StaffRow<L, C>[] | undefined,
+    });
+    STAFF_THUNKS.push({ thunk, level, category });
+    return thunk;
+};
 
-export const fetchDistrictTeacherEducationData = createAsyncThunk(
-    'staff/fetchDistrictTeacherEducationData',
-    async (params: DistrictTeacherEducationParams = {}, { getState, rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            const key = createOptionsKey(options);
-            const cached = (getState() as RootState).staff.districtData.teacherEducation[key];
-            if (cached && !forceRefresh) {
-                return { key, data: cached };
-            }
-            const data = await staffApi.getDistrictTeacherEducationData(options, forceRefresh);
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+export const fetchDistrictStaffData = staffThunk('staff/fetchDistrictStaffData', 'district', 'staff',
+    (options, forceRefresh) => staffApi.getDistrictStaffData(options, forceRefresh));
+export const fetchStateStaffData = staffThunk('staff/fetchStateStaffData', 'state', 'staff',
+    (options, forceRefresh) => staffApi.getStateStaffData(options, forceRefresh));
 
-export const fetchStateTeacherEducationData = createAsyncThunk(
-    'staff/fetchStateTeacherEducationData',
-    async (params: StateTeacherEducationParams = {}, { getState, rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            const key = createOptionsKey(options);
-            const cached = (getState() as RootState).staff.stateData.teacherEducation[key];
-            if (cached && !forceRefresh) {
-                return { key, data: cached };
-            }
-            const data = await staffApi.getStateTeacherEducationData(options, forceRefresh);
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+export const fetchDistrictTeacherEducationData = staffThunk('staff/fetchDistrictTeacherEducationData', 'district', 'teacherEducation',
+    (options, forceRefresh) => staffApi.getDistrictTeacherEducationData(options, forceRefresh));
+export const fetchStateTeacherEducationData = staffThunk('staff/fetchStateTeacherEducationData', 'state', 'teacherEducation',
+    (options, forceRefresh) => staffApi.getStateTeacherEducationData(options, forceRefresh));
 
-export const fetchDistrictTeacherAverageSalary = createAsyncThunk(
-    'staff/fetchDistrictTeacherAverageSalary',
-    async (params: DistrictTeacherAverageSalaryParams = {}, { getState, rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            const key = createOptionsKey(options);
-            const cached = (getState() as RootState).staff.districtData.teacherAverageSalary[key];
-            if (cached && !forceRefresh) {
-                return { key, data: cached };
-            }
-            const data = await staffApi.getDistrictTeacherAverageSalary(options, forceRefresh);
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+// Thunk and API names have no 'Data' suffix here; the data selectors do.
+export const fetchDistrictTeacherAverageSalary = staffThunk('staff/fetchDistrictTeacherAverageSalary', 'district', 'teacherAverageSalary',
+    (options, forceRefresh) => staffApi.getDistrictTeacherAverageSalary(options, forceRefresh));
+export const fetchStateTeacherAverageSalary = staffThunk('staff/fetchStateTeacherAverageSalary', 'state', 'teacherAverageSalary',
+    (options, forceRefresh) => staffApi.getStateTeacherAverageSalary(options, forceRefresh));
 
-export const fetchStateTeacherAverageSalary = createAsyncThunk(
-    'staff/fetchStateTeacherAverageSalary',
-    async (params: StateTeacherAverageSalaryParams = {}, { getState, rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            const key = createOptionsKey(options);
-            const cached = (getState() as RootState).staff.stateData.teacherAverageSalary[key];
-            if (cached && !forceRefresh) {
-                return { key, data: cached };
-            }
-            const data = await staffApi.getStateTeacherAverageSalary(options, forceRefresh);
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
-
-export const fetchDistrictTeacherSalaryBandData = createAsyncThunk(
-    'staff/fetchDistrictTeacherSalaryBandData',
-    async (params: DistrictTeacherSalaryBandParams = {}, { getState, rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            const key = createOptionsKey(options);
-            const cached = (getState() as RootState).staff.districtData.teacherSalaryBand[key];
-            if (cached && !forceRefresh) {
-                return { key, data: cached };
-            }
-            const data = await staffApi.getDistrictTeacherSalaryBandData(options, forceRefresh);
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
-
-export const fetchStateTeacherSalaryBandData = createAsyncThunk(
-    'staff/fetchStateTeacherSalaryBandData',
-    async (params: StateTeacherSalaryBandParams = {}, { getState, rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            const key = createOptionsKey(options);
-            const cached = (getState() as RootState).staff.stateData.teacherSalaryBand[key];
-            if (cached && !forceRefresh) {
-                return { key, data: cached };
-            }
-            const data = await staffApi.getStateTeacherSalaryBandData(options, forceRefresh);
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+export const fetchDistrictTeacherSalaryBandData = staffThunk('staff/fetchDistrictTeacherSalaryBandData', 'district', 'teacherSalaryBand',
+    (options, forceRefresh) => staffApi.getDistrictTeacherSalaryBandData(options, forceRefresh));
+export const fetchStateTeacherSalaryBandData = staffThunk('staff/fetchStateTeacherSalaryBandData', 'state', 'teacherSalaryBand',
+    (options, forceRefresh) => staffApi.getStateTeacherSalaryBandData(options, forceRefresh));
 
 // ------------------------------
 // State definition
@@ -403,154 +274,18 @@ export const staffSlice = createSlice({
         clearStaff: () => initialState
     },
     extraReducers: (builder) => {
-        // Staff Types
-        builder
-            .addCase(fetchStaffTypes.pending, (state) => {
-                state.typeLoadingStatus.staffTypes = LoadingState.LOADING;
-            })
-            .addCase(fetchStaffTypes.fulfilled, (state, action) => {
-                state.staffTypes = action.payload;
-                state.typeLoadingStatus.staffTypes = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchStaffTypes.rejected, (state) => {
-                state.typeLoadingStatus.staffTypes = LoadingState.FAILED;
-            })
+        // Staff, Teacher Education and Teacher Salary Band Types
+        addTypeListCases(builder, fetchStaffTypes, 'staffTypes');
+        addTypeListCases(builder, fetchTeacherEducationTypes, 'teacherEducationTypes');
+        addTypeListCases(builder, fetchTeacherSalaryBandTypes, 'teacherSalaryBandTypes');
 
-            // Teacher Education Types
-            .addCase(fetchTeacherEducationTypes.pending, (state) => {
-                state.typeLoadingStatus.teacherEducationTypes = LoadingState.LOADING;
-            })
-            .addCase(fetchTeacherEducationTypes.fulfilled, (state, action) => {
-                state.teacherEducationTypes = action.payload;
-                state.typeLoadingStatus.teacherEducationTypes = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchTeacherEducationTypes.rejected, (state) => {
-                state.typeLoadingStatus.teacherEducationTypes = LoadingState.FAILED;
-            })
-
-            // Teacher Salary Band Types
-            .addCase(fetchTeacherSalaryBandTypes.pending, (state) => {
-                state.typeLoadingStatus.teacherSalaryBandTypes = LoadingState.LOADING;
-            })
-            .addCase(fetchTeacherSalaryBandTypes.fulfilled, (state, action) => {
-                state.teacherSalaryBandTypes = action.payload;
-                state.typeLoadingStatus.teacherSalaryBandTypes = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchTeacherSalaryBandTypes.rejected, (state) => {
-                state.typeLoadingStatus.teacherSalaryBandTypes = LoadingState.FAILED;
-            })
-
-            // District Staff Data
-            .addCase(fetchDistrictStaffData.pending, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.districtDataLoadingStatus.staff[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchDistrictStaffData.fulfilled, (state, action) => {
-                state.districtData.staff[action.payload.key] = action.payload.data;
-                state.districtDataLoadingStatus.staff[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchDistrictStaffData.rejected, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.districtDataLoadingStatus.staff[key] = LoadingState.FAILED;
-            })
-
-            // State Staff Data
-            .addCase(fetchStateStaffData.pending, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.stateDataLoadingStatus.staff[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchStateStaffData.fulfilled, (state, action) => {
-                state.stateData.staff[action.payload.key] = action.payload.data;
-                state.stateDataLoadingStatus.staff[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchStateStaffData.rejected, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.stateDataLoadingStatus.staff[key] = LoadingState.FAILED;
-            })
-
-            // District Teacher Education Data
-            .addCase(fetchDistrictTeacherEducationData.pending, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.districtDataLoadingStatus.teacherEducation[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchDistrictTeacherEducationData.fulfilled, (state, action) => {
-                state.districtData.teacherEducation[action.payload.key] = action.payload.data;
-                state.districtDataLoadingStatus.teacherEducation[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchDistrictTeacherEducationData.rejected, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.districtDataLoadingStatus.teacherEducation[key] = LoadingState.FAILED;
-            })
-
-            // State Teacher Education Data
-            .addCase(fetchStateTeacherEducationData.pending, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.stateDataLoadingStatus.teacherEducation[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchStateTeacherEducationData.fulfilled, (state, action) => {
-                state.stateData.teacherEducation[action.payload.key] = action.payload.data;
-                state.stateDataLoadingStatus.teacherEducation[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchStateTeacherEducationData.rejected, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.stateDataLoadingStatus.teacherEducation[key] = LoadingState.FAILED;
-            })
-
-            // District Teacher Average Salary
-            .addCase(fetchDistrictTeacherAverageSalary.pending, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.districtDataLoadingStatus.teacherAverageSalary[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchDistrictTeacherAverageSalary.fulfilled, (state, action) => {
-                state.districtData.teacherAverageSalary[action.payload.key] = action.payload.data;
-                state.districtDataLoadingStatus.teacherAverageSalary[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchDistrictTeacherAverageSalary.rejected, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.districtDataLoadingStatus.teacherAverageSalary[key] = LoadingState.FAILED;
-            })
-
-            // State Teacher Average Salary
-            .addCase(fetchStateTeacherAverageSalary.pending, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.stateDataLoadingStatus.teacherAverageSalary[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchStateTeacherAverageSalary.fulfilled, (state, action) => {
-                state.stateData.teacherAverageSalary[action.payload.key] = action.payload.data;
-                state.stateDataLoadingStatus.teacherAverageSalary[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchStateTeacherAverageSalary.rejected, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.stateDataLoadingStatus.teacherAverageSalary[key] = LoadingState.FAILED;
-            })
-
-            // District Teacher Salary Band Data
-            .addCase(fetchDistrictTeacherSalaryBandData.pending, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.districtDataLoadingStatus.teacherSalaryBand[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchDistrictTeacherSalaryBandData.fulfilled, (state, action) => {
-                state.districtData.teacherSalaryBand[action.payload.key] = action.payload.data;
-                state.districtDataLoadingStatus.teacherSalaryBand[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchDistrictTeacherSalaryBandData.rejected, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.districtDataLoadingStatus.teacherSalaryBand[key] = LoadingState.FAILED;
-            })
-
-            // State Teacher Salary Band Data
-            .addCase(fetchStateTeacherSalaryBandData.pending, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.stateDataLoadingStatus.teacherSalaryBand[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchStateTeacherSalaryBandData.fulfilled, (state, action) => {
-                state.stateData.teacherSalaryBand[action.payload.key] = action.payload.data;
-                state.stateDataLoadingStatus.teacherSalaryBand[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchStateTeacherSalaryBandData.rejected, (state, action) => {
-                const key = createOptionsKey(action.meta.arg);
-                state.stateDataLoadingStatus.teacherSalaryBand[key] = LoadingState.FAILED;
+        // Keyed data: pending/rejected keyed on the raw meta.arg, fulfilled on payload.key
+        for (const { thunk, level, category } of STAFF_THUNKS) {
+            addKeyedCases(builder, thunk, {
+                data: (state) => state[`${level}Data`][category],
+                status: (state) => state[`${level}DataLoadingStatus`][category],
             });
+        }
     }
 });
 
@@ -570,129 +305,31 @@ export const selectStaffTypesLoadingStatus = (state: RootState) => state.staff.t
 export const selectTeacherEducationTypesLoadingStatus = (state: RootState) => state.staff.typeLoadingStatus.teacherEducationTypes;
 export const selectTeacherSalaryBandTypesLoadingStatus = (state: RootState) => state.staff.typeLoadingStatus.teacherSalaryBandTypes;
 
-// Loading status helpers
-const selectLoadingStatusHelper = (
-    state: RootState,
-    category: 'staff' | 'teacherEducation' | 'teacherAverageSalary' | 'teacherSalaryBand',
-    params: BaseStaffParams | BaseTeacherEducationParams | BaseTeacherSalaryBandParams,
-    level: 'district' | 'state'
-) => {
-    const options = { ...params };
-    const key = createOptionsKey(options);
-    return level === 'district'
-        ? state.staff.districtDataLoadingStatus[category][key] || LoadingState.IDLE
-        : state.staff.stateDataLoadingStatus[category][key] || LoadingState.IDLE;
-};
+// Loading selectors: key keeps forceRefresh (as pending does) and undefined params give '_default'
+export const selectDistrictStaffLoadingStatus = makeStatusSelector<RootState, DistrictStaffParams>((state) => state.staff.districtDataLoadingStatus.staff);
+export const selectStateStaffLoadingStatus = makeStatusSelector<RootState, StateStaffParams>((state) => state.staff.stateDataLoadingStatus.staff);
 
-// Loading selectors
-export const selectDistrictStaffLoadingStatus = (state: RootState, params: DistrictStaffParams) =>
-    selectLoadingStatusHelper(state, 'staff', params, 'district');
-export const selectStateStaffLoadingStatus = (state: RootState, params: StateStaffParams) =>
-    selectLoadingStatusHelper(state, 'staff', params, 'state');
+export const selectDistrictTeacherEducationLoadingStatus = makeStatusSelector<RootState, DistrictTeacherEducationParams>((state) => state.staff.districtDataLoadingStatus.teacherEducation);
+export const selectStateTeacherEducationLoadingStatus = makeStatusSelector<RootState, StateTeacherEducationParams>((state) => state.staff.stateDataLoadingStatus.teacherEducation);
 
-export const selectDistrictTeacherEducationLoadingStatus = (state: RootState, params: DistrictTeacherEducationParams) =>
-    selectLoadingStatusHelper(state, 'teacherEducation', params, 'district');
-export const selectStateTeacherEducationLoadingStatus = (state: RootState, params: StateTeacherEducationParams) =>
-    selectLoadingStatusHelper(state, 'teacherEducation', params, 'state');
+export const selectDistrictTeacherAverageSalaryLoadingStatus = makeStatusSelector<RootState, DistrictTeacherAverageSalaryParams>((state) => state.staff.districtDataLoadingStatus.teacherAverageSalary);
+export const selectStateTeacherAverageSalaryLoadingStatus = makeStatusSelector<RootState, StateTeacherAverageSalaryParams>((state) => state.staff.stateDataLoadingStatus.teacherAverageSalary);
 
-export const selectDistrictTeacherAverageSalaryLoadingStatus = (state: RootState, params: DistrictTeacherAverageSalaryParams) =>
-    selectLoadingStatusHelper(state, 'teacherAverageSalary', params, 'district');
-export const selectStateTeacherAverageSalaryLoadingStatus = (state: RootState, params: StateTeacherAverageSalaryParams) =>
-    selectLoadingStatusHelper(state, 'teacherAverageSalary', params, 'state');
+export const selectDistrictTeacherSalaryBandLoadingStatus = makeStatusSelector<RootState, DistrictTeacherSalaryBandParams>((state) => state.staff.districtDataLoadingStatus.teacherSalaryBand);
+export const selectStateTeacherSalaryBandLoadingStatus = makeStatusSelector<RootState, StateTeacherSalaryBandParams>((state) => state.staff.stateDataLoadingStatus.teacherSalaryBand);
 
-export const selectDistrictTeacherSalaryBandLoadingStatus = (state: RootState, params: DistrictTeacherSalaryBandParams) =>
-    selectLoadingStatusHelper(state, 'teacherSalaryBand', params, 'district');
-export const selectStateTeacherSalaryBandLoadingStatus = (state: RootState, params: StateTeacherSalaryBandParams) =>
-    selectLoadingStatusHelper(state, 'teacherSalaryBand', params, 'state');
+// Data selectors (memoized): key strips forceRefresh; undefined params throw
+export const selectDistrictStaffData = makeMemoDataSelector<RootState, DistrictStaffParams, DistrictStaffData>((state) => state.staff.districtData.staff);
+export const selectStateStaffData = makeMemoDataSelector<RootState, StateStaffParams, StateStaffData>((state) => state.staff.stateData.staff);
 
-// Data selectors (memoized)
-export const selectDistrictStaffData = createSelector(
-    [
-        (state: RootState) => state.staff.districtData.staff,
-        (_: RootState, params: DistrictStaffParams) => {
-            const { forceRefresh = false, ...options } = params;
-            return createOptionsKey(options);
-        }
-    ],
-    (data, key) => data[key] || []
-);
+export const selectDistrictTeacherEducationData = makeMemoDataSelector<RootState, DistrictTeacherEducationParams, DistrictTeacherEducationData>((state) => state.staff.districtData.teacherEducation);
+export const selectStateTeacherEducationData = makeMemoDataSelector<RootState, StateTeacherEducationParams, StateTeacherEducationData>((state) => state.staff.stateData.teacherEducation);
 
-export const selectStateStaffData = createSelector(
-    [
-        (state: RootState) => state.staff.stateData.staff,
-        (_: RootState, params: StateStaffParams) => {
-            const { forceRefresh = false, ...options } = params;
-            return createOptionsKey(options);
-        }
-    ],
-    (data, key) => data[key] || []
-);
+export const selectDistrictTeacherAverageSalaryData = makeMemoDataSelector<RootState, DistrictTeacherAverageSalaryParams, DistrictTeacherAverageSalaryData>((state) => state.staff.districtData.teacherAverageSalary);
+export const selectStateTeacherAverageSalaryData = makeMemoDataSelector<RootState, StateTeacherAverageSalaryParams, StateTeacherAverageSalaryData>((state) => state.staff.stateData.teacherAverageSalary);
 
-export const selectDistrictTeacherEducationData = createSelector(
-    [
-        (state: RootState) => state.staff.districtData.teacherEducation,
-        (_: RootState, params: DistrictTeacherEducationParams) => {
-            const { forceRefresh = false, ...options } = params;
-            return createOptionsKey(options);
-        }
-    ],
-    (data, key) => data[key] || []
-);
-
-export const selectStateTeacherEducationData = createSelector(
-    [
-        (state: RootState) => state.staff.stateData.teacherEducation,
-        (_: RootState, params: StateTeacherEducationParams) => {
-            const { forceRefresh = false, ...options } = params;
-            return createOptionsKey(options);
-        }
-    ],
-    (data, key) => data[key] || []
-);
-
-export const selectDistrictTeacherAverageSalaryData = createSelector(
-    [
-        (state: RootState) => state.staff.districtData.teacherAverageSalary,
-        (_: RootState, params: DistrictTeacherAverageSalaryParams) => {
-            const { forceRefresh = false, ...options } = params;
-            return createOptionsKey(options);
-        }
-    ],
-    (data, key) => data[key] || []
-);
-
-export const selectStateTeacherAverageSalaryData = createSelector(
-    [
-        (state: RootState) => state.staff.stateData.teacherAverageSalary,
-        (_: RootState, params: StateTeacherAverageSalaryParams) => {
-            const { forceRefresh = false, ...options } = params;
-            return createOptionsKey(options);
-        }
-    ],
-    (data, key) => data[key] || []
-);
-
-export const selectDistrictTeacherSalaryBandData = createSelector(
-    [
-        (state: RootState) => state.staff.districtData.teacherSalaryBand,
-        (_: RootState, params: DistrictTeacherSalaryBandParams) => {
-            const { forceRefresh = false, ...options } = params;
-            return createOptionsKey(options);
-        }
-    ],
-    (data, key) => data[key] || []
-);
-
-export const selectStateTeacherSalaryBandData = createSelector(
-    [
-        (state: RootState) => state.staff.stateData.teacherSalaryBand,
-        (_: RootState, params: StateTeacherSalaryBandParams) => {
-            const { forceRefresh = false, ...options } = params;
-            return createOptionsKey(options);
-        }
-    ],
-    (data, key) => data[key] || []
-);
+export const selectDistrictTeacherSalaryBandData = makeMemoDataSelector<RootState, DistrictTeacherSalaryBandParams, DistrictTeacherSalaryBandData>((state) => state.staff.districtData.teacherSalaryBand);
+export const selectStateTeacherSalaryBandData = makeMemoDataSelector<RootState, StateTeacherSalaryBandParams, StateTeacherSalaryBandData>((state) => state.staff.stateData.teacherSalaryBand);
 
 // ------------------------------
 // Reducer export
