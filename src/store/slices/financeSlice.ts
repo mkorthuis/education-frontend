@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction, ActionReducerMapBuilder, AsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { financeApi } from '@/services/api/endpoints/finances';
 import { FISCAL_YEAR } from '@/utils/environment';
@@ -317,6 +317,43 @@ const calculateTotal = (items: FinancialItem[]): number => {
   return items.reduce((sum, item) => sum + item.value, 0);
 };
 
+// State fields filled by the single-slot array fetches
+type ArrayField =
+  | 'perPupilExpenditureAllData'
+  | 'statePerPupilExpenditureAllData'
+  | 'stateExpenditureRollupData'
+  | 'stateRevenueAllData'
+  | 'stateExpenditureAllData'
+  | 'stateADMData';
+
+// Reducers for one single-slot array fetch. Pending clears the shared error field; fulfilled stores the
+// payload only when it is a non-empty array (anything else becomes a new empty array); rejected sets the
+// shared error field.
+const addArrayFetchCases = (
+  builder: ActionReducerMapBuilder<FinanceState>,
+  thunk: AsyncThunk<any, any, any>,
+  loadingKey: keyof FinanceState['loadingStates'],
+  dataField: ArrayField
+) => {
+  builder
+    .addCase(thunk.pending, (state) => {
+      state.loadingStates[loadingKey] = LoadingState.LOADING;
+      state.error = null;
+    })
+    .addCase(thunk.fulfilled, (state, action) => {
+      if (Array.isArray(action.payload) && action.payload.length > 0) {
+        state[dataField] = action.payload;
+      } else {
+        state[dataField] = [];
+      }
+      state.loadingStates[loadingKey] = LoadingState.SUCCEEDED;
+    })
+    .addCase(thunk.rejected, (state, action) => {
+      state.loadingStates[loadingKey] = LoadingState.FAILED;
+      state.error = action.payload as string;
+    });
+};
+
 // ================ ASYNC THUNKS ================
 
 // Async thunk for fetching entry types
@@ -367,155 +404,69 @@ export const fetchFinancialReports = createAsyncThunk(
   }
 );
 
-// Async thunk for fetching per pupil expenditure data
-export const fetchPerPupilExpenditure = createAsyncThunk(
-  'finance/fetchPerPupilExpenditure',
-  async ({ 
-    districtId,
-    year,
-    forceRefresh = false
-  }: { 
-    districtId: number; 
-    year?: string;
-    forceRefresh?: boolean;
-  }, { rejectWithValue }) => {
+// Single-slot array fetch shared by the per pupil and state data thunks. The `params` mapper is annotated
+// with the thunk's argument type and destructures the argument's first field. It runs before the try, so an
+// undefined argument rejects with a TypeError naming that field and nothing is logged.
+const createArrayFetch = <Arg extends { forceRefresh?: boolean }, Options>(typePrefix: string, config: {
+  // Options object literal in the API's query order (the URL, and so the axios cache key, follows it)
+  params: (arg: Arg) => Options;
+  request: (options: Options, forceRefresh: boolean) => Promise<any>;
+  errorMessage: string;
+}) => createAsyncThunk(
+  typePrefix,
+  async (arg: Arg, { rejectWithValue }) => {
+    const options = config.params(arg);
+    const { forceRefresh = false } = arg;
     try {
-      // Use the new API signature with options object first and forceRefresh second
-      const perPupilData = await financeApi.getPerPupilExpendituresForDistrict(
-        { district_id: districtId, year }, 
-        forceRefresh
-      );
-      return perPupilData;
+      return await config.request(options, forceRefresh);
     } catch (error) {
-      return rejectWithValue(handleApiError(error, 'Failed to fetch per pupil expenditure data'));
+      return rejectWithValue(handleApiError(error, config.errorMessage));
     }
   }
 );
+
+// Async thunk for fetching per pupil expenditure data
+export const fetchPerPupilExpenditure = createArrayFetch('finance/fetchPerPupilExpenditure', {
+  params: ({ districtId, year }: { districtId: number; year?: string; forceRefresh?: boolean; }) => ({ district_id: districtId, year }),
+  request: (options, forceRefresh) => financeApi.getPerPupilExpendituresForDistrict(options, forceRefresh),
+  errorMessage: 'Failed to fetch per pupil expenditure data',
+});
 
 // Async thunk for fetching state average per pupil expenditure data
-export const fetchStatePerPupilExpenditure = createAsyncThunk(
-  'finance/fetchStatePerPupilExpenditure',
-  async ({ 
-    year,
-    forceRefresh = false
-  }: { 
-    year?: string;
-    forceRefresh?: boolean;
-  }, { rejectWithValue }) => {
-    try {
-      // Use the new API signature with options object first and forceRefresh second
-      const statePerPupilData = await financeApi.getPerPupilExpendituresForState(
-        { year }, 
-        forceRefresh
-      );
-      return statePerPupilData;
-    } catch (error) {
-      return rejectWithValue(handleApiError(error, 'Failed to fetch state average per pupil expenditure data'));
-    }
-  }
-);
+export const fetchStatePerPupilExpenditure = createArrayFetch('finance/fetchStatePerPupilExpenditure', {
+  params: ({ year }: { year?: string; forceRefresh?: boolean; }) => ({ year }),
+  request: (options, forceRefresh) => financeApi.getPerPupilExpendituresForState(options, forceRefresh),
+  errorMessage: 'Failed to fetch state average per pupil expenditure data',
+});
 
 // Async thunk for fetching state expenditure data
-export const fetchStateExpenditureRollups = createAsyncThunk(
-  'finance/fetchStateExpenditureRollups',
-  async ({ 
-    year,
-    forceRefresh = false
-  }: { 
-    year?: string;
-    forceRefresh?: boolean;
-  }, { rejectWithValue }) => {
-    try {
-      // Use the new API signature with options object first and forceRefresh second
-      const stateExpenditureRollupData = await financeApi.getStateExpenditureRollups(
-        { year }, 
-        forceRefresh
-      );
-      return stateExpenditureRollupData;
-    } catch (error) {
-      return rejectWithValue(handleApiError(error, 'Failed to fetch state expenditure data'));
-    }
-  }
-);
+export const fetchStateExpenditureRollups = createArrayFetch('finance/fetchStateExpenditureRollups', {
+  params: ({ year }: { year?: string; forceRefresh?: boolean; }) => ({ year }),
+  request: (options, forceRefresh) => financeApi.getStateExpenditureRollups(options, forceRefresh),
+  // Same message as fetchStateExpenditure, kept
+  errorMessage: 'Failed to fetch state expenditure data',
+});
 
 // Async thunk for fetching state revenue data
-export const fetchStateRevenue = createAsyncThunk(
-  'finance/fetchStateRevenue',
-  async ({ 
-    year,
-    revenueEntryTypeId,
-    forceRefresh = false
-  }: { 
-    year?: string;
-    revenueEntryTypeId?: string;
-    forceRefresh?: boolean;
-  }, { rejectWithValue }) => {
-    try {
-      // Use the new API signature with options object first and forceRefresh second
-      const stateRevenueData = await financeApi.getStateRevenue(
-        { 
-          year, 
-          revenue_entry_type_id: revenueEntryTypeId 
-        }, 
-        forceRefresh
-      );
-      return stateRevenueData;
-    } catch (error) {
-      return rejectWithValue(handleApiError(error, 'Failed to fetch state revenue data'));
-    }
-  }
-);
+export const fetchStateRevenue = createArrayFetch('finance/fetchStateRevenue', {
+  params: ({ year, revenueEntryTypeId }: { year?: string; revenueEntryTypeId?: string; forceRefresh?: boolean; }) => ({ year, revenue_entry_type_id: revenueEntryTypeId }),
+  request: (options, forceRefresh) => financeApi.getStateRevenue(options, forceRefresh),
+  errorMessage: 'Failed to fetch state revenue data',
+});
 
 // Async thunk for fetching state expenditure data
-export const fetchStateExpenditure = createAsyncThunk(
-  'finance/fetchStateExpenditure',
-  async ({ 
-    year,
-    expenditureEntryTypeId,
-    forceRefresh = false
-  }: { 
-    year?: string;
-    expenditureEntryTypeId?: string;
-    forceRefresh?: boolean;
-  }, { rejectWithValue }) => {
-    try {
-      // Use the new API signature with options object first and forceRefresh second
-      const stateExpenditureData = await financeApi.getStateExpenditure(
-        { 
-          year, 
-          expenditure_entry_type_id: expenditureEntryTypeId 
-        }, 
-        forceRefresh
-      );
-      return stateExpenditureData;
-    } catch (error) {
-      return rejectWithValue(handleApiError(error, 'Failed to fetch state expenditure data'));
-    }
-  }
-);
+export const fetchStateExpenditure = createArrayFetch('finance/fetchStateExpenditure', {
+  params: ({ year, expenditureEntryTypeId }: { year?: string; expenditureEntryTypeId?: string; forceRefresh?: boolean; }) => ({ year, expenditure_entry_type_id: expenditureEntryTypeId }),
+  request: (options, forceRefresh) => financeApi.getStateExpenditure(options, forceRefresh),
+  errorMessage: 'Failed to fetch state expenditure data',
+});
 
 // Async thunk for fetching state ADM data
-export const fetchStateADM = createAsyncThunk(
-  'finance/fetchStateADM',
-  async ({
-    year,
-    forceRefresh = false
-  }: {
-    year?: string;
-    forceRefresh?: boolean;
-  }, { rejectWithValue }) => {
-    try {
-      // Use the new API signature with options object first and forceRefresh second
-      const stateADMData = await financeApi.getStateADM(
-        { year },
-        forceRefresh
-      );
-      return stateADMData;
-    } catch (error) {
-      return rejectWithValue(handleApiError(error, 'Failed to fetch state ADM data'));
-    }
-  }
-);
+export const fetchStateADM = createArrayFetch('finance/fetchStateADM', {
+  params: ({ year }: { year?: string; forceRefresh?: boolean; }) => ({ year }),
+  request: (options, forceRefresh) => financeApi.getStateADM(options, forceRefresh),
+  errorMessage: 'Failed to fetch state ADM data',
+});
 
 // ================ SLICE DEFINITION ================
 
@@ -614,122 +565,14 @@ export const financeSlice = createSlice({
         if (action.meta.requestId !== state.reportsRequestId) return;
         state.loadingStates.financialReports = LoadingState.FAILED;
         state.error = action.payload as string;
-      })
-
-      // Handle fetchPerPupilExpenditure
-      .addCase(fetchPerPupilExpenditure.pending, (state) => {
-        state.loadingStates.perPupilExpenditure = LoadingState.LOADING;
-        state.error = null;
-      })
-      .addCase(fetchPerPupilExpenditure.fulfilled, (state, action) => {
-        // API returns an array with objects containing per pupil expenditure data
-        if (Array.isArray(action.payload) && action.payload.length > 0) {
-          // Store all data
-          state.perPupilExpenditureAllData = action.payload;
-        } else {
-          state.perPupilExpenditureAllData = [];
-        }
-        state.loadingStates.perPupilExpenditure = LoadingState.SUCCEEDED;
-      })
-      .addCase(fetchPerPupilExpenditure.rejected, (state, action) => {
-        state.loadingStates.perPupilExpenditure = LoadingState.FAILED;
-        state.error = action.payload as string;
-      })
-      
-      // Handle fetchStatePerPupilExpenditure
-      .addCase(fetchStatePerPupilExpenditure.pending, (state) => {
-        state.loadingStates.statePerPupilExpenditure = LoadingState.LOADING;
-        state.error = null;
-      })
-      .addCase(fetchStatePerPupilExpenditure.fulfilled, (state, action) => {
-        // API returns an array with objects containing state per pupil expenditure data
-        if (Array.isArray(action.payload) && action.payload.length > 0) {
-          state.statePerPupilExpenditureAllData = action.payload;
-        } else {
-          state.statePerPupilExpenditureAllData = [];
-        }
-        state.loadingStates.statePerPupilExpenditure = LoadingState.SUCCEEDED;
-      })
-      .addCase(fetchStatePerPupilExpenditure.rejected, (state, action) => {
-        state.loadingStates.statePerPupilExpenditure = LoadingState.FAILED;
-        state.error = action.payload as string;
-      })
-      
-      // Handle fetchStateExpenditureRollups
-      .addCase(fetchStateExpenditureRollups.pending, (state) => {
-        state.loadingStates.stateExpenditureRollups = LoadingState.LOADING;
-        state.error = null;
-      })
-      .addCase(fetchStateExpenditureRollups.fulfilled, (state, action) => {
-        // API returns an array with objects containing state expenditure data
-        if (Array.isArray(action.payload) && action.payload.length > 0) {
-          state.stateExpenditureRollupData = action.payload;
-        } else {
-          state.stateExpenditureRollupData = [];
-        }
-        state.loadingStates.stateExpenditureRollups = LoadingState.SUCCEEDED;
-      })
-      .addCase(fetchStateExpenditureRollups.rejected, (state, action) => {
-        state.loadingStates.stateExpenditureRollups = LoadingState.FAILED;
-        state.error = action.payload as string;
-      })
-      
-      // Handle fetchStateRevenue
-      .addCase(fetchStateRevenue.pending, (state) => {
-        state.loadingStates.stateRevenue = LoadingState.LOADING;
-        state.error = null;
-      })
-      .addCase(fetchStateRevenue.fulfilled, (state, action) => {
-        // API returns an array with objects containing state revenue data
-        if (Array.isArray(action.payload) && action.payload.length > 0) {
-          state.stateRevenueAllData = action.payload;
-        } else {
-          state.stateRevenueAllData = [];
-        }
-        state.loadingStates.stateRevenue = LoadingState.SUCCEEDED;
-      })
-      .addCase(fetchStateRevenue.rejected, (state, action) => {
-        state.loadingStates.stateRevenue = LoadingState.FAILED;
-        state.error = action.payload as string;
-      })
-
-      // Handle fetchStateExpenditure
-      .addCase(fetchStateExpenditure.pending, (state) => {
-        state.loadingStates.stateExpenditure = LoadingState.LOADING;
-        state.error = null;
-      })
-      .addCase(fetchStateExpenditure.fulfilled, (state, action) => {
-        // API returns an array with objects containing state expenditure data
-        if (Array.isArray(action.payload) && action.payload.length > 0) {
-          state.stateExpenditureAllData = action.payload;
-        } else {
-          state.stateExpenditureAllData = [];
-        }
-        state.loadingStates.stateExpenditure = LoadingState.SUCCEEDED;
-      })
-      .addCase(fetchStateExpenditure.rejected, (state, action) => {
-        state.loadingStates.stateExpenditure = LoadingState.FAILED;
-        state.error = action.payload as string;
-      })
-
-      // Handle fetchStateADM
-      .addCase(fetchStateADM.pending, (state) => {
-        state.loadingStates.stateADM = LoadingState.LOADING;
-        state.error = null;
-      })
-      .addCase(fetchStateADM.fulfilled, (state, action) => {
-        // API returns an array with objects containing state ADM data
-        if (Array.isArray(action.payload) && action.payload.length > 0) {
-          state.stateADMData = action.payload;
-        } else {
-          state.stateADMData = [];
-        }
-        state.loadingStates.stateADM = LoadingState.SUCCEEDED;
-      })
-      .addCase(fetchStateADM.rejected, (state, action) => {
-        state.loadingStates.stateADM = LoadingState.FAILED;
-        state.error = action.payload as string;
       });
+
+    addArrayFetchCases(builder, fetchPerPupilExpenditure, 'perPupilExpenditure', 'perPupilExpenditureAllData');
+    addArrayFetchCases(builder, fetchStatePerPupilExpenditure, 'statePerPupilExpenditure', 'statePerPupilExpenditureAllData');
+    addArrayFetchCases(builder, fetchStateExpenditureRollups, 'stateExpenditureRollups', 'stateExpenditureRollupData');
+    addArrayFetchCases(builder, fetchStateRevenue, 'stateRevenue', 'stateRevenueAllData');
+    addArrayFetchCases(builder, fetchStateExpenditure, 'stateExpenditure', 'stateExpenditureAllData');
+    addArrayFetchCases(builder, fetchStateADM, 'stateADM', 'stateADMData');
   },
 });
 
@@ -782,9 +625,8 @@ export const selectTotalRevenuesByYear = (state: RootState, year: string) => {
   return calculateTotal(report.revenues);
 };
 
-// Per Pupil Expenditure Selectors
-export const selectLatestPerPupilExpenditureDetails = (state: RootState) => {
-  const allData = state.finance.perPupilExpenditureAllData;
+// Latest entry by year (the first one wins on ties), or null when there is no data
+const latestByYear = <T extends { year: number }>(allData: T[]) => {
   if (!allData || allData.length === 0) return null;
   
   // Find the entry with the highest year value
@@ -793,51 +635,25 @@ export const selectLatestPerPupilExpenditureDetails = (state: RootState) => {
   }, allData[0]);
 };
 
-export const selectLatestStatePerPupilExpenditureDetails = (state: RootState) => {
-  const allData = state.finance.statePerPupilExpenditureAllData;
+// Entry matching the requested year, or null when there is none
+const findByYear = <T extends { year: number }>(allData: T[], year: number) => {
   if (!allData || allData.length === 0) return null;
   
-  // Find the entry with the highest year value
-  return allData.reduce((latest, current) => {
-    return current.year > latest.year ? current : latest;
-  }, allData[0]);
+  // Find the entry matching the requested year
+  return allData.find(item => item.year === year) || null;
 };
+
+// Per Pupil Expenditure Selectors
+export const selectLatestPerPupilExpenditureDetails = (state: RootState) => latestByYear(state.finance.perPupilExpenditureAllData);
+export const selectLatestStatePerPupilExpenditureDetails = (state: RootState) => latestByYear(state.finance.statePerPupilExpenditureAllData);
 
 // Per Pupil Expenditure Selectors by Year
-export const selectPerPupilExpenditureByYear = (state: RootState, year: number) => {
-  const allData = state.finance.perPupilExpenditureAllData;
-  if (!allData || allData.length === 0) return null;
-  
-  // Find the entry matching the requested year
-  return allData.find(item => item.year === year) || null;
-};
-
-export const selectStatePerPupilExpenditureByYear = (state: RootState, year: number) => {
-  const allData = state.finance.statePerPupilExpenditureAllData;
-  if (!allData || allData.length === 0) return null;
-  
-  // Find the entry matching the requested year
-  return allData.find(item => item.year === year) || null;
-};
+export const selectPerPupilExpenditureByYear = (state: RootState, year: number) => findByYear(state.finance.perPupilExpenditureAllData, year);
+export const selectStatePerPupilExpenditureByYear = (state: RootState, year: number) => findByYear(state.finance.statePerPupilExpenditureAllData, year);
 
 // State Expenditure Selectors
-export const selectLatestStateExpenditureRollupDetails = (state: RootState) => {
-  const allData = state.finance.stateExpenditureRollupData;
-  if (!allData || allData.length === 0) return null;
-  
-  // Find the entry with the highest year value
-  return allData.reduce((latest, current) => {
-    return current.year > latest.year ? current : latest;
-  }, allData[0]);
-};
-
-export const selectStateExpenditureRollupsByYear = (state: RootState, year: number) => {
-  const allData = state.finance.stateExpenditureRollupData;
-  if (!allData || allData.length === 0) return null;
-  
-  // Find the entry matching the requested year
-  return allData.find(item => item.year === year) || null;
-};
+export const selectLatestStateExpenditureRollupDetails = (state: RootState) => latestByYear(state.finance.stateExpenditureRollupData);
+export const selectStateExpenditureRollupsByYear = (state: RootState, year: number) => findByYear(state.finance.stateExpenditureRollupData, year);
 
 // State Revenue Selectors
 export const selectLatestStateRevenueDetails = (state: RootState) => {
@@ -857,15 +673,7 @@ export const selectLatestStateExpenditureDetails = (state: RootState) => {
 };
 
 // State ADM Selectors
-export const selectLatestStateADM = (state: RootState) => {
-  const allData = state.finance.stateADMData;
-  if (!allData || allData.length === 0) return null;
-  
-  // Find the entry with the highest year value
-  return allData.reduce((latest, current) => {
-    return current.year > latest.year ? current : latest;
-  }, allData[0]);
-};
+export const selectLatestStateADM = (state: RootState) => latestByYear(state.finance.stateADMData);
 
 // Inflation adjustment selector
 export const selectAdjustForInflation = (state: RootState) => state.finance.adjustForInflation;
