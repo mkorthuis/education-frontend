@@ -1,9 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { efaApi } from '@/services/api/endpoints/efa';
-import { createSelector } from '@reduxjs/toolkit';
 import { LoadingState } from '@/store/utils/loadingState';
 import { createOptionsKeyDropNull } from '@/store/utils/cacheKey';
+import { createKeyedThunk, addKeyedCases, prefetchIfIdle, type ThunkHooks } from '@/store/utils/keyedResource';
+import { addTypeListCases } from '@/store/utils/typeLists';
+import { makeStatusSelector, makeMemoDataSelector } from '@/store/utils/selectors';
 
 export { LoadingState };
 
@@ -97,47 +99,25 @@ export const fetchEfaEntryTypes = createAsyncThunk(
     }
 );
 
-export const fetchEfaEntries = createAsyncThunk(
-    'efa/fetchEfaEntries',
-    async (params: EfaEntryParams = {}, { getState, dispatch, rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            
-            // Now we can uncomment this since we've added the reducer to the store
-            const efaState = (getState() as RootState).efa;
-            if (efaState.typeLoadingStatus.entryTypes === LoadingState.IDLE && efaState.entryTypes.length === 0) {
-                await dispatch(fetchEfaEntryTypes({})).unwrap();
-            }
-            
-            const key = createOptionsKeyDropNull(options);
-            const data = await efaApi.getEfaEntries(options, forceRefresh);
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+// Types are fetched first only when IDLE && empty; unwrap() so a types failure aborts the data fetch.
+// The gate is synchronous: when it is false nothing is awaited (same-tick dispatches, only the first waits).
+const prefetchEntryTypes = ({ getState, dispatch }: ThunkHooks) => {
+    const efaState = (getState() as RootState).efa;
+    return prefetchIfIdle(efaState.typeLoadingStatus.entryTypes, efaState.entryTypes, () => dispatch(fetchEfaEntryTypes({})));
+};
 
-export const fetchEfaStateEntries = createAsyncThunk(
-    'efa/fetchEfaStateEntries',
-    async (params: EfaStateEntryParams = {}, { getState, dispatch, rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            
-            // Ensure entry types are loaded first if needed
-            const efaState = (getState() as RootState).efa;
-            if (efaState.typeLoadingStatus.entryTypes === LoadingState.IDLE && efaState.entryTypes.length === 0) {
-                await dispatch(fetchEfaEntryTypes({})).unwrap();
-            }
-            
-            const key = createOptionsKeyDropNull(options);
-            const data = await efaApi.getEfaStateEntries(options, forceRefresh);
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+// No slice cache check; null is dropped from the key but still forwarded to the API.
+export const fetchEfaEntries = createKeyedThunk<EfaEntryParams, EfaEntryData>('efa/fetchEfaEntries', {
+    key: createOptionsKeyDropNull,
+    request: (options, forceRefresh) => efaApi.getEfaEntries(options, forceRefresh),
+    before: prefetchEntryTypes,
+});
+
+export const fetchEfaStateEntries = createKeyedThunk<EfaStateEntryParams, EfaStateEntryData>('efa/fetchEfaStateEntries', {
+    key: createOptionsKeyDropNull,
+    request: (options, forceRefresh) => efaApi.getEfaStateEntries(options, forceRefresh),
+    before: prefetchEntryTypes,
+});
 
 // Create the slice
 export const efaSlice = createSlice({
@@ -146,45 +126,21 @@ export const efaSlice = createSlice({
     reducers: {},
     extraReducers: (builder) => {
         // Entry Types
-        builder
-            .addCase(fetchEfaEntryTypes.pending, (state) => {
-                state.typeLoadingStatus.entryTypes = LoadingState.LOADING;
-            })
-            .addCase(fetchEfaEntryTypes.fulfilled, (state, action) => {
-                state.entryTypes = action.payload;
-                state.typeLoadingStatus.entryTypes = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchEfaEntryTypes.rejected, (state) => {
-                state.typeLoadingStatus.entryTypes = LoadingState.FAILED;
-            })
-            
+        addTypeListCases(builder, fetchEfaEntryTypes, 'entryTypes');
+
         // EFA Entries
-            .addCase(fetchEfaEntries.pending, (state, action) => {
-                const key = createOptionsKeyDropNull(action.meta.arg);
-                state.dataLoadingStatus.entries[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchEfaEntries.fulfilled, (state, action) => {
-                state.data.entries[action.payload.key] = action.payload.data;
-                state.dataLoadingStatus.entries[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchEfaEntries.rejected, (state, action) => {
-                const key = createOptionsKeyDropNull(action.meta.arg);
-                state.dataLoadingStatus.entries[key] = LoadingState.FAILED;
-            })
-            
+        addKeyedCases(builder, fetchEfaEntries, {
+            data: (state) => state.data.entries,
+            status: (state) => state.dataLoadingStatus.entries,
+            key: createOptionsKeyDropNull,
+        });
+
         // EFA State Entries
-            .addCase(fetchEfaStateEntries.pending, (state, action) => {
-                const key = createOptionsKeyDropNull(action.meta.arg);
-                state.dataLoadingStatus.stateEntries[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchEfaStateEntries.fulfilled, (state, action) => {
-                state.data.stateEntries[action.payload.key] = action.payload.data;
-                state.dataLoadingStatus.stateEntries[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchEfaStateEntries.rejected, (state, action) => {
-                const key = createOptionsKeyDropNull(action.meta.arg);
-                state.dataLoadingStatus.stateEntries[key] = LoadingState.FAILED;
-            });
+        addKeyedCases(builder, fetchEfaStateEntries, {
+            data: (state) => state.data.stateEntries,
+            status: (state) => state.dataLoadingStatus.stateEntries,
+            key: createOptionsKeyDropNull,
+        });
     }
 });
 
@@ -192,34 +148,14 @@ export const efaSlice = createSlice({
 export const selectEfaEntryTypesLoadingStatus = (state: RootState) => 
     state.efa.typeLoadingStatus.entryTypes;
 
-export const selectEfaEntriesLoadingStatus = (state: RootState, params: EfaEntryParams) => {
-    const key = createOptionsKeyDropNull({ ...params });
-    return state.efa.dataLoadingStatus.entries[key] || LoadingState.IDLE;
-};
-
-export const selectEfaStateEntriesLoadingStatus = (state: RootState, params: EfaStateEntryParams) => {
-    const key = createOptionsKeyDropNull({ ...params });
-    return state.efa.dataLoadingStatus.stateEntries[key] || LoadingState.IDLE;
-};
+// Loading selectors: key keeps forceRefresh (as pending does) and undefined params give '_default'
+export const selectEfaEntriesLoadingStatus = makeStatusSelector<RootState, EfaEntryParams>((state) => state.efa.dataLoadingStatus.entries, createOptionsKeyDropNull);
+export const selectEfaStateEntriesLoadingStatus = makeStatusSelector<RootState, EfaStateEntryParams>((state) => state.efa.dataLoadingStatus.stateEntries, createOptionsKeyDropNull);
 
 export const selectEfaEntryTypes = (state: RootState) => state.efa.entryTypes;
 
-export const selectEfaEntries = createSelector(
-    [(state: RootState) => state.efa.data.entries, 
-     (_: RootState, params: EfaEntryParams) => {
-        const { forceRefresh = false, ...options } = params;
-        return createOptionsKeyDropNull(options);
-     }],
-    (entriesData, key) => entriesData[key] || []
-);
-
-export const selectEfaStateEntries = createSelector(
-    [(state: RootState) => state.efa.data.stateEntries, 
-     (_: RootState, params: EfaStateEntryParams) => {
-        const { forceRefresh = false, ...options } = params;
-        return createOptionsKeyDropNull(options);
-     }],
-    (stateEntriesData, key) => stateEntriesData[key] || []
-);
+// Data selectors (memoized): key strips forceRefresh; undefined params throw
+export const selectEfaEntries = makeMemoDataSelector<RootState, EfaEntryParams, EfaEntryData>((state) => state.efa.data.entries, createOptionsKeyDropNull);
+export const selectEfaStateEntries = makeMemoDataSelector<RootState, EfaStateEntryParams, EfaStateEntryData>((state) => state.efa.data.stateEntries, createOptionsKeyDropNull);
 
 export default efaSlice.reducer;

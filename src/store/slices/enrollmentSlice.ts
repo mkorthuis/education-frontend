@@ -1,9 +1,10 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { enrollmentApi, TownEnrollmentData, StateTownEnrollmentData, SchoolEnrollmentData } from '@/services/api/endpoints/enrollments';
-import { createSelector } from '@reduxjs/toolkit';
 import { LoadingState } from '@/store/utils/loadingState';
 import { createOptionsKeyDropNull } from '@/store/utils/cacheKey';
+import { createKeyedThunk, addKeyedCases } from '@/store/utils/keyedResource';
+import { makeStatusSelector, makeMemoDataSelector } from '@/store/utils/selectors';
 
 export { LoadingState };
 
@@ -53,34 +54,18 @@ const initialState: EnrollmentState = {
 }
 
 // Async thunks
-export const fetchTownEnrollment = createAsyncThunk(
-    'enrollment/fetchTownEnrollment',
-    async (params: TownEnrollmentParams = {}, { rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            const key = createOptionsKeyDropNull(options);
-            const data = await enrollmentApi.getTownEnrollment(options, forceRefresh);
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+// No slice cache check; null is dropped from the key but still forwarded to the API.
+export const fetchTownEnrollment = createKeyedThunk<TownEnrollmentParams, TownEnrollmentData>('enrollment/fetchTownEnrollment', {
+    key: createOptionsKeyDropNull,
+    request: (options, forceRefresh) => enrollmentApi.getTownEnrollment(options, forceRefresh),
+});
 
-export const fetchStateTownEnrollment = createAsyncThunk(
-    'enrollment/fetchStateTownEnrollment',
-    async (params: StateTownEnrollmentParams = {}, { rejectWithValue }) => {
-        try {
-            const { forceRefresh = false, ...options } = params;
-            const key = createOptionsKeyDropNull(options);
-            const data = await enrollmentApi.getStateTownEnrollment(options, forceRefresh);
-            return { key, data };
-        } catch (error: any) {
-            return rejectWithValue(error.message);
-        }
-    }
-);
+export const fetchStateTownEnrollment = createKeyedThunk<StateTownEnrollmentParams, StateTownEnrollmentData>('enrollment/fetchStateTownEnrollment', {
+    key: createOptionsKeyDropNull,
+    request: (options, forceRefresh) => enrollmentApi.getStateTownEnrollment(options, forceRefresh),
+});
 
+// Hand-written: schoolId is a path param, re-added to the key; no default arg.
 export const fetchSchoolEnrollments = createAsyncThunk(
     'enrollment/fetchSchoolEnrollments',
     async (params: { schoolId: number } & BaseEnrollmentParams, { rejectWithValue }) => {
@@ -102,92 +87,37 @@ export const enrollmentSlice = createSlice({
     reducers: {},
     extraReducers: (builder) => {
         // Town Enrollments
-        builder
-            .addCase(fetchTownEnrollment.pending, (state, action) => {
-                const key = createOptionsKeyDropNull(action.meta.arg);
-                state.loadingStatus.townEnrollments[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchTownEnrollment.fulfilled, (state, action) => {
-                state.data.townEnrollments[action.payload.key] = action.payload.data;
-                state.loadingStatus.townEnrollments[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchTownEnrollment.rejected, (state, action) => {
-                const key = createOptionsKeyDropNull(action.meta.arg);
-                state.loadingStatus.townEnrollments[key] = LoadingState.FAILED;
-            })
-            
+        addKeyedCases(builder, fetchTownEnrollment, {
+            data: (state) => state.data.townEnrollments,
+            status: (state) => state.loadingStatus.townEnrollments,
+            key: createOptionsKeyDropNull,
+        });
+
         // State Town Enrollments
-            .addCase(fetchStateTownEnrollment.pending, (state, action) => {
-                const key = createOptionsKeyDropNull(action.meta.arg);
-                state.loadingStatus.stateTownEnrollments[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchStateTownEnrollment.fulfilled, (state, action) => {
-                state.data.stateTownEnrollments[action.payload.key] = action.payload.data;
-                state.loadingStatus.stateTownEnrollments[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchStateTownEnrollment.rejected, (state, action) => {
-                const key = createOptionsKeyDropNull(action.meta.arg);
-                state.loadingStatus.stateTownEnrollments[key] = LoadingState.FAILED;
-            })
-            
+        addKeyedCases(builder, fetchStateTownEnrollment, {
+            data: (state) => state.data.stateTownEnrollments,
+            status: (state) => state.loadingStatus.stateTownEnrollments,
+            key: createOptionsKeyDropNull,
+        });
+
         // School Enrollments
-        builder
-            .addCase(fetchSchoolEnrollments.pending, (state, action) => {
-                const key = createOptionsKeyDropNull(action.meta.arg);
-                state.loadingStatus.schoolEnrollments[key] = LoadingState.LOADING;
-            })
-            .addCase(fetchSchoolEnrollments.fulfilled, (state, action) => {
-                state.data.schoolEnrollments[action.payload.key] = action.payload.data;
-                state.loadingStatus.schoolEnrollments[action.payload.key] = LoadingState.SUCCEEDED;
-            })
-            .addCase(fetchSchoolEnrollments.rejected, (state, action) => {
-                const key = createOptionsKeyDropNull(action.meta.arg);
-                state.loadingStatus.schoolEnrollments[key] = LoadingState.FAILED;
-            });
+        addKeyedCases(builder, fetchSchoolEnrollments, {
+            data: (state) => state.data.schoolEnrollments,
+            status: (state) => state.loadingStatus.schoolEnrollments,
+            key: createOptionsKeyDropNull,
+        });
     }
 });
 
 // Selectors
-export const selectTownEnrollmentLoadingStatus = (state: RootState, params: TownEnrollmentParams) => {
-    const key = createOptionsKeyDropNull({ ...params });
-    return state.enrollment.loadingStatus.townEnrollments[key] || LoadingState.IDLE;
-};
+// Loading selectors: key keeps forceRefresh (as pending does) and undefined params give '_default'
+export const selectTownEnrollmentLoadingStatus = makeStatusSelector<RootState, TownEnrollmentParams>((state) => state.enrollment.loadingStatus.townEnrollments, createOptionsKeyDropNull);
+export const selectStateTownEnrollmentLoadingStatus = makeStatusSelector<RootState, StateTownEnrollmentParams>((state) => state.enrollment.loadingStatus.stateTownEnrollments, createOptionsKeyDropNull);
+export const selectSchoolEnrollmentLoadingStatus = makeStatusSelector<RootState, { schoolId: number } & BaseEnrollmentParams>((state) => state.enrollment.loadingStatus.schoolEnrollments, createOptionsKeyDropNull);
 
-export const selectStateTownEnrollmentLoadingStatus = (state: RootState, params: StateTownEnrollmentParams) => {
-    const key = createOptionsKeyDropNull({ ...params });
-    return state.enrollment.loadingStatus.stateTownEnrollments[key] || LoadingState.IDLE;
-};
-
-export const selectSchoolEnrollmentLoadingStatus = (state: RootState, params: { schoolId: number } & BaseEnrollmentParams) => {
-    const key = createOptionsKeyDropNull({ ...params });
-    return state.enrollment.loadingStatus.schoolEnrollments[key] || LoadingState.IDLE;
-};
-
-export const selectTownEnrollment = createSelector(
-    [(state: RootState) => state.enrollment.data.townEnrollments, 
-     (_: RootState, params: TownEnrollmentParams) => {
-        const { forceRefresh = false, ...options } = params;
-        return createOptionsKeyDropNull(options);
-     }],
-    (townEnrollmentData, key) => townEnrollmentData[key] || []
-);
-
-export const selectStateTownEnrollment = createSelector(
-    [(state: RootState) => state.enrollment.data.stateTownEnrollments, 
-     (_: RootState, params: StateTownEnrollmentParams) => {
-        const { forceRefresh = false, ...options } = params;
-        return createOptionsKeyDropNull(options);
-     }],
-    (stateTownEnrollmentData, key) => stateTownEnrollmentData[key] || []
-);
-
-export const selectSchoolEnrollment = createSelector(
-    [(state: RootState) => state.enrollment.data.schoolEnrollments, 
-     (_: RootState, params: { schoolId: number } & BaseEnrollmentParams) => {
-        const { forceRefresh = false, ...options } = params;
-        return createOptionsKeyDropNull(options);
-     }],
-    (schoolEnrollmentData, key) => schoolEnrollmentData[key] || []
-);
+// Data selectors (memoized): key strips forceRefresh; undefined params throw
+export const selectTownEnrollment = makeMemoDataSelector<RootState, TownEnrollmentParams, TownEnrollmentData>((state) => state.enrollment.data.townEnrollments, createOptionsKeyDropNull);
+export const selectStateTownEnrollment = makeMemoDataSelector<RootState, StateTownEnrollmentParams, StateTownEnrollmentData>((state) => state.enrollment.data.stateTownEnrollments, createOptionsKeyDropNull);
+export const selectSchoolEnrollment = makeMemoDataSelector<RootState, { schoolId: number } & BaseEnrollmentParams, SchoolEnrollmentData>((state) => state.enrollment.data.schoolEnrollments, createOptionsKeyDropNull);
 
 export default enrollmentSlice.reducer; 
