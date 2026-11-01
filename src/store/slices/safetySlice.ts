@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk, PayloadAction, type AsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction, type AsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { safetyApi } from '@/services/api/endpoints/safety';
 import { createSelector } from '@reduxjs/toolkit';
@@ -453,48 +453,15 @@ export const fetchDisciplineIncidentTypes = safetyTypeThunk('safety/fetchDiscipl
 
 // Truancy and enrollment are the only safety categories that check the slice cache;
 // seclusion and restraint neither check the cache nor prefetch a type list.
+// Every other category fetches its type list first; safety incidents use the school safety types at all three levels.
 export const fetchSchoolTruancyData = safetyDataThunk('safety/fetchSchoolTruancyData', 'school', 'truancy',
     (options, forceRefresh) => safetyApi.getSchoolTruancies(options, forceRefresh), { cache: true });
 
-export const fetchSchoolSafetyIncidents = createAsyncThunk(
-    'safety/fetchSchoolSafetyIncidents',
-    async (params: SchoolSafetyParams = {}, {getState, dispatch, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
+export const fetchSchoolSafetyIncidents = safetyDataThunk('safety/fetchSchoolSafetyIncidents', 'school', 'safetyIncidents',
+    (options, forceRefresh) => safetyApi.getSchoolSafetyIncidents(options, forceRefresh), { types: 'schoolSafetyTypes' });
 
-            const safetyState = (getState() as RootState).safety;
-            if (safetyState.typeLoadingStatus.schoolSafetyTypes === LoadingState.IDLE && safetyState.schoolSafetyTypes.length === 0) {
-                await dispatch(fetchSchoolSafetyTypes()).unwrap();
-            }
-
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getSchoolSafetyIncidents(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
-
-export const fetchSchoolHarassmentIncidents = createAsyncThunk(
-    'safety/fetchSchoolHarassmentIncidents',
-    async (params: SchoolHarassmentParams = {}, {getState, dispatch, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-
-            const safetyState = (getState() as RootState).safety;
-            if (safetyState.typeLoadingStatus.harassmentClassification === LoadingState.IDLE && safetyState.harassmentClassification.length === 0) {
-                await dispatch(fetchHarassmentClassification()).unwrap();
-            }
-
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getSchoolHarassmentIncidents(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+export const fetchSchoolHarassmentIncidents = safetyDataThunk('safety/fetchSchoolHarassmentIncidents', 'school', 'harassment',
+    (options, forceRefresh) => safetyApi.getSchoolHarassmentIncidents(options, forceRefresh), { types: 'harassmentClassification' });
 
 export const fetchSchoolSeclusions = safetyDataThunk('safety/fetchSchoolSeclusions', 'school', 'seclusion',
     (options, forceRefresh) => safetyApi.getSchoolSeclusions(options, forceRefresh));
@@ -502,105 +469,20 @@ export const fetchSchoolSeclusions = safetyDataThunk('safety/fetchSchoolSeclusio
 export const fetchSchoolRestraints = safetyDataThunk('safety/fetchSchoolRestraints', 'school', 'restraint',
     (options, forceRefresh) => safetyApi.getSchoolRestraints(options, forceRefresh));
 
-export const fetchSchoolBullyingIncidents = createAsyncThunk(
-    'safety/fetchSchoolBullyingIncidents',
-    async (params: SchoolBullyingParams = {}, {getState, dispatch, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
+export const fetchSchoolBullyingIncidents = safetyDataThunk('safety/fetchSchoolBullyingIncidents', 'school', 'bullying',
+    (options, forceRefresh) => safetyApi.getSchoolBullyingIncidents(options, forceRefresh), { types: 'bullyingTypes' });
 
-            const safetyState = (getState() as RootState).safety;
-            if (safetyState.typeLoadingStatus.bullyingTypes === LoadingState.IDLE && safetyState.bullyingTypes.length === 0) {
-                await dispatch(fetchBullyingTypes()).unwrap();
-            }
+export const fetchSchoolBullyingClassifications = safetyDataThunk('safety/fetchSchoolBullyingClassifications', 'school', 'bullyingClassification',
+    (options, forceRefresh) => safetyApi.getSchoolBullyingClassifications(options, forceRefresh), { types: 'bullyingClassificationTypes' });
 
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getSchoolBullyingIncidents(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+export const fetchSchoolBullyingImpacts = safetyDataThunk('safety/fetchSchoolBullyingImpacts', 'school', 'bullyingImpact',
+    (options, forceRefresh) => safetyApi.getSchoolBullyingImpacts(options, forceRefresh), { types: 'bullyingImpactTypes' });
 
-export const fetchSchoolBullyingClassifications = createAsyncThunk(
-    'safety/fetchSchoolBullyingClassifications',
-    async (params: SchoolBullyingClassificationParams = {}, {getState, dispatch, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
+export const fetchSchoolDisciplineCounts = safetyDataThunk('safety/fetchSchoolDisciplineCounts', 'school', 'disciplineCount',
+    (options, forceRefresh) => safetyApi.getSchoolDisciplineCounts(options, forceRefresh), { types: 'disciplineCountTypes' });
 
-            const safetyState = (getState() as RootState).safety;
-            if (safetyState.typeLoadingStatus.bullyingClassificationTypes === LoadingState.IDLE && safetyState.bullyingClassificationTypes.length === 0) {
-                await dispatch(fetchBullyingClassificationTypes()).unwrap();
-            }
-
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getSchoolBullyingClassifications(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
-
-export const fetchSchoolBullyingImpacts = createAsyncThunk(
-    'safety/fetchSchoolBullyingImpacts',
-    async (params: SchoolBullyingImpactParams = {}, {getState, dispatch, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-
-            const safetyState = (getState() as RootState).safety;
-            if (safetyState.typeLoadingStatus.bullyingImpactTypes === LoadingState.IDLE && safetyState.bullyingImpactTypes.length === 0) {
-                await dispatch(fetchBullyingImpactTypes()).unwrap();
-            }
-
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getSchoolBullyingImpacts(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
-
-export const fetchSchoolDisciplineCounts = createAsyncThunk(
-    'safety/fetchSchoolDisciplineCounts',
-    async (params: SchoolDisciplineCountParams = {}, {getState, dispatch, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-
-            const safetyState = (getState() as RootState).safety;
-            if (safetyState.typeLoadingStatus.disciplineCountTypes === LoadingState.IDLE && safetyState.disciplineCountTypes.length === 0) {
-                await dispatch(fetchDisciplineCountTypes()).unwrap();
-            }
-
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getSchoolDisciplineCounts(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
-
-export const fetchSchoolDisciplineIncidents = createAsyncThunk(
-    'safety/fetchSchoolDisciplineIncidents',
-    async (params: SchoolDisciplineIncidentParams = {}, {getState, dispatch, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-
-            const safetyState = (getState() as RootState).safety;
-            if (safetyState.typeLoadingStatus.disciplineIncidentTypes === LoadingState.IDLE && safetyState.disciplineIncidentTypes.length === 0) {
-                await dispatch(fetchDisciplineIncidentTypes()).unwrap();
-            }
-
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getSchoolDisciplineIncidents(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+export const fetchSchoolDisciplineIncidents = safetyDataThunk('safety/fetchSchoolDisciplineIncidents', 'school', 'disciplineIncident',
+    (options, forceRefresh) => safetyApi.getSchoolDisciplineIncidents(options, forceRefresh), { types: 'disciplineIncidentTypes' });
 
 export const fetchSchoolEnrollmentData = safetyDataThunk('safety/fetchSchoolEnrollmentData', 'school', 'enrollment',
     (options, forceRefresh) => safetyApi.getSchoolEnrollment(options, forceRefresh), { cache: true });
@@ -609,45 +491,11 @@ export const fetchSchoolEnrollmentData = safetyDataThunk('safety/fetchSchoolEnro
 export const fetchDistrictTruancyData = safetyDataThunk('safety/fetchDistrictTruancyData', 'district', 'truancy',
     (options, forceRefresh) => safetyApi.getDistrictTruancies(options, forceRefresh), { cache: true });
 
-export const fetchDistrictSafetyIncidents = createAsyncThunk(
-    'safety/fetchDistrictSafetyIncidents',
-    async (params: DistrictSafetyParams = {}, {getState, dispatch, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
+export const fetchDistrictSafetyIncidents = safetyDataThunk('safety/fetchDistrictSafetyIncidents', 'district', 'safetyIncidents',
+    (options, forceRefresh) => safetyApi.getDistrictSafetyIncidents(options, forceRefresh), { types: 'schoolSafetyTypes' });
 
-            const safetyState = (getState() as RootState).safety;
-            if (safetyState.typeLoadingStatus.schoolSafetyTypes === LoadingState.IDLE && safetyState.schoolSafetyTypes.length === 0) {
-                await dispatch(fetchSchoolSafetyTypes()).unwrap();
-            }
-
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getDistrictSafetyIncidents(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
-
-export const fetchDistrictHarassmentIncidents = createAsyncThunk(
-    'safety/fetchDistrictHarassmentIncidents',
-    async (params: DistrictHarassmentParams = {}, {getState, dispatch, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-
-            const safetyState = (getState() as RootState).safety;
-            if (safetyState.typeLoadingStatus.harassmentClassification === LoadingState.IDLE && safetyState.harassmentClassification.length === 0) {
-                await dispatch(fetchHarassmentClassification()).unwrap();
-            }
-
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getDistrictHarassmentIncidents(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+export const fetchDistrictHarassmentIncidents = safetyDataThunk('safety/fetchDistrictHarassmentIncidents', 'district', 'harassment',
+    (options, forceRefresh) => safetyApi.getDistrictHarassmentIncidents(options, forceRefresh), { types: 'harassmentClassification' });
 
 export const fetchDistrictSeclusions = safetyDataThunk('safety/fetchDistrictSeclusions', 'district', 'seclusion',
     (options, forceRefresh) => safetyApi.getDistrictSeclusions(options, forceRefresh));
@@ -655,105 +503,20 @@ export const fetchDistrictSeclusions = safetyDataThunk('safety/fetchDistrictSecl
 export const fetchDistrictRestraints = safetyDataThunk('safety/fetchDistrictRestraints', 'district', 'restraint',
     (options, forceRefresh) => safetyApi.getDistrictRestraints(options, forceRefresh));
 
-export const fetchDistrictBullyingIncidents = createAsyncThunk(
-    'safety/fetchDistrictBullyingIncidents',
-    async (params: DistrictBullyingParams = {}, {getState, dispatch, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
+export const fetchDistrictBullyingIncidents = safetyDataThunk('safety/fetchDistrictBullyingIncidents', 'district', 'bullying',
+    (options, forceRefresh) => safetyApi.getDistrictBullyingIncidents(options, forceRefresh), { types: 'bullyingTypes' });
 
-            const safetyState = (getState() as RootState).safety;
-            if (safetyState.typeLoadingStatus.bullyingTypes === LoadingState.IDLE && safetyState.bullyingTypes.length === 0) {
-                await dispatch(fetchBullyingTypes()).unwrap();
-            }
+export const fetchDistrictBullyingClassifications = safetyDataThunk('safety/fetchDistrictBullyingClassifications', 'district', 'bullyingClassification',
+    (options, forceRefresh) => safetyApi.getDistrictBullyingClassifications(options, forceRefresh), { types: 'bullyingClassificationTypes' });
 
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getDistrictBullyingIncidents(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+export const fetchDistrictBullyingImpacts = safetyDataThunk('safety/fetchDistrictBullyingImpacts', 'district', 'bullyingImpact',
+    (options, forceRefresh) => safetyApi.getDistrictBullyingImpacts(options, forceRefresh), { types: 'bullyingImpactTypes' });
 
-export const fetchDistrictBullyingClassifications = createAsyncThunk(
-    'safety/fetchDistrictBullyingClassifications',
-    async (params: DistrictBullyingClassificationParams = {}, {getState, dispatch, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
+export const fetchDistrictDisciplineCounts = safetyDataThunk('safety/fetchDistrictDisciplineCounts', 'district', 'disciplineCount',
+    (options, forceRefresh) => safetyApi.getDistrictDisciplineCounts(options, forceRefresh), { types: 'disciplineCountTypes' });
 
-            const safetyState = (getState() as RootState).safety;
-            if (safetyState.typeLoadingStatus.bullyingClassificationTypes === LoadingState.IDLE && safetyState.bullyingClassificationTypes.length === 0) {
-                await dispatch(fetchBullyingClassificationTypes()).unwrap();
-            }
-
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getDistrictBullyingClassifications(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
-
-export const fetchDistrictBullyingImpacts = createAsyncThunk(
-    'safety/fetchDistrictBullyingImpacts',
-    async (params: DistrictBullyingImpactParams = {}, {getState, dispatch, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-
-            const safetyState = (getState() as RootState).safety;
-            if (safetyState.typeLoadingStatus.bullyingImpactTypes === LoadingState.IDLE && safetyState.bullyingImpactTypes.length === 0) {
-                await dispatch(fetchBullyingImpactTypes()).unwrap();
-            }
-
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getDistrictBullyingImpacts(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
-
-export const fetchDistrictDisciplineCounts = createAsyncThunk(
-    'safety/fetchDistrictDisciplineCounts',
-    async (params: DistrictDisciplineCountParams = {}, {getState, dispatch, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-
-            const safetyState = (getState() as RootState).safety;
-            if (safetyState.typeLoadingStatus.disciplineCountTypes === LoadingState.IDLE && safetyState.disciplineCountTypes.length === 0) {
-                await dispatch(fetchDisciplineCountTypes()).unwrap();
-            }
-
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getDistrictDisciplineCounts(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
-
-export const fetchDistrictDisciplineIncidents = createAsyncThunk(
-    'safety/fetchDistrictDisciplineIncidents',
-    async (params: DistrictDisciplineIncidentParams = {}, {getState, dispatch, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-
-            const safetyState = (getState() as RootState).safety;
-            if (safetyState.typeLoadingStatus.disciplineIncidentTypes === LoadingState.IDLE && safetyState.disciplineIncidentTypes.length === 0) {
-                await dispatch(fetchDisciplineIncidentTypes()).unwrap();
-            }
-
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getDistrictDisciplineIncidents(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+export const fetchDistrictDisciplineIncidents = safetyDataThunk('safety/fetchDistrictDisciplineIncidents', 'district', 'disciplineIncident',
+    (options, forceRefresh) => safetyApi.getDistrictDisciplineIncidents(options, forceRefresh), { types: 'disciplineIncidentTypes' });
 
 export const fetchDistrictEnrollmentData = safetyDataThunk('safety/fetchDistrictEnrollmentData', 'district', 'enrollment',
     (options, forceRefresh) => safetyApi.getDistrictEnrollment(options, forceRefresh), { cache: true });
@@ -762,45 +525,11 @@ export const fetchDistrictEnrollmentData = safetyDataThunk('safety/fetchDistrict
 export const fetchStateTruancyData = safetyDataThunk('safety/fetchStateTruancyData', 'state', 'truancy',
     (options, forceRefresh) => safetyApi.getStateTruancies(options, forceRefresh), { cache: true });
 
-export const fetchStateSafetyIncidents = createAsyncThunk(
-    'safety/fetchStateSafetyIncidents',
-    async (params: StateSafetyParams = {}, {getState, dispatch, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
+export const fetchStateSafetyIncidents = safetyDataThunk('safety/fetchStateSafetyIncidents', 'state', 'safetyIncidents',
+    (options, forceRefresh) => safetyApi.getStateSafetyIncidents(options, forceRefresh), { types: 'schoolSafetyTypes' });
 
-            const safetyState = (getState() as RootState).safety;
-            if (safetyState.typeLoadingStatus.schoolSafetyTypes === LoadingState.IDLE && safetyState.schoolSafetyTypes.length === 0) {
-                await dispatch(fetchSchoolSafetyTypes()).unwrap();
-            }
-
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getStateSafetyIncidents(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
-
-export const fetchStateHarassmentIncidents = createAsyncThunk(
-    'safety/fetchStateHarassmentIncidents',
-    async (params: StateHarassmentParams = {}, {getState, dispatch, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-
-            const safetyState = (getState() as RootState).safety;
-            if (safetyState.typeLoadingStatus.harassmentClassification === LoadingState.IDLE && safetyState.harassmentClassification.length === 0) {
-                await dispatch(fetchHarassmentClassification()).unwrap();
-            }
-
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getStateHarassmentIncidents(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+export const fetchStateHarassmentIncidents = safetyDataThunk('safety/fetchStateHarassmentIncidents', 'state', 'harassment',
+    (options, forceRefresh) => safetyApi.getStateHarassmentIncidents(options, forceRefresh), { types: 'harassmentClassification' });
 
 export const fetchStateSeclusions = safetyDataThunk('safety/fetchStateSeclusions', 'state', 'seclusion',
     (options, forceRefresh) => safetyApi.getStateSeclusions(options, forceRefresh));
@@ -808,105 +537,20 @@ export const fetchStateSeclusions = safetyDataThunk('safety/fetchStateSeclusions
 export const fetchStateRestraints = safetyDataThunk('safety/fetchStateRestraints', 'state', 'restraint',
     (options, forceRefresh) => safetyApi.getStateRestraints(options, forceRefresh));
 
-export const fetchStateBullyingIncidents = createAsyncThunk(
-    'safety/fetchStateBullyingIncidents',
-    async (params: StateBullyingParams = {}, {getState, dispatch, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
+export const fetchStateBullyingIncidents = safetyDataThunk('safety/fetchStateBullyingIncidents', 'state', 'bullying',
+    (options, forceRefresh) => safetyApi.getStateBullyingIncidents(options, forceRefresh), { types: 'bullyingTypes' });
 
-            const safetyState = (getState() as RootState).safety;
-            if (safetyState.typeLoadingStatus.bullyingTypes === LoadingState.IDLE && safetyState.bullyingTypes.length === 0) {
-                await dispatch(fetchBullyingTypes()).unwrap();
-            }
+export const fetchStateBullyingClassifications = safetyDataThunk('safety/fetchStateBullyingClassifications', 'state', 'bullyingClassification',
+    (options, forceRefresh) => safetyApi.getStateBullyingClassifications(options, forceRefresh), { types: 'bullyingClassificationTypes' });
 
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getStateBullyingIncidents(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+export const fetchStateBullyingImpacts = safetyDataThunk('safety/fetchStateBullyingImpacts', 'state', 'bullyingImpact',
+    (options, forceRefresh) => safetyApi.getStateBullyingImpacts(options, forceRefresh), { types: 'bullyingImpactTypes' });
 
-export const fetchStateBullyingClassifications = createAsyncThunk(
-    'safety/fetchStateBullyingClassifications',
-    async (params: StateBullyingClassificationParams = {}, {getState, dispatch, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
+export const fetchStateDisciplineCounts = safetyDataThunk('safety/fetchStateDisciplineCounts', 'state', 'disciplineCount',
+    (options, forceRefresh) => safetyApi.getStateDisciplineCounts(options, forceRefresh), { types: 'disciplineCountTypes' });
 
-            const safetyState = (getState() as RootState).safety;
-            if (safetyState.typeLoadingStatus.bullyingClassificationTypes === LoadingState.IDLE && safetyState.bullyingClassificationTypes.length === 0) {
-                await dispatch(fetchBullyingClassificationTypes()).unwrap();
-            }
-
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getStateBullyingClassifications(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
-
-export const fetchStateBullyingImpacts = createAsyncThunk(
-    'safety/fetchStateBullyingImpacts',
-    async (params: StateBullyingImpactParams = {}, {getState, dispatch, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-
-            const safetyState = (getState() as RootState).safety;
-            if (safetyState.typeLoadingStatus.bullyingImpactTypes === LoadingState.IDLE && safetyState.bullyingImpactTypes.length === 0) {
-                await dispatch(fetchBullyingImpactTypes()).unwrap();
-            }
-
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getStateBullyingImpacts(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
-
-export const fetchStateDisciplineCounts = createAsyncThunk(
-    'safety/fetchStateDisciplineCounts',
-    async (params: StateDisciplineCountParams = {}, {getState, dispatch, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-
-            const safetyState = (getState() as RootState).safety;
-            if (safetyState.typeLoadingStatus.disciplineCountTypes === LoadingState.IDLE && safetyState.disciplineCountTypes.length === 0) {
-                await dispatch(fetchDisciplineCountTypes()).unwrap();
-            }
-
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getStateDisciplineCounts(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
-
-export const fetchStateDisciplineIncidents = createAsyncThunk(
-    'safety/fetchStateDisciplineIncidents',
-    async (params: StateDisciplineIncidentParams = {}, {getState, dispatch, rejectWithValue}) => {
-        try {
-            const {forceRefresh = false, ...options} = params;
-
-            const safetyState = (getState() as RootState).safety;
-            if (safetyState.typeLoadingStatus.disciplineIncidentTypes === LoadingState.IDLE && safetyState.disciplineIncidentTypes.length === 0) {
-                await dispatch(fetchDisciplineIncidentTypes()).unwrap();
-            }
-
-            const key = createOptionsKey(options);
-            const data = await safetyApi.getStateDisciplineIncidents(options, forceRefresh);
-            return { key, data };
-        } catch (error : any) {
-            return rejectWithValue(error.message);
-        }
-    }
-)
+export const fetchStateDisciplineIncidents = safetyDataThunk('safety/fetchStateDisciplineIncidents', 'state', 'disciplineIncident',
+    (options, forceRefresh) => safetyApi.getStateDisciplineIncidents(options, forceRefresh), { types: 'disciplineIncidentTypes' });
 
 export const fetchStateEnrollmentData = safetyDataThunk('safety/fetchStateEnrollmentData', 'state', 'enrollment',
     (options, forceRefresh) => safetyApi.getStateEnrollment(options, forceRefresh), { cache: true });
