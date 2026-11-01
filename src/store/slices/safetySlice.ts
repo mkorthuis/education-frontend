@@ -4,8 +4,8 @@ import { safetyApi } from '@/services/api/endpoints/safety';
 import { createSelector } from '@reduxjs/toolkit';
 import { LoadingState } from '@/store/utils/loadingState';
 import { createOptionsKey } from '@/store/utils/cacheKey';
-import { createKeyedThunk, prefetchIfIdle, type KeyedPayload, type KeyedOptions, type ThunkHooks } from '@/store/utils/keyedResource';
-import { createTypeListThunk } from '@/store/utils/typeLists';
+import { addKeyedCases, createKeyedThunk, prefetchIfIdle, type KeyedPayload, type KeyedOptions, type ThunkHooks } from '@/store/utils/keyedResource';
+import { addTypeListCases, createTypeListThunk } from '@/store/utils/typeLists';
 
 export { LoadingState };
 
@@ -285,46 +285,40 @@ interface SafetyState {
     selectedSafetyPage: SafetyPage | null;
 }
 
+// Every loading map and schoolData/districtData share this key order; each call returns fresh, distinct buckets.
+const categoryMaps = () => ({
+    truancy: {},
+    safetyIncidents: {},
+    harassment: {},
+    bullying: {},
+    restraint: {},
+    seclusion: {},
+    bullyingClassification: {},
+    bullyingImpact: {},
+    disciplineCount: {},
+    disciplineIncident: {},
+    enrollment: {}
+});
+
+// stateData lists restraint and seclusion before bullying; kept so the initial state's key order is unchanged.
+const stateDataMaps = () => ({
+    truancy: {},
+    safetyIncidents: {},
+    harassment: {},
+    restraint: {},
+    seclusion: {},
+    bullying: {},
+    bullyingClassification: {},
+    bullyingImpact: {},
+    disciplineCount: {},
+    disciplineIncident: {},
+    enrollment: {}
+});
+
 const initialState: SafetyState = {
-    schoolDataLoadingStatus: {
-        truancy: {},
-        safetyIncidents: {},
-        harassment: {},
-        bullying: {},
-        restraint: {},
-        seclusion: {},
-        bullyingClassification: {},
-        bullyingImpact: {},
-        disciplineCount: {},
-        disciplineIncident: {},
-        enrollment: {}
-    },
-    districtDataLoadingStatus: {
-        truancy: {},
-        safetyIncidents: {},
-        harassment: {},
-        bullying: {},
-        restraint: {},
-        seclusion: {},
-        bullyingClassification: {},
-        bullyingImpact: {},
-        disciplineCount: {},
-        disciplineIncident: {},
-        enrollment: {}
-    },
-    stateDataLoadingStatus: {
-        truancy: {},
-        safetyIncidents: {},
-        harassment: {},
-        bullying: {},
-        restraint: {},
-        seclusion: {},
-        bullyingClassification: {},
-        bullyingImpact: {},
-        disciplineCount: {},
-        disciplineIncident: {},
-        enrollment: {}
-    },
+    schoolDataLoadingStatus: categoryMaps(),
+    districtDataLoadingStatus: categoryMaps(),
+    stateDataLoadingStatus: categoryMaps(),
     
     typeLoadingStatus: {
         schoolSafetyTypes: LoadingState.IDLE,
@@ -336,45 +330,9 @@ const initialState: SafetyState = {
         disciplineIncidentTypes: LoadingState.IDLE
     },
 
-    schoolData: {
-        truancy: {},
-        safetyIncidents: {},
-        harassment: {},
-        bullying: {},
-        restraint: {},
-        seclusion: {},
-        bullyingClassification: {},
-        bullyingImpact: {},
-        disciplineCount: {},
-        disciplineIncident: {},
-        enrollment: {}
-    },
-    districtData: {
-        truancy: {},
-        safetyIncidents: {},
-        harassment: {},
-        bullying: {},
-        restraint: {},
-        seclusion: {},
-        bullyingClassification: {},
-        bullyingImpact: {},
-        disciplineCount: {},
-        disciplineIncident: {},
-        enrollment: {}
-    },
-    stateData: {
-        truancy: {},
-        safetyIncidents: {},
-        harassment: {},
-        restraint: {},
-        seclusion: {},
-        bullying: {},
-        bullyingClassification: {},
-        bullyingImpact: {},
-        disciplineCount: {},
-        disciplineIncident: {},
-        enrollment: {}
-    },
+    schoolData: categoryMaps(),
+    districtData: categoryMaps(),
+    stateData: stateDataMaps(),
     
     schoolSafetyTypes: [],
     harassmentClassification: [],
@@ -564,547 +522,18 @@ export const safetySlice = createSlice({
         },
     },
     extraReducers: (builder) => {
-        builder.addCase(fetchSchoolSafetyTypes.pending, (state, action) => {
-            state.typeLoadingStatus.schoolSafetyTypes = LoadingState.LOADING;
-        })
-        .addCase(fetchSchoolSafetyTypes.fulfilled, (state, action) => {
-            state.schoolSafetyTypes = action.payload;
-            state.typeLoadingStatus.schoolSafetyTypes = LoadingState.SUCCEEDED;
-        })  
-        .addCase(fetchSchoolSafetyTypes.rejected, (state, action) => {
-            state.typeLoadingStatus.schoolSafetyTypes = LoadingState.FAILED;
-        })
-
-        .addCase(fetchHarassmentClassification.pending, (state, action) => {
-            state.typeLoadingStatus.harassmentClassification = LoadingState.LOADING;
-        })
-        .addCase(fetchHarassmentClassification.fulfilled, (state, action) => {
-            state.harassmentClassification = action.payload;
-            state.typeLoadingStatus.harassmentClassification = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchHarassmentClassification.rejected, (state, action) => {
-            state.typeLoadingStatus.harassmentClassification = LoadingState.FAILED;
-        })
-
-        // Bullying Types
-        .addCase(fetchBullyingTypes.pending, (state, action) => {
-            state.typeLoadingStatus.bullyingTypes = LoadingState.LOADING;
-        })
-        .addCase(fetchBullyingTypes.fulfilled, (state, action) => {
-            state.bullyingTypes = action.payload;
-            state.typeLoadingStatus.bullyingTypes = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchBullyingTypes.rejected, (state, action) => {
-            state.typeLoadingStatus.bullyingTypes = LoadingState.FAILED;
-        })
-        
-        // Bullying Classification Types
-        .addCase(fetchBullyingClassificationTypes.pending, (state, action) => {
-            state.typeLoadingStatus.bullyingClassificationTypes = LoadingState.LOADING;
-        })
-        .addCase(fetchBullyingClassificationTypes.fulfilled, (state, action) => {
-            state.bullyingClassificationTypes = action.payload;
-            state.typeLoadingStatus.bullyingClassificationTypes = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchBullyingClassificationTypes.rejected, (state, action) => {
-            state.typeLoadingStatus.bullyingClassificationTypes = LoadingState.FAILED;
-        })
-        
-        // Bullying Impact Types
-        .addCase(fetchBullyingImpactTypes.pending, (state, action) => {
-            state.typeLoadingStatus.bullyingImpactTypes = LoadingState.LOADING;
-        })
-        .addCase(fetchBullyingImpactTypes.fulfilled, (state, action) => {
-            state.bullyingImpactTypes = action.payload;
-            state.typeLoadingStatus.bullyingImpactTypes = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchBullyingImpactTypes.rejected, (state, action) => {
-            state.typeLoadingStatus.bullyingImpactTypes = LoadingState.FAILED;
-        })
-        
-        // Discipline Count Types
-        .addCase(fetchDisciplineCountTypes.pending, (state, action) => {
-            state.typeLoadingStatus.disciplineCountTypes = LoadingState.LOADING;
-        })
-        .addCase(fetchDisciplineCountTypes.fulfilled, (state, action) => {
-            state.disciplineCountTypes = action.payload;
-            state.typeLoadingStatus.disciplineCountTypes = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchDisciplineCountTypes.rejected, (state, action) => {
-            state.typeLoadingStatus.disciplineCountTypes = LoadingState.FAILED;
-        })
-        
-        // Discipline Incident Types
-        .addCase(fetchDisciplineIncidentTypes.pending, (state, action) => {
-            state.typeLoadingStatus.disciplineIncidentTypes = LoadingState.LOADING;
-        })
-        .addCase(fetchDisciplineIncidentTypes.fulfilled, (state, action) => {
-            state.disciplineIncidentTypes = action.payload;
-            state.typeLoadingStatus.disciplineIncidentTypes = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchDisciplineIncidentTypes.rejected, (state, action) => {
-            state.typeLoadingStatus.disciplineIncidentTypes = LoadingState.FAILED;
-        })
-        
-        .addCase(fetchSchoolTruancyData.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.schoolDataLoadingStatus.truancy[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchSchoolTruancyData.fulfilled, (state, action) => {
-            state.schoolData.truancy[action.payload.key] = action.payload.data;
-            state.schoolDataLoadingStatus.truancy[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchSchoolTruancyData.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.schoolDataLoadingStatus.truancy[key] = LoadingState.FAILED;
-        })
-        
-        .addCase(fetchSchoolSafetyIncidents.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.schoolDataLoadingStatus.safetyIncidents[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchSchoolSafetyIncidents.fulfilled, (state, action) => {
-            state.schoolData.safetyIncidents[action.payload.key] = action.payload.data;
-            state.schoolDataLoadingStatus.safetyIncidents[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchSchoolSafetyIncidents.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.schoolDataLoadingStatus.safetyIncidents[key] = LoadingState.FAILED;
-        })
-
-        .addCase(fetchSchoolHarassmentIncidents.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.schoolDataLoadingStatus.harassment[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchSchoolHarassmentIncidents.fulfilled, (state, action) => {
-            state.schoolData.harassment[action.payload.key] = action.payload.data;
-            state.schoolDataLoadingStatus.harassment[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchSchoolHarassmentIncidents.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.schoolDataLoadingStatus.harassment[key] = LoadingState.FAILED;
-        })
-
-        // Seclusions
-        .addCase(fetchSchoolSeclusions.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.schoolDataLoadingStatus.seclusion[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchSchoolSeclusions.fulfilled, (state, action) => {
-            state.schoolData.seclusion[action.payload.key] = action.payload.data;
-            state.schoolDataLoadingStatus.seclusion[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchSchoolSeclusions.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.schoolDataLoadingStatus.seclusion[key] = LoadingState.FAILED;
-        })
-
-        // Restraints
-        .addCase(fetchSchoolRestraints.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.schoolDataLoadingStatus.restraint[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchSchoolRestraints.fulfilled, (state, action) => {
-            state.schoolData.restraint[action.payload.key] = action.payload.data;
-            state.schoolDataLoadingStatus.restraint[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchSchoolRestraints.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.schoolDataLoadingStatus.restraint[key] = LoadingState.FAILED;
-        })
-
-        // Bullying Incidents
-        .addCase(fetchSchoolBullyingIncidents.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.schoolDataLoadingStatus.bullying[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchSchoolBullyingIncidents.fulfilled, (state, action) => {
-            state.schoolData.bullying[action.payload.key] = action.payload.data;
-            state.schoolDataLoadingStatus.bullying[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchSchoolBullyingIncidents.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.schoolDataLoadingStatus.bullying[key] = LoadingState.FAILED;
-        })
-
-        // Bullying Classifications
-        .addCase(fetchSchoolBullyingClassifications.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.schoolDataLoadingStatus.bullyingClassification[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchSchoolBullyingClassifications.fulfilled, (state, action) => {
-            state.schoolData.bullyingClassification[action.payload.key] = action.payload.data;
-            state.schoolDataLoadingStatus.bullyingClassification[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchSchoolBullyingClassifications.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.schoolDataLoadingStatus.bullyingClassification[key] = LoadingState.FAILED;
-        })
-
-        // Bullying Impacts
-        .addCase(fetchSchoolBullyingImpacts.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.schoolDataLoadingStatus.bullyingImpact[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchSchoolBullyingImpacts.fulfilled, (state, action) => {
-            state.schoolData.bullyingImpact[action.payload.key] = action.payload.data;
-            state.schoolDataLoadingStatus.bullyingImpact[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchSchoolBullyingImpacts.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.schoolDataLoadingStatus.bullyingImpact[key] = LoadingState.FAILED;
-        })
-
-        // Discipline Counts
-        .addCase(fetchSchoolDisciplineCounts.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.schoolDataLoadingStatus.disciplineCount[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchSchoolDisciplineCounts.fulfilled, (state, action) => {
-            state.schoolData.disciplineCount[action.payload.key] = action.payload.data;
-            state.schoolDataLoadingStatus.disciplineCount[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchSchoolDisciplineCounts.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.schoolDataLoadingStatus.disciplineCount[key] = LoadingState.FAILED;
-        })
-
-        // Discipline Incidents
-        .addCase(fetchSchoolDisciplineIncidents.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.schoolDataLoadingStatus.disciplineIncident[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchSchoolDisciplineIncidents.fulfilled, (state, action) => {
-            state.schoolData.disciplineIncident[action.payload.key] = action.payload.data;
-            state.schoolDataLoadingStatus.disciplineIncident[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchSchoolDisciplineIncidents.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.schoolDataLoadingStatus.disciplineIncident[key] = LoadingState.FAILED;
-        })
-
-        .addCase(fetchSchoolEnrollmentData.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.schoolDataLoadingStatus.enrollment[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchSchoolEnrollmentData.fulfilled, (state, action) => {
-            state.schoolData.enrollment[action.payload.key] = action.payload.data;
-            state.schoolDataLoadingStatus.enrollment[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchSchoolEnrollmentData.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.schoolDataLoadingStatus.enrollment[key] = LoadingState.FAILED;
-        })
-
-        // District Level Reducers
-        // District Truancy
-        .addCase(fetchDistrictTruancyData.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.districtDataLoadingStatus.truancy[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchDistrictTruancyData.fulfilled, (state, action) => {
-            state.districtData.truancy[action.payload.key] = action.payload.data;
-            state.districtDataLoadingStatus.truancy[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchDistrictTruancyData.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.districtDataLoadingStatus.truancy[key] = LoadingState.FAILED;
-        })
-        
-        // District Safety Incidents
-        .addCase(fetchDistrictSafetyIncidents.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.districtDataLoadingStatus.safetyIncidents[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchDistrictSafetyIncidents.fulfilled, (state, action) => {
-            state.districtData.safetyIncidents[action.payload.key] = action.payload.data;
-            state.districtDataLoadingStatus.safetyIncidents[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchDistrictSafetyIncidents.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.districtDataLoadingStatus.safetyIncidents[key] = LoadingState.FAILED;
-        })
-
-        // District Harassment
-        .addCase(fetchDistrictHarassmentIncidents.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.districtDataLoadingStatus.harassment[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchDistrictHarassmentIncidents.fulfilled, (state, action) => {
-            state.districtData.harassment[action.payload.key] = action.payload.data;
-            state.districtDataLoadingStatus.harassment[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchDistrictHarassmentIncidents.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.districtDataLoadingStatus.harassment[key] = LoadingState.FAILED;
-        })
-
-        // District Seclusions
-        .addCase(fetchDistrictSeclusions.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.districtDataLoadingStatus.seclusion[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchDistrictSeclusions.fulfilled, (state, action) => {
-            state.districtData.seclusion[action.payload.key] = action.payload.data;
-            state.districtDataLoadingStatus.seclusion[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchDistrictSeclusions.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.districtDataLoadingStatus.seclusion[key] = LoadingState.FAILED;
-        })
-
-        // District Restraints
-        .addCase(fetchDistrictRestraints.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.districtDataLoadingStatus.restraint[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchDistrictRestraints.fulfilled, (state, action) => {
-            state.districtData.restraint[action.payload.key] = action.payload.data;
-            state.districtDataLoadingStatus.restraint[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchDistrictRestraints.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.districtDataLoadingStatus.restraint[key] = LoadingState.FAILED;
-        })
-
-        // District Bullying
-        .addCase(fetchDistrictBullyingIncidents.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.districtDataLoadingStatus.bullying[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchDistrictBullyingIncidents.fulfilled, (state, action) => {
-            state.districtData.bullying[action.payload.key] = action.payload.data;
-            state.districtDataLoadingStatus.bullying[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchDistrictBullyingIncidents.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.districtDataLoadingStatus.bullying[key] = LoadingState.FAILED;
-        })
-
-        // District Bullying Classifications
-        .addCase(fetchDistrictBullyingClassifications.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.districtDataLoadingStatus.bullyingClassification[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchDistrictBullyingClassifications.fulfilled, (state, action) => {
-            state.districtData.bullyingClassification[action.payload.key] = action.payload.data;
-            state.districtDataLoadingStatus.bullyingClassification[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchDistrictBullyingClassifications.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.districtDataLoadingStatus.bullyingClassification[key] = LoadingState.FAILED;
-        })
-
-        // District Bullying Impacts
-        .addCase(fetchDistrictBullyingImpacts.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.districtDataLoadingStatus.bullyingImpact[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchDistrictBullyingImpacts.fulfilled, (state, action) => {
-            state.districtData.bullyingImpact[action.payload.key] = action.payload.data;
-            state.districtDataLoadingStatus.bullyingImpact[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchDistrictBullyingImpacts.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.districtDataLoadingStatus.bullyingImpact[key] = LoadingState.FAILED;
-        })
-
-        // District Discipline Counts
-        .addCase(fetchDistrictDisciplineCounts.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.districtDataLoadingStatus.disciplineCount[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchDistrictDisciplineCounts.fulfilled, (state, action) => {
-            state.districtData.disciplineCount[action.payload.key] = action.payload.data;
-            state.districtDataLoadingStatus.disciplineCount[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchDistrictDisciplineCounts.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.districtDataLoadingStatus.disciplineCount[key] = LoadingState.FAILED;
-        })
-
-        // District Discipline Incidents
-        .addCase(fetchDistrictDisciplineIncidents.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.districtDataLoadingStatus.disciplineIncident[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchDistrictDisciplineIncidents.fulfilled, (state, action) => {
-            state.districtData.disciplineIncident[action.payload.key] = action.payload.data;
-            state.districtDataLoadingStatus.disciplineIncident[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchDistrictDisciplineIncidents.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.districtDataLoadingStatus.disciplineIncident[key] = LoadingState.FAILED;
-        })
-
-        // District Enrollment
-        .addCase(fetchDistrictEnrollmentData.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.districtDataLoadingStatus.enrollment[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchDistrictEnrollmentData.fulfilled, (state, action) => {
-            state.districtData.enrollment[action.payload.key] = action.payload.data;
-            state.districtDataLoadingStatus.enrollment[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchDistrictEnrollmentData.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.districtDataLoadingStatus.enrollment[key] = LoadingState.FAILED;
-        })
-
-        // State Level Reducers
-        // State Truancy
-        .addCase(fetchStateTruancyData.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.stateDataLoadingStatus.truancy[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchStateTruancyData.fulfilled, (state, action) => {
-            state.stateData.truancy[action.payload.key] = action.payload.data;
-            state.stateDataLoadingStatus.truancy[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchStateTruancyData.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.stateDataLoadingStatus.truancy[key] = LoadingState.FAILED;
-        })
-        
-        // State Safety Incidents
-        .addCase(fetchStateSafetyIncidents.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.stateDataLoadingStatus.safetyIncidents[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchStateSafetyIncidents.fulfilled, (state, action) => {
-            state.stateData.safetyIncidents[action.payload.key] = action.payload.data;
-            state.stateDataLoadingStatus.safetyIncidents[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchStateSafetyIncidents.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.stateDataLoadingStatus.safetyIncidents[key] = LoadingState.FAILED;
-        })
-
-        // State Harassment
-        .addCase(fetchStateHarassmentIncidents.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.stateDataLoadingStatus.harassment[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchStateHarassmentIncidents.fulfilled, (state, action) => {
-            state.stateData.harassment[action.payload.key] = action.payload.data;
-            state.stateDataLoadingStatus.harassment[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchStateHarassmentIncidents.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.stateDataLoadingStatus.harassment[key] = LoadingState.FAILED;
-        })
-
-        // State Seclusions
-        .addCase(fetchStateSeclusions.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.stateDataLoadingStatus.seclusion[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchStateSeclusions.fulfilled, (state, action) => {
-            state.stateData.seclusion[action.payload.key] = action.payload.data;
-            state.stateDataLoadingStatus.seclusion[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchStateSeclusions.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.stateDataLoadingStatus.seclusion[key] = LoadingState.FAILED;
-        })
-
-        // State Restraints
-        .addCase(fetchStateRestraints.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.stateDataLoadingStatus.restraint[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchStateRestraints.fulfilled, (state, action) => {
-            state.stateData.restraint[action.payload.key] = action.payload.data;
-            state.stateDataLoadingStatus.restraint[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchStateRestraints.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.stateDataLoadingStatus.restraint[key] = LoadingState.FAILED;
-        })
-
-        // State Bullying
-        .addCase(fetchStateBullyingIncidents.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.stateDataLoadingStatus.bullying[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchStateBullyingIncidents.fulfilled, (state, action) => {
-            state.stateData.bullying[action.payload.key] = action.payload.data;
-            state.stateDataLoadingStatus.bullying[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchStateBullyingIncidents.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.stateDataLoadingStatus.bullying[key] = LoadingState.FAILED;
-        })
-
-        // State Bullying Classifications
-        .addCase(fetchStateBullyingClassifications.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.stateDataLoadingStatus.bullyingClassification[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchStateBullyingClassifications.fulfilled, (state, action) => {
-            state.stateData.bullyingClassification[action.payload.key] = action.payload.data;
-            state.stateDataLoadingStatus.bullyingClassification[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchStateBullyingClassifications.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.stateDataLoadingStatus.bullyingClassification[key] = LoadingState.FAILED;
-        })
-
-        // State Bullying Impacts
-        .addCase(fetchStateBullyingImpacts.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.stateDataLoadingStatus.bullyingImpact[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchStateBullyingImpacts.fulfilled, (state, action) => {
-            state.stateData.bullyingImpact[action.payload.key] = action.payload.data;
-            state.stateDataLoadingStatus.bullyingImpact[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchStateBullyingImpacts.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.stateDataLoadingStatus.bullyingImpact[key] = LoadingState.FAILED;
-        })
-
-        // State Discipline Counts
-        .addCase(fetchStateDisciplineCounts.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.stateDataLoadingStatus.disciplineCount[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchStateDisciplineCounts.fulfilled, (state, action) => {
-            state.stateData.disciplineCount[action.payload.key] = action.payload.data;
-            state.stateDataLoadingStatus.disciplineCount[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchStateDisciplineCounts.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.stateDataLoadingStatus.disciplineCount[key] = LoadingState.FAILED;
-        })
-
-        // State Discipline Incidents
-        .addCase(fetchStateDisciplineIncidents.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.stateDataLoadingStatus.disciplineIncident[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchStateDisciplineIncidents.fulfilled, (state, action) => {
-            state.stateData.disciplineIncident[action.payload.key] = action.payload.data;
-            state.stateDataLoadingStatus.disciplineIncident[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchStateDisciplineIncidents.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.stateDataLoadingStatus.disciplineIncident[key] = LoadingState.FAILED;
-        })
-
-        // State Enrollment
-        .addCase(fetchStateEnrollmentData.pending, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.stateDataLoadingStatus.enrollment[key] = LoadingState.LOADING;
-        })
-        .addCase(fetchStateEnrollmentData.fulfilled, (state, action) => {
-            state.stateData.enrollment[action.payload.key] = action.payload.data;
-            state.stateDataLoadingStatus.enrollment[action.payload.key] = LoadingState.SUCCEEDED;
-        })
-        .addCase(fetchStateEnrollmentData.rejected, (state, action) => {
-            const key = createOptionsKey(action.meta.arg);
-            state.stateDataLoadingStatus.enrollment[key] = LoadingState.FAILED;
-        })
+        // The field list comes from the typed initialState, so a type list without a registered thunk fails at store creation.
+        for (const field of Object.keys(initialState.typeLoadingStatus) as SafetyTypeCategory[]) {
+            addTypeListCases(builder, SAFETY_TYPE_THUNKS[field], field);
+        }
+        // Keyed data: pending/rejected keyed on the raw meta.arg, fulfilled on payload.key, in the buckets of the
+        // level and category each thunk was registered with.
+        for (const { thunk, level, category } of SAFETY_DATA_THUNKS) {
+            addKeyedCases(builder, thunk, {
+                data: (state) => state[`${level}Data`][category],
+                status: (state) => state[`${level}DataLoadingStatus`][category],
+            });
+        }
     }
 })
 
