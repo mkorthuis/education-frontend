@@ -15,7 +15,7 @@ The platform makes valuable educational data transparent and actionable, allowin
 - **UI Components**: Material UI (MUI v6)
 - **Routing**: React Router v6
 - **API Client**: Axios
-- **Data Visualization**: Recharts, MUI X-Charts
+- **Data Visualization**: Recharts
 - **Build Tool**: Vite
 - **Testing**: Vitest with React Testing Library
 - **Type Safety**: TypeScript
