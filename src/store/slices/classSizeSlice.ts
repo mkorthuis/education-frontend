@@ -1,7 +1,7 @@
 import { createSlice, type AsyncThunk } from '@reduxjs/toolkit';
 import { classSizeApi } from '@/services/api/endpoints/classSize';
 import { RootState } from '@/store/store';
-import { LoadingState } from '@/store/utils/loadingState';
+import { LoadingState, retryFailedLoads, resetFailedStatuses } from '@/store/utils/loadingState';
 import { createKeyedThunk, addKeyedCases, type KeyedPayload, type KeyedOptions } from '@/store/utils/keyedResource';
 import { makeStatusSelector, makeMemoDataSelector } from '@/store/utils/selectors';
 
@@ -125,6 +125,13 @@ export const classSizeSlice = createSlice({
                 status: (state) => state[`${level}DataLoadingStatus`],
             });
         }
+
+        // Retry on a page's load error: failed requests go back to IDLE so the page requests them again
+        builder.addCase(retryFailedLoads, (state) => {
+            resetFailedStatuses(state.schoolDataLoadingStatus);
+            resetFailedStatuses(state.districtDataLoadingStatus);
+            resetFailedStatuses(state.stateDataLoadingStatus);
+        });
     }
 });
 

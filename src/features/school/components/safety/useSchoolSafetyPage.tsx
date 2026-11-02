@@ -9,6 +9,7 @@ import SectionTitle from '@/components/ui/SectionTitle';
 import * as safetySlice from '@/store/slices/safetySlice';
 import { EARLIEST_YEAR } from '@/utils/safetyCalculations';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
+import { aggregateStatus } from '@/store/utils/loadingState';
 
 // The school Safety page's data: fetches, loading gate and notices. Its notices
 // differ from the district page's (see useDistrictSafetyPage).
@@ -160,12 +161,13 @@ export function useSchoolSafetyPage() {
     stateDisciplineCountData, stateDisciplineIncidentData, stateEnrollmentData
   ]);
 
-  // Check if any data is still loading
-  const isLoading = useMemo(() => {
-    return schoolLoading || 
-      Object.values(loadingStates.school).some(state => state !== safetySlice.LoadingState.SUCCEEDED) ||
-      Object.values(loadingStates.state).some(state => state !== safetySlice.LoadingState.SUCCEEDED);
-  }, [schoolLoading, loadingStates]);
+  // Loading until every request succeeded; a failed request shows an error with Retry instead
+  const loadStatus = aggregateStatus([
+    ...Object.values(loadingStates.school),
+    ...Object.values(loadingStates.state)
+  ]);
+  const isLoading = schoolLoading || loadStatus !== 'ready';
+  const hasLoadError = !schoolLoading && !!schoolId && loadStatus === 'failed';
 
   // Determine if data is available for the school
   const hasDataAvailable = useMemo(() => {
@@ -260,6 +262,7 @@ export function useSchoolSafetyPage() {
       />
     ),
     isLoading,
+    hasLoadError,
     desktopNotice,
     mobileNotice: renderDataUnavailabilityNotice()
   };

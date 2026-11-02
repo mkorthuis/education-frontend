@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material';
+import { Box, CircularProgress, Typography } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { selectAnyLocationLoading } from '@/store/slices/locationSlice';
 import {
@@ -14,6 +14,7 @@ import {
   resetFailedAssessmentLoad
 } from '@/store/slices/assessmentSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
+import LoadErrorAlert from '@/components/ui/LoadErrorAlert';
 import EntityMeasurementCard from './academic/EntityMeasurementCard';
 import EntityAcademicSubjectDetails from './academic/EntityAcademicSubjectDetails';
 import AcademicDefaultView from '@/components/ui/academic/AcademicDefaultView';
@@ -145,18 +146,7 @@ const EntityAcademicAchievement: React.FC<{ kind: EntityKind }> = ({ kind }) => 
         districtName={kind === 'district' ? entity?.name : undefined}
       />
       {hasLoadError ? (
-        <Box sx={{ my: 4 }}>
-          <Alert
-            severity="error"
-            action={
-              <Button color="inherit" size="small" onClick={handleRetry}>
-                Retry
-              </Button>
-            }
-          >
-            Assessment data could not be loaded.
-          </Alert>
-        </Box>
+        <LoadErrorAlert message="Assessment data could not be loaded." onRetry={handleRetry} />
       ) : isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
           <CircularProgress />

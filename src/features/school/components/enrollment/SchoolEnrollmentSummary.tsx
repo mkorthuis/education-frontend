@@ -35,16 +35,14 @@ const SchoolEnrollmentSummary: React.FC<SchoolEnrollmentSummaryProps> = ({ onDat
     [schoolEnrollmentData]
   );
 
-  // State for selected years
-  const [startYear, setStartYear] = React.useState<number>(() => {
-    const latestYear = availableYears[0] || 0;
-    return Math.max(latestYear - 5, availableYears[availableYears.length - 1] || 0);
-  });
-  const [endYear, setEndYear] = React.useState<number>(availableYears[0] || 0);
-  const [futureYear, setFutureYear] = React.useState<number>(() => {
-    const latestYear = availableYears[0] || 0;
-    return latestYear + 1;
-  });
+  // Selected years: null until the user picks one, so the defaults follow the loaded data
+  const [selectedStartYear, setStartYear] = React.useState<number | null>(null);
+  const [selectedEndYear, setEndYear] = React.useState<number | null>(null);
+  const [selectedFutureYear, setFutureYear] = React.useState<number | null>(null);
+  const latestYear = availableYears[0] || 0;
+  const startYear = selectedStartYear ?? Math.max(latestYear - 5, availableYears[availableYears.length - 1] || 0);
+  const endYear = selectedEndYear ?? latestYear;
+  const futureYear = selectedFutureYear ?? latestYear + 1;
 
   // State for opening methodology dialog
   const [openMethodology, setOpenMethodology] = React.useState(false);

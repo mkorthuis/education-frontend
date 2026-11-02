@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { enrollmentApi, TownEnrollmentData, StateTownEnrollmentData, SchoolEnrollmentData } from '@/services/api/endpoints/enrollments';
-import { LoadingState } from '@/store/utils/loadingState';
+import { LoadingState, retryFailedLoads, resetFailedStatuses } from '@/store/utils/loadingState';
 import { createOptionsKeyDropNull } from '@/store/utils/cacheKey';
 import { createKeyedThunk, addKeyedCases, needsRequest } from '@/store/utils/keyedResource';
 import { makeStatusSelector, makeMemoDataSelector } from '@/store/utils/selectors';
@@ -115,6 +115,11 @@ export const enrollmentSlice = createSlice({
             data: (state) => state.data.schoolEnrollments,
             status: (state) => state.loadingStatus.schoolEnrollments,
             key: createOptionsKeyDropNull,
+        });
+
+        // Retry on a page's load error: failed requests go back to IDLE so the page requests them again
+        builder.addCase(retryFailedLoads, (state) => {
+            resetFailedStatuses(state.loadingStatus);
         });
     }
 });

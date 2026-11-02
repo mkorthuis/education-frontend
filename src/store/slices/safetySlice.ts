@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { safetyApi } from '@/services/api/endpoints/safety';
-import { LoadingState } from '@/store/utils/loadingState';
+import { LoadingState, retryFailedLoads, resetFailedStatuses } from '@/store/utils/loadingState';
 import { createOptionsKey } from '@/store/utils/cacheKey';
 import { addKeyedCases } from '@/store/utils/keyedResource';
 import { addTypeListCases } from '@/store/utils/typeLists';
@@ -194,6 +194,14 @@ export const safetySlice = createSlice({
                 status: (state) => state[`${level}DataLoadingStatus`][category],
             });
         }
+
+        // Retry on a page's load error: failed requests go back to IDLE so the page requests them again
+        builder.addCase(retryFailedLoads, (state) => {
+            resetFailedStatuses(state.typeLoadingStatus);
+            resetFailedStatuses(state.schoolDataLoadingStatus);
+            resetFailedStatuses(state.districtDataLoadingStatus);
+            resetFailedStatuses(state.stateDataLoadingStatus);
+        });
     }
 })
 

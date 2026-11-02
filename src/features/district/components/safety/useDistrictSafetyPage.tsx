@@ -10,6 +10,7 @@ import SectionTitle from '@/components/ui/SectionTitle';
 import * as safetySlice from '@/store/slices/safetySlice';
 import { EARLIEST_YEAR } from '@/utils/safetyCalculations';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
+import { aggregateStatus } from '@/store/utils/loadingState';
 
 // The district Safety page's data: fetches (including the 2 school-level requests
 // by district_id), loading gate and notices. Its notices list schools with missing
@@ -181,13 +182,14 @@ export function useDistrictSafetyPage() {
     stateDisciplineCountData, stateDisciplineIncidentData, stateEnrollmentData
   ]);
 
-  // Check if any data is still loading
-  const isLoading = useMemo(() => {
-    return districtLoading || 
-      Object.values(loadingStates.district).some(state => state !== safetySlice.LoadingState.SUCCEEDED) ||
-      Object.values(loadingStates.state).some(state => state !== safetySlice.LoadingState.SUCCEEDED) ||
-      Object.values(loadingStates.school).some(state => state !== safetySlice.LoadingState.SUCCEEDED);
-  }, [districtLoading, loadingStates]);
+  // Loading until every request succeeded; a failed request shows an error with Retry instead
+  const loadStatus = aggregateStatus([
+    ...Object.values(loadingStates.district),
+    ...Object.values(loadingStates.state),
+    ...Object.values(loadingStates.school)
+  ]);
+  const isLoading = districtLoading || loadStatus !== 'ready';
+  const hasLoadError = !districtLoading && !!districtId && loadStatus === 'failed';
 
   // Process school harassment data to find earliest years
   const getSchoolsWithEarliestHarassmentYear = useMemo(() => {
@@ -258,6 +260,7 @@ export function useDistrictSafetyPage() {
       </>
     ),
     isLoading,
+    hasLoadError,
     desktopNotice: renderSchoolUnavailabilityNotice(),
     mobileNotice: renderSchoolUnavailabilityNotice()
   };

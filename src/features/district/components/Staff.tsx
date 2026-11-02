@@ -2,6 +2,8 @@ import React, { useEffect, useMemo } from 'react';
 import { Box, CircularProgress, Divider } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import SectionTitle from '@/components/ui/SectionTitle';
+import LoadErrorAlert from '@/components/ui/LoadErrorAlert';
+import { aggregateStatus, retryFailedLoads } from '@/store/utils/loadingState';
 
 // Store imports
 import { 
@@ -114,14 +116,14 @@ const Staff: React.FC = () => {
     }
   }));
 
-  // Check if any data is still loading
-  const isLoading = useMemo(() => 
-    districtLoading || 
-    Object.values(loadingStates.types).some(state => state !== staffSlice.LoadingState.SUCCEEDED) ||
-    Object.values(loadingStates.district).some(state => state !== staffSlice.LoadingState.SUCCEEDED) ||
-    Object.values(loadingStates.state).some(state => state !== staffSlice.LoadingState.SUCCEEDED),
-    [districtLoading, loadingStates]
-  );
+  // Loading until every request succeeded; a failed request shows an error with Retry instead
+  const loadStatus = aggregateStatus([
+    ...Object.values(loadingStates.types),
+    ...Object.values(loadingStates.district),
+    ...Object.values(loadingStates.state)
+  ]);
+  const isLoading = districtLoading || loadStatus !== 'ready';
+  const hasLoadError = !districtLoading && !!districtId && loadStatus === 'failed';
 
   // Helper function to check if data needs to be fetched
   const shouldFetchData = (loadingState: staffSlice.LoadingState, data: any[]) => 
@@ -201,6 +203,18 @@ const Staff: React.FC = () => {
     stateTeacherSalaryBandData, districtClassSizeData, stateClassSizeData,
     districtEnrollmentData, stateEnrollmentData
   ]);
+
+  if (hasLoadError) {
+    return (
+      <>
+        <SectionTitle 
+          displayName={PAGE_REGISTRY.district.staff.displayName}
+          districtName={district?.name}
+        />
+        <LoadErrorAlert message="Staff data could not be loaded." onRetry={() => dispatch(retryFailedLoads())} />
+      </>
+    );
+  }
 
   if (isLoading) {
     return (

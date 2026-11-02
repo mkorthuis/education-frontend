@@ -29,6 +29,7 @@ import {
 import EfaDetailsTable from './efa/EfaDetailsTable';
 import EfaTrendChart from './efa/EfaTrendChart';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
+import { aggregateStatus } from '@/store/utils/loadingState';
 
 
 const EducationFreedomAccount: React.FC = () => {
@@ -117,13 +118,15 @@ const EducationFreedomAccount: React.FC = () => {
     stateTownEnrollmentData
   ]);
 
-  // Check if all data is loading
-  const isLoading = districtLoading || 
-                   efaLoading === LoadingState.LOADING || 
-                   stateEfaLoading === LoadingState.LOADING || 
-                   entryTypesLoading === LoadingState.LOADING ||
-                   townEnrollmentLoading === LoadingState.LOADING ||
-                   stateTownEnrollmentLoading === LoadingState.LOADING;
+  // Loading until every request has finished (a request not dispatched yet counts as loading);
+  // a failed request shows the page's empty states
+  const isLoading = districtLoading || (!!district && aggregateStatus([
+                   efaLoading,
+                   stateEfaLoading,
+                   entryTypesLoading,
+                   townEnrollmentLoading,
+                   stateTownEnrollmentLoading
+                 ]) === 'loading');
 
   if (isLoading) {
     return (

@@ -29,6 +29,7 @@ import EnrollmentSummary from './enrollment/EnrollmentSummary';
 import EnrollmentSummaryChart from './enrollment/EnrollmentSummaryChart';
 import { EnrollmentProjectionSnapshot } from '@/utils/enrollmentProjection';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
+import { aggregateStatus } from '@/store/utils/loadingState';
 import SectionTitle from '@/components/ui/SectionTitle';
 
 /**
@@ -119,11 +120,13 @@ const Enrollment: React.FC = () => {
     measurementParams
   ]);
   
-  // Check if all data is loading
-  const isLoading = districtLoading || 
-                    townEnrollmentLoading === LoadingState.LOADING ||
-                    stateTownEnrollmentLoading === LoadingState.LOADING ||
-                    measurementsLoading === LoadingState.LOADING;
+  // Loading until every request has finished (a request not dispatched yet counts as loading);
+  // a failed request shows the page's empty states
+  const isLoading = districtLoading || (!!district && aggregateStatus([
+                    townEnrollmentLoading,
+                    stateTownEnrollmentLoading,
+                    measurementsLoading
+                  ]) === 'loading');
 
   // Show loading state
   if (isLoading) {

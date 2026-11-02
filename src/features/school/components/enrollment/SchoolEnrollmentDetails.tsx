@@ -42,8 +42,9 @@ const SchoolEnrollmentDetails: React.FC<SchoolEnrollmentDetailsProps> = ({
   const availableYears = [...new Set(enrollmentData.map(item => item.year))].sort((a, b) => b - a);
   const defaultYear = availableYears.length > 0 ? availableYears[0] : parseInt(FISCAL_YEAR);
   
-  // State for selected year
-  const [selectedYear, setSelectedYear] = React.useState<number>(defaultYear);
+  // Selected year: null until the user picks one, so the default follows the loaded data
+  const [chosenYear, setSelectedYear] = React.useState<number | null>(null);
+  const selectedYear = chosenYear ?? defaultYear;
   
   // Process enrollment data into rows
   const enrollmentRows = useMemo(() => {

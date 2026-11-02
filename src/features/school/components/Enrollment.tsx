@@ -20,6 +20,7 @@ import SchoolEnrollmentSummaryChart from './enrollment/SchoolEnrollmentSummaryCh
 import { EnrollmentProjectionSnapshot } from '@/utils/enrollmentProjection';
 import SectionTitle from '@/components/ui/SectionTitle';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
+import { aggregateStatus } from '@/store/utils/loadingState';
 
 /**
  * Represents the School Enrollment page/feature.
@@ -71,9 +72,9 @@ const Enrollment: React.FC = () => {
     schoolEnrollmentData
   ]);
   
-  // Check if all data is loading
-  const isLoading = schoolLoading || 
-                    schoolEnrollmentLoading === LoadingState.LOADING;
+  // Loading until the request has finished (a request not dispatched yet counts as loading);
+  // a failed request shows the page's empty states
+  const isLoading = schoolLoading || (!!school && aggregateStatus([schoolEnrollmentLoading]) === 'loading');
 
   // Show loading state
   if (isLoading) {

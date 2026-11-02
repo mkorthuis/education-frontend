@@ -2,6 +2,9 @@ import React from 'react';
 import { Box, Typography, CircularProgress, Divider } from '@mui/material';
 import { SafetyPage } from '@/store/slices/safetySlice';
 import { EntityKind } from '@/features/entity/entity';
+import { useAppDispatch } from '@/store/hooks';
+import { retryFailedLoads } from '@/store/utils/loadingState';
+import LoadErrorAlert from '@/components/ui/LoadErrorAlert';
 
 // Import card components
 import EntityBullyCard from './safety/card/EntityBullyCard';
@@ -32,6 +35,7 @@ interface SafetyLayoutProps {
   isMobile: boolean;
   title: React.ReactNode;
   isLoading: boolean;
+  hasLoadError: boolean;
   desktopNotice: React.ReactNode;
   mobileNotice: React.ReactNode;
   SeriousCategoryDetails: React.ComponentType;
@@ -43,10 +47,13 @@ const SafetyLayout: React.FC<SafetyLayoutProps> = ({
   isMobile,
   title,
   isLoading,
+  hasLoadError,
   desktopNotice,
   mobileNotice,
   SeriousCategoryDetails
 }) => {
+  const dispatch = useAppDispatch();
+
   // Card container styling for responsive layout
   const cardContainerStyles = {
     marginRight: { xs: 0, md: '16px' },
@@ -108,7 +115,9 @@ const SafetyLayout: React.FC<SafetyLayoutProps> = ({
   return (
     <>
       {title}
-      {isLoading ? (
+      {hasLoadError ? (
+        <LoadErrorAlert message="Safety data could not be loaded." onRetry={() => dispatch(retryFailedLoads())} />
+      ) : isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
           <CircularProgress />
         </Box>

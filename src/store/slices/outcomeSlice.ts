@@ -1,7 +1,7 @@
 import { createSlice, type AsyncThunk } from '@reduxjs/toolkit';
 import { outcomesApi } from '@/services/api/endpoints/outcomes';
 import { RootState } from '@/store/store';
-import { LoadingState } from '@/store/utils/loadingState';
+import { LoadingState, retryFailedLoads, resetFailedStatuses } from '@/store/utils/loadingState';
 import { createKeyedThunk, addKeyedCases, type KeyedPayload, type KeyedOptions } from '@/store/utils/keyedResource';
 import { createTypeListThunk, addTypeListCases } from '@/store/utils/typeLists';
 import { makeStatusSelector, makeMemoDataSelector } from '@/store/utils/selectors';
@@ -288,6 +288,14 @@ export const outcomeSlice = createSlice({
                 status: (state) => state[`${level}DataLoadingStatus`][category],
             });
         }
+
+        // Retry on a page's load error: failed requests go back to IDLE so the page requests them again
+        builder.addCase(retryFailedLoads, (state) => {
+            resetFailedStatuses(state.typeLoadingStatus);
+            resetFailedStatuses(state.schoolDataLoadingStatus);
+            resetFailedStatuses(state.districtDataLoadingStatus);
+            resetFailedStatuses(state.stateDataLoadingStatus);
+        });
     }
 });
 

@@ -3,6 +3,8 @@ import { Box, CircularProgress, Divider } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { selectLocationLoading } from '@/store/slices/locationSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
+import LoadErrorAlert from '@/components/ui/LoadErrorAlert';
+import { aggregateStatus, retryFailedLoads } from '@/store/utils/loadingState';
 import * as outcomeSlice from '@/store/slices/outcomeSlice';
 import EntityOutcomeSummaryCard from './outcome/EntityOutcomeSummaryCard';
 import EntityWhatIsNextDetails from './outcome/EntityWhatIsNextDetails';
@@ -66,13 +68,14 @@ const EntityOutcomes: React.FC<{ kind: EntityKind }> = ({ kind }) => {
     }
   };
 
-  // Check if any data is still loading
-  const isLoading = useMemo(() => {
-    return entityLoading ||
-      loadingStates.types.postGraduationTypes !== outcomeSlice.LoadingState.SUCCEEDED ||
-      Object.values(loadingStates.entity).some(state => state !== outcomeSlice.LoadingState.SUCCEEDED) ||
-      Object.values(loadingStates.state).some(state => state !== outcomeSlice.LoadingState.SUCCEEDED);
-  }, [entityLoading, loadingStates]);
+  // Loading until every request succeeded; a failed request shows an error with Retry instead
+  const loadStatus = aggregateStatus([
+    loadingStates.types.postGraduationTypes,
+    ...Object.values(loadingStates.entity),
+    ...Object.values(loadingStates.state)
+  ]);
+  const isLoading = entityLoading || loadStatus !== 'ready';
+  const hasLoadError = !entityLoading && !!entityId && loadStatus === 'failed';
 
   // Helper function to check if data needs to be fetched
   const shouldFetchData = (loadingState: outcomeSlice.LoadingState, data: any[]) => {
@@ -129,7 +132,9 @@ const EntityOutcomes: React.FC<{ kind: EntityKind }> = ({ kind }) => {
       />
 
       <Box sx={{ mt: 3 }}>
-        {isLoading ? (
+        {hasLoadError ? (
+          <LoadErrorAlert message="Outcome data could not be loaded." onRetry={() => dispatch(retryFailedLoads())} />
+        ) : isLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
             <CircularProgress />
           </Box>
