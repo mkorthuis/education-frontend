@@ -33,11 +33,17 @@ const SeriousSafetyCategoryDetails: React.FC = () => {
         }, {} as Record<string, School>);
     }, [schools]);
 
+    // Zero counts are stored too; only types with incidents are listed
+    const reportedIncidents = useMemo(
+        () => (schoolSeriousSafetyData ?? []).filter(incident => incident.count > 0),
+        [schoolSeriousSafetyData]
+    );
+
     // Group the safety data by school_id
     const groupedBySchool = useMemo<GroupedSafetyData>(() => {
-        if (!schoolSeriousSafetyData?.length) return {};
+        if (!reportedIncidents.length) return {};
 
-        return schoolSeriousSafetyData.reduce<GroupedSafetyData>((acc, incident) => {
+        return reportedIncidents.reduce<GroupedSafetyData>((acc, incident) => {
             const schoolId = String(incident.school_id);
             if (!acc[schoolId]) {
                 acc[schoolId] = [];
@@ -45,9 +51,9 @@ const SeriousSafetyCategoryDetails: React.FC = () => {
             acc[schoolId].push(incident);
             return acc;
         }, {});
-    }, [schoolSeriousSafetyData]);
+    }, [reportedIncidents]);
 
-    const hasIncidents = schoolSeriousSafetyData && schoolSeriousSafetyData.length > 0;
+    const hasIncidents = reportedIncidents.length > 0;
 
     return (
         <DefaultCategoryDetails title="Serious Safety Events Overview">

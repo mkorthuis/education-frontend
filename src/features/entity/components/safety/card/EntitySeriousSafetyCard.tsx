@@ -18,10 +18,9 @@ const EntitySeriousSafetyCard: React.FC<{ kind: EntityKind }> = ({ kind }) => {
 
   const entitySafetyData = useAppSelector(state => SAFETY[kind].data.safety(state, entityParams));
 
-  // Find the earliest year and calculate the total count
-  const earliestYear = entitySafetyData.length > 0
-    ? Math.min(...entitySafetyData.map(item => item.year))
-    : null;
+  // Find the earliest year with an incident and calculate the total count (zero counts are stored too)
+  const reportedYears = entitySafetyData.filter(item => item.count > 0).map(item => item.year);
+  const earliestYear = reportedYears.length > 0 ? Math.min(...reportedYears) : null;
 
   const totalCount = entitySafetyData.reduce((sum, item) => sum + item.count, 0);
 

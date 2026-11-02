@@ -13,7 +13,12 @@ const SeriousSafetyCategoryDetails: React.FC = () => {
         selectSchoolSafetyData(state, { school_id: school?.id })
     ) as SafetyIncident[] | undefined;
 
-    const hasIncidents = schoolSeriousSafetyData && schoolSeriousSafetyData.length > 0;
+    // Zero counts are stored too; only types with incidents are listed
+    const reportedIncidents = useMemo(
+        () => (schoolSeriousSafetyData ?? []).filter(incident => incident.count > 0),
+        [schoolSeriousSafetyData]
+    );
+    const hasIncidents = reportedIncidents.length > 0;
 
     return (
         <DefaultCategoryDetails title="Serious Safety Events Overview">
@@ -37,7 +42,7 @@ const SeriousSafetyCategoryDetails: React.FC = () => {
                     <Box sx={{ display: 'flex', flexDirection: 'column', mt: 3 }}>
                         <SchoolSafetyIncidentsTable
                             schoolName={school?.name || 'This school'}
-                            incidents={schoolSeriousSafetyData}
+                            incidents={reportedIncidents}
                         />
                     </Box>
                 )}
