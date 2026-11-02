@@ -24,7 +24,7 @@ const DataSources: React.FC = () => {
           description="The results of the state assessment are summarized for each school and each grade. The disaggregated files provide the percent of students who scored at each level on the assessment L4 and L3 being proficient (and above proficient), Level 2 and 1 being below proficient."
           originalSource="https://www.education.nh.gov/who-we-are/division-of-educator-and-analytic-resources/bureau-of-education-statistics/assessment-data"
           originalSourceText="NH DOE Diaggregated Data (CSV)"
-          additionalSourceInfo="For 2018-2024, the disaggregated data files were used. 'Prior years' data used before 2017/2018"
+          additionalSourceInfo="For 2018-2026, the disaggregated data files were used. 'Prior years' data used before 2017/2018"
           loadedFrom="https://github.com/mkorthuis/education-backend/tree/main/backend/app/alembic/assets/assessments"
           loadedFromText="Assessment Results (CSV)"
         />
@@ -60,6 +60,7 @@ const DataSources: React.FC = () => {
           additionalSourceInfo="Export function used to download a report for each year"
           loadedFrom="https://github.com/mkorthuis/education-backend/tree/main/backend/app/alembic/assets/cohort-graduation"
           loadedFromText="Cohort Reports (XSLX)"
+          additionalLoadedInfo="2024-2025 is preliminary data; it will be replaced when the state finalizes it."
         />
         <Divider sx={{ my: 2 }} />
         
@@ -71,6 +72,7 @@ const DataSources: React.FC = () => {
           additionalSourceInfo="Export function used to download a report for each year"
           loadedFrom="https://github.com/mkorthuis/education-backend/tree/main/backend/app/alembic/assets/completers"
           loadedFromText="Completers Reports (XSLX)"
+          additionalLoadedInfo="2024-2025 is preliminary data; it will be replaced when the state finalizes it."
         />
         <Divider sx={{ my: 2 }} />
         
@@ -88,10 +90,11 @@ const DataSources: React.FC = () => {
         <DataSourceItem
           title="District List"
           description="Mapping of district id's, their related names, the towns that are encompased by them, the grades their schools support, as well as the SAU they belong to."
-          originalSource="https://www.education.nh.gov/sites/g/files/ehbemt326/files/inline-documents/sonh/districttown24-25.pdf"
-          originalSourceText="NH DOE District Town List 24-25 (PDF)"
-          loadedFrom="https://github.com/mkorthuis/education-backend/blob/main/backend/app/alembic/assets/2025-district-list.csv"
-          loadedFromText="2025 District List (CSV)"
+          originalSource="https://my.doe.nh.gov/myNHDOE/Help/PublicReports.aspx?ReportName=DistrictTown"
+          originalSourceText="NH DOE District / Town Report"
+          additionalSourceInfo="Only districts and schools on the state's current lists are shown"
+          loadedFrom="https://github.com/mkorthuis/education-backend/blob/main/backend/app/alembic/assets/2026-district-list.csv"
+          loadedFromText="2026 District List (CSV)"
         />
         <Divider sx={{ my: 2 }} />
         
@@ -114,15 +117,16 @@ const DataSources: React.FC = () => {
           additionalSourceInfo="Found under the 'Education Freedom Accounts' heading"
           loadedFrom="https://github.com/mkorthuis/education-backend/tree/main/backend/app/alembic/assets/education-freedom-account"
           loadedFromText="EFA Grants (XSLX)"
+          additionalLoadedInfo="2026-2027 is the state's preliminary count as of August 2, 2026."
         />
         <Divider sx={{ my: 2 }} />
         
         <DataSourceItem
           title="Financial Reports"
           description="DOE-25 Financial Documents for districts by year"
-          originalSource="https://www.education.nh.gov/who-we-are/division-of-education-and-analytic-resources/bureau-school-finance/financial-reporting-requirements"
-          originalSourceText="DOE-25 Forms (XSLX)"
-          additionalSourceInfo="Script written to pull documents for each district for each year"
+          originalSource="https://my.doe.nh.gov/iPlatform/DOE25/DOE25Reports"
+          originalSourceText="NH DOE iPlatform DOE-25 Reports (XSLX)"
+          additionalSourceInfo="One form downloaded for each district for each fiscal year"
           loadedFrom="https://github.com/mkorthuis/education-backend/tree/main/backend/app/alembic/assets/finance"
           loadedFromText="DOE-25 Forms (XSLX)"
         />
@@ -131,7 +135,7 @@ const DataSources: React.FC = () => {
         <DataSourceItem
           title="Full Time Staff Count By District"
           description="Reported for each school district is the full time equivalent staff count."
-          originalSource="https://my.doe.nh.gov/iPlatform/Report/Report?path=%2FBDMQ%2FiPlatform%20Reports%2FEnvironment%20Data%2FStaff%20Reports%2FStaff%20Full-time%20Equivalent%20by%20District&name=Full%20Time%20Equivalent%20Staff%20Count%20by%20District&categoryName=Staff%20Reports&categoryId=27"
+          originalSource="https://my.doe.nh.gov/iPlatform/Report/Report?path=%2FBDMQ%2FiPlatform%20Reports%2FEnvironment%20Data%2FStaff%20Reports%2FFull%20Time%20Equivalent%20Staff%20Count%20by%20District&name=Full%20Time%20Equivalent%20Staff%20Count%20by%20District&categoryName=Staff%20Reports&categoryId=27"
           originalSourceText="NH DOE Staff Report"
           additionalSourceInfo="Export function used to download a report for each year"
           loadedFrom="https://github.com/mkorthuis/education-backend/tree/main/backend/app/alembic/assets/staff/staff-count"
@@ -153,32 +157,33 @@ const DataSources: React.FC = () => {
         <DataSourceItem
           title="SAU List"
           description="List of SAU's, key officials, and their contact information"
-          originalSource="https://my.doe.nh.gov/Profiles/PublicReports/PublicReports.aspx?ReportName=SAUListCSV"
-          originalSourceText="NH DOE SAU List (CSV)"
-          loadedFrom="https://github.com/mkorthuis/education-backend/raw/refs/heads/main/backend/app/alembic/assets/2025-sau-list.xls"
-          loadedFromText="2025 SAU List (XLS)"
+          originalSource="https://my.doe.nh.gov/myNHDOE/Help/PublicReports.aspx?ReportName=SAUListCSV"
+          originalSourceText="NH DOE SAU List (XLS)"
+          loadedFrom="https://github.com/mkorthuis/education-backend/raw/refs/heads/main/backend/app/alembic/assets/2026-sau-list.xls"
+          loadedFromText="2026 SAU List (XLS)"
         />
         <Divider sx={{ my: 2 }} />
         
         <DataSourceItem
           title="School List"
           description="Name of each school, Contact information include the principal, their type, and grade level."
-          originalSource="https://my.doe.nh.gov/Profiles/PublicReports/PublicReports.aspx?ReportName=SchoolListCSV"
+          originalSource="https://my.doe.nh.gov/myNHDOE/Help/PublicReports.aspx?ReportName=SchoolListCSV"
           originalSourceText="NH DOE School List (XLS)"
-          loadedFrom="https://github.com/mkorthuis/education-backend/raw/refs/heads/main/backend/app/alembic/assets/2025-school-list.xls"
-          loadedFromText="2025 School List (XLS)"
+          additionalSourceInfo="Schools no longer on the state's list keep their history but are not listed"
+          loadedFrom="https://github.com/mkorthuis/education-backend/raw/refs/heads/main/backend/app/alembic/assets/2026-school-list.xls"
+          loadedFromText="2026 School List (XLS)"
         />
         <Divider sx={{ my: 2 }} />
         
         <DataSourceItem
           title="School Metrics"
           description="Multiple metrics to compare schools against."
-          originalSource="https://dashboard.nh.gov/t/DOE/views/iExplore/Explore-Dashboard"
+          originalSource="https://jwt.nh.gov/?src_route=/iExplore/Explore-Dashboard&debug_session=false&toolbar=Hidden&Width=1300px&Height=1600px"
           originalSourceText="NH DOE iExplore Dashboard"
           additionalSourceInfo="Pulled using the download function on the iExplore dashboard."
           loadedFrom="https://github.com/mkorthuis/education-backend/tree/main/backend/app/alembic/assets"
           loadedFromText="School Metrics Files"
-          additionalLoadedInfo="Files include: 2024-school-metrics.xlsx, 2021-school-metrics.xlsx, and 2018-school-metrics.xlsx"
+          additionalLoadedInfo="Files include: 2025-school-metrics.xlsx, 2024-school-metrics.xlsx, 2021-school-metrics.xlsx, and 2018-school-metrics.xlsx"
         />
         <Divider sx={{ my: 2 }} />
         
@@ -205,6 +210,16 @@ const DataSources: React.FC = () => {
         <Divider sx={{ my: 2 }} />
         
         <DataSourceItem
+          title="State Proficiency Targets"
+          description="The state's interim targets for the percent of students proficient in English language arts and math, from New Hampshire's ESSA Consolidated State Plan. A 2022 amendment approved by the U.S. Department of Education moved the targets two years later because of COVID-19; the final (long-term goal) year is 2026-2027."
+          originalSource="https://www.education.nh.gov/sites/g/files/ehbemt326/files/files/inline-documents/essaconsolidatednhstateplan.pdf"
+          originalSourceText="NH ESSA Consolidated State Plan (PDF)"
+          additionalSourceInfo="Table 1, 'Long-term goals and interim targets for all students in NH', shifted two years"
+          loadedFrom="https://github.com/mkorthuis/education-backend/blob/main/backend/app/alembic/assets/state_targets.csv"
+          loadedFromText="State Targets (CSV)"
+        />
+        <Divider sx={{ my: 2 }} />
+        <DataSourceItem
           title="Teacher Attainment By District"
           description="Reported for each district are the percent of individuals who hold a Bachelor's, Master's and beyond Master's Degrees. This data has been collected for full and part-time teachers of grades kindergarten through high school (preschool teachers are not included). This data does not include administrators and non-teacher professionals."
           originalSource="https://my.doe.nh.gov/iPlatform/Report/Report?path=%2FBDMQ%2FiPlatform%20Reports%2FEnvironment%20Data%2FStaff%20Reports%2FTeacher%20Attainment&name=Teacher%20Attainment&categoryName=Staff%20Reports&categoryId=27"
@@ -218,22 +233,22 @@ const DataSources: React.FC = () => {
         <DataSourceItem
           title="Teacher Average Salary By District"
           description="By district, the number of full-time classroom teachers and their average salary is reported."
-          originalSource="https://www.education.nh.gov/who-we-are/division-of-educator-and-analytic-resources/bureau-of-education-statistics/staffing-and-salary-reports"
-          originalSourceText="NH DOE Teacher Salary Report (XSLX)"
-          additionalSourceInfo="Can be found under heading 'Teacher Average Salary'"
+          originalSource="https://my.doe.nh.gov/iPlatform/Report/Report?path=%2FBDMQ%2FiPlatform%20Reports%2FFinancial%20Data%2FStaff%20Salary%20Reports%2FTeacher%20Average%20Salary&name=Teacher%20Average%20Salary&categoryName=Staff%20Salary%20Reports&categoryId=15"
+          originalSourceText="NH DOE Teacher Average Salary Report"
+          additionalSourceInfo="Export function used to download a report for each year"
           loadedFrom="https://github.com/mkorthuis/education-backend/tree/main/backend/app/alembic/assets/staff/teacher-average-salary"
           loadedFromText="Teacher Average Salary (XSLX)"
         />
         <Divider sx={{ my: 2 }} />
         
         <DataSourceItem
-          title="Teacher Minimum Starting Salary"
-          description="Reported for each school district, the minimum starting salary has been extracted from the teacher salary schedules submitted by September of each year. Districts in negotiations will sometimes provide the effective (last year's) salary schedule, while others provide no schedule. Districts that did not provide a schedule are listed as 'N/R' (not reporting)."
-          originalSource="https://www.education.nh.gov/who-we-are/division-of-educator-and-analytic-resources/bureau-of-education-statistics/staffing-and-salary-reports"
-          originalSourceText="NH DOE Teacher Minimum Starting Salary Report (XSLX)"
-          additionalSourceInfo="Can be found under the heading 'Teacher Minimum Starting Salary'"
+          title="Teacher Salary Schedule"
+          description="Reported for each school district, the minimum and maximum salary and number of steps for each degree band (Bachelors, Bachelors + 15 and + 30 credits, Masters, Masters + 15, + 30 and + 45 credits), from the teacher salary schedules districts submit each year. Districts that did not report a schedule have no salary band data."
+          originalSource="https://my.doe.nh.gov/iPlatform/Report/Report?path=%2FBDMQ%2FiPlatform%20Reports%2FFinancial%20Data%2FStaff%20Salary%20Reports%2FTeacher%20Salary%20Schedule&name=Teacher%20Salary%20Schedule&categoryName=Staff%20Salary%20Reports&categoryId=15"
+          originalSourceText="NH DOE Teacher Salary Schedule Report"
+          additionalSourceInfo="Export function used to download a report for each year, from 2023-2024"
           loadedFrom="https://github.com/mkorthuis/education-backend/tree/main/backend/app/alembic/assets/staff/teacher-starting-salary"
-          loadedFromText="Teacher Minimum Starting Salary Reports (XSLX)"
+          loadedFromText="Teacher Salary Schedule Reports (XSLX)"
         />
         <Divider sx={{ my: 2 }} />
         
