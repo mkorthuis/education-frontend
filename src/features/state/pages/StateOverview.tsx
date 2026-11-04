@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { Box, Card, CardActionArea, CardContent, Divider, Link, Paper, Typography } from '@mui/material';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
+import SectionTitle from '@/components/ui/SectionTitle';
 import StatePage from '../components/StatePage';
 import OverviewTile from '../components/OverviewTile';
 import DistrictPicker from '../components/DistrictPicker';
@@ -43,6 +44,17 @@ const TREND_YEARS = 10;
 const CURRENT_TEST_FIRST_YEAR = 2018;
 const STATE_PAGES = PAGE_REGISTRY.state;
 
+// The page links share the district and school summary pages' link style (light grey, a thin
+// border, darker grey on hover), with their titles in link blue except on phones
+const pageLinkCardStyle = {
+  border: '1px solid',
+  borderColor: 'divider',
+  backgroundColor: 'grey.100',
+  color: 'text.primary',
+  transition: 'background-color 120ms',
+  '&:hover, &:focus-within': { backgroundColor: 'grey.300' },
+};
+
 const PAGE_DESCRIPTIONS: Record<string, string> = {
   academic: 'Test scores by subject, grade and student group',
   outcomes: 'Graduation and dropout rates, and graduates\' plans',
@@ -59,16 +71,29 @@ const lastYears = (series: YearValue[]) => {
 };
 
 
-const tileGrid = {
+// Two tiles across on phones and tablets. Where four fit across (lg and up), each group sits in
+// its own box: a full-width group is four across, a half-width group (two side by side) is 2 x 2.
+const tileGrid = (half: boolean) => ({
   display: 'grid',
   gap: { xs: 1, sm: 2 },
-  gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' },
-};
+  gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', lg: half ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))' },
+});
 
-const Band: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <Box component="section" sx={{ mb: 4 }}>
-    <Typography variant="h6" component="h2" sx={{ fontSize: '1.125rem', fontWeight: 600, mb: 1.5 }}>{title}</Typography>
-    <Box sx={tileGrid}>{children}</Box>
+// A group of tiles under the Key Figures heading
+const Band: React.FC<{ title: string; half?: boolean; children: React.ReactNode }> = ({ title, half = false, children }) => (
+  <Box
+    component="section"
+    sx={{
+      mb: { xs: 4, lg: 3 },
+      minWidth: 0,
+      p: { lg: 2 },
+      border: { lg: '1px solid' },
+      borderColor: { lg: 'divider' },
+      borderRadius: { lg: 2 },
+    }}
+  >
+    <Typography component="h3" sx={{ fontSize: '1rem', fontWeight: 600, color: 'text.secondary', mb: 1.25 }}>{title}</Typography>
+    <Box sx={tileGrid(half)}>{children}</Box>
   </Box>
 );
 
@@ -174,34 +199,40 @@ const StateOverview: React.FC = () => {
       status={status}
       onRetry={retry}
       errorMessage="Statewide data could not be loaded."
-      intro="Figures for all of New Hampshire's public schools together. These are the state averages that every district and school page compares against."
+      // The page link cards below go to the same pages as the phone section links
+      showSectionLinks={false}
     >
-      <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 7fr) minmax(0, 5fr)' }, alignItems: 'start', mb: 4 }}>
-        {summary.length > 0 && (
-          <Paper elevation={0} component="section" aria-labelledby="in-brief" sx={{ p: 2, border: '1px solid', borderColor: 'grey.300' }}>
-            <Typography id="in-brief" variant="h6" component="h2" sx={{ fontSize: '1.125rem', fontWeight: 600, mb: 1 }}>In brief</Typography>
-            <Box component="ul" sx={{ m: 0, pl: 3 }}>
-              {summary.map(sentence => (
-                <Typography component="li" variant="body1" key={sentence} sx={{ mb: 0.5 }}>{sentence}</Typography>
-              ))}
-            </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Each figure is from the latest year available, so years differ by source.
-            </Typography>
-          </Paper>
-        )}
-        <Paper elevation={0} component="section" sx={{ p: 2, border: '1px solid', borderColor: 'grey.300' }}>
-          <DistrictPicker label="See how your district compares" />
-          <Typography variant="body2" sx={{ mt: -2 }}>
-            Or <Link component={RouterLink} to="/districts">browse all districts</Link>.
-          </Typography>
-        </Paper>
+      {/* Links to each statewide page first; the page title already says "Explore Statewide Data" */}
+      <Box sx={{ display: 'grid', gap: { xs: 1, sm: 2 }, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' }, mb: 4 }}>
+        {Object.values(STATE_PAGES)
+          .filter(page => page.id !== STATE_PAGES.overview.id)
+          .map(page => (
+            <Card key={page.id} elevation={0} sx={pageLinkCardStyle}>
+              <CardActionArea component={RouterLink} to={page.urlPatterns[0]} sx={{ height: '100%', '& .MuiCardActionArea-focusHighlight': { opacity: 0 } }}>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Typography component="h3" sx={{ fontWeight: 600, color: { xs: 'text.primary', sm: 'primary.main' } }}>
+                    {page.displayName} <span aria-hidden>→</span>
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">{PAGE_DESCRIPTIONS[page.id.split('.')[1]]}</Typography>
+                </CardContent>
+              </CardActionArea>
+            </Card>
+          ))}
       </Box>
+
 
       {/* Tiles as designed on the "NH Statewide Dashboard" canvas: the figure and its year, the
           change since the comparison year as a green up or red down arrow, and a trend line. Only
           the dollar tiles (after inflation) and the district and school counts carry a grey note. */}
-      <Band title="Students and staff">
+      {/* Looks like the page title (same size, same rule below), but is the page's second-level
+          heading: a page has one h1 */}
+      <Box sx={{ mt: 1 }}>
+        <SectionTitle displayName="Key Figures" component="h2" sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
+      </Box>
+
+      {/* Where four tiles fit across, Students and Staff and Financials sit side by side as 2 x 2 boxes */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, minmax(0, 1fr))' }, columnGap: 3 }}>
+      <Band title="Students and Staff" half>
         {latest.students && (
           <OverviewTile
             label="Students"
@@ -226,11 +257,12 @@ const StateOverview: React.FC = () => {
         )}
         {latest.districts && (
           <OverviewTile
-            label="School districts"
+            label="School Districts"
             value={formatCount(latest.districts.value)}
             period={shortYear(latest.districts.year)}
             delta={tileDelta(changes.districts, { unit: 'percent' })}
-            detail="Running their own schools"
+            detail={`${formatCount(latest.districts.value)} run their own schools`}
+            shortDetail={`${formatCount(latest.districts.value)} run schools`}
             trend={lastYears(figures.districts)}
             to="/districts"
             linkLabel="all districts"
@@ -238,11 +270,12 @@ const StateOverview: React.FC = () => {
         )}
         {latest.schools && (
           <OverviewTile
-            label="Public schools"
+            label="Public Schools"
             value={formatCount(latest.schools.value)}
             period={shortYear(latest.schools.year)}
             delta={tileDelta(changes.schools, { unit: 'percent' })}
             detail="K-12, not counting charter schools"
+            shortDetail="excl. charter"
             trend={lastYears(figures.schools)}
             to="/districts"
             linkLabel="all districts"
@@ -250,10 +283,10 @@ const StateOverview: React.FC = () => {
         )}
       </Band>
 
-      <Band title="Money">
+      <Band title="Financials" half>
         {latest.perPupil && (
           <OverviewTile
-            label="Cost per student"
+            label="Cost per Student"
             value={formatDollars(latest.perPupil.value)}
             period={shortYear(latest.perPupil.year)}
             delta={tileDelta(changes.perPupil, { unit: 'percent' })}
@@ -265,7 +298,8 @@ const StateOverview: React.FC = () => {
         )}
         {latest.spending && (
           <OverviewTile
-            label="Total school district spending"
+            label="Total School District Spending"
+            shortLabel="Total Spending"
             value={formatBillionsShort(latest.spending.value)}
             period={shortYear(latest.spending.year)}
             delta={tileDelta(changes.spending, { unit: 'percent' })}
@@ -277,7 +311,8 @@ const StateOverview: React.FC = () => {
         )}
         {latest.salary && (
           <OverviewTile
-            label="Average teacher salary"
+            label="Average Teacher Salary"
+            shortLabel="Avg Teacher Salary"
             value={formatDollars(latest.salary.value)}
             period={shortYear(latest.salary.year)}
             delta={tileDelta(changes.salary, { unit: 'percent' })}
@@ -289,7 +324,8 @@ const StateOverview: React.FC = () => {
         )}
         {latest.efaStudents && (
           <OverviewTile
-            label="Education Freedom Account students"
+            label="Education Freedom Accounts"
+            shortLabel="EFA's"
             value={formatCount(latest.efaStudents.value)}
             period={shortYear(latest.efaStudents.year)}
             delta={tileDelta(changes.efaStudents, { unit: 'percent' })}
@@ -300,10 +336,12 @@ const StateOverview: React.FC = () => {
         )}
       </Band>
 
+      </Box>
+
       <Band title="Results">
         {latest.math && (
           <OverviewTile
-            label="Proficient in math"
+            label="Proficient in Math"
             value={formatPercent(latest.math.value)}
             period={shortYear(latest.math.year)}
             delta={tileDelta(changes.math, { unit: 'points' })}
@@ -314,7 +352,7 @@ const StateOverview: React.FC = () => {
         )}
         {latest.reading && (
           <OverviewTile
-            label="Proficient in reading"
+            label="Proficient in Reading"
             value={formatPercent(latest.reading.value)}
             period={shortYear(latest.reading.year)}
             delta={tileDelta(changes.reading, { unit: 'points' })}
@@ -325,7 +363,8 @@ const StateOverview: React.FC = () => {
         )}
         {latest.graduation && (
           <OverviewTile
-            label="Four-year graduation rate"
+            label="Four-Year Graduation Rate"
+            shortLabel="Graduation Rate"
             value={formatPercent(latest.graduation.value, 1)}
             period={String(latest.graduation.year)}
             delta={tileDelta(changes.graduation, { unit: 'points', classYears: true })}
@@ -336,7 +375,8 @@ const StateOverview: React.FC = () => {
         )}
         {latest.college && (
           <OverviewTile
-            label="Graduates planning to attend college"
+            label="Planning to Attend College"
+            shortLabel="Planning College"
             value={formatPercent(latest.college.value)}
             period={String(latest.college.year)}
             delta={tileDelta(changes.college, { unit: 'points', classYears: true })}
@@ -347,26 +387,30 @@ const StateOverview: React.FC = () => {
         )}
       </Band>
 
+
       <Divider sx={{ mb: 3 }} />
 
-      <Typography variant="h6" component="h2" sx={{ fontSize: '1.125rem', fontWeight: 600, mb: 1.5 }}>Explore statewide data</Typography>
-      <Box sx={{ display: 'grid', gap: { xs: 1, sm: 2 }, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' }, mb: 4 }}>
-        {Object.values(STATE_PAGES)
-          .filter(page => page.id !== STATE_PAGES.overview.id)
-          .map(page => (
-            <Card key={page.id} elevation={0} sx={{ border: '1px solid', borderColor: 'grey.300', '&:hover, &:focus-within': { borderColor: 'primary.main' } }}>
-              <CardActionArea component={RouterLink} to={page.urlPatterns[0]} sx={{ height: '100%', '& .MuiCardActionArea-focusHighlight': { opacity: 0 } }}>
-                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                  <Typography component="h3" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                    {page.displayName} <span aria-hidden>→</span>
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">{PAGE_DESCRIPTIONS[page.id.split('.')[1]]}</Typography>
-                </CardContent>
-              </CardActionArea>
-            </Card>
-          ))}
+      <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 7fr) minmax(0, 5fr)' }, alignItems: 'start', mb: 2 }}>
+        {summary.length > 0 && (
+          <Paper elevation={0} component="section" aria-labelledby="in-brief" sx={{ p: 2, border: '1px solid', borderColor: 'grey.300' }}>
+            <Typography id="in-brief" variant="h6" component="h2" sx={{ fontSize: '1.125rem', fontWeight: 600, mb: 1 }}>In brief</Typography>
+            <Box component="ul" sx={{ m: 0, pl: 3 }}>
+              {summary.map(sentence => (
+                <Typography component="li" variant="body1" key={sentence} sx={{ mb: 0.5 }}>{sentence}</Typography>
+              ))}
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Each figure is from the latest year available, so years differ by source.
+            </Typography>
+          </Paper>
+        )}
+        <Paper elevation={0} component="section" sx={{ p: 2, border: '1px solid', borderColor: 'grey.300' }}>
+          <DistrictPicker label="See how your district compares" />
+          <Typography variant="body2" sx={{ mt: -2 }}>
+            Or <Link component={RouterLink} to="/districts">browse all districts</Link>.
+          </Typography>
+        </Paper>
       </Box>
-
     </StatePage>
   );
 };

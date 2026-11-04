@@ -67,42 +67,50 @@ describe('State pages', () => {
 
     // Tiles are grouped, say where they lead, and link to the detail pages
     // (Role queries are slow on a page this size, so headings and links are checked by element)
-    expect(screen.getByText('New Hampshire Public Schools at a Glance').tagName).toBe('H1');
-    expect(screen.getByText('Results', { selector: 'h2' }).tagName).toBe('H2');
-    expect(screen.getByText('Proficient in math').closest('a')).toHaveAttribute('href', '/state/academic');
-    expect(within(screen.getByText('Proficient in math').closest('a')!).getByText(/See test scores/)).toBeInTheDocument();
+    expect(screen.getByText('Explore Statewide Data').tagName).toBe('H1');
+    expect(screen.queryByText(/^Figures for all of New Hampshire/)).not.toBeInTheDocument();
+    expect(screen.getByText('Results', { selector: 'h3' }).tagName).toBe('H3');
+    expect(screen.getByText('Proficient in Math').closest('a')).toHaveAttribute('href', '/state/academic');
+    expect(within(screen.getByText('Proficient in Math').closest('a')!).getByText(/See test scores/)).toBeInTheDocument();
     // Each tile: the figure and its short year, an arrow with the change and its comparison year
     // (the whole change in words for screen readers), and a grey note only on the dollar tiles and truancy
-    const mathTile = within(screen.getByText('Proficient in math').closest('a')!);
+    const mathTile = within(screen.getByText('Proficient in Math').closest('a')!);
     expect(mathTile.getByText('44%')).toBeInTheDocument();
     expect(mathTile.getByText('25/26')).toBeInTheDocument();
     expect(mathTile.getByText('4%')).toBeInTheDocument();
-    expect(mathTile.getByText('since 17/18')).toBeInTheDocument();
+    expect(mathTile.getByText('Since 17/18')).toBeInTheDocument();
     expect(mathTile.getByText('Down 4 percentage points since 2017-18')).toBeInTheDocument();
     expect(mathTile.getByText('Down 4 percentage points since 2017-18').closest('p')).toHaveStyle({ color: '#c62828' });
-    const costTile = within(screen.getByText('Cost per student', { selector: 'p' }).closest('a')!);
+    const costTile = within(screen.getByText('Cost per Student', { selector: 'p' }).closest('a')!);
     expect(costTile.getByText('Up 50% since 2014-15').closest('p')).toHaveStyle({ color: '#2e7d32' });
     expect(costTile.getByText(/^Up \d+% after inflation$/)).toBeInTheDocument();
-    expect(within(screen.getByText('Total school district spending').closest('a')!).getByText('$4.14B')).toBeInTheDocument();
-    const gradTile = within(screen.getByText('Four-year graduation rate', { selector: 'p' }).closest('a')!);
+    expect(within(screen.getByText('Total School District Spending').closest('a')!).getByText('$4.14B')).toBeInTheDocument();
+    const gradTile = within(screen.getByText('Four-Year Graduation Rate', { selector: 'span' }).closest('a')!);
     expect(gradTile.getByText('2025')).toBeInTheDocument();
-    expect(gradTile.getByText('since 2015')).toBeInTheDocument();
+    // Phones show shorter titles on some tiles
+    expect(gradTile.getByText('Graduation Rate')).toBeInTheDocument();
+    expect(screen.getByText('Total Spending')).toBeInTheDocument();
+    expect(screen.getByText("EFA's")).toBeInTheDocument();
+    expect(gradTile.getByText('Since 2015')).toBeInTheDocument();
     expect(screen.getByText('Teachers').closest('a')).not.toHaveTextContent('students per teacher');
     expect(screen.queryByText(/estimated state aid/)).not.toBeInTheDocument();
-    // Students and staff come first, then money, then results; district and school counts replace truancy
-    const bandOrder = ['Students and staff', 'Money', 'Results'].map(title => screen.getByText(title, { selector: 'h2' }));
+    // Students and staff come first, then financials, then results; district and school counts replace truancy
+    expect(screen.getByText('Key Figures').tagName).toBe('H2');
+    const bandOrder = ['Students and Staff', 'Financials', 'Results'].map(title => screen.getAllByText(title, { selector: 'h3' }).find(heading => heading.closest('section'))!);
     expect(bandOrder[0].compareDocumentPosition(bandOrder[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(bandOrder[1].compareDocumentPosition(bandOrder[2]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // District and school counts get a change and trend line too, even when the change is flat
-    const districtTile = within((await screen.findByText('School districts')).closest('a')!);
+    const districtTile = within((await screen.findByText('School Districts')).closest('a')!);
     expect(districtTile.getByText('166')).toBeInTheDocument();
     expect(districtTile.getByText('24/25')).toBeInTheDocument();
     expect(districtTile.getByText('0%')).toBeInTheDocument();
     expect(districtTile.getByText('No change since 2015-16')).toBeInTheDocument();
-    expect(districtTile.getByText('Running their own schools')).toBeInTheDocument();
-    const schoolTile = within(screen.getByText('Public schools').closest('a')!);
+    expect(districtTile.getByText('166 run their own schools')).toBeInTheDocument();
+    expect(districtTile.getByText('166 run schools')).toBeInTheDocument();
+    const schoolTile = within(screen.getByText('Public Schools').closest('a')!);
     expect(schoolTile.getByText('442')).toBeInTheDocument();
     expect(schoolTile.getByText('Up 3% since 2015-16')).toBeInTheDocument();
+    expect(schoolTile.getByText('excl. charter')).toBeInTheDocument();
     expect(screen.queryByText('Students who were truant')).not.toBeInTheDocument();
     expect(screen.getByText(/^Education Freedom Accounts/, { selector: 'h3' }).closest('a')).toHaveAttribute('href', '/state/efa');
     expect(screen.queryByText('What these terms mean')).not.toBeInTheDocument();
