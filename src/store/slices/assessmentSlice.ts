@@ -3,7 +3,7 @@ import { RootState } from '@/store/store';
 import { assessmentsApi } from '@/services/api/endpoints/assessments';
 import { fetchGrades, Grade } from '@/store/slices/locationSlice';
 import { ALL_GRADES_ID, ALL_STUDENTS_SUBGROUP_ID } from '@/features/district/utils/assessmentDataProcessing';
-import { LoadingState } from '@/store/utils/loadingState';
+import { LoadingState, retryFailedLoads, resetFailedStatuses } from '@/store/utils/loadingState';
 import { createOptionsKey } from '@/store/utils/cacheKey';
 import { createKeyedThunk, addKeyedCases, type ThunkHooks } from '@/store/utils/keyedResource';
 import { createTypeListThunk, addTypeListCases } from '@/store/utils/typeLists';
@@ -351,6 +351,12 @@ export const assessmentSlice = createSlice({
       data: (state) => state.schoolData,
       status: (state) => state.dataLoadingStatus.school,
     });
+
+    // Retry on a page's load error: failed requests go back to IDLE so the page requests them again
+    builder.addCase(retryFailedLoads, (state) => {
+      resetFailedStatuses(state.dataLoadingStatus);
+      resetFailedStatuses(state.typeLoadingStatus);
+    });
   },
 });
 
@@ -416,6 +422,8 @@ export const selectCurrentAssessmentSchoolData = createSelector(
     return currentKey ? schoolData[currentKey] || [] : [];
   }
 );
+
+export const selectAssessmentStateData = makeMemoDataSelector<RootState, FetchAssessmentStateDataParams, AssessmentStateData>(state => state.assessment.stateData);
 
 export const selectAssessmentDistrictData = makeMemoDataSelector<RootState, FetchAssessmentDistrictDataParams, AssessmentDistrictData>(state => state.assessment.districtData);
 

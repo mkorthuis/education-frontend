@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { efaApi } from '@/services/api/endpoints/efa';
-import { LoadingState } from '@/store/utils/loadingState';
+import { LoadingState, retryFailedLoads, resetFailedStatuses } from '@/store/utils/loadingState';
 import { createOptionsKeyDropNull } from '@/store/utils/cacheKey';
 import { createKeyedThunk, addKeyedCases, prefetchIfIdle, type ThunkHooks } from '@/store/utils/keyedResource';
 import { addTypeListCases } from '@/store/utils/typeLists';
@@ -142,6 +142,12 @@ export const efaSlice = createSlice({
             data: (state) => state.data.stateEntries,
             status: (state) => state.dataLoadingStatus.stateEntries,
             key: createOptionsKeyDropNull,
+        });
+
+        // Retry on a page's load error: failed requests go back to IDLE so the page requests them again
+        builder.addCase(retryFailedLoads, (state) => {
+            resetFailedStatuses(state.dataLoadingStatus);
+            resetFailedStatuses(state.typeLoadingStatus);
         });
     }
 });

@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk, PayloadAction, ActionReducerMapBuilder, 
 import { RootState } from '@/store/store';
 import { financeApi } from '@/services/api/endpoints/finances';
 import { FISCAL_YEAR } from '@/utils/environment';
-import { LoadingState } from '@/store/utils/loadingState';
+import { LoadingState, retryFailedLoads, resetFailedStatuses } from '@/store/utils/loadingState';
 import { handleApiError } from '@/store/utils/apiError';
 
 // ================ TYPE DEFINITIONS ================
@@ -573,6 +573,11 @@ export const financeSlice = createSlice({
     addArrayFetchCases(builder, fetchStateRevenue, 'stateRevenue', 'stateRevenueAllData');
     addArrayFetchCases(builder, fetchStateExpenditure, 'stateExpenditure', 'stateExpenditureAllData');
     addArrayFetchCases(builder, fetchStateADM, 'stateADM', 'stateADMData');
+
+    // Retry on a page's load error: failed requests go back to IDLE so the page requests them again
+    builder.addCase(retryFailedLoads, (state) => {
+      resetFailedStatuses(state.loadingStates);
+    });
   },
 });
 
