@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
-  fittedAxis,
+  formatCompact,
+  formatDollarsInWords,
+  formatSignedPercent,
+  niceAxis,
+  shareOfEnrollment,
+  withEmptyYears,
   changeSince,
   describeChange,
   efaTotals,
@@ -73,6 +78,17 @@ describe('series helpers', () => {
   });
 });
 
+describe('gaps and rates', () => {
+  it('adds empty rows for skipped years inside the range only', () => {
+    const rows = withEmptyYears([{ year: 2019, math: 48 }, { year: 2021, math: 38 }], [2020, 2030], ['math']);
+    expect(rows).toEqual([{ year: 2019, math: 48 }, { year: 2020, math: null }, { year: 2021, math: 38 }]);
+  });
+
+  it('gives counts as a share of enrollment for matching years', () => {
+    expect(shareOfEnrollment(series([[2024, 50], [2025, 30]]), series([[2025, 300]]))).toEqual([{ year: 2025, value: 10 }]);
+  });
+});
+
 describe('outcomes', () => {
   it('turns cohort counts into rates', () => {
     const [rates] = graduationRates([{ year: 2025, cohort_size: 200, graduate: 175, earned_hiset: 4, dropped_out: 6 }]);
@@ -115,15 +131,15 @@ describe('assessments', () => {
 
   it('restores ids on rows the store enriched with related objects', () => {
     const stored = [
-      { year: 2026, above_proficient_percentage: 44, assessment_subgroup: { id: 1 }, assessment_subject: { id: 1 }, grade: null },
+      { year: 2026, above_proficient_percentage: 44, level_4_percentage: 20, assessment_subgroup: { id: 1 }, assessment_subject: { id: 1 }, grade: null },
       { year: 2026, above_proficient_percentage: 50, assessment_subgroup: { id: 1 }, assessment_subject: { id: 1 }, grade: { id: '5', name: 'Grade 3' } },
       { year: 2026, above_proficient_percentage: 55, assessment_subgroup_id: 1, assessment_subject_id: 2, grade_id: null },
       { year: 2026, above_proficient_percentage: 10, assessment_subject: { id: 1 } },
     ];
     expect(normalizeAssessmentRows(stored)).toEqual([
-      { year: 2026, above_proficient_percentage: 44, assessment_subgroup_id: 1, assessment_subject_id: 1, grade_id: null, grade_name: null },
-      { year: 2026, above_proficient_percentage: 50, assessment_subgroup_id: 1, assessment_subject_id: 1, grade_id: 5, grade_name: 'Grade 3' },
-      { year: 2026, above_proficient_percentage: 55, assessment_subgroup_id: 1, assessment_subject_id: 2, grade_id: null, grade_name: null },
+      { year: 2026, above_proficient_percentage: 44, level_4_percentage: 20, assessment_subgroup_id: 1, assessment_subject_id: 1, grade_id: null, grade_name: null },
+      { year: 2026, above_proficient_percentage: 50, level_4_percentage: null, assessment_subgroup_id: 1, assessment_subject_id: 1, grade_id: 5, grade_name: 'Grade 3' },
+      { year: 2026, above_proficient_percentage: 55, level_4_percentage: null, assessment_subgroup_id: 1, assessment_subject_id: 2, grade_id: null, grade_name: null },
     ]);
   });
 
@@ -211,9 +227,42 @@ describe('formatting', () => {
   });
 
   it('fits the axis from a little under the lowest value, in round steps', () => {
-    expect(fittedAxis(11549, 23533)).toEqual({ domain: [10000, 25000], ticks: [10000, 15000, 20000, 25000] });
-    expect(fittedAxis(17300, 23533)).toEqual({ domain: [16000, 24000], ticks: [16000, 18000, 20000, 22000, 24000] });
-    expect(fittedAxis(5, 5).domain[0]).toBeLessThan(5);
+    expect(niceAxis(11549, 23533, 'fit')).toMatchObject({ domain: [10000, 25000], ticks: [10000, 15000, 20000, 25000] });
+    expect(niceAxis(17300, 23533, 'fit')).toMatchObject({ domain: [16000, 24000], ticks: [16000, 18000, 20000, 22000, 24000] });
+    expect(niceAxis(5, 5, 'fit').domain[0]).toBeLessThan(5);
+  });
+
+  it('starts zero-based axes at zero with round steps', () => {
+    expect(niceAxis(0, 13900).ticks).toEqual([0, 5000, 10000, 15000]);
+    expect(niceAxis(0, 2150).ticks).toEqual([0, 1000, 2000, 3000]);
+    expect(niceAxis(100, 4.4e9).ticks).toEqual([0, 2e9, 4e9, 6e9]);
+  });
+
+  it('spans negative and positive values with zero on a tick', () => {
+    const axis = niceAxis(-19.6, 54.3, 'span');
+    expect(axis.ticks).toContain(0);
+    expect(axis.domain[0]).toBeLessThanOrEqual(-19.6);
+    expect(axis.domain[1]).toBeGreaterThanOrEqual(54.3);
+    expect(niceAxis(0, 100, 'span').ticks).toEqual([0, 25, 50, 75, 100]);
+  });
+
+  it('writes compact axis labels without stray zeros', () => {
+    expect(formatCompact(0)).toBe('0');
+    expect(formatCompact(0, '$')).toBe('$0');
+    expect(formatCompact(12000)).toBe('12K');
+    expect(formatCompact(2500, '$')).toBe('$2.5K');
+    expect(formatCompact(4e9, '$')).toBe('$4B');
+    expect(formatCompact(-20)).toBe('−20');
+  });
+
+  it('writes large dollar amounts in words and signed percents with a true minus', () => {
+    expect(formatDollarsInWords(2879988067)).toBe('$2.88 billion');
+    expect(formatDollarsInWords(54387500)).toBe('$54.4 million');
+    expect(formatDollarsInWords(4000000000)).toBe('$4 billion');
+    expect(formatDollarsInWords(12500)).toBe('$12,500');
+    expect(formatSignedPercent(-4.2)).toBe('−4%');
+    expect(formatSignedPercent(7)).toBe('+7%');
+    expect(formatSignedPercent(0.2)).toBe('0%');
   });
 
   it('describes changes in words', () => {

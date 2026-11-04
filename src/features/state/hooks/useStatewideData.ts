@@ -156,7 +156,9 @@ export const useStateSafetyData = () => {
       load: () => dispatch(safetySlice.fetchStateEnrollmentData(STATE_PARAMS)),
     },
   ];
-  return { loads, truancy, bullying, incidents, restraints, seclusions, enrollment };
+  // Truancy and the enrollment it's divided by, for pages that only need the truancy rate
+  const truancyLoads = [loads[0], loads[loads.length - 1]];
+  return { loads, truancyLoads, truancy, bullying, incidents, restraints, seclusions, enrollment };
 };
 
 export const useStateEfaData = () => {

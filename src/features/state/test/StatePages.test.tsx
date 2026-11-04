@@ -1,8 +1,9 @@
 import React, { Suspense } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { store } from '@/store/store';
 import { fetchData } from '@/services/api/utils/apiUtils';
 import { fixtureFor } from './stateApiFixtures';
@@ -30,84 +31,150 @@ beforeEach(() => {
   });
 });
 
-const renderPage = (page: React.ReactElement) =>
+const CurrentPath = () => <p>At {useLocation().pathname}</p>;
+
+const renderPage = (page: React.ReactElement, path = '/') =>
   render(
     <Provider store={store}>
-      <MemoryRouter>
-        <Suspense fallback={null}>{page}</Suspense>
+      <MemoryRouter initialEntries={[path]}>
+        <Suspense fallback={null}>
+          <Routes>
+            <Route path="/state/*" element={page} />
+            <Route path="*" element={<CurrentPath />} />
+          </Routes>
+        </Suspense>
       </MemoryRouter>
     </Provider>
   );
 
 const TIMEOUT = { timeout: 3000 };
 
+// A sentence whose school years sit in their own spans (so they don't break across lines)
+const sentence = (text: string | RegExp) => (_content: string, element: Element | null) =>
+  element?.tagName === 'P' && (typeof text === 'string' ? element.textContent === text : text.test(element.textContent ?? ''));
+
 describe('State pages', () => {
-  it('overview summarizes the state in plain language', async () => {
-    renderPage(<StateOverview />);
+  it('overview summarizes the state in plain language, with preliminary figures marked', async () => {
+    renderPage(<StateOverview />, '/state');
 
     const brief = await screen.findByText('In brief', undefined, TIMEOUT);
     const summary = within(brief.parentElement as HTMLElement);
     expect(summary.getByText('149,403 students attended New Hampshire public schools in 2024-25, down 9% from 2014-15.')).toBeInTheDocument();
     expect(summary.getByText(/^Schools spent \$21,000 per student in 2024-25, up 50% from 2014-15 \(up \d+% after inflation\)\.$/)).toBeInTheDocument();
     expect(summary.getByText('44% of students tested proficient in math and 55% in reading in 2025-26.')).toBeInTheDocument();
-    expect(summary.getByText('87.5% of the class of 2025 graduated in four years, and 67% of graduates planned to go to college.')).toBeInTheDocument();
-    expect(summary.getByText('12,500 students have Education Freedom Accounts for 2026-27.')).toBeInTheDocument();
+    expect(summary.getByText('87.5% of the class of 2025 (preliminary) graduated in four years, and 67% of graduates planned to go to college.')).toBeInTheDocument();
+    expect(summary.getByText('12,500 students have Education Freedom Accounts for 2026-27 (preliminary count as of August 2, 2026).')).toBeInTheDocument();
 
-    // Tiles link to the detail pages
+    // Tiles are grouped, say where they lead, and link to the detail pages
+    // (Role queries are slow on a page this size, so headings and links are checked by element)
+    expect(screen.getByText('New Hampshire Public Schools at a Glance').tagName).toBe('H1');
+    expect(screen.getByText('Results').tagName).toBe('H2');
     expect(screen.getByText('Proficient in math').closest('a')).toHaveAttribute('href', '/state/academic');
-    expect(screen.getByText('10.7 students per teacher in 2024-25')).toBeInTheDocument();
+    expect(within(screen.getByText('Proficient in math').closest('a')!).getByText(/See test scores/)).toBeInTheDocument();
+    expect(screen.getByText(sentence('10.7 students per teacher in 2024-25'))).toBeInTheDocument();
     expect(screen.getByText('About $52 million in estimated state aid')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Education Freedom Accounts' })).toHaveAttribute('href', '/state/efa');
+    expect(screen.getByText('Students who were truant').closest('a')).toHaveAttribute('href', '/state/safety');
+    expect(within(screen.getByText('Students who were truant').closest('a')!).getByText('18.8%')).toBeInTheDocument();
+    expect(screen.getByText(/^Education Freedom Accounts/, { selector: 'h3' }).closest('a')).toHaveAttribute('href', '/state/efa');
+    expect(screen.getByText('What these terms mean')).toBeInTheDocument();
   });
 
-  it('academics lists proficiency by student group and grade', async () => {
-    renderPage(<StateAcademics />);
+  it('academics leads with key figures, lists grades first, and names student groups plainly', async () => {
+    renderPage(<StateAcademics />, '/state/academic');
 
-    expect(await screen.findByText('Percent Proficient by Student Group, 2025-26', undefined, TIMEOUT)).toBeInTheDocument();
-    const iepRow = screen.getByText('IEP/SWD').closest('tr')!;
+    expect(await screen.findByText(sentence('In 2025-26, 44% of students were proficient in math, 55% in reading and 38% in science.'), undefined, TIMEOUT)).toBeInTheDocument();
+    expect(screen.getByText(sentence('22% at the highest level (4 of 4)'))).toBeInTheDocument();
+    const gradeTable = screen.getByText('Percent proficient by grade, 2025-26');
+    const groupTable = screen.getByText('Percent proficient by student group, 2025-26');
+    expect(gradeTable.compareDocumentPosition(groupTable) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(screen.getByText('Grade 3').closest('tr')!).getByText('54%')).toBeInTheDocument();
+
+    const iepRow = screen.getByText('Students with disabilities (IEP)').closest('tr')!;
     expect(within(iepRow).getByText('13%')).toBeInTheDocument();
     expect(within(iepRow).getByText('17%')).toBeInTheDocument();
-
-    expect(screen.getByText('Percent Proficient by Grade, 2025-26')).toBeInTheDocument();
-    expect(within(screen.getByText('Grade 3').closest('tr')!).getByText('54%')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Disability' })).toBeInTheDocument();
   });
 
-  it('graduation lists the latest class plans', async () => {
-    renderPage(<StateOutcomes />);
-    expect(await screen.findByText('Plans of the Class of 2025', undefined, TIMEOUT)).toBeInTheDocument();
-    const row = screen.getByText('Entering Four Year Colleges & Universities').closest('tr')!;
-    expect(within(row).getByText('50.0%')).toBeInTheDocument();
+  it('academics shows the student group from the address, compared with all students', async () => {
+    renderPage(<StateAcademics />, '/state/academic?group=9');
+
+    expect(await screen.findByText(sentence('Students with disabilities (IEP), 2025-26: 13% proficient in math and 17% in reading.'), undefined, TIMEOUT)).toBeInTheDocument();
+    expect(screen.getByText('For comparison, 44% of all students were proficient in math, so this group is 31 points below all students.')).toBeInTheDocument();
+    expect(screen.getByText('Percent proficient by year: Students with disabilities (IEP)')).toBeInTheDocument();
+    expect(screen.getByText(sentence('7% at the highest level (4 of 4); All students: 44%'))).toBeInTheDocument();
   });
 
-  it('financials split revenue by source', async () => {
-    renderPage(<StateFinancials />);
-    expect(await screen.findByText('Revenue by Source, 2024-25', undefined, TIMEOUT)).toBeInTheDocument();
-    expect(within(screen.getByText('Local').closest('tr')!).getByText('75.0%')).toBeInTheDocument();
-    expect(screen.getByText('Total: $4,000')).toBeInTheDocument();
+  it('graduation leads with the rate and uses the same plan names in the table', async () => {
+    renderPage(<StateOutcomes />, '/state/outcomes');
+    expect(await screen.findByText(sentence('87.5% of the class of 2025 graduated in four years; 2.2% dropped out.'), undefined, TIMEOUT)).toBeInTheDocument();
+    expect(screen.getByText('Plans of the Class of 2025 (preliminary)')).toBeInTheDocument();
+    expect(within(screen.getByText('Four-year college', { selector: 'th' }).closest('tr')!).getByText('50.0%')).toBeInTheDocument();
+    expect(within(screen.getByText('All graduates').closest('tr')!).getByText('1,000')).toBeInTheDocument();
   });
 
-  it('staff lists staff by type', async () => {
-    renderPage(<StateStaff />);
-    expect(await screen.findByText('Staff by Type, 2024-25', undefined, TIMEOUT)).toBeInTheDocument();
-    expect(within(screen.getByText('Teacher').closest('tr')!).getByText('-7%')).toBeInTheDocument();
+  it('financials compares students and spending over the same ten years, and totals revenue', async () => {
+    renderPage(<StateFinancials />, '/state/financials');
+    expect(await screen.findByText(sentence(/^From 2014-15 to 2024-25, the number of students went down 9% while total spending went up 38% \(up \d+% after inflation\)\.$/), undefined, TIMEOUT)).toBeInTheDocument();
+    expect(screen.getByText('Revenue by source, 2024-25')).toBeInTheDocument();
+    expect(within(screen.getByText('Local', { selector: 'th' }).closest('tr')!).getByText('75.0%')).toBeInTheDocument();
+    expect(within(screen.getByText('Total').closest('tr')!).getByText('$4,000')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: "Show in today's dollars (adjusted for inflation)" })).toBeInTheDocument();
+    expect(screen.getByText(/The vertical axis starts at \$\d+K, not zero\./)).toBeInTheDocument();
   });
 
-  it('enrollment compares grades with five years earlier', async () => {
-    renderPage(<StateEnrollment />);
-    expect(await screen.findByText('Enrollment by Grade, 2025-26', undefined, TIMEOUT)).toBeInTheDocument();
-    expect(within(screen.getByText('Kindergarten', { selector: 'td' }).closest('tr')!).getByText('+6%')).toBeInTheDocument();
+  it('financials sends the district picker to the same page for that district', async () => {
+    renderPage(<StateFinancials />, '/state/financials');
+    const picker = await screen.findByLabelText('See these figures for your district', undefined, TIMEOUT);
+    await userEvent.type(picker, 'Bed');
+    await userEvent.click(await screen.findByRole('option', { name: 'Bedford' }));
+    expect(await screen.findByText('At /district/7/financials')).toBeInTheDocument();
   });
 
-  it('safety lists serious incidents', async () => {
-    renderPage(<StateSafety />);
-    expect(await screen.findByText('Serious Safety Incidents by Year', undefined, TIMEOUT)).toBeInTheDocument();
-    expect(within(screen.getByText('2024-25').closest('tr')!).getByText('3')).toBeInTheDocument();
+  it('graduation explains when a district has no graduation page instead of opening an empty one', async () => {
+    vi.mocked(fetchData).mockImplementation(async (url: string) => {
+      if (url.includes('location/school')) return [];
+      const fixture = fixtureFor(url);
+      if (fixture === undefined) throw new Error(`No fixture for ${url}`);
+      return structuredClone(fixture);
+    });
+    renderPage(<StateOutcomes />, '/state/outcomes');
+    const picker = await screen.findByLabelText('See these figures for your district', undefined, TIMEOUT);
+    await userEvent.type(picker, 'Ber');
+    await userEvent.click(await screen.findByRole('option', { name: 'Berlin' }));
+    expect(await screen.findByText(/^Berlin doesn't run its own schools; its students attend schools in other districts\. It has no Graduation page on this site\./)).toBeInTheDocument();
+    expect(screen.getByText("Go to Berlin's overview").closest('a')).toHaveAttribute('href', '/district/3');
+    expect(screen.queryByText(/^At \/district/)).not.toBeInTheDocument();
   });
 
-  it('EFA estimates aid by category', async () => {
-    renderPage(<StateEfa />);
-    expect(await screen.findByText('Aid by Category, 2026-27', undefined, TIMEOUT)).toBeInTheDocument();
-    const baseAid = screen.getByText('Base Aid').closest('tr')!;
-    expect(within(baseAid).getByText('$50,000,000')).toBeInTheDocument();
+  it('staff lists staff by type with the base year in the header', async () => {
+    renderPage(<StateStaff />, '/state/staff');
+    expect(await screen.findByText('Staff by type, 2024-25', undefined, TIMEOUT)).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Change since 2014-15' })).toBeInTheDocument();
+    expect(within(screen.getByText('Teachers', { selector: 'th' }).closest('tr')!).getByText('−7%')).toBeInTheDocument();
+    expect(within(screen.getByText('All staff').closest('tr')!).getByText('20,000')).toBeInTheDocument();
+  });
+
+  it('enrollment compares grades with the year before the pandemic, not 2020-21', async () => {
+    renderPage(<StateEnrollment />, '/state/enrollment');
+    expect(await screen.findByText('Enrollment by grade, 2025-26', undefined, TIMEOUT)).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Change since 2019-20' })).toBeInTheDocument();
+    expect(within(screen.getByText('Kindergarten', { selector: 'th' }).closest('tr')!).getByText('−6%')).toBeInTheDocument();
+    expect(screen.getByText(/^Compared with 2019-20, before the pandemic/)).toBeInTheDocument();
+  });
+
+  it('safety gives truancy as a share of students and lists incidents by type', async () => {
+    renderPage(<StateSafety />, '/state/safety');
+    expect(await screen.findByText(sentence('In 2024-25, 30,546 students (18.8%) had 10 or more half-days of unexcused absence.'), undefined, TIMEOUT)).toBeInTheDocument();
+    expect(screen.getByText('Serious safety incidents')).toBeInTheDocument();
+    expect(within(screen.getByText('Arson').closest('tr')!).getAllByText('3')).toHaveLength(2);
+  });
+
+  it('EFA marks the preliminary count and estimates aid by category', async () => {
+    renderPage(<StateEfa />, '/state/efa');
+    expect(await screen.findByText('Aid by category, 2026-27 (preliminary)', undefined, TIMEOUT)).toBeInTheDocument();
+    expect(screen.getByText(sentence("12,500 students have Education Freedom Accounts for 2026-27 (the state's preliminary count as of August 2, 2026), up from 10,000 in 2025-26."))).toBeInTheDocument();
+    expect(within(screen.getByText('Base amount (every EFA student)').closest('tr')!).getByText('$50 million')).toBeInTheDocument();
+    expect(screen.getByText('$4,160')).toBeInTheDocument();
+    expect(screen.getByText('Children\'s Scholarship Fund NH').closest('a')).toHaveAttribute('href', 'https://nh.scholarshipfund.org/apply/nh-education-freedom-accounts');
   });
 });

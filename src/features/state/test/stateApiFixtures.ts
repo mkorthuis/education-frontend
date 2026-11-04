@@ -20,7 +20,7 @@ const assessment = (year: number, subject: number, subgroup: number, gradeId: nu
   level_2_percentage_exception: null,
   level_3_percentage: null,
   level_3_percentage_exception: null,
-  level_4_percentage: null,
+  level_4_percentage: proficient === null ? null : Math.round(proficient / 2),
   level_4_percentage_exception: null,
   above_proficient_percentage: proficient,
   above_proficient_percentage_exception: null,
@@ -55,6 +55,8 @@ export const STATE_API_FIXTURES: Record<string, unknown> = {
     ],
   },
   'enrollment/town/state': [
+    // 2020-21 (the pandemic dip) is skipped as the comparison year in favor of 2019-20
+    { year: 2020, grade_id: 2, total_enrollment: 11250, grade: grade(2, 'Kindergarten') },
     { year: 2021, grade_id: 2, total_enrollment: 10000, grade: grade(2, 'Kindergarten') },
     { year: 2026, grade_id: 2, total_enrollment: 10625, grade: grade(2, 'Kindergarten') },
     { year: 2026, grade_id: 14, total_enrollment: 12269, grade: grade(14, 'Grade 12') },
@@ -120,6 +122,9 @@ export const STATE_API_FIXTURES: Record<string, unknown> = {
   'safety/state/restraint': [{ id: 1, year: 2025, generated: 1100, active_investigation: 0, closed_investigation: 1100, bodily_injury: 0, serious_injury: 0 }],
   'safety/state/seclusion': [{ id: 1, year: 2025, generated: 1500, active_investigation: 0, closed_investigation: 1500 }],
   'safety/state/enrollment': [{ year: 2025, total_enrollment: 162544 }],
+  'location/district': [{ id: 7, name: 'Bedford' }, { id: 3, name: 'Berlin' }],
+  // Schools for any district; tests that need a district without schools override it
+  'location/school': [{ id: 70, name: 'Bedford High School', district_id: 7, grades: [grade(14, 'Grade 12')] }],
 };
 
 /** The fixture for a request URL such as "/api/v1/finance/state-adm?year=2025", or undefined. */

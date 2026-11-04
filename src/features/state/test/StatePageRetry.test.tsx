@@ -42,7 +42,7 @@ describe('State page load errors', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
 
-    expect(await screen.findByText('Aid by Category, 2026-27')).toBeInTheDocument();
+    expect(await screen.findByText('Aid by category, 2026-27 (preliminary)')).toBeInTheDocument();
     expect(screen.queryByText('Statewide Education Freedom Account data could not be loaded.')).not.toBeInTheDocument();
   });
 });

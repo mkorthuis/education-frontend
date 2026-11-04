@@ -29,6 +29,18 @@ export const SUBJECTS = [
 // Years the state changed its test (NECAP to Smarter Balanced, then to the NH SAS); scores before
 // and after a change aren't comparable
 export const ASSESSMENT_CHANGE_YEARS = [2015, 2018];
+// Spring 2020: no state tests were given
+export const NO_TEST_YEAR = 2020;
+// 2020-21: many schools were remote or hybrid, so attendance, enrollment and safety counts dipped
+export const REMOTE_SCHOOL_YEAR = 2021;
+
+// Figures the state has published as preliminary. Keep in step with the notes on the Data Sources
+// page (src/pages/DataSources.tsx).
+export const PRELIMINARY = {
+  graduationClass: 2025,
+  efaYear: 2027,
+  efaAsOf: 'August 2, 2026',
+};
 
 export const sortByYear = <T extends { year: number }>(rows: T[]): T[] =>
   [...rows].sort((a, b) => a.year - b.year);
@@ -65,6 +77,27 @@ export const percentChangeSeries = (series: YearValue[], baseYear: number): Year
   if (!sorted.length || sorted[0].value === 0) return [];
   const base = sorted[0].value;
   return sorted.map(point => ({ year: point.year, value: ((point.value - base) / base) * 100 }));
+};
+
+/**
+ * Rows for `years` that the data skips, with every key null, so a chart keeps a gap there
+ * (e.g. the spring 2020 test year) instead of drawing a line across it.
+ */
+export const withEmptyYears = (rows: YearRow[], years: number[], keys: string[]): YearRow[] => {
+  if (!rows.length) return rows;
+  const first = rows[0].year;
+  const last = rows[rows.length - 1].year;
+  const missing = years.filter(year => year > first && year < last && !rows.some(row => row.year === year));
+  const empty = missing.map(year => ({ year, ...Object.fromEntries(keys.map(key => [key, null])) }) as YearRow);
+  return sortByYear([...rows, ...empty]);
+};
+
+/** Counts as a percentage of enrollment, matching years. */
+export const shareOfEnrollment = (counts: YearValue[], enrollment: YearValue[]): YearValue[] => {
+  const enrolled = new Map(enrollment.map(point => [point.year, point.value]));
+  return counts
+    .filter(point => (enrolled.get(point.year) ?? 0) > 0)
+    .map(point => ({ year: point.year, value: (point.value / enrolled.get(point.year)!) * 100 }));
 };
 
 /** Joins named series into one row per year (a year missing from a series has null there). */
@@ -158,6 +191,8 @@ export interface AssessmentRow {
   assessment_subject_id: number;
   grade_id: number | null;
   above_proficient_percentage: number | null;
+  /** The highest of the four achievement levels ("above proficient" on the district pages) */
+  level_4_percentage?: number | null;
 }
 
 // Rows as the assessment slice stores them: its enrichment replaces the id fields with the
@@ -165,6 +200,7 @@ export interface AssessmentRow {
 export interface StoredAssessmentRow {
   year: number;
   above_proficient_percentage: number | null;
+  level_4_percentage?: number | null;
   assessment_subgroup_id?: number;
   assessment_subject_id?: number;
   grade_id?: number | null;
@@ -183,6 +219,7 @@ export const normalizeAssessmentRows = (rows: StoredAssessmentRow[]): NamedAsses
     .map(row => ({
       year: row.year,
       above_proficient_percentage: row.above_proficient_percentage,
+      level_4_percentage: row.level_4_percentage ?? null,
       assessment_subgroup_id: row.assessment_subgroup?.id ?? row.assessment_subgroup_id ?? NaN,
       assessment_subject_id: row.assessment_subject?.id ?? row.assessment_subject_id ?? NaN,
       grade_id: row.grade ? Number(row.grade.id) : row.grade_id ?? null,
@@ -267,7 +304,8 @@ export const REVENUE_SOURCES = [
   { key: 'local', name: 'Local' },
   { key: 'state', name: 'State' },
   { key: 'federal', name: 'Federal' },
-  { key: 'other', name: 'Other' },
+  // The DOE-25 "Other Financing Sources": bond sales, transfers between funds and from trust funds
+  { key: 'other', name: 'Borrowing and transfers' },
 ] as const;
 
 // Same grouping as the district Revenue card: by the entry type's super category name
@@ -350,20 +388,53 @@ export const formatDollars = (value: number | null | undefined): string =>
 
 const NICE_STEPS = [1, 2, 2.5, 5, 10];
 
+export type AxisMode = 'zero' | 'fit' | 'span';
+
 /**
- * A y-axis from a little under the lowest value to the highest, with about four round steps,
- * for charts where starting at zero would flatten the trend.
+ * A y-axis with about four round steps (1, 2, 2.5 or 5 times a power of ten).
+ * - 'zero' starts at zero (or below it, for negative values)
+ * - 'fit' starts a little under the lowest value, for charts where zero would flatten the trend
+ * - 'span' starts at the lowest value rounded down, e.g. for percent change or a fixed range
  */
-export const fittedAxis = (min: number, max: number, padding = 0.05): { domain: [number, number]; ticks: number[] } => {
-  const paddedMin = Math.max(0, min * (1 - padding));
-  const rough = (max - paddedMin) / 4 || Math.abs(max) || 1;
+export const niceAxis = (min: number, max: number, mode: AxisMode = 'zero', padding = 0.05): { domain: [number, number]; ticks: number[]; step: number } => {
+  const low = mode === 'zero' ? Math.min(0, min) : mode === 'fit' ? Math.max(0, min * (1 - padding)) : min;
+  const high = Math.max(max, low);
+  const rough = (high - low) / 4 || Math.abs(high) || 1;
   const magnitude = 10 ** Math.floor(Math.log10(rough));
-  const step = (NICE_STEPS.find(nice => nice * magnitude >= rough) ?? 10) * magnitude;
-  const floor = Math.floor(paddedMin / step) * step;
-  const ceiling = Math.max(Math.ceil(max / step) * step, floor + step);
+  const step = (NICE_STEPS.find(nice => nice * magnitude >= rough - 1e-9) ?? 10) * magnitude;
+  const floor = Math.floor(low / step + 1e-9) * step;
+  const ceiling = Math.max(Math.ceil(high / step - 1e-9) * step, floor + step);
   const ticks: number[] = [];
-  for (let tick = floor; tick <= ceiling + step / 2; tick += step) ticks.push(tick);
-  return { domain: [floor, ceiling], ticks };
+  for (let tick = floor; tick <= ceiling + step / 2; tick += step) ticks.push(Number(tick.toFixed(10)));
+  return { domain: [floor, ceiling], ticks, step };
+};
+
+const trimZeros = (text: string) => text.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
+
+/** Short axis labels: 0, 950, 12K, 2.5M, 4B (with "$" for dollars); no trailing ".0". */
+export const formatCompact = (value: number, prefix = ''): string => {
+  const sign = value < 0 ? '−' : '';
+  const size = Math.abs(value);
+  const scaled = size >= 1e9 ? [size / 1e9, 'B'] : size >= 1e6 ? [size / 1e6, 'M'] : size >= 1e3 ? [size / 1e3, 'K'] : [size, ''];
+  return `${sign}${prefix}${trimZeros((scaled[0] as number).toFixed(1))}${scaled[1]}`;
+};
+
+export const formatCompactDollars = (value: number): string => formatCompact(value, '$');
+
+/** "$2.88 billion", "$54.4 million", "$12,500": for figures in sentences and summary tables. */
+export const formatDollarsInWords = (value: number | null | undefined): string => {
+  if (value === null || value === undefined || isNaN(value)) return 'N/A';
+  if (Math.abs(value) >= 1e9) return `$${trimZeros((value / 1e9).toFixed(2))} billion`;
+  if (Math.abs(value) >= 1e6) return `$${trimZeros((value / 1e6).toFixed(1))} million`;
+  return formatDollars(value);
+};
+
+/** "+12%", "−4%" (a true minus sign), "0%". */
+export const formatSignedPercent = (value: number | null | undefined, digits = 0): string => {
+  if (value === null || value === undefined || isNaN(value)) return '—';
+  const rounded = Number(value.toFixed(digits));
+  if (rounded === 0) return `${(0).toFixed(digits)}%`;
+  return `${rounded > 0 ? '+' : '−'}${Math.abs(rounded).toFixed(digits)}%`;
 };
 
 /** "up 12%" / "down 3%" / "unchanged", for plain-language summaries. */

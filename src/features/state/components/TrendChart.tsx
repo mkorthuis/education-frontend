@@ -1,21 +1,65 @@
-import React, { useMemo, useState } from 'react';
+import React, { useId, useMemo, useState } from 'react';
 import { Box, Button, ToggleButton, ToggleButtonGroup, Typography, useMediaQuery, useTheme } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
-import { CartesianGrid, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
-import { fittedAxis, YearRow } from '../utils/stateMetrics';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Customized,
+  Line,
+  LineChart,
+  ReferenceArea,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import { AxisMode, formatSchoolYear, niceAxis, YearRow } from '../utils/stateMetrics';
 import { downloadCsv } from '../utils/csv';
+import { useElementWidth } from '../hooks/useElementWidth';
 import StateTable from './StateTable';
+import { ChartHeader, ChartNote, visuallyHidden } from './chartText';
 
 // Categorical slots in fixed order (validated for color-vision deficiency as adjacent pairs).
 // Charts here use at most four series; longer breakdowns go in a table.
 export const SERIES_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100'];
 
+// One color per entity across the section, so "Elementary" or "Reading" looks the same on every chart
+export const ENTITY_COLORS = {
+  total: SERIES_COLORS[0],
+  elementary: SERIES_COLORS[1],
+  middle: SERIES_COLORS[2],
+  high: SERIES_COLORS[3],
+  math: SERIES_COLORS[0],
+  reading: SERIES_COLORS[1],
+  science: SERIES_COLORS[2],
+  adjusted: SERIES_COLORS[2],
+  teachers: SERIES_COLORS[0],
+  otherStaff: SERIES_COLORS[1],
+};
+
+// A gray line for the comparison a chart is measured against (e.g. students, on the spending chart);
+// dark enough for 4.5:1 on white, and gray has no hue to confuse with the categorical colors
+export const CONTEXT_COLOR = '#767676';
+
+// Dots on every point up to this many years; longer series get a dot on the last point only
+const MAX_DOTS = 12;
 const MAX_MOBILE_DOTS = 8;
+// Direct labels at the end of each line need room on the right
+const DIRECT_LABEL_MIN_WIDTH = 560;
+const DIRECT_LABEL_GAP = 14;
+const MAX_LABEL_DRIFT = 10;
+const LABEL_CHAR_WIDTH = 6.6;
 
 export interface TrendSeries {
   key: string;
   name: string;
+  /** Label at the end of the line, when the name is long */
+  shortName?: string;
+  color?: string;
+  /** Overrides the chart's format, e.g. a count column next to percentages in the table */
+  format?: (value: number) => string;
 }
 
 interface TrendChartProps {
@@ -27,31 +71,103 @@ interface TrendChartProps {
   format: (value: number) => string;
   /** Y-axis ticks; defaults to `format` */
   axisFormat?: (value: number) => string;
-  yDomain?: [number | 'auto' | 'dataMin', number | 'auto' | 'dataMax'];
-  /** Start the y-axis a little under the lowest value instead of at `yDomain` */
-  fitAxis?: boolean;
+  /** 'zero' (default) starts at zero; 'fit' a little under the lowest value; 'span' at the lowest value */
+  axis?: AxisMode;
+  /** A fixed y range, e.g. [0, 100] for percentages */
+  yDomain?: [number, number];
+  /** Extra values the axis must cover, so it doesn't move when a toggle changes the data */
+  axisIncludes?: number[];
+  /** Lines: one line per series. Share: one 100% stacked column per year. */
+  kind?: 'line' | 'share';
   /** Vertical markers, e.g. the years the state changed its test */
   markers?: { year: number; label: string }[];
-  note?: string;
+  /** Shaded spans between two years, e.g. remote school */
+  bands?: { from: number; to: number; label: string }[];
+  /** Years where the lines start over (values before and after aren't comparable) */
+  breaks?: number[];
+  /** Columns shown only in the table view and CSV */
+  tableSeries?: TrendSeries[];
+  /** A comparison shown in the tooltip and table, e.g. all students when a student group is chosen */
+  compare?: { data: YearRow[]; label: string };
+  note?: React.ReactNode;
   csvName: string;
+  /** Unit added to the CSV column headers, e.g. "% change from 2014-15" */
+  csvUnit?: string;
   yearLabel?: (year: number) => string;
   yearHeader?: string;
+  /** Order the legend by each line's latest value, for lists with no natural order (plans, sources) */
+  legendByValue?: boolean;
 }
 
-const defaultYearLabel = (year: number) => formatFiscalYear(year) ?? String(year);
+const eraKey = (key: string, era: number) => `${key}__${era}`;
 
-const ChartTooltip = ({ active, payload, label, format }: any) => {
+const roundForCsv = (value: number | null | undefined) =>
+  value === null || value === undefined ? null : Number.isInteger(value) ? value : Number(value.toFixed(2));
+
+const ChartTooltip = ({ active, payload, label, format, series, compareByYear, compareLabel }: any) => {
   if (!active || !payload || !payload.length) return null;
+  const year = payload[0]?.payload?.year;
+  const comparison = compareByYear?.get(year);
+  const entries = (series as TrendSeries[])
+    .map(entry => ({
+      entry,
+      item: payload.find((item: any) => (item.dataKey === entry.key || String(item.dataKey).startsWith(`${entry.key}__`))
+        && item.value !== null && item.value !== undefined),
+    }))
+    .filter(({ item }) => item);
+  if (!entries.length) return null;
   return (
     <Box sx={{ backgroundColor: 'background.paper', p: 1.5, border: 1, borderColor: 'divider', borderRadius: 1, boxShadow: 1 }}>
       <Typography variant="subtitle2" gutterBottom>{label}</Typography>
-      {payload.filter((entry: any) => entry.value !== null && entry.value !== undefined).map((entry: any) => (
-        <Box key={entry.dataKey} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+      {entries.map(({ entry, item }) => (
+        <Box key={entry.key} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
           <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: entry.color, flexShrink: 0 }} />
-          <Typography variant="body2">{entry.name}: {format(entry.value)}</Typography>
+          <Typography variant="body2">
+            {entry.name}: {format(item.value)}
+            {comparison && typeof comparison[entry.key] === 'number' && (
+              <Box component="span" sx={{ color: 'text.secondary' }}> ({compareLabel}: {format(comparison[entry.key])})</Box>
+            )}
+          </Typography>
         </Box>
       ))}
     </Box>
+  );
+};
+
+/** Series names at the right end of each line, nudged apart so they don't overlap. */
+const EndLabels = (props: any) => {
+  const { formattedGraphicalItems, series, color, offset } = props;
+  if (!formattedGraphicalItems) return null;
+  const ends = (series as TrendSeries[]).map(entry => {
+    const items = formattedGraphicalItems.filter((item: any) => {
+      const key = String(item.props?.dataKey ?? item.item?.props?.dataKey ?? '');
+      return key === entry.key || key.startsWith(`${entry.key}__`);
+    });
+    const points = items
+      .flatMap((item: any) => item.props?.points ?? [])
+      .filter((point: any) => point.value !== null && point.value !== undefined && typeof point.y === 'number');
+    const last = points.reduce((latest: any, point: any) => (!latest || point.x > latest.x ? point : latest), null);
+    return last ? { name: entry.shortName ?? entry.name, x: last.x as number, y: last.y as number } : null;
+  }).filter(Boolean) as { name: string; x: number; y: number }[];
+
+  // Keep labels at least DIRECT_LABEL_GAP apart, top to bottom, within the plot
+  const sorted = [...ends].sort((a, b) => a.y - b.y).map(end => ({ ...end, labelY: end.y }));
+  sorted.forEach((end, index) => {
+    if (index > 0) end.labelY = Math.max(end.labelY, sorted[index - 1].labelY + DIRECT_LABEL_GAP);
+  });
+  const bottom = (offset?.top ?? 0) + (offset?.height ?? 0);
+  const overflow = sorted.length ? sorted[sorted.length - 1].labelY - bottom : 0;
+  if (overflow > 0) sorted.forEach(end => { end.labelY -= overflow; });
+  // Lines that end at nearly the same point can't each be labeled without a label drifting off its
+  // line; the legend above the chart names them instead
+  if (sorted.some(end => Math.abs(end.labelY - end.y) > MAX_LABEL_DRIFT)) return null;
+
+  return (
+    <g>
+      {sorted.map(end => (
+        <text key={end.name} x={end.x + 8} y={end.labelY} dy="0.35em" fontSize={12} fill={color}>{end.name}</text>
+      ))}
+    </g>
   );
 };
 
@@ -62,129 +178,328 @@ const TrendChart: React.FC<TrendChartProps> = ({
   series,
   format,
   axisFormat,
-  yDomain = [0, 'auto'],
-  fitAxis = false,
+  axis = 'zero',
+  yDomain,
+  axisIncludes = [],
+  kind = 'line',
   markers = [],
+  bands = [],
+  breaks = [],
+  tableSeries = [],
+  compare,
   note,
   csvName,
-  yearLabel = defaultYearLabel,
-  yearHeader = 'Year',
+  csvUnit,
+  yearLabel = formatSchoolYear,
+  yearHeader = 'School year',
+  legendByValue = false,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [view, setView] = useState<'chart' | 'table'>('chart');
-  const chartData = data.map(row => ({ ...row, label: yearLabel(row.year) }));
-  const fitted = useMemo(() => {
-    if (!fitAxis) return null;
-    const values = data.flatMap(row => series.map(s => row[s.key])).filter((value): value is number => typeof value === 'number');
-    return values.length ? fittedAxis(Math.min(...values), Math.max(...values)) : null;
-  }, [fitAxis, data, series]);
-  const tableRows = [...data].reverse();
-  // On a phone, markers on a long series crowd together and make the line look dashed
-  const showDots = !isMobile || data.length <= MAX_MOBILE_DOTS;
+  const { ref, width } = useElementWidth<HTMLDivElement>();
+  const titleId = useId();
+  const summaryId = useId();
 
-  const handleDownload = () => {
-    downloadCsv(csvName, [yearHeader, ...series.map(entry => entry.name)], data.map(row => [yearLabel(row.year), ...series.map(entry => row[entry.key])]));
+  const colored = useMemo(
+    () => series.map((entry, index) => ({ ...entry, color: entry.color ?? SERIES_COLORS[index % SERIES_COLORS.length] })),
+    [series]
+  );
+  const years = useMemo(() => data.map(row => row.year), [data]);
+  const breakKey = breaks.join(',');
+
+  // Each series is split into one line per era, so nothing is drawn across a break
+  const { chartData, eras } = useMemo(() => {
+    const eraOf = (year: number) => breaks.filter(breakYear => year >= breakYear).length;
+    const eraList = [...new Set(years.map(eraOf))];
+    const rows = data.map(row => {
+      const chartRow: Record<string, number | string | null> = { ...row, label: yearLabel(row.year) };
+      if (breaks.length) {
+        colored.forEach(entry => {
+          eraList.forEach(era => { chartRow[eraKey(entry.key, era)] = eraOf(row.year) === era ? row[entry.key] ?? null : null; });
+        });
+      }
+      return chartRow;
+    });
+    return { chartData: rows, eras: eraList };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, years, colored, breakKey, yearLabel]);
+
+  const yAxis = useMemo(() => {
+    if (kind === 'share') return niceAxis(0, 100, 'span');
+    if (yDomain) return niceAxis(yDomain[0], yDomain[1], 'span');
+    const values = data
+      .flatMap(row => colored.map(entry => row[entry.key]))
+      .filter((value): value is number => typeof value === 'number');
+    const all = [...values, ...axisIncludes];
+    return all.length ? niceAxis(Math.min(...all), Math.max(...all), axis) : null;
+  }, [kind, yDomain, data, colored, axisIncludes, axis]);
+  // Fall back to the value format when the axis format would print two ticks the same (0.5% as "1%")
+  const tickFormat = useMemo(() => {
+    const preferred = axisFormat ?? format;
+    if (!yAxis) return preferred;
+    const labels = yAxis.ticks.map(tick => preferred(tick));
+    return new Set(labels).size < labels.length ? format : preferred;
+  }, [axisFormat, format, yAxis]);
+  const axisNote = axis === 'fit' && yAxis && yAxis.domain[0] > 0 ? `The vertical axis starts at ${tickFormat(yAxis.domain[0])}, not zero.` : null;
+
+  const compareByYear = useMemo(() => (compare ? new Map(compare.data.map(row => [row.year, row])) : null), [compare]);
+
+  const showLegend = colored.length > 1;
+  const directLabels = kind === 'line' && !isMobile && width >= DIRECT_LABEL_MIN_WIDTH && colored.length >= 2 && colored.length <= 4;
+  const labelRoom = directLabels
+    ? Math.min(150, Math.max(...colored.map(entry => (entry.shortName ?? entry.name).length)) * LABEL_CHAR_WIDTH + 16)
+    : 16;
+  const height = isMobile ? 280 : width >= 900 ? 400 : 340;
+  const allDots = data.length <= (isMobile ? MAX_MOBILE_DOTS : MAX_DOTS);
+
+  const lastYearOf = (key: string) => {
+    for (let index = data.length - 1; index >= 0; index -= 1) {
+      if (typeof data[index][key] === 'number') return data[index].year;
+    }
+    return null;
   };
 
+  // Legend in series order (grades, school levels and subjects have a natural order), or for
+  // unordered lists in the order the lines end, highest first, so it reads like the chart
+  const legendOrder = useMemo(() => {
+    if (kind === 'share') return [...colored].reverse();
+    if (!legendByValue) return colored;
+    const last = (key: string) => {
+      for (let index = data.length - 1; index >= 0; index -= 1) {
+        const value = data[index][key];
+        if (typeof value === 'number') return value;
+      }
+      return -Infinity;
+    };
+    return [...colored].sort((a, b) => last(b.key) - last(a.key));
+  }, [colored, data, kind, legendByValue]);
+  const visibleMarkers = markers.filter(marker => years.includes(marker.year));
+  const markerKey = [...new Set(visibleMarkers.map(marker => marker.label))].join(' / ');
+
+  // One sentence a screen reader can use in place of the chart
+  const summary = useMemo(() => {
+    // With breaks, only compare within the latest era, as the chart does
+    const since = breaks.filter(year => data.some(row => row.year >= year)).reduce((latest, year) => Math.max(latest, year), -Infinity);
+    const parts = colored.map(entry => {
+      const points = data.filter(row => typeof row[entry.key] === 'number' && row.year >= since);
+      if (!points.length) return null;
+      const first = points[0];
+      const last = points[points.length - 1];
+      return points.length === 1
+        ? `${entry.name}: ${format(last[entry.key] as number)} in ${yearLabel(last.year)}`
+        : `${entry.name}: ${format(first[entry.key] as number)} in ${yearLabel(first.year)} and ${format(last[entry.key] as number)} in ${yearLabel(last.year)}`;
+    }).filter(Boolean);
+    const sinceText = Number.isFinite(since) ? ` Since ${yearLabel(since)}, when the measure last changed:` : '';
+    return `${kind === 'share' ? 'Stacked column chart' : 'Line chart'}.${sinceText} ${parts.length ? `${parts.join('. ')}.` : 'No data.'} The table view lists every year.`;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [colored, data, format, kind, yearLabel, breakKey]);
+
+  const tableColumns = [...colored, ...tableSeries];
+  const handleDownload = () => {
+    const unit = csvUnit ? ` (${csvUnit})` : '';
+    const comparisonHeaders = compare ? colored.map(entry => `${entry.name}, ${compare.label}${unit}`) : [];
+    downloadCsv(
+      csvName,
+      [yearHeader, 'End year', ...tableColumns.map(entry => `${entry.name}${unit}`), ...comparisonHeaders],
+      data.map(row => [
+        yearLabel(row.year),
+        row.year,
+        ...tableColumns.map(entry => roundForCsv(row[entry.key])),
+        ...(compare ? colored.map(entry => roundForCsv(compareByYear?.get(row.year)?.[entry.key])) : []),
+      ])
+    );
+  };
+
+  // Every point when the series is short; otherwise only the series' last point
+  const dotFor = (color: string, key: string) => {
+    if (allDots) return { r: 4, strokeWidth: 2, stroke: theme.palette.background.paper, fill: color };
+    const last = lastYearOf(key);
+    const EndDot = (props: any) => {
+      const { cx, cy, payload, index } = props;
+      return payload?.year === last && typeof cy === 'number'
+        ? <circle key={`${key}-${index}`} cx={cx} cy={cy} r={4} fill={color} stroke={theme.palette.background.paper} strokeWidth={2} />
+        : <g key={`${key}-${index}`} />;
+    };
+    return EndDot;
+  };
+
+  const axisTick = { fontSize: 12, fill: theme.palette.text.secondary };
+
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-        <Box sx={{ flex: 1, minWidth: 200 }}>
-          <Typography variant="body1" sx={{ fontWeight: 'medium' }}>{title}</Typography>
-          {subtitle && (
-            <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.secondary' }}>{subtitle}</Typography>
-          )}
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <ToggleButtonGroup
-            size="small"
-            exclusive
-            value={view}
-            onChange={(_event, next) => next && setView(next)}
-            aria-label={`${title} view`}
-          >
-            <ToggleButton value="chart" sx={{ py: 0.25, px: 1, textTransform: 'none' }}>Chart</ToggleButton>
-            <ToggleButton value="table" sx={{ py: 0.25, px: 1, textTransform: 'none' }}>Table</ToggleButton>
-          </ToggleButtonGroup>
-          <Button size="small" startIcon={<DownloadIcon fontSize="small" />} onClick={handleDownload} disabled={!data.length}>
-            CSV
-          </Button>
-        </Box>
-      </Box>
+    <Box component="figure" aria-labelledby={titleId} aria-describedby={summaryId} sx={{ m: 0, minWidth: 0 }}>
+      <ChartHeader
+        titleId={titleId}
+        title={title}
+        subtitle={subtitle}
+        actions={(
+          <>
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={view}
+              onChange={(_event, next) => next && setView(next)}
+              aria-label={`${title}: show as`}
+            >
+              <ToggleButton value="chart" sx={{ py: 0.25, px: 1.25, textTransform: 'none', minHeight: { xs: 40, sm: 'auto' } }}>Chart</ToggleButton>
+              <ToggleButton value="table" sx={{ py: 0.25, px: 1.25, textTransform: 'none', minHeight: { xs: 40, sm: 'auto' } }}>Table</ToggleButton>
+            </ToggleButtonGroup>
+            <Button
+              size="small"
+              startIcon={<DownloadIcon fontSize="small" />}
+              onClick={handleDownload}
+              disabled={!data.length}
+              aria-label={`Download ${title} as CSV`}
+              sx={{ minHeight: { xs: 40, sm: 'auto' } }}
+            >
+              CSV
+            </Button>
+          </>
+        )}
+      />
+      <Box component="p" id={summaryId} sx={visuallyHidden}>{summary}</Box>
 
       {view === 'table' ? (
         <StateTable
+          caption={title}
           columns={[
             { key: 'year', label: yearHeader, format: row => yearLabel(row.year) },
-            ...series.map(entry => ({
+            ...tableColumns.map(entry => ({
               key: entry.key,
               label: entry.name,
               align: 'right' as const,
-              format: (row: YearRow) => (row[entry.key] === null || row[entry.key] === undefined ? '—' : format(row[entry.key] as number)),
+              format: (row: YearRow) => (row[entry.key] === null || row[entry.key] === undefined ? '—' : (entry.format ?? format)(row[entry.key] as number)),
             })),
+            ...(compare ? colored.map(entry => ({
+              key: `compare-${entry.key}`,
+              label: `${entry.name}, ${compare.label.toLowerCase()}`,
+              align: 'right' as const,
+              format: (row: YearRow) => {
+                const value = compareByYear?.get(row.year)?.[entry.key];
+                return typeof value === 'number' ? format(value) : '—';
+              },
+            })) : []),
           ]}
-          rows={tableRows}
+          rows={[...data].reverse()}
         />
       ) : (
-        <Box sx={{ height: isMobile ? 280 : 340, width: '100%' }}>
-          {data.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 16, right: 16, left: isMobile ? 0 : 8, bottom: 4 }}>
-                <CartesianGrid stroke={theme.palette.grey[200]} vertical={false} />
-                <XAxis
-                  dataKey="label"
-                  tick={{ fontSize: theme.typography.body2.fontSize, fill: theme.palette.text.secondary }}
-                  axisLine={{ stroke: theme.palette.grey[300] }}
-                  tickLine={false}
-                  minTickGap={12}
-                />
-                <YAxis
-                  domain={fitted?.domain ?? yDomain}
-                  ticks={fitted?.ticks}
-                  tickFormatter={axisFormat ?? format}
-                  tick={{ fontSize: theme.typography.body2.fontSize, fill: theme.palette.text.secondary }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={isMobile ? 56 : 72}
-                />
-                <Tooltip content={<ChartTooltip format={format} />} cursor={{ stroke: theme.palette.grey[400], strokeWidth: 1 }} />
-                {series.length > 1 && <Legend wrapperStyle={{ fontSize: theme.typography.body2.fontSize, color: theme.palette.text.primary }} />}
-                {markers.filter(marker => data.some(row => row.year === marker.year)).map(marker => (
-                  <ReferenceLine
-                    key={marker.year}
-                    x={yearLabel(marker.year)}
-                    stroke={theme.palette.grey[400]}
-                    label={{ value: marker.label, position: 'insideTopLeft', fontSize: 12, fill: theme.palette.text.secondary }}
-                  />
-                ))}
-                {series.map((entry, index) => (
-                  <Line
-                    key={entry.key}
-                    type="linear"
-                    dataKey={entry.key}
-                    name={entry.name}
-                    stroke={SERIES_COLORS[index % SERIES_COLORS.length]}
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    dot={showDots ? { r: 4, strokeWidth: 2, stroke: theme.palette.background.paper, fill: SERIES_COLORS[index % SERIES_COLORS.length] } : false}
-                    activeDot={{ r: 6, strokeWidth: 2, stroke: theme.palette.background.paper }}
-                    isAnimationActive={false}
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Typography variant="body1" color="text.secondary">No data available</Typography>
-            </Box>
-          )}
-        </Box>
+        <>
+          {/* The legend row is kept even when empty, so charts side by side start at the same height */}
+          <Box component="ul" aria-hidden sx={{ display: 'flex', flexWrap: 'wrap', columnGap: 2, rowGap: 0.5, listStyle: 'none', p: 0, m: 0, mb: 1, minHeight: 24 }}>
+            {showLegend && legendOrder.map(entry => (
+              <Box component="li" key={entry.key} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                <Box sx={{ width: 16, height: kind === 'share' ? 10 : 3, borderRadius: kind === 'share' ? 0.5 : 2, backgroundColor: entry.color, flexShrink: 0 }} />
+                <Typography variant="body2" color="text.primary">{entry.name}</Typography>
+              </Box>
+            ))}
+            {markerKey && (
+              <Box component="li" sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                <Box sx={{ width: 16, height: 0, borderTop: '2px dashed', borderColor: 'grey.400', flexShrink: 0 }} />
+                <Typography variant="body2" color="text.secondary">{markerKey}</Typography>
+              </Box>
+            )}
+          </Box>
+          <Box ref={ref} aria-hidden sx={{ height, width: '100%' }}>
+            {data.length > 0 && yAxis ? (
+              <ResponsiveContainer width="100%" height="100%">
+                {kind === 'share' ? (
+                  <BarChart data={chartData} margin={{ top: 8, right: 16, left: isMobile ? 0 : 4, bottom: 4 }} barCategoryGap="20%">
+                    <CartesianGrid stroke={theme.palette.grey[200]} vertical={false} />
+                    <XAxis dataKey="label" tick={axisTick} axisLine={{ stroke: theme.palette.grey[300] }} tickLine={false} minTickGap={16} />
+                    <YAxis domain={yAxis.domain} ticks={yAxis.ticks} tickFormatter={tickFormat} tick={axisTick} axisLine={false} tickLine={false} width={isMobile ? 44 : 56} />
+                    <Tooltip content={<ChartTooltip format={format} series={colored} />} cursor={{ fill: theme.palette.grey[100] }} />
+                    {colored.map(entry => (
+                      <Bar
+                        key={entry.key}
+                        dataKey={entry.key}
+                        name={entry.name}
+                        stackId="share"
+                        fill={entry.color}
+                        stroke={theme.palette.background.paper}
+                        strokeWidth={1}
+                        maxBarSize={24}
+                        isAnimationActive={false}
+                      />
+                    ))}
+                  </BarChart>
+                ) : (
+                  <LineChart data={chartData} margin={{ top: 16, right: labelRoom, left: isMobile ? 0 : 4, bottom: 4 }}>
+                    <CartesianGrid stroke={theme.palette.grey[200]} vertical={false} />
+                    {bands.filter(band => years.includes(band.from) && years.includes(band.to)).map(band => (
+                      <ReferenceArea
+                        key={`${band.from}-${band.to}`}
+                        x1={yearLabel(band.from)}
+                        x2={yearLabel(band.to)}
+                        fill={theme.palette.grey[100]}
+                        fillOpacity={1}
+                        label={{ value: band.label, position: 'insideTop', fontSize: 12, fill: theme.palette.text.secondary }}
+                      />
+                    ))}
+                    <XAxis
+                      dataKey="label"
+                      tick={axisTick}
+                      axisLine={{ stroke: theme.palette.grey[300] }}
+                      tickLine={false}
+                      minTickGap={16}
+                      padding={{ left: 8, right: 8 }}
+                    />
+                    <YAxis
+                      domain={yAxis.domain}
+                      ticks={yAxis.ticks}
+                      tickFormatter={tickFormat}
+                      tick={axisTick}
+                      axisLine={false}
+                      tickLine={false}
+                      width={isMobile ? 48 : 60}
+                    />
+                    <Tooltip
+                      content={<ChartTooltip format={format} series={colored} compareByYear={compareByYear} compareLabel={compare?.label} />}
+                      cursor={{ stroke: theme.palette.grey[400], strokeWidth: 1 }}
+                    />
+                    {visibleMarkers.map(marker => (
+                      <ReferenceLine
+                        key={marker.year}
+                        x={yearLabel(marker.year)}
+                        stroke={theme.palette.grey[400]}
+                        strokeDasharray="4 3"
+                        label={isMobile ? undefined : { value: marker.label, position: 'insideTopLeft', fontSize: 12, fill: theme.palette.text.secondary }}
+                      />
+                    ))}
+                    {colored.flatMap(entry => (breaks.length ? eras.map(era => eraKey(entry.key, era)) : [entry.key]).map(dataKey => (
+                      <Line
+                        key={dataKey}
+                        type="linear"
+                        dataKey={dataKey}
+                        name={entry.name}
+                        stroke={entry.color}
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        dot={dotFor(entry.color, entry.key)}
+                        activeDot={{ r: 6, strokeWidth: 2, stroke: theme.palette.background.paper }}
+                        connectNulls={false}
+                        isAnimationActive={false}
+                      />
+                    )))}
+                    {directLabels && <Customized component={<EndLabels series={colored} color={theme.palette.text.secondary} />} />}
+                  </LineChart>
+                )}
+              </ResponsiveContainer>
+            ) : (
+              <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Typography variant="body1" color="text.secondary">No data available</Typography>
+              </Box>
+            )}
+          </Box>
+        </>
       )}
 
-      {note && (
-        <Typography variant="caption" component="p" sx={{ color: 'text.secondary', mt: 1 }}>{note}</Typography>
+      {(note || axisNote) && (
+        <ChartNote>
+          {note}
+          {note && axisNote ? ' ' : null}
+          {axisNote}
+        </ChartNote>
       )}
     </Box>
   );

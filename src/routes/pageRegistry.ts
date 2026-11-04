@@ -141,7 +141,7 @@ export const PAGE_REGISTRY: PageRegistry = {
       id: 'state.overview',
       component: StateOverview,
       urlPatterns: ['/state'],
-      displayName: 'Statewide Overview',
+      displayName: 'New Hampshire Public Schools at a Glance',
       shortName: 'Overview',
       order: 1,
       enabled: true,
