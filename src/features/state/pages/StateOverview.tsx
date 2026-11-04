@@ -4,7 +4,7 @@ import { Accordion, AccordionDetails, AccordionSummary, Box, Card, CardActionAre
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import StatePage from '../components/StatePage';
-import StatTile from '../components/StatTile';
+import OverviewTile from '../components/OverviewTile';
 import DistrictPicker from '../components/DistrictPicker';
 import { READING_WIDTH } from '../components/chartText';
 import { useStateLoads } from '../hooks/useStateLoads';
@@ -19,13 +19,11 @@ import {
 } from '../hooks/useStatewideData';
 import {
   ALL_STUDENTS_SUBGROUP_ID,
-  Change,
   changeSince,
   describeChange,
   efaTotals,
   formatCount,
   formatDollars,
-  formatDollarsInWords,
   formatPercent,
   formatSchoolYear,
   graduationRates,
@@ -38,7 +36,10 @@ import {
   toSeries,
   YearValue,
 } from '../utils/stateMetrics';
-import { capitalize, changeText, pointChangeText, realPercentChange } from '../utils/phrases';
+import { capitalize, realPercentChange, shortYear, tileDelta } from '../utils/phrases';
+
+/** "$4.14B", short enough to leave room for the change and trend line on the tile */
+const formatBillionsShort = (value: number) => `$${(value / 1e9).toFixed(2)}B`;
 
 const TREND_YEARS = 10;
 // The current state test (the NH SAS) began in 2017-18; earlier scores aren't comparable
@@ -71,13 +72,11 @@ const lastYears = (series: YearValue[]) => {
   return latest ? series.filter(point => point.year > latest.year - TREND_YEARS - 1) : series;
 };
 
-const classOf = (year: number) => `Class of ${year}${year === PRELIMINARY.graduationClass ? ' (preliminary)' : ''}`;
-const classYear = (year: number) => String(year);
 
 const tileGrid = {
   display: 'grid',
   gap: { xs: 1, sm: 2 },
-  gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' },
+  gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' },
 };
 
 const Band: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
@@ -123,7 +122,6 @@ const StateOverview: React.FC = () => {
     return {
       students, perPupil, spending, teachers, salary, ratio, math, reading, graduation, college, truancy,
       efaStudents: toSeries(efaYears, row => row.students),
-      efaCost: toSeries(efaYears, row => row.estimatedCost),
     };
   }, [enrollment.adm, finance.perPupil, finance.rollups, staff.staff, staff.salary, assessment.assessments, outcomes.cohorts, outcomes.postGraduation, safety.truancy, safety.enrollment, efa.entries, efa.entryTypes]);
 
@@ -152,15 +150,9 @@ const StateOverview: React.FC = () => {
     graduation: changeSince(figures.graduation, TREND_YEARS),
     college: changeSince(figures.college, TREND_YEARS),
     truancy: changeSince(figures.truancy, TREND_YEARS),
+    efaStudents: changeSince(figures.efaStudents, TREND_YEARS),
   };
-  // The high school (grade 11, SAT) math figure, since "all tested grades" is mostly grades 3-8
-  const grade11Math = assessment.assessments.find(row =>
-    row.year === latest.math?.year && row.grade_name === 'Grade 11' && row.assessment_subgroup_id === ALL_STUDENTS_SUBGROUP_ID
-    && row.assessment_subject_id === 1 && row.above_proficient_percentage !== null)?.above_proficient_percentage ?? null;
-  const efaCost = figures.efaCost.find(point => point.year === latest.efaStudents?.year && point.value > 0);
   const efaPreliminary = latest.efaStudents?.year === PRELIMINARY.efaYear;
-  const testSince = (change: Change | null) =>
-    change ? `${formatSchoolYear(change.from.year)}${change.from.year === CURRENT_TEST_FIRST_YEAR ? ', when the current test began' : ''}` : '';
 
   // Plain-language summary, one sentence per figure we have
   const summary: string[] = [];
@@ -218,56 +210,50 @@ const StateOverview: React.FC = () => {
         </Paper>
       </Box>
 
+      {/* Tiles as designed on the "NH Statewide Dashboard" canvas: the figure and its year, the
+          change since the comparison year as a green up or red down arrow, and a trend line. Only
+          the dollar tiles (after inflation) and truancy (what counts as truant) carry a grey note. */}
       <Band title="Results">
         {latest.math && (
-          <StatTile
+          <OverviewTile
             label="Proficient in math"
             value={formatPercent(latest.math.value)}
-            period={formatSchoolYear(latest.math.year)}
-            change={pointChangeText(changes.math, testSince(changes.math))}
-            detail={grade11Math === null ? 'All tested grades' : `All tested grades; grade 11 (SAT): ${formatPercent(grade11Math)}`}
+            period={shortYear(latest.math.year)}
+            delta={tileDelta(changes.math, { unit: 'points' })}
             trend={figures.math}
-            trendScale="rate"
             to={STATE_PAGES.academic.urlPatterns[0]}
             linkLabel="test scores"
           />
         )}
         {latest.reading && (
-          <StatTile
+          <OverviewTile
             label="Proficient in reading"
             value={formatPercent(latest.reading.value)}
-            period={formatSchoolYear(latest.reading.year)}
-            change={pointChangeText(changes.reading, testSince(changes.reading))}
-            detail="All tested grades"
+            period={shortYear(latest.reading.year)}
+            delta={tileDelta(changes.reading, { unit: 'points' })}
             trend={figures.reading}
-            trendScale="rate"
             to={STATE_PAGES.academic.urlPatterns[0]}
             linkLabel="test scores"
           />
         )}
         {latest.graduation && (
-          <StatTile
+          <OverviewTile
             label="Four-year graduation rate"
             value={formatPercent(latest.graduation.value, 1)}
-            period={classOf(latest.graduation.year)}
-            change={pointChangeText(changes.graduation, changes.graduation ? `the class of ${changes.graduation.from.year}` : '')}
+            period={String(latest.graduation.year)}
+            delta={tileDelta(changes.graduation, { unit: 'points', classYears: true })}
             trend={lastYears(figures.graduation)}
-            trendScale="rate"
-            trendYearLabel={classYear}
             to={STATE_PAGES.outcomes.urlPatterns[0]}
             linkLabel="graduation"
           />
         )}
         {latest.college && (
-          <StatTile
+          <OverviewTile
             label="Graduates planning to attend college"
             value={formatPercent(latest.college.value)}
-            period={classOf(latest.college.year)}
-            change={pointChangeText(changes.college, changes.college ? `the class of ${changes.college.from.year}` : '')}
-            detail="Two- and four-year colleges"
+            period={String(latest.college.year)}
+            delta={tileDelta(changes.college, { unit: 'points', classYears: true })}
             trend={lastYears(figures.college)}
-            trendScale="rate"
-            trendYearLabel={classYear}
             to={STATE_PAGES.outcomes.urlPatterns[0]}
             linkLabel="graduates' plans"
           />
@@ -276,11 +262,11 @@ const StateOverview: React.FC = () => {
 
       <Band title="Money">
         {latest.perPupil && (
-          <StatTile
+          <OverviewTile
             label="Cost per student"
             value={formatDollars(latest.perPupil.value)}
-            period={formatSchoolYear(latest.perPupil.year)}
-            change={changeText(changes.perPupil)}
+            period={shortYear(latest.perPupil.year)}
+            delta={tileDelta(changes.perPupil, { unit: 'percent' })}
             detail={changes.perPupil ? `${capitalize(describeChange(realPercentChange(changes.perPupil)))} after inflation` : undefined}
             trend={lastYears(figures.perPupil)}
             to={STATE_PAGES.financials.urlPatterns[0]}
@@ -288,11 +274,11 @@ const StateOverview: React.FC = () => {
           />
         )}
         {latest.spending && (
-          <StatTile
+          <OverviewTile
             label="Total school district spending"
-            value={formatDollarsInWords(latest.spending.value)}
-            period={formatSchoolYear(latest.spending.year)}
-            change={changeText(changes.spending)}
+            value={formatBillionsShort(latest.spending.value)}
+            period={shortYear(latest.spending.year)}
+            delta={tileDelta(changes.spending, { unit: 'percent' })}
             detail={changes.spending ? `${capitalize(describeChange(realPercentChange(changes.spending)))} after inflation` : undefined}
             trend={lastYears(figures.spending)}
             to={STATE_PAGES.financials.urlPatterns[0]}
@@ -300,11 +286,11 @@ const StateOverview: React.FC = () => {
           />
         )}
         {latest.salary && (
-          <StatTile
+          <OverviewTile
             label="Average teacher salary"
             value={formatDollars(latest.salary.value)}
-            period={formatSchoolYear(latest.salary.year)}
-            change={changeText(changes.salary)}
+            period={shortYear(latest.salary.year)}
+            delta={tileDelta(changes.salary, { unit: 'percent' })}
             detail={changes.salary ? `${capitalize(describeChange(realPercentChange(changes.salary)))} after inflation` : undefined}
             trend={lastYears(figures.salary)}
             to={STATE_PAGES.staff.urlPatterns[0]}
@@ -312,11 +298,11 @@ const StateOverview: React.FC = () => {
           />
         )}
         {latest.efaStudents && (
-          <StatTile
+          <OverviewTile
             label="Education Freedom Account students"
             value={formatCount(latest.efaStudents.value)}
-            period={`${formatSchoolYear(latest.efaStudents.year)}${efaPreliminary ? ' (preliminary)' : ''}`}
-            detail={efaCost ? `About ${formatDollarsInWords(Math.round(efaCost.value / 1e6) * 1e6)} in estimated state aid` : undefined}
+            period={shortYear(latest.efaStudents.year)}
+            delta={tileDelta(changes.efaStudents, { unit: 'percent' })}
             trend={figures.efaStudents}
             to={STATE_PAGES.efa.urlPatterns[0]}
             linkLabel="EFAs"
@@ -326,38 +312,35 @@ const StateOverview: React.FC = () => {
 
       <Band title="Students and staff">
         {latest.students && (
-          <StatTile
+          <OverviewTile
             label="Students"
             value={formatCount(latest.students.value)}
-            period={formatSchoolYear(latest.students.year)}
-            change={changeText(changes.students)}
-            detail="Average enrolled over the year"
+            period={shortYear(latest.students.year)}
+            delta={tileDelta(changes.students, { unit: 'percent' })}
             trend={lastYears(figures.students)}
             to={STATE_PAGES.enrollment.urlPatterns[0]}
             linkLabel="enrollment"
           />
         )}
         {latest.teachers && (
-          <StatTile
+          <OverviewTile
             label="Teachers"
             value={formatCount(latest.teachers.value)}
-            period={formatSchoolYear(latest.teachers.year)}
-            change={changeText(changes.teachers)}
-            detail={latest.ratio ? `${latest.ratio.value.toFixed(1)} students per teacher in ${formatSchoolYear(latest.ratio.year)}` : undefined}
+            period={shortYear(latest.teachers.year)}
+            delta={tileDelta(changes.teachers, { unit: 'percent' })}
             trend={lastYears(figures.teachers)}
             to={STATE_PAGES.staff.urlPatterns[0]}
             linkLabel="staffing"
           />
         )}
         {latest.truancy && (
-          <StatTile
+          <OverviewTile
             label="Students who were truant"
             value={formatPercent(latest.truancy.value, 1)}
-            period={formatSchoolYear(latest.truancy.year)}
-            change={pointChangeText(changes.truancy, changes.truancy ? formatSchoolYear(changes.truancy.from.year) : '')}
+            period={shortYear(latest.truancy.year)}
+            delta={tileDelta(changes.truancy, { unit: 'points' })}
             detail="10 or more half-days of unexcused absence"
             trend={lastYears(figures.truancy)}
-            trendScale="rate"
             to={STATE_PAGES.safety.urlPatterns[0]}
             linkLabel="attendance and safety"
           />

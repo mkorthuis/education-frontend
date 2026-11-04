@@ -1,5 +1,6 @@
 import { calculateInflationAdjustedAmount } from '@/utils/calculations';
 import { Change, describeChange, formatSchoolYear } from './stateMetrics';
+import type { TileDelta } from '../components/OverviewTile';
 
 // Plain-language wording for changes, shared by the overview tiles and each page's key figures
 
@@ -26,3 +27,26 @@ export const realPercentChange = (change: Change): number => {
 /** "Up 16% after inflation" */
 export const realChangeText = (change: Change | null): string | undefined =>
   change ? `${capitalize(describeChange(realPercentChange(change)))} after inflation` : undefined;
+
+/** "24/25", the short school-year form the district pages use. */
+export const shortYear = (year: number): string => `${String(year - 1).slice(-2)}/${String(year).slice(-2)}`;
+
+/**
+ * A change for an overview tile: the direction, the size shown beside the arrow ("4%"), the
+ * comparison year shown under it ("17/18", or a class year such as "2015") and the whole change
+ * in words for screen readers. Rates change in percentage points, also shown with "%".
+ */
+export const tileDelta = (
+  change: Change | null,
+  { unit, classYears = false }: { unit: 'percent' | 'points'; classYears?: boolean }
+): TileDelta | undefined => {
+  if (!change) return undefined;
+  const signed = Math.round(unit === 'percent' ? change.percentChange : change.change);
+  const size = Math.abs(signed);
+  const since = classYears ? String(change.from.year) : shortYear(change.from.year);
+  const spokenSince = classYears ? `the class of ${change.from.year}` : formatSchoolYear(change.from.year);
+  if (size === 0) return { direction: 'flat', amount: '0%', since, spoken: `No change since ${spokenSince}` };
+  const direction = signed > 0 ? 'up' : 'down';
+  const spokenSize = unit === 'percent' ? `${size}%` : `${size} percentage point${size === 1 ? '' : 's'}`;
+  return { direction, amount: `${size}%`, since, spoken: `${direction === 'up' ? 'Up' : 'Down'} ${spokenSize} since ${spokenSince}` };
+};

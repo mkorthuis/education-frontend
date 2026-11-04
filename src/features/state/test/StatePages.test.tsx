@@ -71,8 +71,24 @@ describe('State pages', () => {
     expect(screen.getByText('Results').tagName).toBe('H2');
     expect(screen.getByText('Proficient in math').closest('a')).toHaveAttribute('href', '/state/academic');
     expect(within(screen.getByText('Proficient in math').closest('a')!).getByText(/See test scores/)).toBeInTheDocument();
-    expect(screen.getByText(sentence('10.7 students per teacher in 2024-25'))).toBeInTheDocument();
-    expect(screen.getByText('About $52 million in estimated state aid')).toBeInTheDocument();
+    // Each tile: the figure and its short year, an arrow with the change and its comparison year
+    // (the whole change in words for screen readers), and a grey note only on the dollar tiles and truancy
+    const mathTile = within(screen.getByText('Proficient in math').closest('a')!);
+    expect(mathTile.getByText('44%')).toBeInTheDocument();
+    expect(mathTile.getByText('25/26')).toBeInTheDocument();
+    expect(mathTile.getByText('4%')).toBeInTheDocument();
+    expect(mathTile.getByText('since 17/18')).toBeInTheDocument();
+    expect(mathTile.getByText('Down 4 percentage points since 2017-18')).toBeInTheDocument();
+    expect(mathTile.getByText('Down 4 percentage points since 2017-18').closest('p')).toHaveStyle({ color: '#c62828' });
+    const costTile = within(screen.getByText('Cost per student', { selector: 'p' }).closest('a')!);
+    expect(costTile.getByText('Up 50% since 2014-15').closest('p')).toHaveStyle({ color: '#2e7d32' });
+    expect(costTile.getByText(/^Up \d+% after inflation$/)).toBeInTheDocument();
+    expect(within(screen.getByText('Total school district spending').closest('a')!).getByText('$4.14B')).toBeInTheDocument();
+    const gradTile = within(screen.getByText('Four-year graduation rate', { selector: 'p' }).closest('a')!);
+    expect(gradTile.getByText('2025')).toBeInTheDocument();
+    expect(gradTile.getByText('since 2015')).toBeInTheDocument();
+    expect(screen.getByText('Teachers').closest('a')).not.toHaveTextContent('students per teacher');
+    expect(screen.queryByText(/estimated state aid/)).not.toBeInTheDocument();
     expect(screen.getByText('Students who were truant').closest('a')).toHaveAttribute('href', '/state/safety');
     expect(within(screen.getByText('Students who were truant').closest('a')!).getByText('18.8%')).toBeInTheDocument();
     expect(screen.getByText(/^Education Freedom Accounts/, { selector: 'h3' }).closest('a')).toHaveAttribute('href', '/state/efa');
