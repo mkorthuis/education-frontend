@@ -18,6 +18,17 @@ declare global {
   }
 }
 
+const SITE_NAME = 'NH Education Facts';
+
+/** "Financials – New Hampshire | NH Education Facts"; State pages say which entity they cover. */
+const getDocumentTitle = (pathname: string, pageTitle: string): string => {
+  if (pageTitle === SITE_NAME) return SITE_NAME;
+  const isStatePage = Object.values(PAGE_REGISTRY.state).some(page =>
+    page.urlPatterns.some(pattern => matchPath({ path: pattern, end: true }, pathname))
+  );
+  return `${pageTitle}${isStatePage && !/New Hampshire|Statewide/.test(pageTitle) ? ' – New Hampshire' : ''} | ${SITE_NAME}`;
+};
+
 /**
  * Hook to track page views in a single page application
  * This sends a pageview event to Google Analytics when the route changes
@@ -66,6 +77,11 @@ const usePageTracking = (): void => {
     return 'NH Education Facts';
   };
 
+  // Update <title> for every route (browser tabs, history, screen readers), whether or not analytics runs
+  useEffect(() => {
+    document.title = getDocumentTitle(location.pathname, getPageTitle(location.pathname));
+  }, [location.pathname]);
+
   useEffect(() => {
     if (IS_DEV) return; // Don't send in dev
     if (typeof window.gtag !== 'function') return;
@@ -73,9 +89,6 @@ const usePageTracking = (): void => {
     
     const pagePath = location.pathname + location.search;
     const title = getPageTitle(location.pathname);
-
-    // Update <title> element for UX & SEO
-    document.title = title;
     
     // Send pageview event (GA4)
     window.gtag('event', 'page_view', {

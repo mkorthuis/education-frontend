@@ -38,7 +38,17 @@ const theme = createTheme({
     custom: CUSTOM_COLORS,
   },
   components: {
-    // Component style overrides can be added here later
+    // A visible keyboard focus ring on every button-like control (links, tabs, toggles, cards)
+    MuiButtonBase: {
+      styleOverrides: {
+        root: {
+          '&.Mui-focusVisible': {
+            outline: `2px solid ${PRIMARY_COLOR.dark}`,
+            outlineOffset: 2,
+          },
+        },
+      },
+    },
   },
   typography: {
     // Typography customizations can be added here later

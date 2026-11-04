@@ -205,7 +205,7 @@ export const PAGE_REGISTRY: PageRegistry = {
       component: StateEfa,
       urlPatterns: ['/state/efa'],
       displayName: 'Education Freedom Accounts',
-      shortName: 'EFA\'s',
+      shortName: 'EFAs',
       order: 9,
       enabled: true,
     },
@@ -355,7 +355,7 @@ export const PAGE_REGISTRY: PageRegistry = {
       component: EducationFreedomAccount,
       urlPatterns: ['/district/:id/efa'],
       displayName: 'Education Freedom Accounts',
-      shortName: 'EFA\'s',
+      shortName: 'EFAs',
       order: 9,
       requiresId: true,
       paramExtraction: {

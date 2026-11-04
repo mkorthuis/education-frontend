@@ -10,6 +10,8 @@ interface SectionTitleProps {
   schoolName?: string;
   // Any other subject, e.g. "New Hampshire" on the State pages
   entityName?: string;
+  // Heading element; the look stays the same (pages that use this as their main title pass "h1")
+  component?: React.ElementType;
 }
 
 /**
@@ -23,7 +25,8 @@ const SectionTitle: React.FC<SectionTitleProps> = ({
   districtName = '',
   schoolName = '',
   entityName = '',
-  withDivider = true
+  withDivider = true,
+  component = 'h5'
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -32,6 +35,7 @@ const SectionTitle: React.FC<SectionTitleProps> = ({
     <Box>
       <Typography 
         variant="h5" 
+        component={component}
         gutterBottom 
         sx={{ 
           fontWeight: 500,
