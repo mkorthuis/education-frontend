@@ -124,6 +124,7 @@ const StateFinancials: React.FC = () => {
           series={LEVELS.map(level => ({ key: level.key, name: level.name }))}
           format={formatDollars}
           axisFormat={value => `$${Math.round(value / 1000)}K`}
+          fitAxis
           note={dollarNote}
           csvName={`nh-cost-per-student${adjustForInflation ? '-inflation-adjusted' : ''}`}
         />

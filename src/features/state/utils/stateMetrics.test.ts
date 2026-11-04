@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  fittedAxis,
   changeSince,
   describeChange,
   efaTotals,
@@ -207,6 +208,12 @@ describe('formatting', () => {
   it('writes out school years', () => {
     expect(formatSchoolYear(2025)).toBe('2024-25');
     expect(formatSchoolYear(2000)).toBe('1999-00');
+  });
+
+  it('fits the axis from a little under the lowest value, in round steps', () => {
+    expect(fittedAxis(11549, 23533)).toEqual({ domain: [10000, 25000], ticks: [10000, 15000, 20000, 25000] });
+    expect(fittedAxis(17300, 23533)).toEqual({ domain: [16000, 24000], ticks: [16000, 18000, 20000, 22000, 24000] });
+    expect(fittedAxis(5, 5).domain[0]).toBeLessThan(5);
   });
 
   it('describes changes in words', () => {

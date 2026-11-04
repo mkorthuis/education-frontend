@@ -348,6 +348,24 @@ export const formatDollars = (value: number | null | undefined): string =>
     ? 'N/A'
     : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
 
+const NICE_STEPS = [1, 2, 2.5, 5, 10];
+
+/**
+ * A y-axis from a little under the lowest value to the highest, with about four round steps,
+ * for charts where starting at zero would flatten the trend.
+ */
+export const fittedAxis = (min: number, max: number, padding = 0.05): { domain: [number, number]; ticks: number[] } => {
+  const paddedMin = Math.max(0, min * (1 - padding));
+  const rough = (max - paddedMin) / 4 || Math.abs(max) || 1;
+  const magnitude = 10 ** Math.floor(Math.log10(rough));
+  const step = (NICE_STEPS.find(nice => nice * magnitude >= rough) ?? 10) * magnitude;
+  const floor = Math.floor(paddedMin / step) * step;
+  const ceiling = Math.max(Math.ceil(max / step) * step, floor + step);
+  const ticks: number[] = [];
+  for (let tick = floor; tick <= ceiling + step / 2; tick += step) ticks.push(tick);
+  return { domain: [floor, ceiling], ticks };
+};
+
 /** "up 12%" / "down 3%" / "unchanged", for plain-language summaries. */
 export const describeChange = (percentChange: number, digits = 0): string => {
   const rounded = Number(Math.abs(percentChange).toFixed(digits));

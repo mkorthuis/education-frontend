@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Box, Button, ToggleButton, ToggleButtonGroup, Typography, useMediaQuery, useTheme } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import { CartesianGrid, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
-import { YearRow } from '../utils/stateMetrics';
+import { fittedAxis, YearRow } from '../utils/stateMetrics';
 import { downloadCsv } from '../utils/csv';
 import StateTable from './StateTable';
 
@@ -28,6 +28,8 @@ interface TrendChartProps {
   /** Y-axis ticks; defaults to `format` */
   axisFormat?: (value: number) => string;
   yDomain?: [number | 'auto' | 'dataMin', number | 'auto' | 'dataMax'];
+  /** Start the y-axis a little under the lowest value instead of at `yDomain` */
+  fitAxis?: boolean;
   /** Vertical markers, e.g. the years the state changed its test */
   markers?: { year: number; label: string }[];
   note?: string;
@@ -61,6 +63,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
   format,
   axisFormat,
   yDomain = [0, 'auto'],
+  fitAxis = false,
   markers = [],
   note,
   csvName,
@@ -71,6 +74,11 @@ const TrendChart: React.FC<TrendChartProps> = ({
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [view, setView] = useState<'chart' | 'table'>('chart');
   const chartData = data.map(row => ({ ...row, label: yearLabel(row.year) }));
+  const fitted = useMemo(() => {
+    if (!fitAxis) return null;
+    const values = data.flatMap(row => series.map(s => row[s.key])).filter((value): value is number => typeof value === 'number');
+    return values.length ? fittedAxis(Math.min(...values), Math.max(...values)) : null;
+  }, [fitAxis, data, series]);
   const tableRows = [...data].reverse();
   // On a phone, markers on a long series crowd together and make the line look dashed
   const showDots = !isMobile || data.length <= MAX_MOBILE_DOTS;
@@ -132,7 +140,8 @@ const TrendChart: React.FC<TrendChartProps> = ({
                   minTickGap={12}
                 />
                 <YAxis
-                  domain={yDomain}
+                  domain={fitted?.domain ?? yDomain}
+                  ticks={fitted?.ticks}
                   tickFormatter={axisFormat ?? format}
                   tick={{ fontSize: theme.typography.body2.fontSize, fill: theme.palette.text.secondary }}
                   axisLine={false}
