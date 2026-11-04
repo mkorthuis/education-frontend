@@ -8,6 +8,8 @@ interface SectionTitleProps {
   displayName?: string;
   districtName?: string;
   schoolName?: string;
+  // Any other subject, e.g. "New Hampshire" on the State pages
+  entityName?: string;
 }
 
 /**
@@ -20,6 +22,7 @@ const SectionTitle: React.FC<SectionTitleProps> = ({
   displayName = '',
   districtName = '',
   schoolName = '',
+  entityName = '',
   withDivider = true
 }) => {
   const theme = useTheme();
@@ -43,6 +46,7 @@ const SectionTitle: React.FC<SectionTitleProps> = ({
             {displayName} <Box component="span">
               {districtName && `for ${districtName} School District`}
               {schoolName && !districtName && `for ${schoolName}`}
+              {entityName && !districtName && !schoolName && `for ${entityName}`}
             </Box>
           </>
         )}
@@ -57,7 +61,7 @@ const SectionTitle: React.FC<SectionTitleProps> = ({
             fontStyle: 'italic'
           }}
         >
-          {districtName ? districtName : schoolName}
+          {districtName || schoolName || entityName}
         </Typography>
       )}
     </Box>

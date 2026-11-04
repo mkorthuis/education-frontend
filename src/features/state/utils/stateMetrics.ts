@@ -160,6 +160,36 @@ export interface AssessmentRow {
   above_proficient_percentage: number | null;
 }
 
+// Rows as the assessment slice stores them: its enrichment replaces the id fields with the
+// related objects (the grade's id may be a string), even though the slice's type still lists the ids.
+export interface StoredAssessmentRow {
+  year: number;
+  above_proficient_percentage: number | null;
+  assessment_subgroup_id?: number;
+  assessment_subject_id?: number;
+  grade_id?: number | null;
+  assessment_subgroup?: { id: number } | null;
+  assessment_subject?: { id: number } | null;
+  grade?: { id: number | string; name: string } | null;
+}
+
+export interface NamedAssessmentRow extends AssessmentRow {
+  grade_name: string | null;
+}
+
+/** Ids back on every row, whichever form the row is in; rows with an unknown subject or subgroup are dropped. */
+export const normalizeAssessmentRows = (rows: StoredAssessmentRow[]): NamedAssessmentRow[] =>
+  rows
+    .map(row => ({
+      year: row.year,
+      above_proficient_percentage: row.above_proficient_percentage,
+      assessment_subgroup_id: row.assessment_subgroup?.id ?? row.assessment_subgroup_id ?? NaN,
+      assessment_subject_id: row.assessment_subject?.id ?? row.assessment_subject_id ?? NaN,
+      grade_id: row.grade ? Number(row.grade.id) : row.grade_id ?? null,
+      grade_name: row.grade?.name ?? null,
+    }))
+    .filter(row => !isNaN(row.assessment_subgroup_id) && !isNaN(row.assessment_subject_id));
+
 const subjectKey = (subjectId: number) => SUBJECTS.find(subject => subject.id === subjectId)?.key;
 
 /** Percent proficient by year for one subgroup, all grades together, with a column per subject. */

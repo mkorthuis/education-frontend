@@ -7,6 +7,7 @@ import {
   graduationRates,
   latestAssessmentYear,
   latestPoint,
+  normalizeAssessmentRows,
   mergeSeries,
   percentChangeSeries,
   pivotByYear,
@@ -110,6 +111,20 @@ describe('assessments', () => {
     row(2026, 1, 50, 1, 5), row(2026, 2, 60, 1, 5),
     row(2026, 1, 30, 1, 13),
   ];
+
+  it('restores ids on rows the store enriched with related objects', () => {
+    const stored = [
+      { year: 2026, above_proficient_percentage: 44, assessment_subgroup: { id: 1 }, assessment_subject: { id: 1 }, grade: null },
+      { year: 2026, above_proficient_percentage: 50, assessment_subgroup: { id: 1 }, assessment_subject: { id: 1 }, grade: { id: '5', name: 'Grade 3' } },
+      { year: 2026, above_proficient_percentage: 55, assessment_subgroup_id: 1, assessment_subject_id: 2, grade_id: null },
+      { year: 2026, above_proficient_percentage: 10, assessment_subject: { id: 1 } },
+    ];
+    expect(normalizeAssessmentRows(stored)).toEqual([
+      { year: 2026, above_proficient_percentage: 44, assessment_subgroup_id: 1, assessment_subject_id: 1, grade_id: null, grade_name: null },
+      { year: 2026, above_proficient_percentage: 50, assessment_subgroup_id: 1, assessment_subject_id: 1, grade_id: 5, grade_name: 'Grade 3' },
+      { year: 2026, above_proficient_percentage: 55, assessment_subgroup_id: 1, assessment_subject_id: 2, grade_id: null, grade_name: null },
+    ]);
+  });
 
   it('gives all-students proficiency by year and subject', () => {
     expect(proficiencyBySubject(rows)).toEqual([
