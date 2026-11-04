@@ -68,7 +68,7 @@ describe('State pages', () => {
     // Tiles are grouped, say where they lead, and link to the detail pages
     // (Role queries are slow on a page this size, so headings and links are checked by element)
     expect(screen.getByText('New Hampshire Public Schools at a Glance').tagName).toBe('H1');
-    expect(screen.getByText('Results').tagName).toBe('H2');
+    expect(screen.getByText('Results', { selector: 'h2' }).tagName).toBe('H2');
     expect(screen.getByText('Proficient in math').closest('a')).toHaveAttribute('href', '/state/academic');
     expect(within(screen.getByText('Proficient in math').closest('a')!).getByText(/See test scores/)).toBeInTheDocument();
     // Each tile: the figure and its short year, an arrow with the change and its comparison year
@@ -89,11 +89,26 @@ describe('State pages', () => {
     expect(gradTile.getByText('since 2015')).toBeInTheDocument();
     expect(screen.getByText('Teachers').closest('a')).not.toHaveTextContent('students per teacher');
     expect(screen.queryByText(/estimated state aid/)).not.toBeInTheDocument();
-    expect(screen.getByText('Students who were truant').closest('a')).toHaveAttribute('href', '/state/safety');
-    expect(within(screen.getByText('Students who were truant').closest('a')!).getByText('18.8%')).toBeInTheDocument();
+    // Students and staff come first, then money, then results; district and school counts replace truancy
+    const bandOrder = ['Students and staff', 'Money', 'Results'].map(title => screen.getByText(title, { selector: 'h2' }));
+    expect(bandOrder[0].compareDocumentPosition(bandOrder[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(bandOrder[1].compareDocumentPosition(bandOrder[2]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // District and school counts get a change and trend line too, even when the change is flat
+    const districtTile = within((await screen.findByText('School districts')).closest('a')!);
+    expect(districtTile.getByText('166')).toBeInTheDocument();
+    expect(districtTile.getByText('24/25')).toBeInTheDocument();
+    expect(districtTile.getByText('0%')).toBeInTheDocument();
+    expect(districtTile.getByText('No change since 2015-16')).toBeInTheDocument();
+    expect(districtTile.getByText('Running their own schools')).toBeInTheDocument();
+    const schoolTile = within(screen.getByText('Public schools').closest('a')!);
+    expect(schoolTile.getByText('442')).toBeInTheDocument();
+    expect(schoolTile.getByText('Up 3% since 2015-16')).toBeInTheDocument();
+    expect(screen.queryByText('Students who were truant')).not.toBeInTheDocument();
     expect(screen.getByText(/^Education Freedom Accounts/, { selector: 'h3' }).closest('a')).toHaveAttribute('href', '/state/efa');
-    expect(screen.getByText('What these terms mean')).toBeInTheDocument();
-  });
+    expect(screen.queryByText('What these terms mean')).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Source:/)).not.toBeInTheDocument();
+    // The largest page, and it also waits for the district and school lists
+  }, 15000);
 
   it('academics leads with key figures, lists grades first, and names student groups plainly', async () => {
     renderPage(<StateAcademics />, '/state/academic');

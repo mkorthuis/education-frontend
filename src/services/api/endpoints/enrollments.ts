@@ -77,6 +77,10 @@ export const enrollmentApi = {
     // State enrollment endpoint
     getStateEnrollment: (options: BaseEnrollmentOptions = {}, forceRefresh = false) => 
         fetchData(buildEnrollmentUrl('state', options), forceRefresh),
+
+    // Public schools and districts with K-12 students, by year
+    getStateSchoolCounts: (forceRefresh = false) =>
+        fetchData(buildEnrollmentUrl('school-counts/state'), forceRefresh),
         
     // Town enrollment endpoints
     getTownEnrollment: (options: TownEnrollmentOptions = {}, forceRefresh = false) => 

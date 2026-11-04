@@ -25,8 +25,8 @@ interface StatePageProps {
   districtSection?: string;
   /** What people look for here that the page doesn't have, and where it might be */
   notCovered?: React.ReactNode;
-  /** Where the figures come from, shown under the content */
-  source: string;
+  /** Where the figures come from, shown under the content; the overview leaves it out */
+  source?: string;
   children: React.ReactNode;
 }
 
@@ -70,9 +70,11 @@ const StatePage: React.FC<StatePageProps> = ({
             <Typography variant="body2" component="div">{notCovered}</Typography>
           </Box>
         )}
-        <Typography variant="body2" sx={{ color: 'text.secondary', mt: 4, maxWidth: READING_WIDTH }}>
-          Source: {source}. See <Link to="/datasources">Data Sources</Link> for details.
-        </Typography>
+        {source && (
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 4, maxWidth: READING_WIDTH }}>
+            Source: {source}. See <Link to="/datasources">Data Sources</Link> for details.
+          </Typography>
+        )}
       </>
     )}
   </>
