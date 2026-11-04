@@ -23,6 +23,12 @@ import {
   PageType
 } from '@/store/store';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
+
+// State section pages after the overview, in menu order
+const statePages = Object.values(PAGE_REGISTRY.state)
+  .filter(page => page.id !== PAGE_REGISTRY.state.overview.id)
+  .sort((a, b) => a.order - b.order);
 
 interface MainMenuProps {
   open: boolean;
@@ -258,7 +264,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
                 </>
               )}
               
-              {/* State Overview Section */}
+              {/* Home and Statewide Data */}
               <ListItem disablePadding sx={{ pt: (!school.id && !district.id) ? 1.5 : 0 }}>
                 <ListItemButton 
                   onClick={() => handleNavigate('/')}
@@ -270,16 +276,34 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
               
               <ListItem disablePadding>
                 <ListItemButton 
-                  disabled={true}
-                  sx={{ 
-                    py: 0.5,
-                    opacity: 0.6,
-                    cursor: 'not-allowed'
-                  }}
+                  onClick={() => handleNavigate(PAGE_REGISTRY.state.overview.urlPatterns[0])}
+                  sx={{ py: 0.5 }}
                 >
-                  <ListItemText primary="State Overview" />
+                  <ListItemText primary="Statewide Data" />
                 </ListItemButton>
               </ListItem>
+              
+              {/* State Pages (show only on state pages) */}
+              {pageType === PageType.STATE && statePages.map((page) => (
+                <ListItem key={page.id} disablePadding>
+                  <ListItemButton 
+                    onClick={() => handleNavigate(page.urlPatterns[0])}
+                    selected={location.pathname === page.urlPatterns[0]}
+                    sx={{
+                      pl: 4, // Add indentation
+                      py: 0.5, // Reduce vertical spacing
+                    }}
+                  >
+                    <ListItemText 
+                      primary={page.displayName} 
+                      primaryTypographyProps={{ 
+                        variant: 'body2',
+                        color: 'text.secondary'
+                      }}
+                    />
+                  </ListItemButton>
+                </ListItem>
+              ))}
               
               <Divider sx={{ my: 1 }} />
               

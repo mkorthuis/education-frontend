@@ -65,6 +65,10 @@ const SecondaryNav = () => {
     if (pathParts.length >= 4 && (pathParts[1] === 'district' || pathParts[1] === 'school')) {
       return pathParts[3] || 'overview'; // Default to 'overview' if no section
     }
+    // State pages have no ID, so the section is the 3rd part (e.g., "academic" from "/state/academic")
+    if (pathParts[1] === 'state') {
+      return pathParts[2] || 'overview';
+    }
     return '';
   }, [location.pathname]);
 
@@ -104,6 +108,19 @@ const SecondaryNav = () => {
             section: section || 'overview'
           };
         });
+    }
+    
+    // If we're on a state page, show state navigation straight from the registry
+    if (pageType === PageType.STATE) {
+      return Object.values(PAGE_REGISTRY.state)
+        .sort((a, b) => a.order - b.order)
+        .map(page => ({
+          label: page.shortName || page.displayName,
+          path: page.urlPatterns[0],
+          enabled: true,
+          tooltip: '',
+          section: page.urlPatterns[0].split('/')[2] || 'overview'
+        }));
     }
     
     // If no appropriate navigation, return empty array

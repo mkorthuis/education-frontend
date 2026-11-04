@@ -273,13 +273,21 @@ export const getPageEntryById = (pageId: string): PageEntry => {
 
 // Define page type enum
 export enum PageType {
+  STATE = 'state',
   DISTRICT = 'district',
   SCHOOL = 'school',
   GENERAL = 'general'
 }
 
-// Helper function to determine the type of page (district, school, general)
+// Helper function to determine the type of page (state, district, school, general)
 export const getPageType = (pageId: string): PageType => {
+  // Check if page exists in state registry
+  for (const key of Object.keys(PAGE_REGISTRY.state || {})) {
+    if (PAGE_REGISTRY.state[key].id === pageId) {
+      return PageType.STATE;
+    }
+  }
+  
   // Check if page exists in district registry
   for (const key of Object.keys(PAGE_REGISTRY.district || {})) {
     if (PAGE_REGISTRY.district[key].id === pageId) {

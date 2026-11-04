@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import { 
   Box, 
   Typography, 
@@ -78,8 +79,8 @@ export default function Home() {
         />
       </FormControl>
 
-      <Typography variant="body2" sx={{fontStyle: 'italic', color: 'text.secondary', mt: 2}}>
-        * Statewide Data Coming Soon. *
+      <Typography variant="body1" sx={{mt: 3}}>
+        Or see <Link to={PAGE_REGISTRY.state.overview.urlPatterns[0]}>statewide data for all of New Hampshire</Link>: enrollment, spending, test scores, graduation and more.
       </Typography>
     </Box>
   );

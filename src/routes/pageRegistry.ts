@@ -49,6 +49,16 @@ const EducationFreedomAccount = lazy(() => import('@/features/district/component
 const ContactInformation = lazy(() => import('@/features/district/components/ContactInformation'));
 const Enrollment = lazy(() => import('@/features/district/components/Enrollment'));
 
+// State components
+const StateOverview = lazy(() => import('@/features/state/pages/StateOverview'));
+const StateAcademics = lazy(() => import('@/features/state/pages/StateAcademics'));
+const StateOutcomes = lazy(() => import('@/features/state/pages/StateOutcomes'));
+const StateFinancials = lazy(() => import('@/features/state/pages/StateFinancials'));
+const StateStaff = lazy(() => import('@/features/state/pages/StateStaff'));
+const StateEnrollment = lazy(() => import('@/features/state/pages/StateEnrollment'));
+const StateSafety = lazy(() => import('@/features/state/pages/StateSafety'));
+const StateEfa = lazy(() => import('@/features/state/pages/StateEfa'));
+
 // School components
 const School = lazy(() => import('@/features/school/pages/School'));
 const SchoolAcademic = lazy(() => import('@/features/school/components/AcademicAchievement'));
@@ -122,6 +132,81 @@ export const PAGE_REGISTRY: PageRegistry = {
       urlPatterns: ['/faq'],
       displayName: 'FAQ',
       order: 8,
+      enabled: true,
+    },
+  },
+
+  state: {
+    overview: {
+      id: 'state.overview',
+      component: StateOverview,
+      urlPatterns: ['/state'],
+      displayName: 'Statewide Overview',
+      shortName: 'Overview',
+      order: 1,
+      enabled: true,
+    },
+    academic: {
+      id: 'state.academic',
+      component: StateAcademics,
+      urlPatterns: ['/state/academic'],
+      displayName: 'Academic Performance',
+      shortName: 'Academics',
+      order: 2,
+      enabled: true,
+    },
+    outcomes: {
+      id: 'state.outcomes',
+      component: StateOutcomes,
+      urlPatterns: ['/state/outcomes'],
+      displayName: 'Graduation / College',
+      shortName: 'Graduation',
+      order: 3,
+      enabled: true,
+    },
+    financials: {
+      id: 'state.financials',
+      component: StateFinancials,
+      urlPatterns: ['/state/financials'],
+      displayName: 'Financials',
+      shortName: 'Financials',
+      order: 4,
+      enabled: true,
+    },
+    safety: {
+      id: 'state.safety',
+      component: StateSafety,
+      urlPatterns: ['/state/safety'],
+      displayName: 'Safety',
+      shortName: 'Safety',
+      order: 6,
+      enabled: true,
+    },
+    staff: {
+      id: 'state.staff',
+      component: StateStaff,
+      urlPatterns: ['/state/staff'],
+      displayName: 'Staff',
+      shortName: 'Staff',
+      order: 7,
+      enabled: true,
+    },
+    enrollment: {
+      id: 'state.enrollment',
+      component: StateEnrollment,
+      urlPatterns: ['/state/enrollment'],
+      displayName: 'Enrollment',
+      shortName: 'Enrollment',
+      order: 8,
+      enabled: true,
+    },
+    efa: {
+      id: 'state.efa',
+      component: StateEfa,
+      urlPatterns: ['/state/efa'],
+      displayName: 'Education Freedom Accounts',
+      shortName: 'EFA\'s',
+      order: 9,
       enabled: true,
     },
   },
