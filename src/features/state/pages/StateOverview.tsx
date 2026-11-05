@@ -71,8 +71,8 @@ const lastYears = (series: YearValue[]) => {
 };
 
 
-// Two tiles across on phones and tablets. Where four fit across (lg and up), each group sits in
-// its own box: a full-width group is four across, a half-width group (two side by side) is 2 x 2.
+// Two tiles across on phones and tablets. Where four fit across (lg and up), a full-width group
+// is four across and a half-width group (two side by side) is 2 x 2.
 const tileGrid = (half: boolean) => ({
   display: 'grid',
   gap: { xs: 1, sm: 2 },
@@ -83,16 +83,15 @@ const tileGrid = (half: boolean) => ({
 const Band: React.FC<{ title: string; half?: boolean; children: React.ReactNode }> = ({ title, half = false, children }) => (
   <Box
     component="section"
-    sx={{
-      mb: { xs: 4, lg: 3 },
-      minWidth: 0,
-      p: { lg: 2 },
-      border: { lg: '1px solid' },
-      borderColor: { lg: 'divider' },
-      borderRadius: { lg: 2 },
-    }}
+    // Groups are set apart by space and their label, not outlines: the tiles are the only boxes
+    sx={{ mb: 4, minWidth: 0 }}
   >
-    <Typography component="h3" sx={{ fontSize: '1rem', fontWeight: 600, color: 'text.secondary', mb: 1.25 }}>{title}</Typography>
+    <Typography
+      component="h3"
+      sx={{ fontSize: '0.8125rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'text.secondary', mb: 1.25 }}
+    >
+      {title}
+    </Typography>
     <Box sx={tileGrid(half)}>{children}</Box>
   </Box>
 );
@@ -224,10 +223,9 @@ const StateOverview: React.FC = () => {
       {/* Tiles as designed on the "NH Statewide Dashboard" canvas: the figure and its year, the
           change since the comparison year as a green up or red down arrow, and a trend line. Only
           the dollar tiles (after inflation) and the district and school counts carry a grey note. */}
-      {/* Looks like the page title (same size, same rule below), but is the page's second-level
-          heading: a page has one h1 */}
+      {/* One step below the page title, with the same rule beneath */}
       <Box sx={{ mt: 1 }}>
-        <SectionTitle displayName="Key Figures" component="h2" sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
+        <SectionTitle displayName="Key Figures" component="h2" sx={{ fontSize: { xs: '1.25rem', sm: '1.375rem' } }} />
       </Box>
 
       {/* Where four tiles fit across, Students and Staff and Financials sit side by side as 2 x 2 boxes */}

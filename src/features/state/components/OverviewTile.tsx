@@ -115,7 +115,7 @@ const OverviewTile: React.FC<OverviewTileProps> = ({ label, shortLabel, value, p
         {/* Two lines kept for the label, so tiles in a row line up */}
         <Typography
           component="p"
-          sx={{ m: 0, pr: { sm: 3 }, fontWeight: 500, fontSize: { xs: '0.9375rem', sm: '1rem' }, lineHeight: { xs: '20px', sm: '22px' }, minHeight: { xs: 40, sm: 44 }, color: 'text.primary' }}
+          sx={{ m: 0, pr: { sm: 3 }, fontWeight: 500, fontSize: { xs: '0.9375rem', sm: '1rem' }, lineHeight: { xs: '20px', sm: '22px' }, minHeight: { xs: 40, sm: 44 }, color: 'text.secondary' }}
         >
           {shortLabel ? (
             <>
