@@ -9,7 +9,8 @@ import { visuallyHidden } from './chartText';
 //   label
 //   44%     ↓ 4%           [trend line]
 //   25/26   Since 17/18
-//   optional grey note (one line kept for it on every tile)
+//   optional grey note (tiles in a row stretch to the same height, so a row with no notes
+//   keeps no space for one)
 // The whole tile is the link; a chevron shows top right on hover and keyboard focus.
 // Phone tiles drop the trend line and let the change wrap under the value.
 
@@ -40,6 +41,8 @@ interface OverviewTileProps {
   /** A shorter title for phones, e.g. "Total Spending"; phones show the label when left out */
   shortLabel?: string;
   value: string;
+  /** A shorter value for phones, e.g. "149K"; phones show the value when left out */
+  shortValue?: string;
   /** The value's year, e.g. "25/26" or "2025" */
   period: string;
   delta?: TileDelta;
@@ -99,7 +102,7 @@ const figureText = {
 } as const;
 
 /** One statewide figure with its year, its change and a trend line; links to the page with the full trend. */
-const OverviewTile: React.FC<OverviewTileProps> = ({ label, shortLabel, value, period, delta, detail, shortDetail, trend, to, linkLabel }) => (
+const OverviewTile: React.FC<OverviewTileProps> = ({ label, shortLabel, value, shortValue, period, delta, detail, shortDetail, trend, to, linkLabel }) => (
   <Card
     elevation={0}
     sx={{
@@ -130,7 +133,14 @@ const OverviewTile: React.FC<OverviewTileProps> = ({ label, shortLabel, value, p
 
         <Box sx={{ display: 'flex', flexWrap: { xs: 'wrap', md: 'nowrap' }, alignItems: 'flex-start', columnGap: 1.5, rowGap: 0.5, mt: 0.5 }}>
           <Box>
-            <Typography component="p" sx={{ ...figureText, color: 'text.primary' }}>{value}</Typography>
+            <Typography component="p" sx={{ ...figureText, color: 'text.primary' }}>
+              {shortValue ? (
+                <>
+                  <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>{value}</Box>
+                  <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>{shortValue}</Box>
+                </>
+              ) : value}
+            </Typography>
             <Typography component="p" sx={secondaryText}>{period}</Typography>
           </Box>
           {delta && (
@@ -146,15 +156,16 @@ const OverviewTile: React.FC<OverviewTileProps> = ({ label, shortLabel, value, p
           {trend && trend.length > 1 && <TrendLine trend={trend} />}
         </Box>
 
-        {/* One line kept for the note on every tile, so tiles line up whether or not they have one */}
-        <Typography component="p" sx={{ ...secondaryText, mt: 1, minHeight: 18 }}>
-          {shortDetail ? (
-            <>
-              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>{detail}</Box>
-              <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>{shortDetail}</Box>
-            </>
-          ) : detail}
-        </Typography>
+        {detail && (
+          <Typography component="p" sx={{ ...secondaryText, mt: 1 }}>
+            {shortDetail ? (
+              <>
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>{detail}</Box>
+                <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>{shortDetail}</Box>
+              </>
+            ) : detail}
+          </Typography>
+        )}
 
         <Box component="span" sx={visuallyHidden}>See {linkLabel}</Box>
       </CardContent>

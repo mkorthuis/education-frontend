@@ -81,6 +81,12 @@ describe('State pages', () => {
     expect(mathTile.getByText('Since 17/18')).toBeInTheDocument();
     expect(mathTile.getByText('Down 4 percentage points since 2017-18')).toBeInTheDocument();
     expect(mathTile.getByText('Down 4 percentage points since 2017-18').closest('p')).toHaveStyle({ color: '#c62828' });
+    // Phones show students in thousands
+    const studentsTile = within(screen.getByText('Students', { selector: 'p' }).closest('a')!);
+    expect(studentsTile.getByText('149,403')).toBeInTheDocument();
+    expect(studentsTile.getByText('149K')).toBeInTheDocument();
+    expect(within(screen.getByText('Average Teacher Salary', { selector: 'span' }).closest('a')!).getByText('$72K')).toBeInTheDocument();
+    expect(within(screen.getByText('Education Freedom Accounts', { selector: 'span' }).closest('a')!).getByText(/^\d+(\.\d)?K$/)).toBeInTheDocument();
     const costTile = within(screen.getByText('Cost per Student', { selector: 'p' }).closest('a')!);
     // A rise in cost per student is bad, so it's red
     expect(costTile.getByText('Up 50% since 2014-15').closest('p')).toHaveStyle({ color: '#c62828' });

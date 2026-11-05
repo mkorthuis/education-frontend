@@ -38,6 +38,8 @@ import { capitalize, realPercentChange, shortYear, tileDelta } from '../utils/ph
 
 /** "$4.14B", short enough to leave room for the change and trend line on the tile */
 const formatBillionsShort = (value: number) => `$${(value / 1e9).toFixed(2)}B`;
+// Phone tiles' values in thousands: 149,403 reads "149K"; with one decimal, 12,500 reads "12.5K"
+const formatThousandsShort = (value: number, decimals = 0) => `${(value / 1000).toFixed(decimals).replace(/\.0$/, '')}K`;
 
 const TREND_YEARS = 10;
 // The current state test (the NH SAS) began in 2017-18; earlier scores aren't comparable
@@ -237,6 +239,7 @@ const StateOverview: React.FC = () => {
           <OverviewTile
             label="Students"
             value={formatCount(latest.students.value)}
+            shortValue={formatThousandsShort(latest.students.value)}
             period={shortYear(latest.students.year)}
             delta={tileDelta(changes.students, { unit: 'percent', higherIsBetter: true })}
             trend={lastYears(figures.students)}
@@ -314,6 +317,7 @@ const StateOverview: React.FC = () => {
             label="Average Teacher Salary"
             shortLabel="Avg Teacher Salary"
             value={formatDollars(latest.salary.value)}
+            shortValue={`$${formatThousandsShort(latest.salary.value)}`}
             period={shortYear(latest.salary.year)}
             delta={tileDelta(changes.salary, { unit: 'percent', higherIsBetter: true })}
             detail={changes.salary ? `${capitalize(describeChange(realPercentChange(changes.salary)))} after inflation` : undefined}
@@ -327,6 +331,7 @@ const StateOverview: React.FC = () => {
             label="Education Freedom Accounts"
             shortLabel="EFA's"
             value={formatCount(latest.efaStudents.value)}
+            shortValue={formatThousandsShort(latest.efaStudents.value, 1)}
             period={shortYear(latest.efaStudents.year)}
             delta={tileDelta(changes.efaStudents, { unit: 'percent', higherIsBetter: true })}
             trend={figures.efaStudents}
