@@ -10,8 +10,7 @@ import { visuallyHidden } from './chartText';
 //   44%     ↓ 4%           [trend line]
 //   25/26   Since 17/18
 //   optional grey note (one line kept for it on every tile)
-//   - - - - - - - - - - - -
-//   See test scores →
+// The whole tile is the link; a chevron shows top right on hover and keyboard focus.
 // Phone tiles drop the trend line and let the change wrap under the value.
 
 const UP_COLOR = '#2e7d32';
@@ -47,7 +46,7 @@ interface OverviewTileProps {
   shortDetail?: string;
   trend?: YearValue[];
   to: string;
-  /** What the link opens: "test scores" gives "See test scores →" */
+  /** What the link opens, for screen readers: "test scores" ends the link with "See test scores" */
   linkLabel: string;
 }
 
@@ -108,14 +107,15 @@ const OverviewTile: React.FC<OverviewTileProps> = ({ label, shortLabel, value, p
       backgroundColor: 'background.paper',
       transition: 'border-color 120ms',
       '&:hover, &:focus-within': { borderColor: 'primary.main' },
+      '&:hover .tile-chevron, &:focus-within .tile-chevron': { opacity: 1 },
     }}
   >
-    <CardActionArea component={Link} to={to} sx={{ height: '100%', alignItems: 'stretch', '& .MuiCardActionArea-focusHighlight': { opacity: 0 } }}>
+    <CardActionArea component={Link} to={to} sx={{ height: '100%', alignItems: 'stretch', position: 'relative', '& .MuiCardActionArea-focusHighlight': { opacity: 0 } }}>
       <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } }, fontVariantNumeric: 'tabular-nums' }}>
         {/* Two lines kept for the label, so tiles in a row line up */}
         <Typography
           component="p"
-          sx={{ m: 0, fontWeight: 500, fontSize: { xs: '0.9375rem', sm: '1rem' }, lineHeight: { xs: '20px', sm: '22px' }, minHeight: { xs: 40, sm: 44 }, color: 'text.primary' }}
+          sx={{ m: 0, pr: { sm: 3 }, fontWeight: 500, fontSize: { xs: '0.9375rem', sm: '1rem' }, lineHeight: { xs: '20px', sm: '22px' }, minHeight: { xs: 40, sm: 44 }, color: 'text.primary' }}
         >
           {shortLabel ? (
             <>
@@ -153,13 +153,18 @@ const OverviewTile: React.FC<OverviewTileProps> = ({ label, shortLabel, value, p
           ) : detail}
         </Typography>
 
-        <Typography
-          component="p"
-          sx={{ m: 0, mt: 1, pt: 1, borderTop: '1px dashed rgba(0, 0, 0, 0.24)', fontSize: '0.875rem', lineHeight: '20px', fontWeight: 500, color: 'primary.main' }}
-        >
-          See {linkLabel}{' '}<span aria-hidden>→</span>
-        </Typography>
+        <Box component="span" sx={visuallyHidden}>See {linkLabel}</Box>
       </CardContent>
+
+      <Box
+        component="svg"
+        className="tile-chevron"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        sx={{ display: { xs: 'none', sm: 'block' }, position: 'absolute', top: 14, right: 12, width: 20, height: 20, color: 'primary.main', opacity: 0, transition: 'opacity 120ms' }}
+      >
+        <path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+      </Box>
     </CardActionArea>
   </Card>
 );
