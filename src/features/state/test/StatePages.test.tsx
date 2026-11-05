@@ -101,7 +101,7 @@ describe('State pages', () => {
     expect(screen.getByText('Teachers').closest('a')).not.toHaveTextContent('students per teacher');
     expect(screen.queryByText(/estimated state aid/)).not.toBeInTheDocument();
     // Students and staff come first, then financials, then results; district and school counts replace truancy
-    expect(screen.getByText('Key Figures').tagName).toBe('H2');
+    expect(screen.getByText('Key Statewide Figures').tagName).toBe('H2');
     const bandOrder = ['Schools', 'Financials', 'Results'].map(title => screen.getAllByText(title, { selector: 'h3' }).find(heading => heading.closest('section'))!);
     expect(bandOrder[0].compareDocumentPosition(bandOrder[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(bandOrder[1].compareDocumentPosition(bandOrder[2]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

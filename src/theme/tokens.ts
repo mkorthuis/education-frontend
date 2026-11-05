@@ -35,7 +35,7 @@ export const series = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100'] as const;
 export const type = {
   /** The page's h1, with a rule beneath */
   pageTitle: { fontSize: { xs: '1.5rem', sm: '1.75rem' }, fontWeight: 500 },
-  /** A section's h2 ("Key Figures"), one step below the page title, with a rule beneath */
+  /** A section's h2 ("Key Statewide Figures"), one step below the page title, with a rule beneath */
   sectionTitle: { fontSize: { xs: '1.25rem', sm: '1.375rem' }, fontWeight: 500 },
   /** Chart and table titles */
   chartTitle: { fontSize: '1.0625rem', fontWeight: 600, lineHeight: 1.4 },

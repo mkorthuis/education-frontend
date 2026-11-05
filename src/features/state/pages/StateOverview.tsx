@@ -63,7 +63,7 @@ const tileGrid = (half: boolean) => ({
   ...(half && { gridRow: { lg: 'span 2' }, gridTemplateRows: { lg: 'subgrid' } }),
 });
 
-// A group of tiles under the Key Figures heading
+// A group of tiles under the Key Statewide Figures heading
 const Band: React.FC<{ title: string; half?: boolean; children: React.ReactNode }> = ({ title, half = false, children }) => (
   <Box
     component="section"
@@ -174,7 +174,7 @@ const StateOverview: React.FC = () => {
           change is good, red where it's bad: rises in spending and cost per student are red, rises
           in everything else green), and a trend line. Only the dollar tiles (after inflation) and
           the district and school counts carry a grey note. */}
-      <SectionHeading>Key Figures</SectionHeading>
+      <SectionHeading>Key Statewide Figures</SectionHeading>
 
       {/* Where four tiles fit across, Schools and Financials sit side by side, each 2 x 2 */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, minmax(0, 1fr))' }, columnGap: 3, rowGap: 0 }}>
