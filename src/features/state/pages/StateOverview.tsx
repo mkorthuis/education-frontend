@@ -74,11 +74,13 @@ const lastYears = (series: YearValue[]) => {
 
 
 // Two tiles across on phones and tablets. Where four fit across (lg and up), a full-width group
-// is four across and a half-width group (two side by side) is 2 x 2.
+// is four across and a half-width group (two side by side) is 2 x 2. The two half-width groups
+// share their rows with each other (CSS subgrid), so the four tiles across a row are one height.
 const tileGrid = (half: boolean) => ({
   display: 'grid',
   gap: { xs: 1, sm: 2 },
   gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', lg: half ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))' },
+  ...(half && { gridRow: { lg: 'span 2' }, gridTemplateRows: { lg: 'subgrid' } }),
 });
 
 // A group of tiles under the Key Figures heading
@@ -86,7 +88,12 @@ const Band: React.FC<{ title: string; half?: boolean; children: React.ReactNode 
   <Box
     component="section"
     // Groups are set apart by space and their label, not outlines: the tiles are the only boxes
-    sx={{ mb: 4, minWidth: 0 }}
+    sx={{
+      mb: 4,
+      minWidth: 0,
+      // Label in the shared grid's first row, tiles in the next two
+      ...(half && { display: { lg: 'grid' }, gridRow: { lg: 'span 3' }, gridTemplateRows: { lg: 'subgrid' }, rowGap: { lg: 0 } }),
+    }}
   >
     <Typography
       component="h3"
@@ -239,7 +246,7 @@ const StateOverview: React.FC = () => {
       </Box>
 
       {/* Where four tiles fit across, Schools and Financials sit side by side, each 2 x 2 */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, minmax(0, 1fr))' }, columnGap: 3 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, minmax(0, 1fr))' }, columnGap: 3, rowGap: 0 }}>
       <Band title="Schools" half>
         {latest.students && (
           <OverviewTile
