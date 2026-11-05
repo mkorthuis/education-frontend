@@ -33,5 +33,9 @@ export const measurementApi = {
         fetchData(buildMeasurementUrl('', { school_id: schoolId }), forceRefresh),
     
     getMeasurementTypes: (forceRefresh = false) => 
-        fetchData(buildMeasurementUrl('/type'), forceRefresh)
+        fetchData(buildMeasurementUrl('/type'), forceRefresh),
+
+    // A percentage measure for the whole state by year: districts' values weighted by enrollment
+    getStateMeasurements: (measurementTypeId: number, forceRefresh = false) =>
+        fetchData(buildMeasurementUrl('/state', { measurement_type_id: measurementTypeId }), forceRefresh)
 };

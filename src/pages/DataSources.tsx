@@ -122,6 +122,18 @@ const DataSources: React.FC = () => {
         <Divider sx={{ my: 2 }} />
         
         <DataSourceItem
+          title="English Learners"
+          description="October 1st counts of English learners for each school district and the state: students eligible for English language services (receiving them, or eligible but not served), and former English learners monitored for four years after reaching proficiency. Reported by district only."
+          originalSource="https://my.doe.nh.gov/iPlatform/Report/Report?path=%2FBDMQ%2FiPlatform%20Reports%2FDemographic%20Data%2FEnrollments%20-%20Demographic%20Categories%2FLimited%20English%20Proficiency%20Enrollment&name=Limited%20English%20Proficiency%20Enrollment&categoryName=Enrollments%20-%20Demographic%20Categories&categoryId=19"
+          originalSourceText="NH DOE Limited English Proficiency Enrollment"
+          additionalSourceInfo="Export function used to download a report for each year"
+          loadedFrom="https://github.com/mkorthuis/education-backend/tree/main/backend/app/alembic/assets/english-learner"
+          loadedFromText="English Learner Reports (XSLX)"
+          additionalLoadedInfo="Loaded from 2013-2014; the earlier reports have no English learner counts."
+        />
+        <Divider sx={{ my: 2 }} />
+
+        <DataSourceItem
           title="Financial Reports"
           description="DOE-25 Financial Documents for districts by year"
           originalSource="https://my.doe.nh.gov/iPlatform/DOE25/DOE25Reports"
@@ -132,6 +144,17 @@ const DataSources: React.FC = () => {
         />
         <Divider sx={{ my: 2 }} />
         
+        <DataSourceItem
+          title="Free and Reduced School Lunch Eligibility"
+          description="October 1st counts of kindergarten through grade 12 students, and those eligible for free or reduced-price lunch, for each school. District figures add up the district's schools; the state figure covers every public school, including academies, charter and interstate schools."
+          originalSource="https://my.doe.nh.gov/iPlatform/Report/Report?path=%2FBDMQ%2FiPlatform%20Reports%2FDemographic%20Data%2FFree%20and%20Reduced%20School%20Lunch%20Eligibility%2FFree%20Reduced%20K-12%20School%20Lunch%20Eligibility%20Rates%20by%20School&name=Free%20Reduced%20K-12%20School%20Lunch%20Eligibility%20Rates%20by%20School&categoryName=Free%20and%20Reduced%20School%20Lunch%20Eligibility&categoryId=18"
+          originalSourceText="NH DOE Free Reduced K-12 School Lunch Eligibility Rates by School"
+          additionalSourceInfo="Export function used to download a report for each year"
+          loadedFrom="https://github.com/mkorthuis/education-backend/tree/main/backend/app/alembic/assets/reduced-lunch"
+          loadedFromText="Free and Reduced Lunch Reports (XSLX)"
+        />
+        <Divider sx={{ my: 2 }} />
+
         <DataSourceItem
           title="Full Time Staff Count By District"
           description="Reported for each school district is the full time equivalent staff count."

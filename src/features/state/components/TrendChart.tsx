@@ -58,13 +58,25 @@ export interface TrendSeries {
   /** Label at the end of the line, when the name is long */
   shortName?: string;
   color?: string;
+  /** A dashed line, for a comparison drawn in the same color as the line it's compared with */
+  dashed?: boolean;
   /** Overrides the chart's format, e.g. a count column next to percentages in the table */
   format?: (value: number) => string;
 }
 
 interface TrendChartProps {
   title: string;
+  /** A shorter title for phones */
+  shortTitle?: string;
   subtitle?: string;
+  /** A shorter subtitle for phones */
+  shortSubtitle?: string;
+  /** Leave the subtitle off on phones */
+  hideSubtitleOnPhone?: boolean;
+  /** A control shown before the chart's buttons, e.g. a picker for what the chart counts */
+  control?: React.ReactNode;
+  /** Offer the Chart/Table toggle (default on) */
+  showViewToggle?: boolean;
   data: YearRow[];
   series: TrendSeries[];
   /** Tooltip and table values */
@@ -90,7 +102,8 @@ interface TrendChartProps {
   /** A comparison shown in the tooltip and table, e.g. all students when a student group is chosen */
   compare?: { data: YearRow[]; label: string };
   note?: React.ReactNode;
-  csvName: string;
+  /** File name for the chart's CSV download; no CSV button without one */
+  csvName?: string;
   /** Unit added to the CSV column headers, e.g. "% change from 2014-15" */
   csvUnit?: string;
   yearLabel?: (year: number) => string;
@@ -173,7 +186,12 @@ const EndLabels = (props: any) => {
 
 const TrendChart: React.FC<TrendChartProps> = ({
   title,
+  shortTitle,
   subtitle,
+  shortSubtitle,
+  hideSubtitleOnPhone,
+  control,
+  showViewToggle = true,
   data,
   series,
   format,
@@ -246,7 +264,11 @@ const TrendChart: React.FC<TrendChartProps> = ({
   const compareByYear = useMemo(() => (compare ? new Map(compare.data.map(row => [row.year, row])) : null), [compare]);
 
   const showLegend = colored.length > 1;
-  const directLabels = kind === 'line' && !isMobile && width >= DIRECT_LABEL_MIN_WIDTH && colored.length >= 2 && colored.length <= 4;
+  // Labels at the ends of the lines, with room kept for them on the right, only when every line runs
+  // to the last year: a line ending early would have its label in the middle of the chart
+  const lastYear = years.length ? Math.max(...years) : null;
+  const allEndTogether = colored.every(entry => data.some(row => row.year === lastYear && typeof row[entry.key] === 'number'));
+  const directLabels = kind === 'line' && !isMobile && width >= DIRECT_LABEL_MIN_WIDTH && colored.length >= 2 && colored.length <= 4 && allEndTogether;
   const labelRoom = directLabels
     ? Math.min(150, Math.max(...colored.map(entry => (entry.shortName ?? entry.name).length)) * LABEL_CHAR_WIDTH + 16)
     : 16;
@@ -297,6 +319,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
 
   const tableColumns = [...colored, ...tableSeries];
   const handleDownload = () => {
+    if (!csvName) return;
     const unit = csvUnit ? ` (${csvUnit})` : '';
     const comparisonHeaders = compare ? colored.map(entry => `${entry.name}, ${compare.label}${unit}`) : [];
     downloadCsv(
@@ -331,31 +354,39 @@ const TrendChart: React.FC<TrendChartProps> = ({
       <ChartHeader
         titleId={titleId}
         title={title}
+        shortTitle={shortTitle}
         subtitle={subtitle}
-        actions={(
+        shortSubtitle={shortSubtitle}
+        hideSubtitleOnPhone={hideSubtitleOnPhone}
+        // No CSV on phones, where a download is little use
+        actions={control || showViewToggle || (csvName && !isMobile) ? (
           <>
-            <ToggleButtonGroup
-              size="small"
-              exclusive
-              value={view}
-              onChange={(_event, next) => next && setView(next)}
-              aria-label={`${title}: show as`}
-            >
-              <ToggleButton value="chart" sx={{ py: 0.25, px: 1.25, textTransform: 'none', minHeight: { xs: 40, sm: 'auto' } }}>Chart</ToggleButton>
-              <ToggleButton value="table" sx={{ py: 0.25, px: 1.25, textTransform: 'none', minHeight: { xs: 40, sm: 'auto' } }}>Table</ToggleButton>
-            </ToggleButtonGroup>
-            <Button
-              size="small"
-              startIcon={<DownloadIcon fontSize="small" />}
-              onClick={handleDownload}
-              disabled={!data.length}
-              aria-label={`Download ${title} as CSV`}
-              sx={{ minHeight: { xs: 40, sm: 'auto' } }}
-            >
-              CSV
-            </Button>
+            {control}
+            {showViewToggle && (
+              <ToggleButtonGroup
+                size="small"
+                exclusive
+                value={view}
+                onChange={(_event, next) => next && setView(next)}
+                aria-label={`${title}: show as`}
+              >
+                <ToggleButton value="chart" sx={{ py: 0.25, px: 1.25, textTransform: 'none', minHeight: { xs: 40, sm: 'auto' } }}>Chart</ToggleButton>
+                <ToggleButton value="table" sx={{ py: 0.25, px: 1.25, textTransform: 'none', minHeight: { xs: 40, sm: 'auto' } }}>Table</ToggleButton>
+              </ToggleButtonGroup>
+            )}
+            {csvName && !isMobile && (
+              <Button
+                size="small"
+                startIcon={<DownloadIcon fontSize="small" />}
+                onClick={handleDownload}
+                disabled={!data.length}
+                aria-label={`Download ${title} as CSV`}
+              >
+                CSV
+              </Button>
+            )}
           </>
-        )}
+        ) : undefined}
       />
       <Box component="p" id={summaryId} sx={visuallyHidden}>{summary}</Box>
 
@@ -384,21 +415,27 @@ const TrendChart: React.FC<TrendChartProps> = ({
         />
       ) : (
         <>
-          {/* The legend row is kept even when empty, so charts side by side start at the same height */}
-          <Box component="ul" aria-hidden sx={{ display: 'flex', flexWrap: 'wrap', columnGap: 2, rowGap: 0.5, listStyle: 'none', p: 0, m: 0, mb: 1, minHeight: 24 }}>
-            {showLegend && legendOrder.map(entry => (
-              <Box component="li" key={entry.key} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                <Box sx={{ width: 16, height: kind === 'share' ? 10 : 3, borderRadius: kind === 'share' ? 0.5 : 2, backgroundColor: entry.color, flexShrink: 0 }} />
-                <Typography variant="body2" color="text.primary">{entry.name}</Typography>
-              </Box>
-            ))}
-            {markerKey && (
-              <Box component="li" sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                <Box sx={{ width: 16, height: 0, borderTop: '2px dashed', borderColor: 'grey.400', flexShrink: 0 }} />
-                <Typography variant="body2" color="text.secondary">{markerKey}</Typography>
-              </Box>
-            )}
-          </Box>
+          {/* A single line needs no legend (the title names it), so the chart starts right under the title */}
+          {(showLegend || markerKey) && (
+            <Box component="ul" aria-hidden sx={{ display: 'flex', flexWrap: 'wrap', columnGap: 2, rowGap: 0.5, listStyle: 'none', p: 0, m: 0, mb: 1, minHeight: 24 }}>
+              {showLegend && legendOrder.map(entry => (
+                <Box component="li" key={entry.key} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                  {entry.dashed ? (
+                    <Box sx={{ width: 16, height: 0, borderTop: '3px dashed', borderColor: entry.color, flexShrink: 0 }} />
+                  ) : (
+                    <Box sx={{ width: 16, height: kind === 'share' ? 10 : 3, borderRadius: kind === 'share' ? 0.5 : 2, backgroundColor: entry.color, flexShrink: 0 }} />
+                  )}
+                  <Typography variant="body2" color="text.primary">{entry.name}</Typography>
+                </Box>
+              ))}
+              {markerKey && (
+                <Box component="li" sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                  <Box sx={{ width: 16, height: 0, borderTop: '2px dashed', borderColor: 'grey.400', flexShrink: 0 }} />
+                  <Typography variant="body2" color="text.secondary">{markerKey}</Typography>
+                </Box>
+              )}
+            </Box>
+          )}
           <Box ref={ref} aria-hidden sx={{ height, width: '100%' }}>
             {data.length > 0 && yAxis ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -473,6 +510,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
                         name={entry.name}
                         stroke={entry.color}
                         strokeWidth={2}
+                        strokeDasharray={entry.dashed ? '6 4' : undefined}
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         dot={dotFor(entry.color, entry.key)}

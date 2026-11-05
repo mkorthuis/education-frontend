@@ -19,22 +19,43 @@ export const keepYearsTogether = (text: string | undefined): React.ReactNode => 
 
 interface ChartHeaderProps {
   title: string;
+  /** A shorter title for phones; phones show the title when left out */
+  shortTitle?: string;
   subtitle?: string;
+  /** A shorter subtitle for phones */
+  shortSubtitle?: string;
+  /** Leave the subtitle off on phones, where it only restates the title */
+  hideSubtitleOnPhone?: boolean;
   titleId?: string;
   /** Heading level; chart and table titles sit under the page's h1 */
   component?: React.ElementType;
   actions?: React.ReactNode;
 }
 
-export const ChartHeader: React.FC<ChartHeaderProps> = ({ title, subtitle, titleId, component = 'h2', actions }) => (
+export const ChartHeader: React.FC<ChartHeaderProps> = ({ title, shortTitle, subtitle, shortSubtitle, hideSubtitleOnPhone = false, titleId, component = 'h2', actions }) => (
   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', columnGap: 2, rowGap: 1, mb: 1.5, flexWrap: 'wrap' }}>
-    <Box sx={{ flex: 1, minWidth: 200 }}>
+    <Box sx={{ flex: 1, minWidth: { xs: 140, sm: 200 } }}>
       <Typography id={titleId} component={component} sx={{ ...type.chartTitle, m: 0 }}>
-        {title}
+        {shortTitle ? (
+          <>
+            <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>{title}</Box>
+            <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>{shortTitle}</Box>
+          </>
+        ) : title}
       </Typography>
-      {subtitle && <Typography variant="body2" color="text.secondary">{subtitle}</Typography>}
+      {subtitle && (
+        <Typography variant="body2" color="text.secondary" sx={hideSubtitleOnPhone ? { display: { xs: 'none', sm: 'block' } } : undefined}>
+          {shortSubtitle ? (
+            <>
+              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>{subtitle}</Box>
+              <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>{shortSubtitle}</Box>
+            </>
+          ) : subtitle}
+        </Typography>
+      )}
     </Box>
-    {actions && <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>{actions}</Box>}
+    {/* As tall as a dropdown, so buttons line up across charts side by side whether or not one has a picker */}
+    {actions && <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minHeight: 40 }}>{actions}</Box>}
   </Box>
 );
 

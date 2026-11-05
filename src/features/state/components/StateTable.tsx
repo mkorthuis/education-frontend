@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { Box, Button, SxProps, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Theme, Typography } from '@mui/material';
+import { Box, Button, SxProps, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Theme, Typography, useMediaQuery, useTheme } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import { downloadCsv } from '../utils/csv';
 import { ChartHeader, ChartNote, keepYearsTogether, visuallyHidden } from './chartText';
@@ -7,9 +7,13 @@ import { ChartHeader, ChartNote, keepYearsTogether, visuallyHidden } from './cha
 export interface StateTableColumn<T> {
   key: string;
   label: string;
+  /** A shorter header for phones, e.g. "Total" for "Estimated Total"; the CSV keeps the label */
+  shortLabel?: string;
   align?: 'left' | 'right';
   /** Display text; the CSV gets the raw value */
   format?: (row: T) => string;
+  /** Shorter display text for phones, e.g. "$54.4M" for "$54.4 million" */
+  shortFormat?: (row: T) => string;
   value?: (row: T) => unknown;
   /** Left out on phones to keep the table on screen; it stays in the CSV */
   hideOnPhone?: boolean;
@@ -72,8 +76,16 @@ const rawValue = <T,>(column: StateTableColumn<T>, row: T) =>
 const csvValue = (value: unknown) =>
   typeof value === 'number' && !Number.isInteger(value) ? Number(value.toFixed(2)) : value;
 
-const cellText = <T,>(column: StateTableColumn<T>, row: T) =>
-  column.format ? column.format(row) : String(rawValue(column, row) ?? '');
+const cellText = <T,>(column: StateTableColumn<T>, row: T): React.ReactNode => {
+  const text = column.format ? column.format(row) : String(rawValue(column, row) ?? '');
+  if (!column.shortFormat) return text;
+  return (
+    <>
+      <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>{text}</Box>
+      <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>{column.shortFormat(row)}</Box>
+    </>
+  );
+};
 
 function StateTable<T>({
   title,
@@ -89,6 +101,7 @@ function StateTable<T>({
   maxWidth,
 }: StateTableProps<T>) {
   const titleId = useId();
+  const isMobile = useMediaQuery(useTheme().breakpoints.down('sm'));
   const allRows = totalRow ? [...rows, totalRow] : rows;
 
   // Say so when the table is wider than the screen; row labels stay put while it scrolls
@@ -158,13 +171,13 @@ function StateTable<T>({
           titleId={titleId}
           title={title ?? ''}
           subtitle={subtitle}
-          actions={csvName && allRows.length > 0 ? (
+          // No CSV on phones, where a download is little use
+          actions={csvName && allRows.length > 0 && !isMobile ? (
             <Button
               size="small"
               startIcon={<DownloadIcon fontSize="small" />}
               onClick={handleDownload}
               aria-label={`Download ${title ?? 'table'} as CSV`}
-              sx={{ minHeight: { xs: 40, sm: 'auto' } }}
             >
               CSV
             </Button>
@@ -192,7 +205,12 @@ function StateTable<T>({
                     ...(columnIndex === 0 ? { backgroundColor: 'grey.200', zIndex: 2 } : {}),
                   })}
                 >
-                  {keepYearsTogether(column.label)}
+                  {column.shortLabel ? (
+                    <>
+                      <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>{keepYearsTogether(column.label)}</Box>
+                      <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>{column.shortLabel}</Box>
+                    </>
+                  ) : keepYearsTogether(column.label)}
                 </TableCell>
               ))}
             </TableRow>

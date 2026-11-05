@@ -165,12 +165,18 @@ export const useStateEfaData = () => {
   const dispatch = useAppDispatch();
   const entries = useAppSelector(state => efaSlice.selectEfaStateEntries(state, STATE_PARAMS));
   const entryTypes = useAppSelector(efaSlice.selectEfaEntryTypes);
+  // Public school enrollment by town of residence, which the district EFA pages divide by too
+  const enrollment = useAppSelector(state => enrollmentSlice.selectStateTownEnrollment(state, STATE_PARAMS));
   const loads: StateLoad[] = [
     { status: useAppSelector(efaSlice.selectEfaEntryTypesLoadingStatus), load: () => dispatch(efaSlice.fetchEfaEntryTypes({})) },
     {
       status: useAppSelector(state => efaSlice.selectEfaStateEntriesLoadingStatus(state, STATE_PARAMS)),
       load: () => dispatch(efaSlice.fetchEfaStateEntries(STATE_PARAMS)),
     },
+    {
+      status: useAppSelector(state => enrollmentSlice.selectStateTownEnrollmentLoadingStatus(state, STATE_PARAMS)),
+      load: () => dispatch(enrollmentSlice.fetchStateTownEnrollment(STATE_PARAMS)),
+    },
   ];
-  return { loads, entries, entryTypes };
+  return { loads, entries, entryTypes, enrollment };
 };

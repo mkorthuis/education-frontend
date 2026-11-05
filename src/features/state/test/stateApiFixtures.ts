@@ -111,6 +111,7 @@ export const STATE_API_FIXTURES: Record<string, unknown> = {
   ],
   'education-freedom-account/state-entry': [
     { year: 2026, entry_type_id: 1, value: 10000 },
+    { year: 2026, entry_type_id: 3, value: 700 },
     { year: 2027, entry_type_id: 1, value: 12500 },
     { year: 2027, entry_type_id: 3, value: 1000 },
   ],
@@ -123,6 +124,14 @@ export const STATE_API_FIXTURES: Record<string, unknown> = {
   'safety/state/seclusion': [{ id: 1, year: 2025, generated: 1500, active_investigation: 0, closed_investigation: 1500 }],
   'safety/state/enrollment': [{ year: 2025, total_enrollment: 162544 }],
   'location/district': [{ id: 7, name: 'Bedford' }, { id: 3, name: 'Berlin' }],
+  'measurement/type': [
+    { id: 34, name: 'Economically Disadvantaged Students (%)', measurement_type_category_id: 1 },
+    { id: 36, name: 'Students with Disability (%)', measurement_type_category_id: 1 },
+  ],
+  'enrollment/reduced-lunch/state': [{ id: 1, year: 2026, enrollment: 155853, eligible: 36085 }],
+  'enrollment/english-learner/state': [{ id: 1, year: 2026, enrollment: 160257, eligible: 6074, monitor: 1821 }],
+  // The same rows for either measure: statewide figures that stop a year before the EFA counts
+  'measurement/state': [{ year: 2026, field: 20.5, districts: 178 }],
   'enrollment/school-counts/state': [
     { year: 2016, schools: 430, districts: 166 },
     { year: 2025, schools: 442, districts: 166 },

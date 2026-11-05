@@ -4,6 +4,16 @@
 /** The plain name for a source label, or the source label when there isn't one. */
 export const plainLabel = (labels: Record<string, string>, name: string): string => labels[name] ?? name;
 
+// Short words left lowercase in Title Case, except as the first word
+const MINOR_WORDS = new Set(['a', 'an', 'and', 'as', 'at', 'by', 'for', 'in', 'of', 'on', 'or', 'the', 'to', 'with']);
+
+/** "Extra: low-income (free or reduced-price meals)" as "Extra: Low-Income (Free or Reduced-Price Meals)"; acronyms stay as they are. */
+export const titleCase = (text: string): string =>
+  text.replace(/[A-Za-z]+/g, (word, offset: number) =>
+    offset > 0 && text[offset - 1] === ' ' && MINOR_WORDS.has(word.toLowerCase())
+      ? word.toLowerCase()
+      : word.charAt(0).toUpperCase() + word.slice(1));
+
 // Assessment student groups, in the order the picker and table show them: pairs sit together
 export const STUDENT_GROUP_SECTIONS: { section: string; groups: { name: string; label: string }[] }[] = [
   { section: 'All students', groups: [{ name: 'All students', label: 'All students' }] },

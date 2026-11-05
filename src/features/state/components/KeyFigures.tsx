@@ -10,10 +10,12 @@ interface KeyFiguresProps {
   /** The page's answer in a sentence or two, built from the same figures */
   takeaway?: string[];
   figures: KeyFigure[];
+  /** With an odd number of tiles, center the last one on its own row on phones and tablets */
+  centerLastTile?: boolean;
 }
 
 /** The headline numbers at the top of a State subpage, so the answer isn't only inside a chart. */
-const KeyFigures: React.FC<KeyFiguresProps> = ({ takeaway = [], figures }) => (
+const KeyFigures: React.FC<KeyFiguresProps> = ({ takeaway = [], figures, centerLastTile }) => (
   <Box component="section" aria-label="Key figures" sx={{ mb: 4 }}>
     {takeaway.length > 0 && (
       <Box sx={{ mb: 2, maxWidth: READING_WIDTH }}>
@@ -23,7 +25,7 @@ const KeyFigures: React.FC<KeyFiguresProps> = ({ takeaway = [], figures }) => (
       </Box>
     )}
     {figures.length > 0 && (
-      <MetricGrid count={figures.length}>
+      <MetricGrid count={figures.length} centerLastTile={centerLastTile}>
         {figures.map(figure => <MetricTile key={figure.label} {...figure} />)}
       </MetricGrid>
     )}

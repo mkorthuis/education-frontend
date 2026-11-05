@@ -222,12 +222,39 @@ describe('State pages', () => {
     expect(within(screen.getByText('Arson').closest('tr')!).getAllByText('3')).toHaveLength(2);
   });
 
-  it('EFA marks the preliminary count and estimates aid by category', async () => {
+  it('EFA says once that the latest count is preliminary and estimates aid by category', async () => {
     renderPage(<StateEfa />, '/state/efa');
-    expect(await screen.findByText('Aid by category, 2026-27 (preliminary)', undefined, TIMEOUT)).toBeInTheDocument();
-    expect(screen.getByText(sentence("12,500 students have Education Freedom Accounts for 2026-27 (the state's preliminary count as of August 2, 2026), up from 10,000 in 2025-26."))).toBeInTheDocument();
-    expect(within(screen.getByText('Base amount (every EFA student)').closest('tr')!).getByText('$50 million')).toBeInTheDocument();
+    expect(await screen.findByText('Aid by Category, 2026-27', undefined, TIMEOUT)).toBeInTheDocument();
+    // Preliminary is said once, in the intro, not on each tile and chart
+    expect(screen.getByText(/2026-27 numbers are preliminary; other years are final\./)).toBeInTheDocument();
+    expect(screen.queryAllByText(/preliminary/i)).toHaveLength(1);
+    expect(screen.queryByText(/students have Education Freedom Accounts for/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/At the state's per-student aid amounts/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('See these figures for your district')).not.toBeInTheDocument();
+    expect(screen.getByText('In Addition to Base Amount')).toBeInTheDocument();
+    // Special education aid beside the share of all public school students with a disability
+    expect(await screen.findByText('State Special Education')).toBeInTheDocument();
+    expect(screen.getByText('Dashed lines: All New Hampshire public school students, through 2025-26.')).toBeInTheDocument();
+    expect(screen.queryByText(/English learner/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Not on this page')).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Source:/)).not.toBeInTheDocument();
+    expect(within(screen.getByText('Base Amount (Every EFA Student)').closest('tr')!).getByText('$50 Million')).toBeInTheDocument();
     expect(screen.getByText('$4,160')).toBeInTheDocument();
     expect(screen.getByText('Children\'s Scholarship Fund NH').closest('a')).toHaveAttribute('href', 'https://nh.scholarshipfund.org/apply/nh-education-freedom-accounts');
+  });
+
+  it('EFA grants chart switches between a count and a share of enrollment, with no table toggle', async () => {
+    renderPage(<StateEfa />, '/state/efa');
+    expect(await screen.findByText('EFA Grants By Year', undefined, TIMEOUT)).toBeInTheDocument();
+    expect(screen.getByText('Number of Students')).toBeInTheDocument();
+    // One Excel download for the whole page, in place of each chart's CSV
+    expect(screen.getByRole('button', { name: 'Download Excel' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: /as CSV$/ })).not.toBeInTheDocument();
+    // No Chart/Table toggle on any EFA chart
+    expect(screen.queryByRole('button', { name: 'Table' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('combobox', { name: 'Show EFA grants as' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Percentage' }));
+    expect(await screen.findByText('Percentage of Public School Enrollment')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Show EFA grants as' })).toHaveTextContent('Percentage');
   });
 });

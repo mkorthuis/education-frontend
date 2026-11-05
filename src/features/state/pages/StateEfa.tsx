@@ -1,13 +1,14 @@
-import React, { useMemo } from 'react';
-import { Box, Divider, Link } from '@mui/material';
+import React, { useMemo, useState } from 'react';
+import { Box, Divider, FormControl, Link, MenuItem, Select } from '@mui/material';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import StatePage from '../components/StatePage';
 import StateTable from '../components/StateTable';
-import TrendChart from '../components/TrendChart';
+import TrendChart, { SERIES_COLORS } from '../components/TrendChart';
 import { formatDollarsShort, formatThousands, shortYear, tileDelta } from '../utils/phrases';
 import KeyFigures, { KeyFigure } from '../components/KeyFigures';
 import { useStateLoads } from '../hooks/useStateLoads';
 import { useStateEfaData } from '../hooks/useStatewideData';
+import { StudentGroup, useStatewideGroups } from '../hooks/useStatewideGroups';
 import {
   EFA_BASE_AID,
   efaTotals,
@@ -16,47 +17,102 @@ import {
   formatCount,
   formatDollars,
   formatDollarsInWords,
+  formatPercent,
   formatSchoolYear,
   pivotByYear,
   PRELIMINARY,
+  shareOfEnrollment,
 } from '../utils/stateMetrics';
-import { EFA_AID_LABELS, plainLabel } from '../utils/labels';
+import { EFA_AID_LABELS, plainLabel, titleCase } from '../utils/labels';
+import { COUNT, DOLLARS, downloadWorkbook, ExcelSheet, PERCENT } from '../utils/excel';
 
 const PAGE = PAGE_REGISTRY.state.efa;
 const DOE_EFA_URL = 'https://education.nh.gov/pathways-education/education-freedom-accounts';
 const CSF_EFA_URL = 'https://nh.scholarshipfund.org/apply/nh-education-freedom-accounts';
 
-// Titles and prose name the year in full; tiles show the short year ("26/27") and say
-// "Preliminary" in their note when it is
-const yearText = (year: number) => `${formatSchoolYear(year)}${year === PRELIMINARY.efaYear ? ' (preliminary)' : ''}`;
-const preliminaryNote = (year: number) => (year === PRELIMINARY.efaYear ? 'Preliminary' : undefined);
+// Lighter tints of the first two series colors, for the statewide lines
+const STATE_TINTS = ['#8fbaeb', '#f4a98b'];
+
+// Extra aid compared with all public school students: the EFA aid type, the statewide group it
+// matches, and one hue for both lines: full strength for EFA students, a lighter tint for the
+// state, so the EFA lines lead. English learners are left off to keep the chart readable.
+const COMPARED_AID: { aid: string; name: string; group: StudentGroup; statewideName: string; color: string; statewideColor: string }[] = [
+  {
+    aid: 'Federal Free & Reduced (F&R) Price Meal Eligible',
+    name: 'EFA Low Income',
+    group: 'lowIncome',
+    statewideName: 'State Low Income',
+    color: SERIES_COLORS[0],
+    statewideColor: STATE_TINTS[0],
+  },
+  {
+    aid: 'Special Education Aid',
+    name: 'EFA Special Education',
+    group: 'specialEducation',
+    statewideName: 'State Special Education',
+    color: SERIES_COLORS[1],
+    statewideColor: STATE_TINTS[1],
+  },
+];
+const statewideKey = (aid: string) => `statewide:${aid}`;
+
 
 const StateEfa: React.FC = () => {
-  const { loads, entries, entryTypes } = useStateEfaData();
+  const { loads, entries, entryTypes, enrollment } = useStateEfaData();
   const { status, retry } = useStateLoads(loads);
+  // The grants chart shows a count or a share of public school enrollment, like the district pages
+  const [grantsAs, setGrantsAs] = useState<'count' | 'percentage'>('count');
 
   const totals = useMemo(() => efaTotals(entries, entryTypes), [entries, entryTypes]);
   const typeNames = useMemo(() => new Map(entryTypes.map(type => [type.id, type.name])), [entryTypes]);
   const aidName = (typeId: number) => plainLabel(EFA_AID_LABELS, typeNames.get(typeId) ?? `Type ${typeId}`);
 
-  // Students receiving each kind of extra aid on top of the base amount (at most three lines, by size)
+  const statewideGroups = useStatewideGroups();
+
+  // The share of EFA students receiving low-income and special education aid on top of the base
+  // amount, each beside the share of all public school students in that group (dashed, same color)
   const extraAid = useMemo(() => {
-    const extra = entries.filter(row => typeNames.get(row.entry_type_id) !== EFA_BASE_AID);
-    const rows = pivotByYear(extra, row => aidName(row.entry_type_id), row => row.value);
-    const largest = new Map<string, number>();
-    extra.forEach(row => {
-      const name = aidName(row.entry_type_id);
-      largest.set(name, Math.max(largest.get(name) ?? 0, row.value));
-    });
-    // "Extra: low-income (free or reduced-price meals)" is charted as "Low-income (free or reduced-price meals)"
-    const sentenceCase = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
-    const series = [...largest].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name]) => {
-      const short = sentenceCase(name.replace(/^Extra: /, ''));
-      return { key: name, name: short, shortName: short.split(' (')[0] };
-    });
-    return { rows, series };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entries, typeNames]);
+    const studentsByYear = new Map(totals.map(row => [row.year, row.students]));
+    const share = (row: { year: number; value: number }) => {
+      const students = studentsByYear.get(row.year);
+      return typeof students === 'number' && students > 0 ? (row.value / students) * 100 : 0;
+    };
+    const compared = new Set(COMPARED_AID.map(aid => aid.aid));
+    const extra = entries.filter(row => compared.has(typeNames.get(row.entry_type_id) ?? '') && typeof studentsByYear.get(row.year) === 'number');
+    const rows = pivotByYear(extra, row => typeNames.get(row.entry_type_id) ?? '', share);
+    const present = COMPARED_AID.filter(aid => rows.some(row => typeof row[aid.aid] === 'number'));
+    // Statewide figures only for the EFA years, so the chart's years stay the program's. Each group's
+    // statewide line runs as far as its data does.
+    const statewideThrough = new Map<StudentGroup, number>();
+    rows.forEach(row => present.forEach(aid => {
+      const point = (statewideGroups[aid.group] ?? []).find(entry => entry.year === row.year);
+      row[statewideKey(aid.aid)] = point ? point.value : null;
+      if (point) statewideThrough.set(aid.group, Math.max(statewideThrough.get(aid.group) ?? point.year, point.year));
+    }));
+    const statewide = present.filter(aid => statewideThrough.has(aid.group));
+    const series = [
+      ...present.map(aid => ({ key: aid.aid, name: aid.name, color: aid.color })),
+      ...statewide.map(aid => ({ key: statewideKey(aid.aid), name: aid.statewideName, color: aid.statewideColor, dashed: true })),
+    ];
+    // "through 2025-26", naming any group whose statewide figures stop sooner
+    const latest = Math.max(...statewideThrough.values());
+    const shorter = statewide.filter(aid => statewideThrough.get(aid.group)! < latest)
+      .map(aid => `${aid.statewideName.replace(/^State /, '').toLowerCase()} through ${formatSchoolYear(statewideThrough.get(aid.group)!)}`);
+    const note = statewide.length
+      ? `Dashed lines: All New Hampshire public school students, through ${formatSchoolYear(latest)}${shorter.length ? `; ${shorter.join('; ')}` : ''}.`
+      : undefined;
+    return { rows, series, note };
+  }, [entries, typeNames, totals, statewideGroups]);
+
+  // Grants as a percentage of public school enrollment, for years with both
+  const grantShare = useMemo(() => {
+    const enrolled = new Map<number, number>();
+    enrollment.forEach(row => enrolled.set(row.year, (enrolled.get(row.year) ?? 0) + row.total_enrollment));
+    const counts = totals.flatMap(row => (typeof row.students === 'number' ? [{ year: row.year, value: row.students }] : []));
+    const shares = shareOfEnrollment(counts, [...enrolled].map(([year, value]) => ({ year, value })));
+    const missing = counts.filter(point => !shares.some(share => share.year === point.year)).map(point => point.year);
+    return { rows: shares.map(point => ({ year: point.year, grants: point.value })), missing, enrolled };
+  }, [totals, enrollment]);
 
   const latest = totals.length ? totals[totals.length - 1] : null;
   const previous = totals.length > 1 ? totals[totals.length - 2] : null;
@@ -76,7 +132,6 @@ const StateEfa: React.FC = () => {
 
   const keyFigures = useMemo(() => {
     const figures: KeyFigure[] = [];
-    const takeaway: string[] = [];
     if (latest && typeof latest.students === 'number') {
       figures.push({
         label: 'EFA Students',
@@ -92,31 +147,119 @@ const StateEfa: React.FC = () => {
             percentChange: ((latest.students - previous.students) / previous.students) * 100,
           }, { unit: 'percent', higherIsBetter: true })
           : undefined,
-        detail: latest.year === PRELIMINARY.efaYear ? `Preliminary count as of ${PRELIMINARY.efaAsOf}` : undefined,
-        shortDetail: latest.year === PRELIMINARY.efaYear ? 'Preliminary' : undefined,
       });
-      takeaway.push(`${formatCount(latest.students)} students have Education Freedom Accounts for ${formatSchoolYear(latest.year)}`
-        + (latest.year === PRELIMINARY.efaYear ? ` (the state's preliminary count as of ${PRELIMINARY.efaAsOf})` : '')
-        + (previous && typeof previous.students === 'number' ? `, up from ${formatCount(previous.students)} in ${formatSchoolYear(previous.year)}.` : '.'));
       if (latest.estimatedCost) {
         const perStudent = latest.estimatedCost / latest.students;
         figures.push({
           label: 'Estimated State Cost',
           value: formatDollarsShort(latest.estimatedCost),
           period: shortYear(latest.year),
-          detail: [preliminaryNote(latest.year), 'From the state\'s aid amounts'].filter(Boolean).join('. '),
         });
         figures.push({
           label: 'Average per Student',
           value: formatDollars(Math.round(perStudent / 10) * 10),
           period: shortYear(latest.year),
-          detail: [preliminaryNote(latest.year), 'Base amount plus any extra aid'].filter(Boolean).join('. '),
         });
-        takeaway.push(`At the state's per-student aid amounts, that comes to about ${formatDollarsInWords(Math.round(latest.estimatedCost / 1e6) * 1e6)}, or about ${formatDollars(Math.round(perStudent / 10) * 10)} per student.`);
       }
     }
-    return { figures, takeaway };
+    return figures;
   }, [latest, previous]);
+
+  // Everything on the page in one workbook: a sheet per tile row, chart and table, then notes
+  const downloadExcel = () => {
+    const percent = (value: unknown) => (typeof value === 'number' ? value / 100 : null);
+    const sheets: ExcelSheet[] = [
+      {
+        name: 'Key Figures',
+        subtitle: latest ? `Education Freedom Accounts in New Hampshire, ${formatSchoolYear(latest.year)}` : undefined,
+        columns: [
+          { header: 'School Year', width: 12 },
+          { header: 'EFA Students', format: COUNT },
+          { header: previous ? `Change from ${formatSchoolYear(previous.year)}` : 'Change', width: 20, format: PERCENT },
+          { header: 'Estimated State Cost', width: 20, format: DOLLARS },
+          { header: 'Average per Student', width: 20, format: DOLLARS },
+        ],
+        rows: latest ? [[
+          formatSchoolYear(latest.year),
+          latest.students,
+          previous && typeof previous.students === 'number' && typeof latest.students === 'number' && previous.students > 0
+            ? (latest.students - previous.students) / previous.students : null,
+          latest.estimatedCost,
+          latest.estimatedCost && typeof latest.students === 'number' ? latest.estimatedCost / latest.students : null,
+        ]] : [],
+      },
+      {
+        name: 'EFA Grants By Year',
+        subtitle: 'Students with an EFA grant, and their share of public school enrollment',
+        columns: [
+          { header: 'School Year', width: 12 },
+          { header: 'EFA Grants', format: COUNT },
+          { header: 'Public School Enrollment', width: 24, format: COUNT },
+          { header: '% of Public School Enrollment', width: 28, format: PERCENT },
+        ],
+        rows: totals.map(row => [
+          formatSchoolYear(row.year),
+          row.students,
+          grantShare.enrolled.get(row.year) ?? null,
+          percent(grantShare.rows.find(share => share.year === row.year)?.grants),
+        ]),
+      },
+      {
+        name: 'EFA State Cost By Year',
+        subtitle: 'Estimated state aid amounts, not actual payments',
+        columns: [{ header: 'School Year', width: 12 }, { header: 'Estimated State Cost', width: 20, format: DOLLARS }],
+        rows: totals.filter(row => (row.estimatedCost ?? 0) > 0).map(row => [formatSchoolYear(row.year), row.estimatedCost]),
+      },
+      {
+        name: 'Extra Aid By Year',
+        title: '% EFA Students Receiving Extra Aid By Year',
+        subtitle: 'EFA students receiving extra aid in addition to the base amount, beside all public school students in the same group',
+        columns: [
+          { header: 'School Year', width: 12 },
+          ...COMPARED_AID.flatMap(aid => [
+            { header: `${aid.name} (%)`, width: 26, format: PERCENT },
+            { header: `${aid.statewideName} (%)`, width: 26, format: PERCENT },
+          ]),
+        ],
+        rows: extraAid.rows.map(row => [
+          formatSchoolYear(row.year),
+          ...COMPARED_AID.flatMap(aid => [percent(row[aid.aid]), percent(row[statewideKey(aid.aid)])]),
+        ]),
+      },
+      {
+        name: latestYear ? `Aid by Category ${formatSchoolYear(latestYear)}` : 'Aid by Category',
+        title: latestYear ? `Aid by Category, ${formatSchoolYear(latestYear)}` : 'Aid by Category',
+        subtitle: 'EFA students and estimated state aid in each aid category',
+        columns: [
+          { header: 'Aid Category', width: 48 },
+          { header: 'Students', format: COUNT },
+          { header: 'Per Student', format: DOLLARS },
+          { header: 'Estimated Total', width: 18, format: DOLLARS },
+        ],
+        rows: latestTable.map(row => [titleCase(row.aid), row.students, row.amount, row.total]),
+        totalRow: latestTable.length ? ['Total', latest?.students ?? null, null, tableTotal] : undefined,
+      },
+      {
+        name: 'Notes',
+        title: 'About This Data',
+        subtitle: 'Education Freedom Accounts for New Hampshire',
+        columns: [{ header: 'Notes', width: 100, wrap: true }],
+        // One cell, a paragraph per line
+        rows: [[[
+          `From NH Education Facts (${window.location.href}), downloaded ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}.`,
+          ...(latestYear === PRELIMINARY.efaYear
+            ? [`${formatSchoolYear(PRELIMINARY.efaYear)} numbers are preliminary, from the state's count as of ${PRELIMINARY.efaAsOf}; other years are final.`]
+            : []),
+          'EFA grants, estimated cost and aid by category: NH Department of Education, Education Freedom Account aid calculations (RSA 194-F). Estimated cost is the students in each aid category times that year\'s per-student amount, not actual payments to families.',
+          'Public school enrollment: NH Department of Education, Town Enrollment By Grade (kindergarten to grade 12, by town of residence).',
+          'State Low Income: NH Department of Education, Free Reduced K-12 School Lunch Eligibility Rates by School (statewide, as of October 1).',
+          'State Special Education: NH Department of Education school metrics, "Students with Disability (%)", district figures weighted by enrollment.',
+          'Students can receive more than one kind of extra aid, so the aid table\'s total counts each student once (the base amount).',
+        ].join('\n\n')]],
+      },
+    ];
+    return downloadWorkbook('nh-education-freedom-accounts.xlsx', sheets);
+  };
 
   return (
     <StatePage
@@ -132,36 +275,62 @@ const StateEfa: React.FC = () => {
           <Link href={DOE_EFA_URL} target="_blank" rel="noopener noreferrer">NH Department of Education's EFA page</Link>{' '}
           and the program administrator,{' '}
           <Link href={CSF_EFA_URL} target="_blank" rel="noopener noreferrer">Children's Scholarship Fund NH</Link>.
+          {latestYear === PRELIMINARY.efaYear && (
+            <>
+              {' '}{formatSchoolYear(PRELIMINARY.efaYear)} numbers are preliminary; other years are final.
+            </>
+          )}
         </>
       )}
-      keyFigures={<KeyFigures takeaway={keyFigures.takeaway} figures={keyFigures.figures} />}
-      districtSection="efa"
-      notCovered="Actual payments to families, EFA students by town, and the schools EFA students attend aren't on the site yet."
-      source="NH Department of Education, Education Freedom Account aid calculations (RSA 194-F)"
+      keyFigures={<KeyFigures figures={keyFigures} centerLastTile />}
+      keyFiguresBesideIntro
+      onDownload={downloadExcel}
     >
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 3, '& > *': { flex: 1, minWidth: 0 } }}>
           <TrendChart
-            title="Students with Education Freedom Accounts"
-            subtitle="Every EFA student, counted once"
-            data={totals.map(row => ({ year: row.year, students: row.students }))}
-            series={[{ key: 'students', name: 'EFA students' }]}
-            format={formatCount}
-            axisFormat={value => formatCompact(value)}
-            note={latestYear === PRELIMINARY.efaYear ? `${formatSchoolYear(PRELIMINARY.efaYear)} is the state's preliminary count as of ${PRELIMINARY.efaAsOf}.` : undefined}
-            csvName="nh-efa-students"
-            csvUnit="students"
+            title="EFA Grants By Year"
+            subtitle={grantsAs === 'count' ? 'Number of Students' : 'Percentage of Public School Enrollment'}
+            shortSubtitle={grantsAs === 'count' ? '# of Students' : '% of Public School Enrollment'}
+            control={(
+              // The same size as the picker on the district EFA pages; a little narrower on phones, so it fits beside the title
+              <FormControl size="small" sx={{ minWidth: { xs: 130, sm: 150 } }}>
+                <Select
+                  value={grantsAs}
+                  onChange={event => setGrantsAs(event.target.value as 'count' | 'percentage')}
+                  inputProps={{ 'aria-label': 'Show EFA grants as' }}
+                >
+                  <MenuItem value="count"># of Grants</MenuItem>
+                  <MenuItem value="percentage">Percentage</MenuItem>
+                </Select>
+              </FormControl>
+            )}
+            showViewToggle={false}
+            {...(grantsAs === 'count'
+              ? {
+                data: totals.map(row => ({ year: row.year, grants: row.students })),
+                format: formatCount,
+                axisFormat: (value: number) => formatCompact(value),
+              }
+              : {
+                data: grantShare.rows,
+                format: (value: number) => formatPercent(value, 1),
+                axisFormat: (value: number) => formatPercent(value),
+                note: grantShare.missing.length
+                  ? `${grantShare.missing.map(formatSchoolYear).join(', ')} isn't shown: the state hasn't published that year's enrollment yet.`
+                  : undefined,
+              })}
+            series={[{ key: 'grants', name: 'EFA grants' }]}
           />
           <TrendChart
-            title="Estimated state cost"
-            subtitle="Students in each aid category times that year's per-student amount"
+            title="EFA State Cost By Year"
+            showViewToggle={false}
+            // Shown on phones too: it's the only place the chart says these aren't actual payments
+            subtitle="Estimated State Aid Amounts, Not Actual Payments"
             data={totals.filter(row => (row.estimatedCost ?? 0) > 0).map(row => ({ year: row.year, cost: row.estimatedCost }))}
             series={[{ key: 'cost', name: 'Estimated cost' }]}
             format={value => formatDollarsInWords(value)}
             axisFormat={formatCompactDollars}
-            note="An estimate from the state's aid amounts, not actual payments to families."
-            csvName="nh-efa-estimated-cost"
-            csvUnit="dollars"
           />
         </Box>
 
@@ -169,27 +338,36 @@ const StateEfa: React.FC = () => {
 
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 3, '& > *': { flex: 1, minWidth: 0 } }}>
           <TrendChart
-            title="EFA students receiving extra aid"
-            subtitle="On top of the base amount"
+            title="% EFA Students Receiving Extra Aid By Year"
+            shortTitle="% EFA Students w/ Extra Aid By Year"
+            showViewToggle={false}
+            subtitle="In Addition to Base Amount"
             data={extraAid.rows}
             series={extraAid.series}
-            format={formatCount}
-            axisFormat={value => formatCompact(value)}
-            csvName="nh-efa-extra-aid"
-            csvUnit="students"
+            format={value => formatPercent(value, 1)}
+            axisFormat={value => formatPercent(value)}
+            yDomain={[0, 100]}
+            note={extraAid.note}
           />
           <StateTable
-            title={latestYear ? `Aid by category, ${yearText(latestYear)}` : 'Aid by category'}
+            title={latestYear ? `Aid by Category, ${formatSchoolYear(latestYear)}` : 'Aid by Category'}
             columns={[
-              { key: 'aid', label: 'Aid category' },
+              { key: 'aid', label: 'Aid Category', format: row => titleCase(row.aid) },
               { key: 'students', label: 'Students', align: 'right', format: row => formatCount(row.students) },
-              { key: 'amount', label: 'Per student', align: 'right', format: row => (row.amount === null ? '—' : formatDollars(row.amount)), hideOnPhone: true },
-              { key: 'total', label: 'Estimated total', align: 'right', format: row => formatDollarsInWords(row.total) },
+              { key: 'amount', label: 'Per Student', align: 'right', format: row => (row.amount === null ? '—' : formatDollars(row.amount)), hideOnPhone: true },
+              {
+                key: 'total',
+                label: 'Estimated Total',
+                shortLabel: 'Total',
+                align: 'right',
+                // "$54.4 Million", in the table's Title Case
+                format: row => titleCase(formatDollarsInWords(row.total)),
+                shortFormat: row => (row.total === null ? '—' : formatDollarsShort(row.total)),
+              },
             ]}
             rows={latestTable}
             totalRow={latestTable.length ? { aid: 'Total', students: latest?.students ?? 0, amount: null, total: tableTotal } : undefined}
             note="Students can receive more than one kind of extra aid, so the total counts each student once (the base amount)."
-            csvName={`nh-efa-aid-${latestYear ?? ''}`}
           />
         </Box>
       </Box>

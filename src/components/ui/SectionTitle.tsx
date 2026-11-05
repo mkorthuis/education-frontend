@@ -12,6 +12,8 @@ interface SectionTitleProps {
   entityName?: string;
   // Heading element; the look stays the same (pages that use this as their main title pass "h1")
   component?: React.ElementType;
+  // Phones show the district, school or other subject on a second line under the title; false leaves it off
+  showEntityOnPhone?: boolean;
 }
 
 /**
@@ -26,7 +28,8 @@ const SectionTitle: React.FC<SectionTitleProps> = ({
   schoolName = '',
   entityName = '',
   withDivider = true,
-  component = 'h5'
+  component = 'h5',
+  showEntityOnPhone = true
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -40,7 +43,7 @@ const SectionTitle: React.FC<SectionTitleProps> = ({
         sx={{ 
           fontWeight: 500,
           mt: isMobile ? 0 : 1,
-          mb: isMobile ? 0 : 0.5,
+          mb: isMobile ? (showEntityOnPhone ? 0 : 2) : 0.5,
           lineHeight: isMobile ? 1.2 : 1.5,
           ...sx 
         }}
@@ -56,7 +59,7 @@ const SectionTitle: React.FC<SectionTitleProps> = ({
         )}
       </Typography>
       {!isMobile && withDivider && <Divider sx={{ mb: 2 }} /> }
-      {isMobile && (
+      {isMobile && showEntityOnPhone && (
         <Typography 
           variant="subtitle1" 
           sx={{ 

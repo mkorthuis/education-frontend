@@ -82,6 +82,14 @@ export const enrollmentApi = {
     getStateSchoolCounts: (forceRefresh = false) =>
         fetchData(buildEnrollmentUrl('school-counts/state'), forceRefresh),
         
+    // Statewide K-12 students and those eligible for free or reduced-price lunch, by year
+    getStateReducedLunch: (forceRefresh = false) =>
+        fetchData(buildEnrollmentUrl('reduced-lunch/state'), forceRefresh),
+
+    // Statewide students and English learners, by year
+    getStateEnglishLearner: (forceRefresh = false) =>
+        fetchData(buildEnrollmentUrl('english-learner/state'), forceRefresh),
+
     // Town enrollment endpoints
     getTownEnrollment: (options: TownEnrollmentOptions = {}, forceRefresh = false) => 
         fetchData(buildEnrollmentUrl('town', options), forceRefresh),
