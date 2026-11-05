@@ -1,22 +1,11 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
+import { READING_WIDTH, type } from '@/theme/tokens';
 
-// Shared type for chart and table headers and notes on the State pages:
+// Shared type for chart and table headers and notes on the State pages (sizes in @/theme/tokens):
 // title 17px/600 > subtitle and notes 14px > axis ticks 12px. Prose stops at about 75 characters.
-export const READING_WIDTH = 720;
-
-// Strings, not numbers: in sx, width: 1 would mean 100% and m: -1 would mean -8px
-export const visuallyHidden = {
-  position: 'absolute',
-  width: '1px',
-  height: '1px',
-  padding: 0,
-  margin: '-1px',
-  overflow: 'hidden',
-  clip: 'rect(0 0 0 0)',
-  whiteSpace: 'nowrap',
-  border: 0,
-} as const;
+export { READING_WIDTH };
+export { visuallyHidden } from '@/components/ds';
 
 /** Text with each school year ("2014-15") kept on one line, so it doesn't break at the hyphen. */
 export const keepYearsTogether = (text: string | undefined): React.ReactNode => {
@@ -40,7 +29,7 @@ interface ChartHeaderProps {
 export const ChartHeader: React.FC<ChartHeaderProps> = ({ title, subtitle, titleId, component = 'h2', actions }) => (
   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', columnGap: 2, rowGap: 1, mb: 1.5, flexWrap: 'wrap' }}>
     <Box sx={{ flex: 1, minWidth: 200 }}>
-      <Typography id={titleId} component={component} sx={{ fontSize: '1.0625rem', fontWeight: 600, lineHeight: 1.4, m: 0 }}>
+      <Typography id={titleId} component={component} sx={{ ...type.chartTitle, m: 0 }}>
         {title}
       </Typography>
       {subtitle && <Typography variant="body2" color="text.secondary">{subtitle}</Typography>}

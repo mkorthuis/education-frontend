@@ -19,7 +19,7 @@ import {
   REMOTE_SCHOOL_YEAR,
   toSeries,
 } from '../utils/stateMetrics';
-import { capitalize, changeText } from '../utils/phrases';
+import { formatThousands, shortYear, tileDelta } from '../utils/phrases';
 
 const PAGE = PAGE_REGISTRY.state.enrollment;
 const TREND_YEARS = 10;
@@ -98,8 +98,9 @@ const StateEnrollment: React.FC = () => {
       figures.push({
         label: 'Students',
         value: formatCount(latestStudents.value),
-        period: formatSchoolYear(latestStudents.year),
-        change: changeText(studentChange),
+        shortValue: formatThousands(latestStudents.value),
+        period: shortYear(latestStudents.year),
+        delta: tileDelta(studentChange, { unit: 'percent', higherIsBetter: true }),
         detail: 'Average enrolled over the year',
       });
       if (studentChange) {
@@ -110,13 +111,16 @@ const StateEnrollment: React.FC = () => {
       figures.push({
         label: 'Kindergarten',
         value: formatCount(kindergarten.students),
-        period: formatSchoolYear(gradeTable.year),
-        change: kindergarten.change === null ? undefined : `${capitalize(describeChange(kindergarten.change))} since ${formatSchoolYear(gradeTable.compareYear)}`,
+        period: shortYear(gradeTable.year),
+        delta: kindergarten.change === null ? undefined : tileDelta(
+          { from: { year: gradeTable.compareYear, value: 0 }, to: { year: gradeTable.year, value: 0 }, change: 0, percentChange: kindergarten.change },
+          { unit: 'percent', higherIsBetter: true },
+        ),
         detail: 'October 1 enrollment',
       });
     }
     if (grade12 && gradeTable.year) {
-      figures.push({ label: 'Grade 12', value: formatCount(grade12.students), period: formatSchoolYear(gradeTable.year), detail: 'October 1 enrollment' });
+      figures.push({ label: 'Grade 12', value: formatCount(grade12.students), period: shortYear(gradeTable.year), detail: 'October 1 enrollment' });
       if (kindergarten) {
         takeaway.push(`This year's kindergarten class (${formatCount(kindergarten.students)}) is ${kindergarten.students < grade12.students ? 'smaller' : 'larger'} than the graduating class (${formatCount(grade12.students)}).`);
       }

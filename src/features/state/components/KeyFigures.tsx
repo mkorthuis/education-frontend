@@ -1,15 +1,10 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import StatTile from './StatTile';
+import { MetricGrid, MetricTile, MetricTileProps } from '@/components/ds';
 import { keepYearsTogether, READING_WIDTH } from './chartText';
 
-export interface KeyFigure {
-  label: string;
-  value: string;
-  period?: string;
-  change?: string;
-  detail?: string;
-}
+/** A key figure on a State subpage: a tile without a link (the page itself has the full trend). */
+export type KeyFigure = Omit<MetricTileProps, 'to' | 'linkLabel' | 'trend'>;
 
 interface KeyFiguresProps {
   /** The page's answer in a sentence or two, built from the same figures */
@@ -28,15 +23,9 @@ const KeyFigures: React.FC<KeyFiguresProps> = ({ takeaway = [], figures }) => (
       </Box>
     )}
     {figures.length > 0 && (
-      <Box
-        sx={{
-          display: 'grid',
-          gap: { xs: 1, sm: 2 },
-          gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', md: `repeat(${Math.min(figures.length, 4)}, minmax(0, 1fr))` },
-        }}
-      >
-        {figures.map(figure => <StatTile key={figure.label} {...figure} />)}
-      </Box>
+      <MetricGrid count={figures.length}>
+        {figures.map(figure => <MetricTile key={figure.label} {...figure} />)}
+      </MetricGrid>
     )}
   </Box>
 );

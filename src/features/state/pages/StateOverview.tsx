@@ -1,10 +1,8 @@
 import React, { useMemo } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
-import { Box, Card, CardActionArea, CardContent, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
-import SectionTitle from '@/components/ui/SectionTitle';
+import { GroupLabel, MetricTile, NavCard, NavCardGrid, SectionHeading } from '@/components/ds';
 import StatePage from '../components/StatePage';
-import OverviewTile from '../components/OverviewTile';
 import { useStateLoads } from '../hooks/useStateLoads';
 import { useSchoolCounts } from '../hooks/useSchoolCounts';
 import {
@@ -31,28 +29,13 @@ import {
   toSeries,
   YearValue,
 } from '../utils/stateMetrics';
-import { capitalize, realPercentChange, shortYear, tileDelta } from '../utils/phrases';
+import { capitalize, formatDollarsShort, formatThousands, realPercentChange, shortYear, tileDelta } from '../utils/phrases';
 
-/** "$4.14B", short enough to leave room for the change and trend line on the tile */
-const formatBillionsShort = (value: number, decimals = 2) => `$${(value / 1e9).toFixed(decimals)}B`;
-// Phone tiles' values in thousands: 149,403 reads "149K"; with one decimal, 12,500 reads "12.5K"
-const formatThousandsShort = (value: number, decimals = 0) => `${(value / 1000).toFixed(decimals).replace(/\.0$/, '')}K`;
 
 const TREND_YEARS = 10;
 // The current state test (the NH SAS) began in 2017-18; earlier scores aren't comparable
 const CURRENT_TEST_FIRST_YEAR = 2018;
 const STATE_PAGES = PAGE_REGISTRY.state;
-
-// The page links share the district and school summary pages' link style (light grey, a thin
-// border, darker grey on hover), with their titles in link blue except on phones
-const pageLinkCardStyle = {
-  border: '1px solid',
-  borderColor: 'divider',
-  backgroundColor: 'grey.100',
-  color: 'text.primary',
-  transition: 'background-color 120ms',
-  '&:hover, &:focus-within': { backgroundColor: 'grey.300' },
-};
 
 const PAGE_DESCRIPTIONS: Record<string, string> = {
   academic: 'Test scores by subject, grade and student group',
@@ -92,12 +75,7 @@ const Band: React.FC<{ title: string; half?: boolean; children: React.ReactNode 
       ...(half && { display: { lg: 'grid' }, gridRow: { lg: 'span 3' }, gridTemplateRows: { lg: 'subgrid' }, rowGap: { lg: 0 } }),
     }}
   >
-    <Typography
-      component="h3"
-      sx={{ fontSize: '0.8125rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'text.secondary', mb: 1.25 }}
-    >
-      {title}
-    </Typography>
+    <GroupLabel>{title}</GroupLabel>
     <Box sx={tileGrid(half)}>{children}</Box>
   </Box>
 );
@@ -182,49 +160,30 @@ const StateOverview: React.FC = () => {
       // The page link cards below go to the same pages as the phone section links
       showSectionLinks={false}
     >
-      {/* Links to each statewide page first; the page title already says "Explore Statewide Data".
-          Phones get tighter boxes, so the key figures come up sooner. */}
-      <Box sx={{ display: 'grid', gap: { xs: 0.75, sm: 2 }, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' }, mb: 4 }}>
+      {/* Links to each statewide page first; the page title already says "Explore Statewide Data" */}
+      <NavCardGrid>
         {Object.values(STATE_PAGES)
           .filter(page => page.id !== STATE_PAGES.overview.id)
           .map(page => (
-            <Card key={page.id} elevation={0} sx={pageLinkCardStyle}>
-              <CardActionArea component={RouterLink} to={page.urlPatterns[0]} sx={{ height: '100%', '& .MuiCardActionArea-focusHighlight': { opacity: 0 } }}>
-                <CardContent sx={{ px: { xs: 1.5, sm: 2 }, py: { xs: 1, sm: 2 }, '&:last-child': { pb: { xs: 1, sm: 2 } } }}>
-                  <Typography
-                    component="h3"
-                    sx={{ fontWeight: 600, fontSize: { xs: '0.9375rem', sm: '1rem' }, lineHeight: { xs: '20px', sm: 1.5 }, color: 'text.primary' }}
-                  >
-                    {page.displayName}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8125rem', sm: '0.875rem' }, lineHeight: { xs: '18px', sm: 1.43 } }}>
-                    {PAGE_DESCRIPTIONS[page.id.split('.')[1]]}
-                  </Typography>
-                </CardContent>
-              </CardActionArea>
-            </Card>
+            <NavCard key={page.id} title={page.displayName} description={PAGE_DESCRIPTIONS[page.id.split('.')[1]]} to={page.urlPatterns[0]} />
           ))}
-      </Box>
+      </NavCardGrid>
 
 
-      {/* Tiles as designed on the "NH Statewide Dashboard" canvas: the figure and its year, the
-          change since the comparison year (green where the change is good, red where it's bad:
-          rises in spending and cost per student are red, rises in everything else green), and a
-          trend line. Only
-          the dollar tiles (after inflation) and the district and school counts carry a grey note. */}
-      {/* One step below the page title, with the same rule beneath */}
-      <Box sx={{ mt: 1 }}>
-        <SectionTitle displayName="Key Figures" component="h2" sx={{ fontSize: { xs: '1.25rem', sm: '1.375rem' } }} />
-      </Box>
+      {/* Each tile: the figure and its year, the change since the comparison year (green where the
+          change is good, red where it's bad: rises in spending and cost per student are red, rises
+          in everything else green), and a trend line. Only the dollar tiles (after inflation) and
+          the district and school counts carry a grey note. */}
+      <SectionHeading>Key Figures</SectionHeading>
 
       {/* Where four tiles fit across, Schools and Financials sit side by side, each 2 x 2 */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, minmax(0, 1fr))' }, columnGap: 3, rowGap: 0 }}>
       <Band title="Schools" half>
         {latest.students && (
-          <OverviewTile
+          <MetricTile
             label="Students"
             value={formatCount(latest.students.value)}
-            shortValue={formatThousandsShort(latest.students.value)}
+            shortValue={formatThousands(latest.students.value)}
             period={shortYear(latest.students.year)}
             delta={tileDelta(changes.students, { unit: 'percent', higherIsBetter: true })}
             trend={lastYears(figures.students)}
@@ -233,7 +192,7 @@ const StateOverview: React.FC = () => {
           />
         )}
         {latest.teachers && (
-          <OverviewTile
+          <MetricTile
             label="Teachers"
             value={formatCount(latest.teachers.value)}
             period={shortYear(latest.teachers.year)}
@@ -244,7 +203,7 @@ const StateOverview: React.FC = () => {
           />
         )}
         {latest.districts && (
-          <OverviewTile
+          <MetricTile
             label="School Districts"
             value={formatCount(latest.districts.value)}
             period={shortYear(latest.districts.year)}
@@ -257,7 +216,7 @@ const StateOverview: React.FC = () => {
           />
         )}
         {latest.schools && (
-          <OverviewTile
+          <MetricTile
             label="Public Schools"
             value={formatCount(latest.schools.value)}
             period={shortYear(latest.schools.year)}
@@ -273,10 +232,10 @@ const StateOverview: React.FC = () => {
 
       <Band title="Financials" half>
         {latest.perPupil && (
-          <OverviewTile
+          <MetricTile
             label="Cost per Student"
             value={formatDollars(latest.perPupil.value)}
-            shortValue={`$${formatThousandsShort(latest.perPupil.value)}`}
+            shortValue={`$${formatThousands(latest.perPupil.value)}`}
             period={shortYear(latest.perPupil.year)}
             delta={tileDelta(changes.perPupil, { unit: 'percent', higherIsBetter: false })}
             detail={changes.perPupil ? `${capitalize(describeChange(realPercentChange(changes.perPupil)))} after inflation` : undefined}
@@ -286,11 +245,11 @@ const StateOverview: React.FC = () => {
           />
         )}
         {latest.spending && (
-          <OverviewTile
+          <MetricTile
             label="Total School District Spending"
             shortLabel="Total Spending"
-            value={formatBillionsShort(latest.spending.value)}
-            shortValue={formatBillionsShort(latest.spending.value, 1)}
+            value={formatDollarsShort(latest.spending.value)}
+            shortValue={formatDollarsShort(latest.spending.value, 1)}
             period={shortYear(latest.spending.year)}
             delta={tileDelta(changes.spending, { unit: 'percent', higherIsBetter: false })}
             detail={changes.spending ? `${capitalize(describeChange(realPercentChange(changes.spending)))} after inflation` : undefined}
@@ -300,11 +259,11 @@ const StateOverview: React.FC = () => {
           />
         )}
         {latest.salary && (
-          <OverviewTile
+          <MetricTile
             label="Average Teacher Salary"
             shortLabel="Avg Teacher Salary"
             value={formatDollars(latest.salary.value)}
-            shortValue={`$${formatThousandsShort(latest.salary.value)}`}
+            shortValue={`$${formatThousands(latest.salary.value)}`}
             period={shortYear(latest.salary.year)}
             delta={tileDelta(changes.salary, { unit: 'percent', higherIsBetter: true })}
             detail={changes.salary ? `${capitalize(describeChange(realPercentChange(changes.salary)))} after inflation` : undefined}
@@ -314,11 +273,11 @@ const StateOverview: React.FC = () => {
           />
         )}
         {latest.efaStudents && (
-          <OverviewTile
+          <MetricTile
             label="Education Freedom Accounts"
             shortLabel="EFA's"
             value={formatCount(latest.efaStudents.value)}
-            shortValue={formatThousandsShort(latest.efaStudents.value, 1)}
+            shortValue={formatThousands(latest.efaStudents.value, 1)}
             period={shortYear(latest.efaStudents.year)}
             delta={tileDelta(changes.efaStudents, { unit: 'percent', higherIsBetter: true })}
             trend={figures.efaStudents}
@@ -332,7 +291,7 @@ const StateOverview: React.FC = () => {
 
       <Band title="Results">
         {latest.math && (
-          <OverviewTile
+          <MetricTile
             label="Proficient in Math"
             value={formatPercent(latest.math.value)}
             period={shortYear(latest.math.year)}
@@ -343,7 +302,7 @@ const StateOverview: React.FC = () => {
           />
         )}
         {latest.reading && (
-          <OverviewTile
+          <MetricTile
             label="Proficient in Reading"
             value={formatPercent(latest.reading.value)}
             period={shortYear(latest.reading.year)}
@@ -354,7 +313,7 @@ const StateOverview: React.FC = () => {
           />
         )}
         {latest.graduation && (
-          <OverviewTile
+          <MetricTile
             label="Four-Year Graduation Rate"
             shortLabel="Graduation Rate"
             value={formatPercent(latest.graduation.value, 1)}
@@ -366,7 +325,7 @@ const StateOverview: React.FC = () => {
           />
         )}
         {latest.college && (
-          <OverviewTile
+          <MetricTile
             label="Planning to Attend College"
             shortLabel="Planning College"
             value={formatPercent(latest.college.value)}

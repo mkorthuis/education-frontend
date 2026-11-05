@@ -25,7 +25,7 @@ import {
   withEmptyYears,
 } from '../utils/stateMetrics';
 import { groupSubgroups } from '../utils/labels';
-import { pointChangeText } from '../utils/phrases';
+import { shortYear, tileDelta } from '../utils/phrases';
 
 const PAGE = PAGE_REGISTRY.state.academic;
 // The current state test (the NH SAS) began in 2017-18
@@ -109,10 +109,10 @@ const StateAcademics: React.FC = () => {
         !isAllStudents && typeof allLatest?.[subject.key] === 'number' ? `All students: ${formatPercent(allLatest[subject.key])}` : null,
       ].filter(Boolean);
       return {
-        label: `Proficient in ${subject.name.toLowerCase()}`,
+        label: `Proficient in ${subject.name}`,
         value: formatPercent(groupLatest[subject.key]),
-        period: formatSchoolYear(latestYear),
-        change: pointChangeText(change, change ? formatSchoolYear(change.from.year) : ''),
+        period: shortYear(latestYear),
+        delta: tileDelta(change, { unit: 'points', higherIsBetter: true }),
         detail: details.length ? details.join('; ') : undefined,
       };
     });

@@ -197,6 +197,14 @@ describe('State pages', () => {
     expect(screen.getByRole('columnheader', { name: 'Change since 2014-15' })).toBeInTheDocument();
     expect(within(screen.getByText('Teachers', { selector: 'th' }).closest('tr')!).getByText('−7%')).toBeInTheDocument();
     expect(within(screen.getByText('All staff').closest('tr')!).getByText('20,000')).toBeInTheDocument();
+
+    // Key figures use the shared tile: short year, an arrow change colored by whether it's good,
+    // and the change in words for screen readers
+    const salaryTile = within(screen.getByText('Average Teacher Salary').closest('.MuiCard-root') as HTMLElement);
+    expect(salaryTile.getByText('25/26')).toBeInTheDocument();
+    expect(salaryTile.getByText(/^Since \d\d\/\d\d$/)).toBeInTheDocument();
+    const salaryChange = salaryTile.getByText(/^Up \d+% since \d{4}-\d{2}$/).closest('p');
+    expect(salaryChange).toHaveStyle({ color: '#2e7d32' });
   });
 
   it('enrollment compares grades with the year before the pandemic, not 2020-21', async () => {

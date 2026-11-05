@@ -1,6 +1,6 @@
 import { calculateInflationAdjustedAmount } from '@/utils/calculations';
-import { Change, describeChange, formatSchoolYear } from './stateMetrics';
-import type { TileDelta } from '../components/OverviewTile';
+import { Change, describeChange, formatDollars, formatSchoolYear } from './stateMetrics';
+import type { TileDelta } from '@/components/ds';
 
 // Plain-language wording for changes, shared by the overview tiles and each page's key figures
 
@@ -30,6 +30,17 @@ export const realChangeText = (change: Change | null): string | undefined =>
 
 /** "24/25", the short school-year form the district pages use. */
 export const shortYear = (year: number): string => `${String(year - 1).slice(-2)}/${String(year).slice(-2)}`;
+
+/** Tile dollar amounts, short enough to leave room for the change: "$4.14B", "$110.2M", "$22,699" */
+export const formatDollarsShort = (value: number, digits?: number): string => {
+  if (Math.abs(value) >= 1e9) return `$${(value / 1e9).toFixed(digits ?? 2)}B`;
+  if (Math.abs(value) >= 1e6) return `$${(value / 1e6).toFixed(digits ?? 1)}M`;
+  return formatDollars(value);
+};
+
+/** Phone tiles' values in thousands: 149,403 reads "149K"; with one decimal, 12,500 reads "12.5K" */
+export const formatThousands = (value: number, decimals = 0): string =>
+  `${(value / 1000).toFixed(decimals).replace(/\.0$/, '')}K`;
 
 /**
  * A change for an overview tile: the direction, the size shown beside the arrow ("4%"), the

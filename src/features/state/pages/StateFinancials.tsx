@@ -28,7 +28,7 @@ import {
   YearRow,
   YearValue,
 } from '../utils/stateMetrics';
-import { changeText, realChangeText, realPercentChange } from '../utils/phrases';
+import { formatDollarsShort, formatThousands, realChangeText, realPercentChange, shortYear, tileDelta } from '../utils/phrases';
 
 const PAGE = PAGE_REGISTRY.state.financials;
 const TREND_YEARS = 10;
@@ -126,27 +126,30 @@ const StateFinancials: React.FC = () => {
     const takeaway: string[] = [];
     if (latestPerPupil) {
       figures.push({
-        label: 'Cost per student',
+        label: 'Cost per Student',
         value: formatDollars(latestPerPupil.value),
-        period: formatSchoolYear(latestPerPupil.year),
-        change: changeText(perPupilChange),
+        shortValue: `$${formatThousands(latestPerPupil.value)}`,
+        period: shortYear(latestPerPupil.year),
+        delta: tileDelta(perPupilChange, { unit: 'percent', higherIsBetter: false }),
         detail: realChangeText(perPupilChange),
       });
     }
     if (latestSpending) {
       figures.push({
-        label: 'Total spending',
-        value: formatDollarsInWords(latestSpending.value),
-        period: formatSchoolYear(latestSpending.year),
-        change: changeText(spendingChange),
+        label: 'Total Spending',
+        value: formatDollarsShort(latestSpending.value),
+        shortValue: formatDollarsShort(latestSpending.value, 1),
+        period: shortYear(latestSpending.year),
+        delta: tileDelta(spendingChange, { unit: 'percent', higherIsBetter: false }),
         detail: realChangeText(spendingChange),
       });
     }
     if (localShare !== null && latestRevenue) {
       figures.push({
-        label: 'Revenue raised locally',
+        label: 'Revenue Raised Locally',
+        shortLabel: 'Raised Locally',
         value: formatPercent(localShare),
-        period: formatSchoolYear(latestRevenue.year),
+        period: shortYear(latestRevenue.year),
         detail: 'Mostly town property taxes',
       });
     }

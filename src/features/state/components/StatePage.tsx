@@ -6,6 +6,7 @@ import LoadErrorAlert from '@/components/ui/LoadErrorAlert';
 import { PageLoadStatus } from '@/store/utils/loadingState';
 import SectionLinks from './SectionLinks';
 import DistrictPicker from './DistrictPicker';
+import { Note } from '@/components/ds';
 import { READING_WIDTH } from './chartText';
 
 export const STATE_NAME = 'New Hampshire';
@@ -68,9 +69,8 @@ const StatePage: React.FC<StatePageProps> = ({
         {districtSection && <DistrictPicker section={districtSection} />}
         {children}
         {notCovered && (
-          <Box component="aside" sx={{ mt: 4, p: 2, maxWidth: READING_WIDTH, borderLeft: '3px solid', borderColor: 'grey.300', backgroundColor: 'grey.50' }}>
-            <Typography variant="body2" component="h2" sx={{ fontWeight: 600, mb: 0.5 }}>Not on this page</Typography>
-            <Typography variant="body2" component="div">{notCovered}</Typography>
+          <Box sx={{ mt: 4 }}>
+            <Note title="Not on this page">{notCovered}</Note>
           </Box>
         )}
         {source && (

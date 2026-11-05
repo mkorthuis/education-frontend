@@ -20,7 +20,7 @@ import {
   toSeries,
 } from '../utils/stateMetrics';
 import { INCIDENT_LABELS, plainLabel } from '../utils/labels';
-import { pointChangeText } from '../utils/phrases';
+import { shortYear, tileDelta } from '../utils/phrases';
 
 const PAGE = PAGE_REGISTRY.state.safety;
 const TREND_YEARS = 10;
@@ -112,19 +112,20 @@ const StateSafety: React.FC = () => {
     if (latestShare) {
       const change = changeSince(share, TREND_YEARS);
       figures.push({
-        label: 'Students who were truant',
+        label: 'Students Who Were Truant',
+        shortLabel: 'Truant',
         value: formatPercent(latestShare.value, 1),
-        period: formatSchoolYear(latestShare.year),
-        change: pointChangeText(change, change ? formatSchoolYear(change.from.year) : ''),
+        period: shortYear(latestShare.year),
+        delta: tileDelta(change, { unit: 'points', higherIsBetter: false }),
       });
       const count = truancyRows.find(row => row.year === latestShare.year)?.students;
       takeaway.push(`In ${formatSchoolYear(latestShare.year)}, ${formatCount(count)} students (${formatPercent(latestShare.value, 1)}) had 10 or more half-days of unexcused absence.`);
     }
     if (latestBullying && typeof latestBullying.reported === 'number') {
       figures.push({
-        label: 'Bullying reports',
+        label: 'Bullying Reports',
         value: formatCount(latestBullying.reported),
-        period: formatSchoolYear(latestBullying.year),
+        period: shortYear(latestBullying.year),
         detail: [
           typeof latestBullying.reportedPer1000 === 'number' ? `${latestBullying.reportedPer1000.toFixed(1)} per 1,000 students` : null,
           typeof latestBullying.confirmed === 'number' ? `${formatCount(latestBullying.confirmed)} confirmed by investigation` : null,
@@ -135,7 +136,7 @@ const StateSafety: React.FC = () => {
       figures.push({
         label: 'Restraints',
         value: formatCount(latestRestraints.restraints),
-        period: formatSchoolYear(latestRestraints.year),
+        period: shortYear(latestRestraints.year),
         detail: [
           typeof latestRestraints.restraintsPer1000 === 'number' ? `${latestRestraints.restraintsPer1000.toFixed(1)} per 1,000 students` : null,
           typeof latestRestraints.seclusions === 'number' ? `${formatCount(latestRestraints.seclusions)} seclusions` : null,

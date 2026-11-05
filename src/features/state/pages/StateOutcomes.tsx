@@ -9,12 +9,15 @@ import { useStateLoads } from '../hooks/useStateLoads';
 import { useStateOutcomeData } from '../hooks/useStatewideData';
 import { changeSince, formatCount, formatPercent, graduationRates, latestPoint, postGraduationShares, PRELIMINARY, REMOTE_SCHOOL_YEAR, sortByYear, toSeries } from '../utils/stateMetrics';
 import { PLAN_LABELS, plainLabel } from '../utils/labels';
-import { pointChangeText } from '../utils/phrases';
+import { tileDelta } from '../utils/phrases';
 
 const PAGE = PAGE_REGISTRY.state.outcomes;
 const TREND_YEARS = 10;
 const classYear = (year: number) => String(year);
+// Titles name the class in full; tiles show the class year ("2025") and say "Preliminary" in
+// their note when it is
 const classOf = (year: number) => `Class of ${year}${year === PRELIMINARY.graduationClass ? ' (preliminary)' : ''}`;
+const preliminaryClass = (year: number) => (year === PRELIMINARY.graduationClass ? 'Preliminary' : undefined);
 
 // Plans charted as lines; the table lists every plan
 const CHARTED_PLANS = ['4 Year College', 'Less 4 Year College', 'Employed', 'Armed Forces'].map(key => ({
@@ -54,21 +57,29 @@ const StateOutcomes: React.FC = () => {
     if (latest && latestRates) {
       const change = changeSince(graduated, TREND_YEARS);
       figures.push({
-        label: 'Four-year graduation rate',
+        label: 'Four-Year Graduation Rate',
+        shortLabel: 'Graduation Rate',
         value: formatPercent(latest.value, 1),
-        period: classOf(latest.year),
-        change: pointChangeText(change, change ? `the class of ${change.from.year}` : ''),
+        period: String(latest.year),
+        delta: tileDelta(change, { unit: 'points', classYears: true, higherIsBetter: true }),
+        detail: preliminaryClass(latest.year),
       });
       figures.push({
-        label: 'Dropped out',
+        label: 'Dropped Out',
         value: formatPercent(latestRates.droppedOut, 1),
-        period: classOf(latest.year),
-        detail: `${formatPercent(latestRates.hiset, 1)} earned a HiSET instead`,
+        period: String(latest.year),
+        detail: [preliminaryClass(latest.year), `${formatPercent(latestRates.hiset, 1)} earned a HiSET instead`].filter(Boolean).join('. '),
       });
       takeaway.push(`${formatPercent(latest.value, 1)} of the class of ${latest.year} graduated in four years; ${formatPercent(latestRates.droppedOut, 1)} dropped out.`);
     }
     if (college) {
-      figures.push({ label: 'Graduates planning to attend college', value: formatPercent(college.value), period: classOf(college.year), detail: 'Two- and four-year colleges' });
+      figures.push({
+        label: 'Planning to Attend College',
+        shortLabel: 'Planning College',
+        value: formatPercent(college.value),
+        period: String(college.year),
+        detail: [preliminaryClass(college.year), 'Two- and four-year colleges'].filter(Boolean).join('. '),
+      });
       takeaway.push(`${formatPercent(college.value)} of graduates said they planned to go to college.`);
     }
     return { figures, takeaway };

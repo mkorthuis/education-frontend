@@ -4,6 +4,7 @@ import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import StatePage from '../components/StatePage';
 import StateTable from '../components/StateTable';
 import TrendChart from '../components/TrendChart';
+import { formatDollarsShort, formatThousands, shortYear, tileDelta } from '../utils/phrases';
 import KeyFigures, { KeyFigure } from '../components/KeyFigures';
 import { useStateLoads } from '../hooks/useStateLoads';
 import { useStateEfaData } from '../hooks/useStatewideData';
@@ -25,7 +26,10 @@ const PAGE = PAGE_REGISTRY.state.efa;
 const DOE_EFA_URL = 'https://education.nh.gov/pathways-education/education-freedom-accounts';
 const CSF_EFA_URL = 'https://nh.scholarshipfund.org/apply/nh-education-freedom-accounts';
 
+// Titles and prose name the year in full; tiles show the short year ("26/27") and say
+// "Preliminary" in their note when it is
 const yearText = (year: number) => `${formatSchoolYear(year)}${year === PRELIMINARY.efaYear ? ' (preliminary)' : ''}`;
+const preliminaryNote = (year: number) => (year === PRELIMINARY.efaYear ? 'Preliminary' : undefined);
 
 const StateEfa: React.FC = () => {
   const { loads, entries, entryTypes } = useStateEfaData();
@@ -75,19 +79,39 @@ const StateEfa: React.FC = () => {
     const takeaway: string[] = [];
     if (latest && typeof latest.students === 'number') {
       figures.push({
-        label: 'EFA students',
+        label: 'EFA Students',
         value: formatCount(latest.students),
-        period: yearText(latest.year),
-        change: previous && typeof previous.students === 'number' ? `${formatCount(previous.students)} in ${formatSchoolYear(previous.year)}` : undefined,
-        detail: latest.year === PRELIMINARY.efaYear ? `Count as of ${PRELIMINARY.efaAsOf}` : undefined,
+        shortValue: formatThousands(latest.students, 1),
+        period: shortYear(latest.year),
+        // Change since the year before
+        delta: previous && typeof previous.students === 'number' && previous.students > 0
+          ? tileDelta({
+            from: { year: previous.year, value: previous.students },
+            to: { year: latest.year, value: latest.students },
+            change: latest.students - previous.students,
+            percentChange: ((latest.students - previous.students) / previous.students) * 100,
+          }, { unit: 'percent', higherIsBetter: true })
+          : undefined,
+        detail: latest.year === PRELIMINARY.efaYear ? `Preliminary count as of ${PRELIMINARY.efaAsOf}` : undefined,
+        shortDetail: latest.year === PRELIMINARY.efaYear ? 'Preliminary' : undefined,
       });
       takeaway.push(`${formatCount(latest.students)} students have Education Freedom Accounts for ${formatSchoolYear(latest.year)}`
         + (latest.year === PRELIMINARY.efaYear ? ` (the state's preliminary count as of ${PRELIMINARY.efaAsOf})` : '')
         + (previous && typeof previous.students === 'number' ? `, up from ${formatCount(previous.students)} in ${formatSchoolYear(previous.year)}.` : '.'));
       if (latest.estimatedCost) {
         const perStudent = latest.estimatedCost / latest.students;
-        figures.push({ label: 'Estimated state cost', value: formatDollarsInWords(latest.estimatedCost), period: yearText(latest.year), detail: 'From the state\'s aid amounts' });
-        figures.push({ label: 'Average per student', value: formatDollars(Math.round(perStudent / 10) * 10), period: yearText(latest.year), detail: 'Base amount plus any extra aid' });
+        figures.push({
+          label: 'Estimated State Cost',
+          value: formatDollarsShort(latest.estimatedCost),
+          period: shortYear(latest.year),
+          detail: [preliminaryNote(latest.year), 'From the state\'s aid amounts'].filter(Boolean).join('. '),
+        });
+        figures.push({
+          label: 'Average per Student',
+          value: formatDollars(Math.round(perStudent / 10) * 10),
+          period: shortYear(latest.year),
+          detail: [preliminaryNote(latest.year), 'Base amount plus any extra aid'].filter(Boolean).join('. '),
+        });
         takeaway.push(`At the state's per-student aid amounts, that comes to about ${formatDollarsInWords(Math.round(latest.estimatedCost / 1e6) * 1e6)}, or about ${formatDollars(Math.round(perStudent / 10) * 10)} per student.`);
       }
     }

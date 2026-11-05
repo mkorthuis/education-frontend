@@ -27,7 +27,7 @@ import {
   toSeries,
 } from '../utils/stateMetrics';
 import { plainLabel, STAFF_LABELS } from '../utils/labels';
-import { changeText, realChangeText, realPercentChange } from '../utils/phrases';
+import { formatThousands, realChangeText, realPercentChange, shortYear, tileDelta } from '../utils/phrases';
 
 const PAGE = PAGE_REGISTRY.state.staff;
 const TREND_YEARS = 10;
@@ -150,10 +150,12 @@ const StateStaff: React.FC = () => {
     const takeaway: string[] = [];
     if (latestSalary) {
       figures.push({
-        label: 'Average teacher salary',
+        label: 'Average Teacher Salary',
+        shortLabel: 'Avg Teacher Salary',
         value: formatDollars(latestSalary.value),
-        period: formatSchoolYear(latestSalary.year),
-        change: changeText(salaryChange),
+        shortValue: `$${formatThousands(latestSalary.value)}`,
+        period: shortYear(latestSalary.year),
+        delta: tileDelta(salaryChange, { unit: 'percent', higherIsBetter: true }),
         detail: realChangeText(salaryChange),
       });
       if (salaryChange) {
@@ -165,25 +167,27 @@ const StateStaff: React.FC = () => {
       figures.push({
         label: 'Teachers',
         value: formatCount(latestTeachers.value),
-        period: formatSchoolYear(latestTeachers.year),
-        change: changeText(changeSince(teachers, TREND_YEARS)),
+        period: shortYear(latestTeachers.year),
+        delta: tileDelta(changeSince(teachers, TREND_YEARS), { unit: 'percent', higherIsBetter: true }),
         detail: 'Full-time equivalent: part-time teachers count as fractions',
+        shortDetail: 'Full-time equivalent',
       });
     }
     if (latestRatio) {
       figures.push({
-        label: 'Students per teacher',
+        label: 'Students per Teacher',
         value: latestRatio.value.toFixed(1),
-        period: formatSchoolYear(latestRatio.year),
+        period: shortYear(latestRatio.year),
         detail: 'Not the same as class size',
       });
     }
     const latestClass = classSize[classSize.length - 1];
     if (latestClass && typeof latestClass.grades_1_2 === 'number') {
       figures.push({
-        label: 'Average class size, grades 1-2',
+        label: 'Average Class Size, Grades 1-2',
+        shortLabel: 'Class Size, Gr. 1-2',
         value: latestClass.grades_1_2.toFixed(1),
-        period: formatSchoolYear(latestClass.year),
+        period: shortYear(latestClass.year),
         detail: [
           typeof latestClass.grades_3_4 === 'number' ? `Grades 3-4: ${latestClass.grades_3_4.toFixed(1)}` : null,
           typeof latestClass.grades_5_8 === 'number' ? `grades 5-8: ${latestClass.grades_5_8.toFixed(1)}` : null,
