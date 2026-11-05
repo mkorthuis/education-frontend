@@ -13,8 +13,7 @@ import { visuallyHidden } from './chartText';
 // The whole tile is the link; a chevron shows top right on hover and keyboard focus.
 // Phone tiles drop the trend line and let the change wrap under the value.
 
-// Green and red only where a change is generally good or bad (test scores, graduation);
-// counts, spending and pay change in neutral grey
+// Green where a change is good, red where it's bad; grey where it's neither, or there's no change
 const GOOD_COLOR = '#2e7d32';
 const BAD_COLOR = '#c62828';
 const NEUTRAL_COLOR = 'rgba(0, 0, 0, 0.6)';

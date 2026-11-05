@@ -221,8 +221,9 @@ const StateOverview: React.FC = () => {
 
 
       {/* Tiles as designed on the "NH Statewide Dashboard" canvas: the figure and its year, the
-          change since the comparison year (green or red only where higher is generally better:
-          test scores, graduation and college plans; grey elsewhere), and a trend line. Only
+          change since the comparison year (green where the change is good, red where it's bad:
+          rises in spending and cost per student are red, rises in everything else green), and a
+          trend line. Only
           the dollar tiles (after inflation) and the district and school counts carry a grey note. */}
       {/* One step below the page title, with the same rule beneath */}
       <Box sx={{ mt: 1 }}>
@@ -237,7 +238,7 @@ const StateOverview: React.FC = () => {
             label="Students"
             value={formatCount(latest.students.value)}
             period={shortYear(latest.students.year)}
-            delta={tileDelta(changes.students, { unit: 'percent' })}
+            delta={tileDelta(changes.students, { unit: 'percent', higherIsBetter: true })}
             trend={lastYears(figures.students)}
             to={STATE_PAGES.enrollment.urlPatterns[0]}
             linkLabel="enrollment"
@@ -248,7 +249,7 @@ const StateOverview: React.FC = () => {
             label="Teachers"
             value={formatCount(latest.teachers.value)}
             period={shortYear(latest.teachers.year)}
-            delta={tileDelta(changes.teachers, { unit: 'percent' })}
+            delta={tileDelta(changes.teachers, { unit: 'percent', higherIsBetter: true })}
             trend={lastYears(figures.teachers)}
             to={STATE_PAGES.staff.urlPatterns[0]}
             linkLabel="staffing"
@@ -259,7 +260,7 @@ const StateOverview: React.FC = () => {
             label="School Districts"
             value={formatCount(latest.districts.value)}
             period={shortYear(latest.districts.year)}
-            delta={tileDelta(changes.districts, { unit: 'percent' })}
+            delta={tileDelta(changes.districts, { unit: 'percent', higherIsBetter: true })}
             detail={`${formatCount(latest.districts.value)} run their own schools`}
             shortDetail={`${formatCount(latest.districts.value)} run schools`}
             trend={lastYears(figures.districts)}
@@ -272,7 +273,7 @@ const StateOverview: React.FC = () => {
             label="Public Schools"
             value={formatCount(latest.schools.value)}
             period={shortYear(latest.schools.year)}
-            delta={tileDelta(changes.schools, { unit: 'percent' })}
+            delta={tileDelta(changes.schools, { unit: 'percent', higherIsBetter: true })}
             detail="K-12, not counting charter schools"
             shortDetail="excl. charter"
             trend={lastYears(figures.schools)}
@@ -288,7 +289,7 @@ const StateOverview: React.FC = () => {
             label="Cost per Student"
             value={formatDollars(latest.perPupil.value)}
             period={shortYear(latest.perPupil.year)}
-            delta={tileDelta(changes.perPupil, { unit: 'percent' })}
+            delta={tileDelta(changes.perPupil, { unit: 'percent', higherIsBetter: false })}
             detail={changes.perPupil ? `${capitalize(describeChange(realPercentChange(changes.perPupil)))} after inflation` : undefined}
             trend={lastYears(figures.perPupil)}
             to={STATE_PAGES.financials.urlPatterns[0]}
@@ -301,7 +302,7 @@ const StateOverview: React.FC = () => {
             shortLabel="Total Spending"
             value={formatBillionsShort(latest.spending.value)}
             period={shortYear(latest.spending.year)}
-            delta={tileDelta(changes.spending, { unit: 'percent' })}
+            delta={tileDelta(changes.spending, { unit: 'percent', higherIsBetter: false })}
             detail={changes.spending ? `${capitalize(describeChange(realPercentChange(changes.spending)))} after inflation` : undefined}
             trend={lastYears(figures.spending)}
             to={STATE_PAGES.financials.urlPatterns[0]}
@@ -314,7 +315,7 @@ const StateOverview: React.FC = () => {
             shortLabel="Avg Teacher Salary"
             value={formatDollars(latest.salary.value)}
             period={shortYear(latest.salary.year)}
-            delta={tileDelta(changes.salary, { unit: 'percent' })}
+            delta={tileDelta(changes.salary, { unit: 'percent', higherIsBetter: true })}
             detail={changes.salary ? `${capitalize(describeChange(realPercentChange(changes.salary)))} after inflation` : undefined}
             trend={lastYears(figures.salary)}
             to={STATE_PAGES.staff.urlPatterns[0]}
@@ -327,7 +328,7 @@ const StateOverview: React.FC = () => {
             shortLabel="EFA's"
             value={formatCount(latest.efaStudents.value)}
             period={shortYear(latest.efaStudents.year)}
-            delta={tileDelta(changes.efaStudents, { unit: 'percent' })}
+            delta={tileDelta(changes.efaStudents, { unit: 'percent', higherIsBetter: true })}
             trend={figures.efaStudents}
             to={STATE_PAGES.efa.urlPatterns[0]}
             linkLabel="EFAs"
