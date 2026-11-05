@@ -1,11 +1,10 @@
 import React, { useMemo } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Card, CardActionArea, CardContent, Divider, Link, Paper, Typography } from '@mui/material';
+import { Box, Card, CardActionArea, CardContent, Typography } from '@mui/material';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import SectionTitle from '@/components/ui/SectionTitle';
 import StatePage from '../components/StatePage';
 import OverviewTile from '../components/OverviewTile';
-import DistrictPicker from '../components/DistrictPicker';
 import { useStateLoads } from '../hooks/useStateLoads';
 import { useSchoolCounts } from '../hooks/useSchoolCounts';
 import {
@@ -24,11 +23,9 @@ import {
   formatCount,
   formatDollars,
   formatPercent,
-  formatSchoolYear,
   graduationRates,
   latestPoint,
   postGraduationShares,
-  PRELIMINARY,
   proficiencyBySubject,
   studentsPerTeacher,
   toSeries,
@@ -174,31 +171,6 @@ const StateOverview: React.FC = () => {
     districts: changeSince(figures.districts, TREND_YEARS),
     schools: changeSince(figures.schools, TREND_YEARS),
   };
-  const efaPreliminary = latest.efaStudents?.year === PRELIMINARY.efaYear;
-
-  // Plain-language summary, one sentence per figure we have
-  const summary: string[] = [];
-  if (latest.students) {
-    summary.push(`${formatCount(latest.students.value)} students attended New Hampshire public schools in ${formatSchoolYear(latest.students.year)}`
-      + (changes.students ? `, ${describeChange(changes.students.percentChange)} from ${formatSchoolYear(changes.students.from.year)}.` : '.'));
-  }
-  if (latest.perPupil) {
-    summary.push(`Schools spent ${formatDollars(latest.perPupil.value)} per student in ${formatSchoolYear(latest.perPupil.year)}`
-      + (changes.perPupil
-        ? `, ${describeChange(changes.perPupil.percentChange)} from ${formatSchoolYear(changes.perPupil.from.year)} (${describeChange(realPercentChange(changes.perPupil))} after inflation).`
-        : '.'));
-  }
-  if (latest.math && latest.reading && latest.math.year === latest.reading.year) {
-    summary.push(`${formatPercent(latest.math.value)} of students tested proficient in math and ${formatPercent(latest.reading.value)} in reading in ${formatSchoolYear(latest.math.year)}.`);
-  }
-  if (latest.graduation) {
-    summary.push(`${formatPercent(latest.graduation.value, 1)} of the class of ${latest.graduation.year}${latest.graduation.year === PRELIMINARY.graduationClass ? ' (preliminary)' : ''} graduated in four years`
-      + (latest.college && latest.college.year === latest.graduation.year ? `, and ${formatPercent(latest.college.value)} of graduates planned to go to college.` : '.'));
-  }
-  if (latest.efaStudents) {
-    summary.push(`${formatCount(latest.efaStudents.value)} students have Education Freedom Accounts for ${formatSchoolYear(latest.efaStudents.year)}`
-      + (efaPreliminary ? ` (preliminary count as of ${PRELIMINARY.efaAsOf}).` : '.'));
-  }
 
   return (
     <StatePage
@@ -406,31 +378,6 @@ const StateOverview: React.FC = () => {
           />
         )}
       </Band>
-
-
-      <Divider sx={{ mb: 3 }} />
-
-      <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 7fr) minmax(0, 5fr)' }, alignItems: 'start', mb: 2 }}>
-        {summary.length > 0 && (
-          <Paper elevation={0} component="section" aria-labelledby="in-brief" sx={{ p: 2, border: '1px solid', borderColor: 'grey.300' }}>
-            <Typography id="in-brief" variant="h6" component="h2" sx={{ fontSize: '1.125rem', fontWeight: 600, mb: 1 }}>In brief</Typography>
-            <Box component="ul" sx={{ m: 0, pl: 3 }}>
-              {summary.map(sentence => (
-                <Typography component="li" variant="body1" key={sentence} sx={{ mb: 0.5 }}>{sentence}</Typography>
-              ))}
-            </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Each figure is from the latest year available, so years differ by source.
-            </Typography>
-          </Paper>
-        )}
-        <Paper elevation={0} component="section" sx={{ p: 2, border: '1px solid', borderColor: 'grey.300' }}>
-          <DistrictPicker label="See how your district compares" />
-          <Typography variant="body2" sx={{ mt: -2 }}>
-            Or <Link component={RouterLink} to="/districts">browse all districts</Link>.
-          </Typography>
-        </Paper>
-      </Box>
     </StatePage>
   );
 };

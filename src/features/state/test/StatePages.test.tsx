@@ -54,16 +54,13 @@ const sentence = (text: string | RegExp) => (_content: string, element: Element 
   element?.tagName === 'P' && (typeof text === 'string' ? element.textContent === text : text.test(element.textContent ?? ''));
 
 describe('State pages', () => {
-  it('overview summarizes the state in plain language, with preliminary figures marked', async () => {
+  it('overview shows the key figures, grouped, each linking to its page', async () => {
     renderPage(<StateOverview />, '/state');
 
-    const brief = await screen.findByText('In brief', undefined, TIMEOUT);
-    const summary = within(brief.parentElement as HTMLElement);
-    expect(summary.getByText('149,403 students attended New Hampshire public schools in 2024-25, down 9% from 2014-15.')).toBeInTheDocument();
-    expect(summary.getByText(/^Schools spent \$21,000 per student in 2024-25, up 50% from 2014-15 \(up \d+% after inflation\)\.$/)).toBeInTheDocument();
-    expect(summary.getByText('44% of students tested proficient in math and 55% in reading in 2025-26.')).toBeInTheDocument();
-    expect(summary.getByText('87.5% of the class of 2025 (preliminary) graduated in four years, and 67% of graduates planned to go to college.')).toBeInTheDocument();
-    expect(summary.getByText('12,500 students have Education Freedom Accounts for 2026-27 (preliminary count as of August 2, 2026).')).toBeInTheDocument();
+    await screen.findByText('Proficient in Math', undefined, TIMEOUT);
+    // No plain-language summary or district picker on the overview
+    expect(screen.queryByText('In brief')).not.toBeInTheDocument();
+    expect(screen.queryByText('See how your district compares')).not.toBeInTheDocument();
 
     // Tiles are grouped, say where they lead, and link to the detail pages
     // (Role queries are slow on a page this size, so headings and links are checked by element)
