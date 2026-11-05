@@ -221,9 +221,9 @@ const StateOverview: React.FC = () => {
                 <CardContent sx={{ px: { xs: 1.5, sm: 2 }, py: { xs: 1, sm: 2 }, '&:last-child': { pb: { xs: 1, sm: 2 } } }}>
                   <Typography
                     component="h3"
-                    sx={{ fontWeight: 600, fontSize: { xs: '0.9375rem', sm: '1rem' }, lineHeight: { xs: '20px', sm: 1.5 }, color: { xs: 'text.primary', sm: 'primary.main' } }}
+                    sx={{ fontWeight: 600, fontSize: { xs: '0.9375rem', sm: '1rem' }, lineHeight: { xs: '20px', sm: 1.5 }, color: 'text.primary' }}
                   >
-                    {page.displayName} <span aria-hidden>→</span>
+                    {page.displayName}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8125rem', sm: '0.875rem' }, lineHeight: { xs: '18px', sm: 1.43 } }}>
                     {PAGE_DESCRIPTIONS[page.id.split('.')[1]]}
