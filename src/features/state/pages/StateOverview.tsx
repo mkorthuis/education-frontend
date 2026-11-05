@@ -228,9 +228,9 @@ const StateOverview: React.FC = () => {
         <SectionTitle displayName="Key Figures" component="h2" sx={{ fontSize: { xs: '1.25rem', sm: '1.375rem' } }} />
       </Box>
 
-      {/* Where four tiles fit across, Students and Staff and Financials sit side by side as 2 x 2 boxes */}
+      {/* Where four tiles fit across, Schools and Financials sit side by side, each 2 x 2 */}
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, minmax(0, 1fr))' }, columnGap: 3 }}>
-      <Band title="Students and Staff" half>
+      <Band title="Schools" half>
         {latest.students && (
           <OverviewTile
             label="Students"

@@ -96,7 +96,7 @@ describe('State pages', () => {
     expect(screen.queryByText(/estimated state aid/)).not.toBeInTheDocument();
     // Students and staff come first, then financials, then results; district and school counts replace truancy
     expect(screen.getByText('Key Figures').tagName).toBe('H2');
-    const bandOrder = ['Students and Staff', 'Financials', 'Results'].map(title => screen.getAllByText(title, { selector: 'h3' }).find(heading => heading.closest('section'))!);
+    const bandOrder = ['Schools', 'Financials', 'Results'].map(title => screen.getAllByText(title, { selector: 'h3' }).find(heading => heading.closest('section'))!);
     expect(bandOrder[0].compareDocumentPosition(bandOrder[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(bandOrder[1].compareDocumentPosition(bandOrder[2]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // District and school counts get a change and trend line too, even when the change is flat
