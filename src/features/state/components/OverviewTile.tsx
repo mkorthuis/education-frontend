@@ -118,10 +118,11 @@ const OverviewTile: React.FC<OverviewTileProps> = ({ label, shortLabel, value, s
   >
     <CardActionArea component={Link} to={to} sx={{ height: '100%', alignItems: 'stretch', position: 'relative', '& .MuiCardActionArea-focusHighlight': { opacity: 0 } }}>
       <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } }, fontVariantNumeric: 'tabular-nums' }}>
-        {/* Two lines kept for the label, so tiles in a row line up */}
+        {/* Two lines kept for the label from tablets up, so tiles in a row line up; phones use the
+            short labels, which fit on one line */}
         <Typography
           component="p"
-          sx={{ m: 0, pr: { sm: 3 }, fontWeight: 500, fontSize: { xs: '0.9375rem', sm: '1rem' }, lineHeight: { xs: '20px', sm: '22px' }, minHeight: { xs: 40, sm: 44 }, color: 'text.secondary' }}
+          sx={{ m: 0, pr: { sm: 3 }, fontWeight: 500, fontSize: { xs: '0.9375rem', sm: '1rem' }, lineHeight: { xs: '20px', sm: '22px' }, minHeight: { xs: 0, sm: 44 }, color: 'text.secondary' }}
         >
           {shortLabel ? (
             <>
