@@ -60,7 +60,7 @@ const pageLinkCardStyle = {
 const PAGE_DESCRIPTIONS: Record<string, string> = {
   academic: 'Test scores by subject, grade and student group',
   outcomes: 'Graduation and dropout rates, and graduates\' plans',
-  financials: 'Cost per student, total spending and where the money comes from',
+  financials: 'Cost per student, total spending and revenue',
   safety: 'Truancy, bullying, restraint and serious incidents',
   staff: 'Teacher pay, staffing levels and class size',
   enrollment: 'Students by year, school level and grade',
