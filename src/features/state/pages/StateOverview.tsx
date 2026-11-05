@@ -203,18 +203,24 @@ const StateOverview: React.FC = () => {
       // The page link cards below go to the same pages as the phone section links
       showSectionLinks={false}
     >
-      {/* Links to each statewide page first; the page title already says "Explore Statewide Data" */}
-      <Box sx={{ display: 'grid', gap: { xs: 1, sm: 2 }, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' }, mb: 4 }}>
+      {/* Links to each statewide page first; the page title already says "Explore Statewide Data".
+          Phones get tighter boxes, so the key figures come up sooner. */}
+      <Box sx={{ display: 'grid', gap: { xs: 0.75, sm: 2 }, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' }, mb: 4 }}>
         {Object.values(STATE_PAGES)
           .filter(page => page.id !== STATE_PAGES.overview.id)
           .map(page => (
             <Card key={page.id} elevation={0} sx={pageLinkCardStyle}>
               <CardActionArea component={RouterLink} to={page.urlPatterns[0]} sx={{ height: '100%', '& .MuiCardActionArea-focusHighlight': { opacity: 0 } }}>
-                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                  <Typography component="h3" sx={{ fontWeight: 600, color: { xs: 'text.primary', sm: 'primary.main' } }}>
+                <CardContent sx={{ px: { xs: 1.5, sm: 2 }, py: { xs: 1, sm: 2 }, '&:last-child': { pb: { xs: 1, sm: 2 } } }}>
+                  <Typography
+                    component="h3"
+                    sx={{ fontWeight: 600, fontSize: { xs: '0.9375rem', sm: '1rem' }, lineHeight: { xs: '20px', sm: 1.5 }, color: { xs: 'text.primary', sm: 'primary.main' } }}
+                  >
                     {page.displayName} <span aria-hidden>→</span>
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">{PAGE_DESCRIPTIONS[page.id.split('.')[1]]}</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8125rem', sm: '0.875rem' }, lineHeight: { xs: '18px', sm: 1.43 } }}>
+                    {PAGE_DESCRIPTIONS[page.id.split('.')[1]]}
+                  </Typography>
                 </CardContent>
               </CardActionArea>
             </Card>
