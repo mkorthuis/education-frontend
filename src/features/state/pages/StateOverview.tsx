@@ -37,7 +37,7 @@ import {
 import { capitalize, realPercentChange, shortYear, tileDelta } from '../utils/phrases';
 
 /** "$4.14B", short enough to leave room for the change and trend line on the tile */
-const formatBillionsShort = (value: number) => `$${(value / 1e9).toFixed(2)}B`;
+const formatBillionsShort = (value: number, decimals = 2) => `$${(value / 1e9).toFixed(decimals)}B`;
 // Phone tiles' values in thousands: 149,403 reads "149K"; with one decimal, 12,500 reads "12.5K"
 const formatThousandsShort = (value: number, decimals = 0) => `${(value / 1000).toFixed(decimals).replace(/\.0$/, '')}K`;
 
@@ -304,6 +304,7 @@ const StateOverview: React.FC = () => {
           <OverviewTile
             label="Cost per Student"
             value={formatDollars(latest.perPupil.value)}
+            shortValue={`$${formatThousandsShort(latest.perPupil.value)}`}
             period={shortYear(latest.perPupil.year)}
             delta={tileDelta(changes.perPupil, { unit: 'percent', higherIsBetter: false })}
             detail={changes.perPupil ? `${capitalize(describeChange(realPercentChange(changes.perPupil)))} after inflation` : undefined}
@@ -317,6 +318,7 @@ const StateOverview: React.FC = () => {
             label="Total School District Spending"
             shortLabel="Total Spending"
             value={formatBillionsShort(latest.spending.value)}
+            shortValue={formatBillionsShort(latest.spending.value, 1)}
             period={shortYear(latest.spending.year)}
             delta={tileDelta(changes.spending, { unit: 'percent', higherIsBetter: false })}
             detail={changes.spending ? `${capitalize(describeChange(realPercentChange(changes.spending)))} after inflation` : undefined}

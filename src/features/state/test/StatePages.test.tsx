@@ -86,6 +86,8 @@ describe('State pages', () => {
     expect(studentsTile.getByText('149,403')).toBeInTheDocument();
     expect(studentsTile.getByText('149K')).toBeInTheDocument();
     expect(within(screen.getByText('Average Teacher Salary', { selector: 'span' }).closest('a')!).getByText('$72K')).toBeInTheDocument();
+    expect(within(screen.getByText('Cost per Student', { selector: 'p' }).closest('a')!).getByText(/^\$\d+K$/)).toBeInTheDocument();
+    expect(screen.getByText('$4.1B')).toBeInTheDocument();
     expect(within(screen.getByText('Education Freedom Accounts', { selector: 'span' }).closest('a')!).getByText(/^\d+(\.\d)?K$/)).toBeInTheDocument();
     const costTile = within(screen.getByText('Cost per Student', { selector: 'p' }).closest('a')!);
     // A rise in cost per student is bad, so it's red
