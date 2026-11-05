@@ -94,8 +94,10 @@ const AppBar: React.FC<AppBarProps> = ({
 
   return (
     <>
-      {/* Outer AppBar container with full width but transparent background */}
-      <Box sx={{ 
+      {/* Outer AppBar container with full width but transparent background. mui-fixed: while a
+          menu or dialog locks the page's scrolling, MUI pads it by the scrollbar's width, so the
+          bar doesn't shift sideways when the scrollbar disappears */}
+      <Box className="mui-fixed" sx={{ 
         width: '100%', 
         height: 56, 
         position: 'fixed',
@@ -204,7 +206,7 @@ const AppBar: React.FC<AppBarProps> = ({
       
       {/* Mobile Search Bar */}
       {!isHomePage && !isMediumOrLarger && showMobileSearch && (
-        <Box sx={{ 
+        <Box className="mui-fixed" sx={{ 
           width: '100%', 
           padding: '8px 16px', 
           backgroundColor: theme.palette.primary.main,

@@ -160,7 +160,9 @@ const SecondaryNav = () => {
   if (!isMediumOrLarger || navItems.length === 0) return null;
 
   return (
+    // mui-fixed: padded like the page while a menu or dialog locks scrolling, so it doesn't shift
     <Box 
+      className="mui-fixed"
       sx={{ 
         width: '100%',
         position: 'fixed',
