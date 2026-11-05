@@ -13,9 +13,11 @@ import { visuallyHidden } from './chartText';
 // The whole tile is the link; a chevron shows top right on hover and keyboard focus.
 // Phone tiles drop the trend line and let the change wrap under the value.
 
-const UP_COLOR = '#2e7d32';
-const DOWN_COLOR = '#c62828';
-const FLAT_COLOR = 'rgba(0, 0, 0, 0.6)';
+// Green and red only where a change is generally good or bad (test scores, graduation);
+// counts, spending and pay change in neutral grey
+const GOOD_COLOR = '#2e7d32';
+const BAD_COLOR = '#c62828';
+const NEUTRAL_COLOR = 'rgba(0, 0, 0, 0.6)';
 const TREND_COLOR = '#9e9e9e';
 // The trend line is as tall as the value and year lines together (34 + 18 px)
 const TREND_HEIGHT = 52;
@@ -24,6 +26,8 @@ const TREND_INSET = 3;
 
 export interface TileDelta {
   direction: 'up' | 'down' | 'flat';
+  /** Whether the change is generally good, bad, or neither; sets its color */
+  tone: 'good' | 'bad' | 'neutral';
   /** Shown beside the arrow, e.g. "4%" */
   amount: string;
   /** Shown under it, e.g. "17/18" */
@@ -50,8 +54,8 @@ interface OverviewTileProps {
   linkLabel: string;
 }
 
-const deltaColor = (direction: TileDelta['direction']) =>
-  direction === 'up' ? UP_COLOR : direction === 'down' ? DOWN_COLOR : FLAT_COLOR;
+const deltaColor = (tone: TileDelta['tone']) =>
+  tone === 'good' ? GOOD_COLOR : tone === 'bad' ? BAD_COLOR : NEUTRAL_COLOR;
 
 const Arrow: React.FC<{ direction: TileDelta['direction'] }> = ({ direction }) => (
   <Box component="svg" viewBox="0 0 24 24" aria-hidden="true" sx={{ width: { xs: 20, sm: 26 }, height: { xs: 20, sm: 26 }, flexShrink: 0 }}>
@@ -132,7 +136,7 @@ const OverviewTile: React.FC<OverviewTileProps> = ({ label, shortLabel, value, p
           </Box>
           {delta && (
             <Box>
-              <Typography component="p" sx={{ ...figureText, display: 'flex', alignItems: 'center', gap: '2px', color: deltaColor(delta.direction), whiteSpace: 'nowrap' }}>
+              <Typography component="p" sx={{ ...figureText, display: 'flex', alignItems: 'center', gap: '2px', color: deltaColor(delta.tone), whiteSpace: 'nowrap' }}>
                 <Arrow direction={delta.direction} />
                 <span aria-hidden>{delta.amount}</span>
                 <Box component="span" sx={visuallyHidden}>{delta.spoken}</Box>

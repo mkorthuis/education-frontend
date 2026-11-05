@@ -38,15 +38,25 @@ export const shortYear = (year: number): string => `${String(year - 1).slice(-2)
  */
 export const tileDelta = (
   change: Change | null,
-  { unit, classYears = false }: { unit: 'percent' | 'points'; classYears?: boolean }
+  {
+    unit,
+    classYears = false,
+    higherIsBetter,
+  }: {
+    unit: 'percent' | 'points';
+    classYears?: boolean;
+    /** Set only where a rise is generally good (true) or bad (false); otherwise the change is neutral */
+    higherIsBetter?: boolean;
+  }
 ): TileDelta | undefined => {
   if (!change) return undefined;
   const signed = Math.round(unit === 'percent' ? change.percentChange : change.change);
   const size = Math.abs(signed);
   const since = classYears ? String(change.from.year) : shortYear(change.from.year);
   const spokenSince = classYears ? `the class of ${change.from.year}` : formatSchoolYear(change.from.year);
-  if (size === 0) return { direction: 'flat', amount: '0%', since, spoken: `No change since ${spokenSince}` };
+  if (size === 0) return { direction: 'flat', tone: 'neutral', amount: '0%', since, spoken: `No change since ${spokenSince}` };
   const direction = signed > 0 ? 'up' : 'down';
+  const tone = higherIsBetter === undefined ? 'neutral' : (direction === 'up') === higherIsBetter ? 'good' : 'bad';
   const spokenSize = unit === 'percent' ? `${size}%` : `${size} percentage point${size === 1 ? '' : 's'}`;
-  return { direction, amount: `${size}%`, since, spoken: `${direction === 'up' ? 'Up' : 'Down'} ${spokenSize} since ${spokenSince}` };
+  return { direction, tone, amount: `${size}%`, since, spoken: `${direction === 'up' ? 'Up' : 'Down'} ${spokenSize} since ${spokenSince}` };
 };

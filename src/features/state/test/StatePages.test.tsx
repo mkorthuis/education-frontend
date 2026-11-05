@@ -82,7 +82,8 @@ describe('State pages', () => {
     expect(mathTile.getByText('Down 4 percentage points since 2017-18')).toBeInTheDocument();
     expect(mathTile.getByText('Down 4 percentage points since 2017-18').closest('p')).toHaveStyle({ color: '#c62828' });
     const costTile = within(screen.getByText('Cost per Student', { selector: 'p' }).closest('a')!);
-    expect(costTile.getByText('Up 50% since 2014-15').closest('p')).toHaveStyle({ color: '#2e7d32' });
+    // Spending is neither good nor bad, so its change is grey
+    expect(costTile.getByText('Up 50% since 2014-15').closest('p')).toHaveStyle({ color: 'rgba(0, 0, 0, 0.6)' });
     expect(costTile.getByText(/^Up \d+% after inflation$/)).toBeInTheDocument();
     expect(within(screen.getByText('Total School District Spending').closest('a')!).getByText('$4.14B')).toBeInTheDocument();
     const gradTile = within(screen.getByText('Four-Year Graduation Rate', { selector: 'span' }).closest('a')!);

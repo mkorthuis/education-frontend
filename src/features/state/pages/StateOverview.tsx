@@ -221,7 +221,8 @@ const StateOverview: React.FC = () => {
 
 
       {/* Tiles as designed on the "NH Statewide Dashboard" canvas: the figure and its year, the
-          change since the comparison year as a green up or red down arrow, and a trend line. Only
+          change since the comparison year (green or red only where higher is generally better:
+          test scores, graduation and college plans; grey elsewhere), and a trend line. Only
           the dollar tiles (after inflation) and the district and school counts carry a grey note. */}
       {/* One step below the page title, with the same rule beneath */}
       <Box sx={{ mt: 1 }}>
@@ -342,7 +343,7 @@ const StateOverview: React.FC = () => {
             label="Proficient in Math"
             value={formatPercent(latest.math.value)}
             period={shortYear(latest.math.year)}
-            delta={tileDelta(changes.math, { unit: 'points' })}
+            delta={tileDelta(changes.math, { unit: 'points', higherIsBetter: true })}
             trend={figures.math}
             to={STATE_PAGES.academic.urlPatterns[0]}
             linkLabel="test scores"
@@ -353,7 +354,7 @@ const StateOverview: React.FC = () => {
             label="Proficient in Reading"
             value={formatPercent(latest.reading.value)}
             period={shortYear(latest.reading.year)}
-            delta={tileDelta(changes.reading, { unit: 'points' })}
+            delta={tileDelta(changes.reading, { unit: 'points', higherIsBetter: true })}
             trend={figures.reading}
             to={STATE_PAGES.academic.urlPatterns[0]}
             linkLabel="test scores"
@@ -365,7 +366,7 @@ const StateOverview: React.FC = () => {
             shortLabel="Graduation Rate"
             value={formatPercent(latest.graduation.value, 1)}
             period={String(latest.graduation.year)}
-            delta={tileDelta(changes.graduation, { unit: 'points', classYears: true })}
+            delta={tileDelta(changes.graduation, { unit: 'points', classYears: true, higherIsBetter: true })}
             trend={lastYears(figures.graduation)}
             to={STATE_PAGES.outcomes.urlPatterns[0]}
             linkLabel="graduation"
@@ -377,7 +378,7 @@ const StateOverview: React.FC = () => {
             shortLabel="Planning College"
             value={formatPercent(latest.college.value)}
             period={String(latest.college.year)}
-            delta={tileDelta(changes.college, { unit: 'points', classYears: true })}
+            delta={tileDelta(changes.college, { unit: 'points', classYears: true, higherIsBetter: true })}
             trend={lastYears(figures.college)}
             to={STATE_PAGES.outcomes.urlPatterns[0]}
             linkLabel="graduates' plans"
