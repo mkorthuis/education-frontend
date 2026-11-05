@@ -4,7 +4,6 @@ import { Box, CircularProgress, GlobalStyles, Typography } from '@mui/material';
 import SectionTitle from '@/components/ui/SectionTitle';
 import LoadErrorAlert from '@/components/ui/LoadErrorAlert';
 import { PageLoadStatus } from '@/store/utils/loadingState';
-import SectionLinks from './SectionLinks';
 import DistrictPicker from './DistrictPicker';
 import { Note } from '@/components/ds';
 import { READING_WIDTH } from './chartText';
@@ -26,8 +25,6 @@ interface StatePageProps {
   districtSection?: string;
   /** What people look for here that the page doesn't have, and where it might be */
   notCovered?: React.ReactNode;
-  /** The row of links to the other State pages on phones (default on) */
-  showSectionLinks?: boolean;
   /** Where the figures come from, shown under the content; the overview leaves it out */
   source?: string;
   children: React.ReactNode;
@@ -44,7 +41,6 @@ const StatePage: React.FC<StatePageProps> = ({
   keyFigures,
   districtSection,
   notCovered,
-  showSectionLinks = true,
   source,
   children,
 }) => (
@@ -52,7 +48,6 @@ const StatePage: React.FC<StatePageProps> = ({
     {/* Keeps keyboard focus and in-page jumps clear of the fixed header and section tabs */}
     <GlobalStyles styles={{ html: { scrollPaddingTop: 128 } }} />
     <SectionTitle displayName={displayName} entityName={entityName} component="h1" sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
-    {showSectionLinks && <SectionLinks />}
     {intro && (
       <Typography variant="body1" sx={{ mb: 3, maxWidth: READING_WIDTH }}>{intro}</Typography>
     )}

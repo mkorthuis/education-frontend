@@ -158,7 +158,6 @@ const StateOverview: React.FC = () => {
       onRetry={retry}
       errorMessage="Statewide data could not be loaded."
       // The page link cards below go to the same pages as the phone section links
-      showSectionLinks={false}
     >
       {/* Links to each statewide page first; the page title already says "Explore Statewide Data" */}
       <NavCardGrid>
