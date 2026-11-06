@@ -8,6 +8,7 @@ import { useSchoolCounts } from '../hooks/useSchoolCounts';
 import {
   useStateAssessmentData,
   useStateEfaData,
+  useStateEnrollmentByTypeData,
   useStateEnrollmentData,
   useStateFinanceData,
   useStateOutcomeData,
@@ -15,6 +16,7 @@ import {
 } from '../hooks/useStatewideData';
 import {
   ALL_STUDENTS_SUBGROUP_ID,
+  changeFrom,
   changeSince,
   describeChange,
   efaTotals,
@@ -26,6 +28,7 @@ import {
   postGraduationShares,
   proficiencyBySubject,
   studentsPerTeacher,
+  publicStudents,
   toSeries,
   YearValue,
 } from '../utils/stateMetrics';
@@ -33,8 +36,9 @@ import { capitalize, formatDollarsShort, formatThousands, realPercentChange, sho
 
 
 const TREND_YEARS = 10;
-// The current state test (the NH SAS) began in 2017-18; earlier scores aren't comparable
-const CURRENT_TEST_FIRST_YEAR = 2018;
+// The year every tile compares with when its data goes back that far (2014-15, or the class of 2015),
+// as on the other statewide pages; tiles whose data starts later use their earliest year in the last ten
+const SINCE_YEAR = 2015;
 const STATE_PAGES = PAGE_REGISTRY.state;
 
 const PAGE_DESCRIPTIONS: Record<string, string> = {
@@ -47,7 +51,13 @@ const PAGE_DESCRIPTIONS: Record<string, string> = {
   efa: 'EFA students and estimated state cost',
 };
 
+/** A tile's change: since 2014-15 when the series has it, otherwise over the last ten years. */
+const tileChange = (series: YearValue[]) => changeFrom(series, SINCE_YEAR) ?? changeSince(series, TREND_YEARS);
+
+/** A tile's trend line, from the same year its change is measured from. */
 const lastYears = (series: YearValue[]) => {
+  const from = tileChange(series)?.from.year;
+  if (from !== undefined) return series.filter(point => point.year >= from);
   const latest = latestPoint(series);
   return latest ? series.filter(point => point.year > latest.year - TREND_YEARS - 1) : series;
 };
@@ -87,6 +97,7 @@ const StateOverview: React.FC = () => {
   const outcomes = useStateOutcomeData();
   const assessment = useStateAssessmentData();
   const efa = useStateEfaData();
+  const publicEnrollment = useStateEnrollmentByTypeData();
   // How many districts and schools, by year; their tiles appear once the counts load
   const schoolCounts = useSchoolCounts();
 
@@ -97,18 +108,23 @@ const StateOverview: React.FC = () => {
     ...outcomes.loads,
     ...assessment.loads,
     ...efa.loads,
+    ...publicEnrollment.loads,
   ]);
 
   const figures = useMemo(() => {
-    const students = toSeries(enrollment.adm, row => row.total);
+    // Students: October 1 enrollment in every public school, the latest count. Students per teacher
+    // stays on average daily membership, as on the Staff page.
+    const students = publicStudents(publicEnrollment.byType);
+    const averageStudents = toSeries(enrollment.adm, row => row.total);
     const perPupil = toSeries(finance.perPupil, row => row.total);
     const spending = toSeries(finance.rollups, row => row.total);
     const teachers = toSeries(staff.staff.filter(row => row.staff_type.name === 'Teacher'), row => row.value);
     const salary = toSeries(staff.salary, row => row.salary);
-    const ratio = studentsPerTeacher(students, teachers);
+    const ratio = studentsPerTeacher(averageStudents, teachers);
     const proficiency = proficiencyBySubject(assessment.assessments, ALL_STUDENTS_SUBGROUP_ID);
-    const math = toSeries(proficiency, row => row.math).filter(point => point.year >= CURRENT_TEST_FIRST_YEAR);
-    const reading = toSeries(proficiency, row => row.reading).filter(point => point.year >= CURRENT_TEST_FIRST_YEAR);
+    // Proficiency compares with 2014-15 like the other tiles, across the 2017-18 change of state test
+    const math = toSeries(proficiency, row => row.math);
+    const reading = toSeries(proficiency, row => row.reading);
     const graduation = toSeries(graduationRates(outcomes.cohorts), row => row.graduated);
     const college = toSeries(postGraduationShares(outcomes.postGraduation), row => row.college);
     const efaYears = efaTotals(efa.entries, efa.entryTypes);
@@ -118,7 +134,7 @@ const StateOverview: React.FC = () => {
       districts: toSeries(schoolCounts, row => row.districts),
       schools: toSeries(schoolCounts, row => row.schools),
     };
-  }, [enrollment.adm, finance.perPupil, finance.rollups, staff.staff, staff.salary, assessment.assessments, outcomes.cohorts, outcomes.postGraduation, efa.entries, efa.entryTypes, schoolCounts]);
+  }, [enrollment.adm, publicEnrollment.byType, finance.perPupil, finance.rollups, staff.staff, staff.salary, assessment.assessments, outcomes.cohorts, outcomes.postGraduation, efa.entries, efa.entryTypes, schoolCounts]);
 
   const latest = {
     students: latestPoint(figures.students),
@@ -136,18 +152,18 @@ const StateOverview: React.FC = () => {
     schools: latestPoint(figures.schools),
   };
   const changes = {
-    students: changeSince(figures.students, TREND_YEARS),
-    perPupil: changeSince(figures.perPupil, TREND_YEARS),
-    spending: changeSince(figures.spending, TREND_YEARS),
-    teachers: changeSince(figures.teachers, TREND_YEARS),
-    salary: changeSince(figures.salary, TREND_YEARS),
-    math: changeSince(figures.math, TREND_YEARS),
-    reading: changeSince(figures.reading, TREND_YEARS),
-    graduation: changeSince(figures.graduation, TREND_YEARS),
-    college: changeSince(figures.college, TREND_YEARS),
-    efaStudents: changeSince(figures.efaStudents, TREND_YEARS),
-    districts: changeSince(figures.districts, TREND_YEARS),
-    schools: changeSince(figures.schools, TREND_YEARS),
+    students: tileChange(figures.students),
+    perPupil: tileChange(figures.perPupil),
+    spending: tileChange(figures.spending),
+    teachers: tileChange(figures.teachers),
+    salary: tileChange(figures.salary),
+    math: tileChange(figures.math),
+    reading: tileChange(figures.reading),
+    graduation: tileChange(figures.graduation),
+    college: tileChange(figures.college),
+    efaStudents: tileChange(figures.efaStudents),
+    districts: tileChange(figures.districts),
+    schools: tileChange(figures.schools),
   };
 
   return (
@@ -316,8 +332,9 @@ const StateOverview: React.FC = () => {
             label="Four-Year Graduation Rate"
             shortLabel="Graduation Rate"
             value={formatPercent(latest.graduation.value, 1)}
-            period={String(latest.graduation.year)}
-            delta={tileDelta(changes.graduation, { unit: 'points', classYears: true, higherIsBetter: true })}
+            // By school year like the other tiles: the class of 2025 graduated in 24/25
+            period={shortYear(latest.graduation.year)}
+            delta={tileDelta(changes.graduation, { unit: 'points', higherIsBetter: true })}
             trend={lastYears(figures.graduation)}
             to={STATE_PAGES.outcomes.urlPatterns[0]}
             linkLabel="graduation"
@@ -328,8 +345,8 @@ const StateOverview: React.FC = () => {
             label="Planning to Attend College"
             shortLabel="Planning College"
             value={formatPercent(latest.college.value)}
-            period={String(latest.college.year)}
-            delta={tileDelta(changes.college, { unit: 'points', classYears: true, higherIsBetter: true })}
+            period={shortYear(latest.college.year)}
+            delta={tileDelta(changes.college, { unit: 'points', higherIsBetter: true })}
             trend={lastYears(figures.college)}
             to={STATE_PAGES.outcomes.urlPatterns[0]}
             linkLabel="graduates' plans"

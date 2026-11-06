@@ -78,10 +78,11 @@ describe('State pages', () => {
     expect(mathTile.getByText('Since 17/18')).toBeInTheDocument();
     expect(mathTile.getByText('Down 4 percentage points since 2017-18')).toBeInTheDocument();
     expect(mathTile.getByText('Down 4 percentage points since 2017-18').closest('p')).toHaveStyle({ color: '#c62828' });
-    // Phones show students in thousands
+    // Students: the latest October 1 public school count (the fixture's 2025-26), in thousands on phones
     const studentsTile = within(screen.getByText('Students', { selector: 'p' }).closest('a')!);
-    expect(studentsTile.getByText('149,403')).toBeInTheDocument();
-    expect(studentsTile.getByText('149K')).toBeInTheDocument();
+    expect(studentsTile.getByText('29,894')).toBeInTheDocument();
+    expect(studentsTile.getByText('30K')).toBeInTheDocument();
+    expect(studentsTile.getByText('25/26')).toBeInTheDocument();
     expect(within(screen.getByText('Average Teacher Salary', { selector: 'span' }).closest('a')!).getByText('$72K')).toBeInTheDocument();
     expect(within(screen.getByText('Cost per Student', { selector: 'p' }).closest('a')!).getByText(/^\$\d+K$/)).toBeInTheDocument();
     expect(screen.getByText('$4.1B')).toBeInTheDocument();
@@ -92,12 +93,12 @@ describe('State pages', () => {
     expect(costTile.getByText(/^Up \d+% after inflation$/)).toBeInTheDocument();
     expect(within(screen.getByText('Total School District Spending').closest('a')!).getByText('$4.14B')).toBeInTheDocument();
     const gradTile = within(screen.getByText('Four-Year Graduation Rate', { selector: 'span' }).closest('a')!);
-    expect(gradTile.getByText('2025')).toBeInTheDocument();
+    expect(gradTile.getByText('24/25')).toBeInTheDocument();
     // Phones show shorter titles on some tiles
     expect(gradTile.getByText('Graduation Rate')).toBeInTheDocument();
     expect(screen.getByText('Total Spending')).toBeInTheDocument();
     expect(screen.getByText("EFA's")).toBeInTheDocument();
-    expect(gradTile.getByText('Since 2015')).toBeInTheDocument();
+    expect(gradTile.getByText('Since 14/15')).toBeInTheDocument();
     expect(screen.getByText('Teachers').closest('a')).not.toHaveTextContent('students per teacher');
     expect(screen.queryByText(/estimated state aid/)).not.toBeInTheDocument();
     // Students and staff come first, then financials, then results; district and school counts replace truancy
