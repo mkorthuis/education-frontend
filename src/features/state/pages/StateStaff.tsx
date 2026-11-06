@@ -7,11 +7,11 @@ import { asFraction, COUNT, DOLLARS, downloadWorkbook, ExcelSheet, notesSheet, P
 import StateTable from '../components/StateTable';
 import ChartRow from '../components/ChartRow';
 import ChartSelect from '../components/ChartSelect';
-import { compareByType, comparisonColumns, CompareYearPicker, useCompareYear } from '../components/CompareYear';
+import { compareByType, comparisonColumns, CompareYearPicker, DEFAULT_COMPARE_YEAR, useCompareYear } from '../components/CompareYear';
 import TrendChart, { CONTEXT_COLOR, ENTITY_COLORS } from '../components/TrendChart';
 import KeyFigures, { KeyFigure } from '../components/KeyFigures';
 import { useStateLoads } from '../hooks/useStateLoads';
-import { useStateEnrollmentData, useStateStaffData } from '../hooks/useStatewideData';
+import { useStateEnrollmentByTypeData, useStateStaffData } from '../hooks/useStatewideData';
 import {
   adjustSeriesForInflation,
   changeSince,
@@ -27,6 +27,7 @@ import {
   mergeSeries,
   percentChangeSeries,
   pivotByYear,
+  publicStudents,
   sortByYear,
   studentsPerTeacher,
   toSeries,
@@ -108,8 +109,8 @@ const CLASS_SIZE_VIEWS: { value: ClassSizeView; label: string }[] = [
 
 const StateStaff: React.FC = () => {
   const staffData = useStateStaffData();
-  const enrollment = useStateEnrollmentData();
-  const { status, retry } = useStateLoads([...staffData.loads, ...staffData.detailLoads, ...enrollment.loads]);
+  const publicEnrollment = useStateEnrollmentByTypeData();
+  const { status, retry } = useStateLoads([...staffData.loads, ...staffData.detailLoads, ...publicEnrollment.loads]);
 
   const [salaryAdjusted, setSalaryAdjusted] = useState(false);
   const salary = useMemo(() => {
@@ -131,14 +132,17 @@ const StateStaff: React.FC = () => {
     const count = byType[shareType];
     return total && typeof count === 'number' ? [{ year, share: (count / total) * 100 }] : [];
   }), [staffByType, shareType]);
-  const students = useMemo(() => toSeries(enrollment.adm, row => row.total), [enrollment.adm]);
+  // October 1 students in every public school, all grades: the Enrollment page's count, taken the
+  // same day as the staff counts
+  const students = useMemo(() => publicStudents(publicEnrollment.byType), [publicEnrollment.byType]);
   const ratio = useMemo(() => studentsPerTeacher(students, teachers), [students, teachers]);
 
-  // Students and staff as percent change over the last ten years both cover
+  // Students and staff as percent change since 2014-15, the year the staff tables compare with (or
+  // the first year both cover), through the latest year with both
   const studentsVsStaff = useMemo(() => {
     const latest = Math.min(latestPoint(students)?.year ?? 0, latestPoint(teachers)?.year ?? 0);
     if (!latest) return { rows: [], baseYear: null as number | null };
-    const baseYear = Math.max(latest - TREND_YEARS, students[0]?.year ?? 0, teachers[0]?.year ?? 0);
+    const baseYear = Math.max(DEFAULT_COMPARE_YEAR, students[0]?.year ?? 0, teachers[0]?.year ?? 0);
     return {
       baseYear,
       rows: mergeSeries({
@@ -212,8 +216,11 @@ const StateStaff: React.FC = () => {
         delta: tileDelta(salaryChange, { unit: 'percent', higherIsBetter: true }),
       });
       if (salaryChange) {
-        takeaway.push(`The average teacher earned ${formatDollars(latestSalary.value)} in ${formatSchoolYear(latestSalary.year)}, ${describeChange(salaryChange.percentChange)} from ${formatSchoolYear(salaryChange.from.year)}`
-          + `, which is ${describeChange(realPercentChange(salaryChange))} once inflation is taken into account.`);
+        const real = realPercentChange(salaryChange);
+        const since = formatSchoolYear(salaryChange.from.year);
+        takeaway.push(Math.round(salaryChange.percentChange) > 0 && Math.round(real) < 0
+          ? `Teacher pay is up ${Math.round(salaryChange.percentChange)}% since ${since}, but down ${Math.round(-real)}% after inflation.`
+          : `Teacher pay is ${describeChange(salaryChange.percentChange)} since ${since}, and ${describeChange(real)} after inflation.`);
       }
     }
     if (latestRatio) {
@@ -229,16 +236,43 @@ const StateStaff: React.FC = () => {
     // the district Staff page
     const allGrades = toSeries(classSize, row => row.all_grades);
     const latestClass = latestPoint(allGrades);
+    const classChange = changeSince(allGrades, TREND_YEARS);
     if (latestClass) {
       figures.push({
         label: 'Average Class Size',
         value: latestClass.value.toFixed(1),
         period: shortYear(latestClass.year),
-        delta: tileDelta(changeSince(allGrades, TREND_YEARS), { unit: 'percent', higherIsBetter: false }),
+        delta: tileDelta(classChange, { unit: 'percent', higherIsBetter: false }),
       });
     }
+    // Teachers and students over the Percent Change in Staff chart's years
+    const { baseYear, rows: peopleRows } = studentsVsStaff;
+    const latestPeople = peopleRows[peopleRows.length - 1];
+    if (baseYear && typeof latestPeople?.students === 'number' && typeof latestPeople.teachers === 'number') {
+      const studentsDown = Math.round(-latestPeople.students);
+      const teachersDown = Math.round(-latestPeople.teachers);
+      takeaway.push(studentsDown > 0 && teachersDown > 0 && teachersDown < studentsDown
+        ? `Since ${formatSchoolYear(baseYear)}, public school enrollment has fallen ${studentsDown}%, while the number of teachers has fallen only ${teachersDown}%.`
+        : `Since ${formatSchoolYear(baseYear)}, public school enrollment is ${describeChange(latestPeople.students)} and the number of teachers is ${describeChange(latestPeople.teachers)}.`);
+    }
+    // Other staff since their low point in those years, when they've grown since
+    const otherInWindow = otherStaff.filter(point => baseYear && point.year >= baseYear && point.year <= (latestPeople?.year ?? 0));
+    const latestOther = otherInWindow[otherInWindow.length - 1];
+    if (latestOther && otherInWindow.length > 1) {
+      const low = otherInWindow.reduce((lowest, point) => (point.value < lowest.value ? point : lowest));
+      // "despite" while teachers and students have both fallen over the same years
+      const fell = (series: YearValue[]) => {
+        const from = valueIn(series, low.year);
+        const to = valueIn(series, latestOther.year);
+        return from !== null && to !== null && to < from;
+      };
+      const despite = fell(teachers) && fell(students) ? ' despite continued reductions in teachers and students' : '';
+      takeaway.push(low.year < latestOther.year && latestOther.value > low.value
+        ? `Other staff have grown ${Math.round(((latestOther.value - low.value) / low.value) * 100)}% since ${formatSchoolYear(low.year)}${despite}.`
+        : `Other staff are ${describeChange(((latestOther.value - otherInWindow[0].value) / otherInWindow[0].value) * 100)} since ${formatSchoolYear(otherInWindow[0].year)}.`);
+    }
     return { figures, takeaway };
-  }, [salary.nominal, ratio, classSize]);
+  }, [salary.nominal, ratio, classSize, studentsVsStaff, otherStaff, teachers, students]);
 
   const salaryDollars = salary.latestYear ? `${formatSchoolYear(salary.latestYear)} Dollars` : 'Today\'s Dollars';
 
@@ -280,7 +314,7 @@ const StateStaff: React.FC = () => {
       },
       {
         name: 'Percent Change in Staff',
-        subtitle: studentsVsStaff.baseYear ? `Since ${formatSchoolYear(studentsVsStaff.baseYear)}; students are average daily membership` : undefined,
+        subtitle: studentsVsStaff.baseYear ? `Since ${formatSchoolYear(studentsVsStaff.baseYear)}; students are October 1 public school enrollment` : undefined,
         columns: [
           { header: 'School Year', width: 12 },
           { header: 'Students', format: PERCENT },
@@ -346,10 +380,10 @@ const StateStaff: React.FC = () => {
         }),
       },
       notesSheet('Staff for New Hampshire', [
-        'Sources: NH Department of Education Full Time Equivalent Staff Count, Teacher Average Salary, Teacher Attainment and Average Class Size reports (iPlatform); the statewide all-grades average class size from iExplore; average daily membership for students.',
+        'Sources: NH Department of Education Full Time Equivalent Staff Count, Teacher Average Salary, Teacher Attainment and Average Class Size reports (iPlatform); the statewide all-grades average class size from iExplore; for students, State Totals Ten Years Public and Private Fall Enrollments (October 1, public schools, all grades), as on the Enrollment page.',
         'Staff are full-time equivalents as of October 1: part-time staff count as fractions. Teacher education counts teachers by highest degree; 2011-12 is left out because its degree counts add up to about twice the teachers in the staffing report.',
         `Salaries in ${salaryDollars.toLowerCase()} are adjusted with the consumer price index (CPI-U, U.S. city average).`,
-        'Students per teacher is students (average daily membership) divided by full-time-equivalent teachers. It isn\'t class size: teachers include specialists and others who don\'t lead a regular class.',
+        'Students per teacher is students (October 1 public school enrollment) divided by full-time-equivalent teachers. It isn\'t class size: teachers include specialists and others who don\'t lead a regular class.',
         'The all-grades average class size is NH DOE\'s statewide figure, published from 2015-16; the grade levels come from the class size reports. NH DOE doesn\'t say which grades the all-grades figure covers.',
         'Percent change in staff ends in the latest year with both student and staff counts.',
       ]),
@@ -363,7 +397,7 @@ const StateStaff: React.FC = () => {
       status={status}
       onRetry={retry}
       errorMessage="Statewide staff data could not be loaded."
-      intro="Who works in New Hampshire's public schools, what teachers are paid, and how many students there are for each teacher."
+      intro="What New Hampshire's public schools report to the state each year about their staff: teachers and other staff, teacher pay and education, and class sizes."
       takeaway={keyFigures.takeaway}
       keyFigures={<KeyFigures figures={keyFigures.figures} centerLastTile />}
       keyFiguresBesideIntro

@@ -6,7 +6,7 @@ import { shortYear } from '../utils/phrases';
 
 // The year a compare table starts on until the reader picks another, as the other State pages compare
 // with 2014-15; tables whose data starts later start on their earliest year
-const DEFAULT_COMPARE_YEAR = 2015;
+export const DEFAULT_COMPARE_YEAR = 2015;
 
 /**
  * A compare table's years: every year before the latest, newest first, and the one compared with
