@@ -6,6 +6,7 @@ import { keepYearsTogether } from '../components/chartText';
 import StateTable from '../components/StateTable';
 import { CompareYearPicker, useCompareYear } from '../components/CompareYear';
 import TrendChart from '../components/TrendChart';
+import { COUNT, downloadWorkbook, ExcelSheet, PERCENT } from '../utils/excel';
 import KeyFigures, { KeyFigure } from '../components/KeyFigures';
 import { useStateLoads } from '../hooks/useStateLoads';
 import { useStateSafetyData } from '../hooks/useStatewideData';
@@ -163,6 +164,125 @@ const StateSafety: React.FC = () => {
     return { figures, takeaway };
   }, [truancyRows, bullyingRows, restraintRows]);
 
+  // Everything on the page as one workbook: a sheet per chart or table, and the notes the page leaves out
+  const downloadExcel = () => {
+    const valueIn = (series: { year: number; value: number }[], year: number) => series.find(point => point.year === year)?.value ?? null;
+    const number = (value: number | string | null | undefined) => (typeof value === 'number' ? value : null);
+    const tileRow = (figure: string, series: { year: number; value: number }[], text: (value: number) => string, points = false): (string | number | null)[] => {
+      const latest = latestPoint(series);
+      const change = changeSince(series, TREND_YEARS);
+      const changeText = change
+        ? points ? `${change.change >= 0 ? '+' : '−'}${Math.abs(change.change).toFixed(1)} percentage points` : formatSignedPercent(change.percentChange)
+        : null;
+      return [figure, latest ? formatSchoolYear(latest.year) : null, latest ? text(latest.value) : null, changeText, change ? formatSchoolYear(change.from.year) : null];
+    };
+    const incidentYears = [...new Set(incidents.map(row => row.year))].sort((a, b) => a - b);
+    const incidentTypes = [...new Set(incidents.map(row => row.safety_type.name))]
+      .map(type => ({ type, label: plainLabel(INCIDENT_LABELS, type) }))
+      .sort((a, b) => (incidentSection(a.label) === incidentSection(b.label) ? a.label.localeCompare(b.label) : incidentSection(a.label) === 'Firearms' ? -1 : 1));
+    const incidentCount = (type: string, year: number) =>
+      incidents.filter(row => row.safety_type.name === type && row.year === year).reduce((sum, row) => sum + row.count, 0);
+    const sheets: ExcelSheet[] = [
+      {
+        name: 'Key Figures',
+        columns: [
+          { header: 'Figure', width: 26 },
+          { header: 'School Year', width: 12 },
+          { header: 'Value', width: 12 },
+          { header: 'Change', width: 26 },
+          { header: 'Since', width: 12 },
+        ],
+        rows: [
+          tileRow('Students Who Were Truant', toSeries(truancyRows, row => row.share), value => formatPercent(value, 1), true),
+          tileRow('Bullying Reports', toSeries(bullyingRows, row => row.reported), formatCount),
+          tileRow('Restraints', toSeries(restraintRows, row => row.restraints), formatCount),
+        ],
+      },
+      {
+        name: 'Truancy',
+        title: 'Share of Students Who Were Truant',
+        subtitle: 'Students with 10 or more half-days of unexcused absence, as a percentage of enrollment',
+        columns: [
+          { header: 'School Year', width: 12 },
+          { header: 'Truant Students', width: 16, format: COUNT },
+          { header: 'Enrollment', width: 14, format: COUNT },
+          { header: '% Truant', format: PERCENT },
+        ],
+        rows: truancyRows.map(row => [
+          formatSchoolYear(row.year),
+          number(row.students),
+          valueIn(enrolled, row.year),
+          typeof row.share === 'number' ? row.share / 100 : null,
+        ]),
+      },
+      {
+        name: 'Bullying Reports',
+        subtitle: 'Bullying of any kind',
+        columns: [
+          { header: 'School Year', width: 12 },
+          { header: 'Reported', format: COUNT },
+          { header: 'Confirmed By Investigation', width: 26, format: COUNT },
+          { header: 'Reported per 1,000 Students', width: 26, format: '0.0' },
+        ],
+        rows: bullyingRows.map(row => [formatSchoolYear(row.year), number(row.reported), number(row.confirmed), number(row.reportedPer1000)]),
+      },
+      {
+        name: 'Restraints and Seclusions',
+        subtitle: 'Times school staff physically held or isolated a student',
+        columns: [
+          { header: 'School Year', width: 12 },
+          { header: 'Restraints', format: COUNT },
+          { header: 'Seclusions', format: COUNT },
+          { header: 'Restraints per 1,000 Students', width: 28, format: '0.0' },
+          { header: 'Seclusions per 1,000 Students', width: 28, format: '0.0' },
+        ],
+        rows: restraintRows.map(row => [
+          formatSchoolYear(row.year), number(row.restraints), number(row.seclusions), number(row.restraintsPer1000), number(row.seclusionsPer1000),
+        ]),
+      },
+      {
+        name: 'Serious Incidents By Year',
+        title: 'Serious Safety Incidents By Year',
+        subtitle: 'Firearms and other serious incidents schools reported statewide',
+        columns: [
+          { header: 'School Year', width: 12 },
+          { header: 'Firearms', format: COUNT },
+          { header: 'Other Serious Incidents', width: 24, format: COUNT },
+          { header: 'All Serious Incidents', width: 22, format: COUNT },
+        ],
+        rows: incidentRows.map(row => [formatSchoolYear(row.year), row.firearms, row.other, row.firearms + row.other]),
+      },
+      {
+        name: 'Serious Incidents By Type',
+        title: 'Serious Safety Incidents By Type',
+        subtitle: 'Incidents schools reported statewide, each school year',
+        columns: [
+          { header: 'Incident', width: 30 },
+          { header: 'Group', width: 22 },
+          ...incidentYears.map(year => ({ header: formatSchoolYear(year), width: 10, format: COUNT })),
+        ],
+        rows: incidentTypes.map(({ type, label }) => [label, incidentSection(label), ...incidentYears.map(year => incidentCount(type, year))]),
+        totalRow: ['All Serious Incidents', '', ...incidentYears.map(year => incidentTypes.reduce((sum, { type }) => sum + incidentCount(type, year), 0))],
+      },
+      {
+        name: 'Notes',
+        title: 'About This Data',
+        subtitle: 'Safety for New Hampshire',
+        columns: [{ header: 'Notes', width: 100, wrap: true }],
+        rows: [[[
+          `From NH Education Facts (${window.location.href}), downloaded ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}.`,
+          'Source: NH Department of Education, School Safety Data Collection and truancy reports, which schools file at the end of each school year.',
+          'Truant students had 10 or more half-days of unexcused absence; the share is of enrollment. Truancy counts only unexcused absences, not chronic absenteeism.',
+          'Rates per 1,000 students use the enrollment the state reports with its safety data.',
+          'State law allows restraint and seclusion only when a student\'s behavior poses a substantial and imminent risk of serious bodily harm.',
+          'Many schools were remote or hybrid in 2020-21, so that year\'s counts are low.',
+          'Serious incidents are firearms incidents (handguns, rifles or shotguns, more than one type, possession or sale, and other) and other serious incidents (first-degree assault, arson, aggravated sexual assault and robbery).',
+        ].join('\n\n')]],
+      },
+    ];
+    return downloadWorkbook('nh-safety.xlsx', sheets);
+  };
+
   return (
     <StatePage
       displayName={PAGE.displayName}
@@ -180,6 +300,7 @@ const StateSafety: React.FC = () => {
       )}
       keyFigures={<KeyFigures figures={keyFigures.figures} centerLastTile />}
       keyFiguresBesideIntro
+      onDownload={downloadExcel}
     >
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         <TrendChart

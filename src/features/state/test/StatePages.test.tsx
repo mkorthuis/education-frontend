@@ -312,6 +312,8 @@ describe('State pages', () => {
     expect(arson.getByText('4')).toBeInTheDocument();
     expect(arson.getByText('−25%')).toBeInTheDocument();
     expect(screen.getByText('All Serious Incidents')).toBeInTheDocument();
+    // One Excel download for the whole page
+    expect(screen.getByRole('button', { name: 'Download Excel' })).toBeEnabled();
     // No "Not on this page" box or source line
     expect(screen.queryByText('Not on this page')).not.toBeInTheDocument();
     expect(screen.queryByText(/^Source:/)).not.toBeInTheDocument();
