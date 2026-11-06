@@ -6,6 +6,7 @@ import StatePage from '../components/StatePage';
 import { keepYearsTogether } from '../components/chartText';
 import { COUNT, DOLLARS, downloadWorkbook, ExcelSheet, PERCENT } from '../utils/excel';
 import StateTable, { StateTableColumn } from '../components/StateTable';
+import { CompareYearPicker, useCompareYear } from '../components/CompareYear';
 import TrendChart, { CONTEXT_COLOR, ENTITY_COLORS } from '../components/TrendChart';
 import KeyFigures, { KeyFigure } from '../components/KeyFigures';
 import { useStateLoads } from '../hooks/useStateLoads';
@@ -40,9 +41,6 @@ import { formatThousands, realPercentChange, shortYear, tileDelta } from '../uti
 
 const PAGE = PAGE_REGISTRY.state.staff;
 const TREND_YEARS = 10;
-// The year the staff and teacher education tables compare with until the reader picks another, as on
-// the other State pages
-const SINCE_YEAR = 2015;
 // Degree counts cover full- and part-time teachers, so they can run a little above teacher FTEs
 const MAX_DEGREE_COUNT_RATIO = 1.25;
 // A class-size drop this large over two years gets a note, since the state's data doesn't explain it
@@ -89,25 +87,6 @@ const compareByType = (
   const before = earlier ? rows.reduce((sum, row) => sum + (row.before ?? 0), 0) : null;
   return { year: latest.year, rows, total: rows.length ? { type: totalLabel, count, before, change: percentChange(count, before) } : undefined };
 };
-
-/** Every year before the latest, newest first, and the one to compare with: the reader's pick, or 2014-15. */
-const useCompareYear = (byYear: YearRow[]) => {
-  const years = useMemo(() => byYear.slice(0, -1).map(row => row.year).reverse(), [byYear]);
-  const [picked, setPicked] = useState<number | null>(null);
-  const year = picked ?? (years.includes(SINCE_YEAR) ? SINCE_YEAR : years[years.length - 1] ?? null);
-  return { years, year, setYear: setPicked };
-};
-
-/** The district Staff page's year picker: "Compare 14/15" */
-const CompareYearPicker: React.FC<{ years: number[]; year: number; onChange: (year: number) => void; label: string }> = ({ years, year, onChange, label }) => (
-  <FormControl size="small" sx={{ minWidth: 150 }}>
-    <Select value={year} onChange={event => onChange(Number(event.target.value))} inputProps={{ 'aria-label': label }}>
-      {years.map(option => (
-        <MenuItem key={option} value={option}>Compare {shortYear(option)}</MenuItem>
-      ))}
-    </Select>
-  </FormControl>
-);
 
 type StaffTypeName = keyof typeof STAFF_TYPE_TOOLTIPS;
 
@@ -220,7 +199,7 @@ const StateStaff: React.FC = () => {
     };
   }, [students, teachers, otherStaff]);
 
-  const staffCompare = useCompareYear(staffByType);
+  const staffCompare = useCompareYear(staffByType.map(row => row.year));
   const staffTable = useMemo(
     // The state's staff type names in the district Staff page's order
     () => compareByType(staffByType, staffCompare.year, type => type, 'All Staff', [...STAFF_TYPE_ORDER]),
@@ -238,7 +217,7 @@ const StateStaff: React.FC = () => {
       return reported === undefined || total <= reported * MAX_DEGREE_COUNT_RATIO;
     });
   }, [staffData.education, teachers]);
-  const degreeCompare = useCompareYear(degreesByYear);
+  const degreeCompare = useCompareYear(degreesByYear.map(row => row.year));
   const degreeTable = useMemo(() => compareByType(
     degreesByYear,
     degreeCompare.year,

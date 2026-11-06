@@ -62,6 +62,8 @@ export interface TrendSeries {
   dashed?: boolean;
   /** Overrides the chart's format, e.g. a count column next to percentages in the table */
   format?: (value: number) => string;
+  /** Leave the series' column out of the table view on phones, e.g. a rate beside its count */
+  hideOnPhone?: boolean;
 }
 
 interface TrendChartProps {
@@ -409,6 +411,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
           <>
             {control}
             {showViewToggle && (
+              // The size of the pages' other buttons, such as Adj. For Inflation
               <ToggleButtonGroup
                 size="small"
                 exclusive
@@ -416,8 +419,8 @@ const TrendChart: React.FC<TrendChartProps> = ({
                 onChange={(_event, next) => next && setView(next)}
                 aria-label={`${title}: show as`}
               >
-                <ToggleButton value="chart" sx={{ py: 0.25, px: 1.25, textTransform: 'none', minHeight: { xs: 40, sm: 'auto' } }}>Chart</ToggleButton>
-                <ToggleButton value="table" sx={{ py: 0.25, px: 1.25, textTransform: 'none', minHeight: { xs: 40, sm: 'auto' } }}>Table</ToggleButton>
+                <ToggleButton value="chart" sx={{ textTransform: 'none' }}>Chart</ToggleButton>
+                <ToggleButton value="table" sx={{ textTransform: 'none' }}>Table</ToggleButton>
               </ToggleButtonGroup>
             )}
             {csvName && !isMobile && (
@@ -446,6 +449,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
               label: entry.name,
               align: 'right' as const,
               format: (row: YearRow) => (row[entry.key] === null || row[entry.key] === undefined ? '—' : (entry.format ?? format)(row[entry.key] as number)),
+              hideOnPhone: entry.hideOnPhone,
             })),
             ...(compare ? colored.map(entry => ({
               key: `compare-${entry.key}`,

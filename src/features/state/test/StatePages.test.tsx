@@ -293,9 +293,29 @@ describe('State pages', () => {
 
   it('safety gives truancy as a share of students and lists incidents by type', async () => {
     renderPage(<StateSafety />, '/state/safety');
-    expect(await screen.findByText(sentence('In 2024-25, 30,546 students (18.8%) had 10 or more half-days of unexcused absence.'), undefined, TIMEOUT)).toBeInTheDocument();
-    expect(screen.getByText('Serious safety incidents')).toBeInTheDocument();
-    expect(within(screen.getByText('Arson').closest('tr')!).getAllByText('3')).toHaveLength(2);
+    // The takeaway is the intro's second paragraph, beside the tiles on wide screens, built from the data
+    expect(await screen.findByText(sentence(new RegExp(
+      '^What New Hampshire\'s public schools report .*'
+      + 'Truancy has about doubled since 2015-16: 18\\.8% of students \\(30,546\\) missed 10 or more half-days without an excuse in 2024-25, up from 9\\.1%\\. '
+      + 'Bullying reports and restraints are down, but seclusions are up 36%\\.$'
+    )), undefined, TIMEOUT)).toBeInTheDocument();
+    // Phones get a short truancy title and subtitle
+    expect(screen.getByText('% Students Truant')).toBeInTheDocument();
+    expect(screen.getByText('10+ Half Days Unexcused')).toBeInTheDocument();
+    // Titles, subtitles and labels in Title Case
+    ['Serious Safety Incidents', 'Share of Students Who Were Truant', 'Bullying Reports', 'Restraints and Seclusions', 'Other Serious Incidents'].forEach(text =>
+      expect(screen.getAllByText(text).length).toBeGreaterThan(0));
+    // Incidents compare the latest year with the earliest (there's no 2014-15), like the Staff page's tables
+    expect(screen.getByRole('combobox', { name: 'Compare incidents with' })).toHaveTextContent('Compare 15/16');
+    const arson = within(screen.getByText('Arson').closest('tr')!);
+    expect(arson.getByText('3')).toBeInTheDocument();
+    expect(arson.getByText('4')).toBeInTheDocument();
+    expect(arson.getByText('−25%')).toBeInTheDocument();
+    expect(screen.getByText('All Serious Incidents')).toBeInTheDocument();
+    // No "Not on this page" box or source line
+    expect(screen.queryByText('Not on this page')).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Source:/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('See these figures for your district')).not.toBeInTheDocument();
   });
 
   it('EFA says once that the latest count is preliminary and estimates aid by category', async () => {

@@ -26,6 +26,8 @@ interface StateTableProps<T> {
   /** A shorter title for phones, e.g. with the short year */
   shortTitle?: string;
   subtitle?: string;
+  /** A shorter subtitle for phones */
+  shortSubtitle?: string;
   /** Table caption for screen readers when there's no visible title (e.g. a chart's table view) */
   caption?: string;
   columns: StateTableColumn<T>[];
@@ -100,6 +102,7 @@ function StateTable<T>({
   title,
   shortTitle,
   subtitle,
+  shortSubtitle,
   caption,
   columns,
   rows,
@@ -188,6 +191,7 @@ function StateTable<T>({
           title={title ?? ''}
           shortTitle={shortTitle}
           subtitle={subtitle}
+          shortSubtitle={shortSubtitle}
           // No CSV on phones, where a download is little use
           actions={control || (csvName && allRows.length > 0 && !isMobile) ? (
             <>

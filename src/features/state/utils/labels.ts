@@ -120,15 +120,15 @@ export const EFA_AID_LABELS: Record<string, string> = {
 
 // Serious incident types from the School Safety Data Collection
 export const INCIDENT_LABELS: Record<string, string> = {
-  'Aggravated Felonious Sexual Assaults': 'Aggravated sexual assault',
+  'Aggravated Felonious Sexual Assaults': 'Aggravated Sexual Assault',
   'Arsons': 'Arson',
-  'Firearms Incidents Including More Than One Type of Weapon or Firearm': 'Firearms: more than one type',
-  'Firearms Possessions or Sales': 'Firearm possession or sale',
-  'First Degree Assaults': 'First-degree assault',
-  'Handgun Incidents': 'Firearms: handgun',
+  'Firearms Incidents Including More Than One Type of Weapon or Firearm': 'Firearms: More Than One Type',
+  'Firearms Possessions or Sales': 'Firearm Possession or Sale',
+  'First Degree Assaults': 'First-Degree Assault',
+  'Handgun Incidents': 'Firearms: Handgun',
   'Homicides': 'Homicide',
-  'Other Firearms Incidents': 'Firearms: other',
-  'Rifles/ Shotguns Incidents': 'Firearms: rifle or shotgun',
+  'Other Firearms Incidents': 'Firearms: Other',
+  'Rifles/ Shotguns Incidents': 'Firearms: Rifle or Shotgun',
   'Robberies': 'Robbery',
 };
 
