@@ -32,6 +32,24 @@ export const COUNT = '#,##0';
 export const DOLLARS = '$#,##0';
 export const PERCENT = '0.0%';
 
+/** A percentage (23.1) as the fraction a PERCENT column takes (0.231); null when it isn't a number. */
+export const asFraction = (value: unknown): number | null => (typeof value === 'number' ? value / 100 : null);
+
+/**
+ * The last sheet of a page's workbook: where and when it was downloaded, then `paragraphs` on the
+ * sources and what the figures mean, in one wrapped cell, a paragraph per line.
+ */
+export const notesSheet = (subtitle: string, paragraphs: string[]): ExcelSheet => ({
+  name: 'Notes',
+  title: 'About This Data',
+  subtitle,
+  columns: [{ header: 'Notes', width: 100, wrap: true }],
+  rows: [[[
+    `From NH Education Facts (${window.location.href}), downloaded ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}.`,
+    ...paragraphs,
+  ].join('\n\n')]],
+});
+
 // The site's colors: brand blue headers, light grey rules and bands
 const BRAND = '#1976d2';
 const RULE = '#d9d9d9';

@@ -1,12 +1,13 @@
 import React, { useMemo, useState } from 'react';
-import { Box, Divider, FormControl, MenuItem, Select, ToggleButton, Tooltip } from '@mui/material';
+import { Box, Divider, ToggleButton, Tooltip } from '@mui/material';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import StatePage from '../components/StatePage';
-import { keepYearsTogether } from '../components/chartText';
-import { COUNT, DOLLARS, downloadWorkbook, ExcelSheet, PERCENT } from '../utils/excel';
-import StateTable, { StateTableColumn } from '../components/StateTable';
-import { CompareYearPicker, useCompareYear } from '../components/CompareYear';
+import { asFraction, COUNT, DOLLARS, downloadWorkbook, ExcelSheet, notesSheet, PERCENT } from '../utils/excel';
+import StateTable from '../components/StateTable';
+import ChartRow from '../components/ChartRow';
+import ChartSelect from '../components/ChartSelect';
+import { compareByType, comparisonColumns, CompareYearPicker, useCompareYear } from '../components/CompareYear';
 import TrendChart, { CONTEXT_COLOR, ENTITY_COLORS } from '../components/TrendChart';
 import KeyFigures, { KeyFigure } from '../components/KeyFigures';
 import { useStateLoads } from '../hooks/useStateLoads';
@@ -29,7 +30,9 @@ import {
   sortByYear,
   studentsPerTeacher,
   toSeries,
+  valueIn,
   YearRow,
+  YearValue,
 } from '../utils/stateMetrics';
 import {
   STAFF_TYPE_MOBILE_NAMES,
@@ -53,41 +56,6 @@ const DEGREES = [
   { key: 'None', name: 'None' },
 ];
 
-interface ComparisonRow {
-  type: string;
-  count: number;
-  before: number | null;
-  change: number | null;
-}
-
-/**
- * The latest year by type next to an earlier year, with the percent change, like the district Staff
- * page's tables. Types come in `order` when given (names as in the data), otherwise largest first.
- */
-const compareByType = (
-  byYear: YearRow[],
-  compareYear: number | null,
-  label: (type: string) => string,
-  totalLabel: string,
-  order?: string[]
-) => {
-  const latest = byYear[byYear.length - 1];
-  if (!latest) return { year: null as number | null, rows: [] as ComparisonRow[], total: undefined };
-  const earlier = byYear.find(row => row.year === compareYear);
-  const percentChange = (now: number, then: number | null) => (then ? ((now - then) / then) * 100 : null);
-  const types = order ?? Object.keys(latest).filter(key => key !== 'year');
-  const rows = types
-    .map(type => {
-      const count = latest[type] ?? 0;
-      const before = earlier ? earlier[type] ?? null : null;
-      return { type: label(type), count, before, change: percentChange(count, before) };
-    })
-    .sort((a, b) => (order ? 0 : b.count - a.count));
-  const count = rows.reduce((sum, row) => sum + row.count, 0);
-  const before = earlier ? rows.reduce((sum, row) => sum + (row.before ?? 0), 0) : null;
-  return { year: latest.year, rows, total: rows.length ? { type: totalLabel, count, before, change: percentChange(count, before) } : undefined };
-};
-
 type StaffTypeName = keyof typeof STAFF_TYPE_TOOLTIPS;
 
 // Staff types as groups of people, for the share chart's title and picker; the support types already are
@@ -110,31 +78,6 @@ const StaffTypeCell: React.FC<{ name: string }> = ({ name }) => {
   );
 };
 
-/** Type, the latest year, the year compared with (a dash where it has no count) and the change */
-const comparisonColumns = (
-  typeLabel: string,
-  year: number | null,
-  compareYear: number | null,
-  renderType?: (row: ComparisonRow) => React.ReactNode
-): StateTableColumn<ComparisonRow>[] => [
-  { key: 'type', label: typeLabel, render: renderType },
-  ...(year ? [{
-    key: 'count',
-    label: formatSchoolYear(year),
-    shortLabel: shortYear(year),
-    align: 'right' as const,
-    format: (row: ComparisonRow) => formatCount(row.count),
-  }] : []),
-  ...(compareYear !== null ? [{
-    key: 'before',
-    label: formatSchoolYear(compareYear),
-    shortLabel: shortYear(compareYear),
-    align: 'right' as const,
-    format: (row: ComparisonRow) => (row.before === null ? '—' : formatCount(row.before)),
-  }] : []),
-  { key: 'change', label: '% Change', shortLabel: 'Change', align: 'right', format: row => formatSignedPercent(row.change) },
-];
-
 /** Round ticks from just under the lowest value to just over the highest, `step` apart: a tight axis that still fits new years */
 const ticksAround = (values: number[], step: number): number[] | undefined => {
   if (!values.length) return undefined;
@@ -154,6 +97,13 @@ const CLASS_SIZES = [
   { key: 'grades_1_2', name: 'Grades 1-2' },
   { key: 'grades_3_4', name: 'Grades 3-4' },
   { key: 'grades_5_8', name: 'Grades 5-8' },
+] as const;
+
+type ClassSizeView = 'all' | 'levels' | 'ratio';
+const CLASS_SIZE_VIEWS: { value: ClassSizeView; label: string }[] = [
+  { value: 'all', label: 'All Students' },
+  { value: 'levels', label: 'By Grade Level' },
+  { value: 'ratio', label: 'Students per Teacher' },
 ];
 
 const StateStaff: React.FC = () => {
@@ -226,7 +176,7 @@ const StateStaff: React.FC = () => {
     DEGREES.map(degree => degree.key)
   ), [degreesByYear, degreeCompare.year]);
 
-  const [classSizeView, setClassSizeView] = useState<'all' | 'levels' | 'ratio'>('all');
+  const [classSizeView, setClassSizeView] = useState<ClassSizeView>('all');
   const classSize = useMemo(() => sortByYear(staffData.classSize).map(row => ({
     year: row.year,
     grades_1_2: row.grades_1_2,
@@ -236,7 +186,7 @@ const StateStaff: React.FC = () => {
   })), [staffData.classSize]);
   const classSizeNote = useMemo(() => {
     const notes = CLASS_SIZES.flatMap(size => {
-      const series = toSeries(classSize, row => row[size.key as keyof typeof row]);
+      const series = toSeries(classSize, row => row[size.key]);
       const latest = latestPoint(series);
       const earlier = latest ? series.find(point => point.year === latest.year - 2) : undefined;
       return latest && earlier && latest.value < earlier.value * (1 - CLASS_SIZE_DROP)
@@ -288,16 +238,14 @@ const StateStaff: React.FC = () => {
       });
     }
     return { figures, takeaway };
-  }, [teachers, salary.nominal, ratio, classSize]);
+  }, [salary.nominal, ratio, classSize]);
 
   const salaryDollars = salary.latestYear ? `${formatSchoolYear(salary.latestYear)} Dollars` : 'Today\'s Dollars';
 
   // Everything on the page as one workbook: a sheet per chart or table, and the notes the page leaves out
   const downloadExcel = () => {
-    const percent = (value: number | null | undefined) => (typeof value === 'number' ? value / 100 : null);
-    const valueIn = (series: { year: number; value: number }[], year: number) => series.find(point => point.year === year)?.value ?? null;
     const allGradesSeries = toSeries(classSize, row => row.all_grades);
-    const tileRow = (figure: string, series: { year: number; value: number }[], text: (value: number) => string): (string | number | null)[] => {
+    const tileRow = (figure: string, series: YearValue[], text: (value: number) => string): (string | number | null)[] => {
       const latest = latestPoint(series);
       const change = changeSince(series, TREND_YEARS);
       return [figure, latest ? formatSchoolYear(latest.year) : null, latest ? text(latest.value) : null, change ? change.percentChange / 100 : null, change ? formatSchoolYear(change.from.year) : null];
@@ -339,7 +287,7 @@ const StateStaff: React.FC = () => {
           { header: 'Teachers', format: PERCENT },
           { header: 'All Other Staff', width: 16, format: PERCENT },
         ],
-        rows: studentsVsStaff.rows.map(row => [formatSchoolYear(row.year), percent(row.students), percent(row.teachers), percent(row.other)]),
+        rows: studentsVsStaff.rows.map(row => [formatSchoolYear(row.year), asFraction(row.students), asFraction(row.teachers), asFraction(row.other)]),
       },
       {
         name: 'Staff By Type By Year',
@@ -392,26 +340,19 @@ const StateStaff: React.FC = () => {
           return [
             formatSchoolYear(year),
             row?.all_grades ?? null,
-            ...CLASS_SIZES.map(size => (row?.[size.key as keyof typeof row] as number | null | undefined) ?? null),
+            ...CLASS_SIZES.map(size => row?.[size.key] ?? null),
             valueIn(ratio, year),
           ];
         }),
       },
-      {
-        name: 'Notes',
-        title: 'About This Data',
-        subtitle: 'Staff for New Hampshire',
-        columns: [{ header: 'Notes', width: 100, wrap: true }],
-        rows: [[[
-          `From NH Education Facts (${window.location.href}), downloaded ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}.`,
-          'Sources: NH Department of Education Full Time Equivalent Staff Count, Teacher Average Salary, Teacher Attainment and Average Class Size reports (iPlatform); the statewide all-grades average class size from iExplore; average daily membership for students.',
-          'Staff are full-time equivalents as of October 1: part-time staff count as fractions. Teacher education counts teachers by highest degree; 2011-12 is left out because its degree counts add up to about twice the teachers in the staffing report.',
-          `Salaries in ${salaryDollars.toLowerCase()} are adjusted with the consumer price index (CPI-U, U.S. city average).`,
-          'Students per teacher is students (average daily membership) divided by full-time-equivalent teachers. It isn\'t class size: teachers include specialists and others who don\'t lead a regular class.',
-          'The all-grades average class size is NH DOE\'s statewide figure, published from 2015-16; the grade levels come from the class size reports. NH DOE doesn\'t say which grades the all-grades figure covers.',
-          'Percent change in staff ends in the latest year with both student and staff counts.',
-        ].join('\n\n')]],
-      },
+      notesSheet('Staff for New Hampshire', [
+        'Sources: NH Department of Education Full Time Equivalent Staff Count, Teacher Average Salary, Teacher Attainment and Average Class Size reports (iPlatform); the statewide all-grades average class size from iExplore; average daily membership for students.',
+        'Staff are full-time equivalents as of October 1: part-time staff count as fractions. Teacher education counts teachers by highest degree; 2011-12 is left out because its degree counts add up to about twice the teachers in the staffing report.',
+        `Salaries in ${salaryDollars.toLowerCase()} are adjusted with the consumer price index (CPI-U, U.S. city average).`,
+        'Students per teacher is students (average daily membership) divided by full-time-equivalent teachers. It isn\'t class size: teachers include specialists and others who don\'t lead a regular class.',
+        'The all-grades average class size is NH DOE\'s statewide figure, published from 2015-16; the grade levels come from the class size reports. NH DOE doesn\'t say which grades the all-grades figure covers.',
+        'Percent change in staff ends in the latest year with both student and staff counts.',
+      ]),
     ];
     return downloadWorkbook('nh-staff.xlsx', sheets);
   };
@@ -422,22 +363,14 @@ const StateStaff: React.FC = () => {
       status={status}
       onRetry={retry}
       errorMessage="Statewide staff data could not be loaded."
-      intro={(
-        <>
-          Who works in New Hampshire's public schools, what teachers are paid, and how many students there are for each teacher.
-          {/* The takeaway as a second paragraph, so the tiles sit beside the text on wide screens */}
-          {keyFigures.takeaway.length > 0 && (
-            <Box component="span" sx={{ display: 'block', mt: 2 }}>{keepYearsTogether(keyFigures.takeaway.join(' '))}</Box>
-          )}
-        </>
-      )}
+      intro="Who works in New Hampshire's public schools, what teachers are paid, and how many students there are for each teacher."
+      takeaway={keyFigures.takeaway}
       keyFigures={<KeyFigures figures={keyFigures.figures} centerLastTile />}
       keyFiguresBesideIntro
       onDownload={downloadExcel}
     >
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {/* Side by side on desktop */}
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 3, '& > *': { flex: 1, minWidth: 0 } }}>
+        <ChartRow>
           <TrendChart
             title="Average Teacher Salary"
             shortTitle="Avg. Teacher Salary"
@@ -478,12 +411,12 @@ const StateStaff: React.FC = () => {
             format={value => formatSignedPercent(value)}
             axis="span"
           />
-        </Box>
+        </ChartRow>
 
         <Divider />
 
         {/* The two compare tables side by side, like the district Staff page */}
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 3, '& > *': { flex: 1, minWidth: 0 } }}>
+        <ChartRow>
           <StateTable
             title="Staff By Type"
             control={staffCompare.year !== null && (
@@ -504,25 +437,22 @@ const StateStaff: React.FC = () => {
             rows={degreeTable.rows}
             totalRow={degreeTable.total}
           />
-        </Box>
+        </ChartRow>
 
-        {/* Side by side on desktop */}
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 3, '& > *': { flex: 1, minWidth: 0 } }}>
+        <ChartRow>
           <TrendChart
             title={staffTypePlural(shareType)}
             subtitle="As % of Staff"
             showViewToggle={false}
             control={(
               // The district Staff page's staff type picker
-              <FormControl size="small" sx={{ minWidth: { xs: 130, sm: 170 } }}>
-                <Select
-                  value={shareType}
-                  onChange={event => setShareType(event.target.value)}
-                  inputProps={{ 'aria-label': 'Show staff type' }}
-                >
-                  {STAFF_TYPE_ORDER.map(type => <MenuItem key={type} value={type}>{staffTypePlural(type)}</MenuItem>)}
-                </Select>
-              </FormControl>
+              <ChartSelect
+                value={shareType}
+                options={STAFF_TYPE_ORDER.map(type => ({ value: type as string, label: staffTypePlural(type) }))}
+                onChange={setShareType}
+                label="Show staff type"
+                minWidth={{ xs: 130, sm: 170 }}
+              />
             )}
             data={typeShare}
             series={[{ key: 'share', name: staffTypePlural(shareType) }]}
@@ -539,19 +469,7 @@ const StateStaff: React.FC = () => {
               ? 'Students per Class, All Grades'
               : classSizeView === 'levels' ? 'Students per Class By Grade Level' : 'Students Divided By Full-Time-Equivalent Teachers'}
             showViewToggle={false}
-            control={(
-              <FormControl size="small" sx={{ minWidth: { xs: 130, sm: 150 } }}>
-                <Select
-                  value={classSizeView}
-                  onChange={event => setClassSizeView(event.target.value as 'all' | 'levels' | 'ratio')}
-                  inputProps={{ 'aria-label': 'Show average class size' }}
-                >
-                  <MenuItem value="all">All Students</MenuItem>
-                  <MenuItem value="levels">By Grade Level</MenuItem>
-                  <MenuItem value="ratio">Students per Teacher</MenuItem>
-                </Select>
-              </FormControl>
-            )}
+            control={<ChartSelect value={classSizeView} options={CLASS_SIZE_VIEWS} onChange={setClassSizeView} label="Show average class size" />}
             {...(classSizeView === 'all'
               ? {
                 // NH DOE's statewide average, published from 2015-16
@@ -562,7 +480,7 @@ const StateStaff: React.FC = () => {
               : classSizeView === 'levels'
                 ? {
                   data: classSize,
-                  series: CLASS_SIZES,
+                  series: [...CLASS_SIZES],
                   yTicks: ticksAround(classSize.flatMap(row => [row.grades_1_2, row.grades_3_4, row.grades_5_8].filter((value): value is number => typeof value === 'number')), GRADE_LEVELS_STEP),
                   note: classSizeNote || undefined,
                 }
@@ -574,7 +492,7 @@ const StateStaff: React.FC = () => {
             format={value => value.toFixed(1)}
             axisFormat={value => formatCompact(value)}
           />
-        </Box>
+        </ChartRow>
       </Box>
     </StatePage>
   );

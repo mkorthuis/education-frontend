@@ -5,6 +5,7 @@ import { selectAdjustForInflation, toggleInflationAdjustment } from '@/store/sli
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import StatePage from '../components/StatePage';
 import StateTable from '../components/StateTable';
+import ChartRow from '../components/ChartRow';
 import TrendChart, { CONTEXT_COLOR, ENTITY_COLORS, SERIES_COLORS } from '../components/TrendChart';
 import KeyFigures, { KeyFigure } from '../components/KeyFigures';
 import { useStateLoads } from '../hooks/useStateLoads';
@@ -237,7 +238,7 @@ const StateFinancials: React.FC = () => {
 
         <Divider />
 
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 3, '& > *': { flex: 1, minWidth: 0 } }}>
+        <ChartRow>
           <TrendChart
             title="Where school revenue comes from"
             subtitle="Percentage of district revenue"
@@ -266,7 +267,7 @@ const StateFinancials: React.FC = () => {
             note="Revenue and spending come from different state reports, so the totals don't match. Revenue includes borrowing (bond sales) and money moved between a district's own funds, shown as borrowing and transfers."
             csvName={`nh-revenue-by-source-${latestRevenue?.year ?? ''}`}
           />
-        </Box>
+        </ChartRow>
       </Box>
     </StatePage>
   );

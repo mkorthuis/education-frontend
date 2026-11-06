@@ -34,6 +34,8 @@ export const ASSESSMENT_CHANGE_YEARS = [2015, 2018];
 export const NO_TEST_YEAR = 2020;
 // 2020-21: many schools were remote or hybrid, so attendance, enrollment and safety counts dipped
 export const REMOTE_SCHOOL_YEAR = 2021;
+// The chart band that marks it
+export const REMOTE_BAND = [{ from: REMOTE_SCHOOL_YEAR - 1, to: REMOTE_SCHOOL_YEAR, label: 'COVID' }];
 
 // Figures the state has published as preliminary. Keep in step with the notes on the Data Sources
 // page (src/pages/DataSources.tsx).
@@ -76,6 +78,14 @@ export const changeFrom = (series: YearValue[], fromYear: number): Change | null
   const change = to.value - from.value;
   return { from, to, change, percentChange: from.value === 0 ? 0 : (change / from.value) * 100 };
 };
+
+/** Percent change from `then` to `now`; null when there's nothing (or zero) to compare with. */
+export const percentChange = (now: number, then: number | null): number | null =>
+  (then ? ((now - then) / then) * 100 : null);
+
+/** A series' value for one year, or null when it has none. */
+export const valueIn = (series: YearValue[], year: number): number | null =>
+  series.find(point => point.year === year)?.value ?? null;
 
 /** Each value restated in `toYear` dollars. */
 export const adjustSeriesForInflation = (series: YearValue[], toYear: number): YearValue[] =>

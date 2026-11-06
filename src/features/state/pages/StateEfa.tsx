@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { Box, Divider, FormControl, Link, MenuItem, Select } from '@mui/material';
+import { Box, Divider, Link } from '@mui/material';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import StatePage from '../components/StatePage';
 import StateTable from '../components/StateTable';
+import ChartRow from '../components/ChartRow';
+import ChartSelect from '../components/ChartSelect';
 import TrendChart, { SERIES_COLORS } from '../components/TrendChart';
 import { formatDollarsShort, formatThousands, shortYear, tileDelta } from '../utils/phrases';
 import KeyFigures, { KeyFigure } from '../components/KeyFigures';
@@ -10,7 +12,7 @@ import { useStateLoads } from '../hooks/useStateLoads';
 import { useStateEfaData, useStateEnrollmentByTypeData } from '../hooks/useStatewideData';
 import { StudentGroup, useStatewideGroups } from '../hooks/useStatewideGroups';
 import {
-  EFA_BASE_AID,
+  changeFrom,
   efaTotals,
   formatCompact,
   formatCompactDollars,
@@ -23,9 +25,10 @@ import {
   PRELIMINARY,
   publicStudents,
   shareOfEnrollment,
+  toSeries,
 } from '../utils/stateMetrics';
 import { EFA_AID_LABELS, plainLabel, titleCase } from '../utils/labels';
-import { COUNT, DOLLARS, downloadWorkbook, ExcelSheet, PERCENT } from '../utils/excel';
+import { asFraction, COUNT, DOLLARS, downloadWorkbook, ExcelSheet, notesSheet, PERCENT } from '../utils/excel';
 
 const PAGE = PAGE_REGISTRY.state.efa;
 const DOE_EFA_URL = 'https://education.nh.gov/pathways-education/education-freedom-accounts';
@@ -57,6 +60,10 @@ const COMPARED_AID: { aid: string; name: string; group: StudentGroup; statewideN
 ];
 const statewideKey = (aid: string) => `statewide:${aid}`;
 
+const GRANTS_AS: { value: 'count' | 'percentage'; label: string }[] = [
+  { value: 'count', label: '# of Grants' },
+  { value: 'percentage', label: 'Percentage' },
+];
 
 const StateEfa: React.FC = () => {
   const { loads, entries, entryTypes } = useStateEfaData();
@@ -67,7 +74,6 @@ const StateEfa: React.FC = () => {
 
   const totals = useMemo(() => efaTotals(entries, entryTypes), [entries, entryTypes]);
   const typeNames = useMemo(() => new Map(entryTypes.map(type => [type.id, type.name])), [entryTypes]);
-  const aidName = (typeId: number) => plainLabel(EFA_AID_LABELS, typeNames.get(typeId) ?? `Type ${typeId}`);
 
   const statewideGroups = useStatewideGroups();
 
@@ -119,16 +125,21 @@ const StateEfa: React.FC = () => {
   const latest = totals.length ? totals[totals.length - 1] : null;
   const previous = totals.length > 1 ? totals[totals.length - 2] : null;
   const latestYear = latest?.year ?? null;
+  // EFA students now against the year before
+  const studentChange = useMemo(
+    () => (previous ? changeFrom(toSeries(totals, row => row.students), previous.year) : null),
+    [totals, previous]
+  );
   const latestTable = useMemo(() => {
     if (!latestYear) return [];
     return entries
       .filter(row => row.year === latestYear)
       .map(row => {
         const amount = entryTypes.find(type => type.id === row.entry_type_id && type.year === row.year)?.value ?? null;
-        return { aid: aidName(row.entry_type_id), students: row.value, amount, total: amount === null ? null : amount * row.value };
+        const aid = plainLabel(EFA_AID_LABELS, typeNames.get(row.entry_type_id) ?? `Type ${row.entry_type_id}`);
+        return { aid, students: row.value, amount, total: amount === null ? null : amount * row.value };
       })
       .sort((a, b) => b.students - a.students);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entries, entryTypes, typeNames, latestYear]);
   const tableTotal = latestTable.reduce((sum, row) => sum + (row.total ?? 0), 0);
 
@@ -141,14 +152,7 @@ const StateEfa: React.FC = () => {
         shortValue: formatThousands(latest.students, 1),
         period: shortYear(latest.year),
         // Change since the year before
-        delta: previous && typeof previous.students === 'number' && previous.students > 0
-          ? tileDelta({
-            from: { year: previous.year, value: previous.students },
-            to: { year: latest.year, value: latest.students },
-            change: latest.students - previous.students,
-            percentChange: ((latest.students - previous.students) / previous.students) * 100,
-          }, { unit: 'percent', higherIsBetter: true })
-          : undefined,
+        delta: tileDelta(studentChange, { unit: 'percent', higherIsBetter: true }),
       });
       if (latest.estimatedCost) {
         const perStudent = latest.estimatedCost / latest.students;
@@ -165,11 +169,10 @@ const StateEfa: React.FC = () => {
       }
     }
     return figures;
-  }, [latest, previous]);
+  }, [latest, studentChange]);
 
   // Everything on the page in one workbook: a sheet per tile row, chart and table, then notes
   const downloadExcel = () => {
-    const percent = (value: unknown) => (typeof value === 'number' ? value / 100 : null);
     const sheets: ExcelSheet[] = [
       {
         name: 'Key Figures',
@@ -184,8 +187,7 @@ const StateEfa: React.FC = () => {
         rows: latest ? [[
           formatSchoolYear(latest.year),
           latest.students,
-          previous && typeof previous.students === 'number' && typeof latest.students === 'number' && previous.students > 0
-            ? (latest.students - previous.students) / previous.students : null,
+          asFraction(studentChange?.percentChange),
           latest.estimatedCost,
           latest.estimatedCost && typeof latest.students === 'number' ? latest.estimatedCost / latest.students : null,
         ]] : [],
@@ -203,7 +205,7 @@ const StateEfa: React.FC = () => {
           formatSchoolYear(row.year),
           row.students,
           grantShare.enrolled.get(row.year) ?? null,
-          percent(grantShare.rows.find(share => share.year === row.year)?.grants),
+          asFraction(grantShare.rows.find(share => share.year === row.year)?.grants),
         ]),
       },
       {
@@ -225,7 +227,7 @@ const StateEfa: React.FC = () => {
         ],
         rows: extraAid.rows.map(row => [
           formatSchoolYear(row.year),
-          ...COMPARED_AID.flatMap(aid => [percent(row[aid.aid]), percent(row[statewideKey(aid.aid)])]),
+          ...COMPARED_AID.flatMap(aid => [asFraction(row[aid.aid]), asFraction(row[statewideKey(aid.aid)])]),
         ]),
       },
       {
@@ -241,24 +243,16 @@ const StateEfa: React.FC = () => {
         rows: latestTable.map(row => [titleCase(row.aid), row.students, row.amount, row.total]),
         totalRow: latestTable.length ? ['Total', latest?.students ?? null, null, tableTotal] : undefined,
       },
-      {
-        name: 'Notes',
-        title: 'About This Data',
-        subtitle: 'Education Freedom Accounts for New Hampshire',
-        columns: [{ header: 'Notes', width: 100, wrap: true }],
-        // One cell, a paragraph per line
-        rows: [[[
-          `From NH Education Facts (${window.location.href}), downloaded ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}.`,
-          ...(latestYear === PRELIMINARY.efaYear
-            ? [`${formatSchoolYear(PRELIMINARY.efaYear)} numbers are preliminary, from the state's count as of ${PRELIMINARY.efaAsOf}; other years are final.`]
-            : []),
-          'EFA grants, estimated cost and aid by category: NH Department of Education, Education Freedom Account aid calculations (RSA 194-F). Estimated cost is the students in each aid category times that year\'s per-student amount, not actual payments to families.',
-          'Public school enrollment: NH Department of Education, State Totals Ten Years Public and Private Fall Enrollments (October 1, kindergarten to grade 12, in district, academy, charter and interstate schools).',
-          'State Low Income: NH Department of Education, Free Reduced K-12 School Lunch Eligibility Rates by School (statewide, as of October 1).',
-          'State Special Education: NH Department of Education school metrics, "Students with Disability (%)", district figures weighted by enrollment.',
-          'Students can receive more than one kind of extra aid, so the aid table\'s total counts each student once (the base amount).',
-        ].join('\n\n')]],
-      },
+      notesSheet('Education Freedom Accounts for New Hampshire', [
+        ...(latestYear === PRELIMINARY.efaYear
+          ? [`${formatSchoolYear(PRELIMINARY.efaYear)} numbers are preliminary, from the state's count as of ${PRELIMINARY.efaAsOf}; other years are final.`]
+          : []),
+        'EFA grants, estimated cost and aid by category: NH Department of Education, Education Freedom Account aid calculations (RSA 194-F). Estimated cost is the students in each aid category times that year\'s per-student amount, not actual payments to families.',
+        'Public school enrollment: NH Department of Education, State Totals Ten Years Public and Private Fall Enrollments (October 1, kindergarten to grade 12, in district, academy, charter and interstate schools).',
+        'State Low Income: NH Department of Education, Free Reduced K-12 School Lunch Eligibility Rates by School (statewide, as of October 1).',
+        'State Special Education: NH Department of Education school metrics, "Students with Disability (%)", district figures weighted by enrollment.',
+        'Students can receive more than one kind of extra aid, so the aid table\'s total counts each student once (the base amount).',
+      ]),
     ];
     return downloadWorkbook('nh-education-freedom-accounts.xlsx', sheets);
   };
@@ -289,24 +283,12 @@ const StateEfa: React.FC = () => {
       onDownload={downloadExcel}
     >
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 3, '& > *': { flex: 1, minWidth: 0 } }}>
+        <ChartRow>
           <TrendChart
             title="EFA Grants By Year"
             subtitle={grantsAs === 'count' ? 'Number of Students' : 'Percentage of Public School Enrollment'}
             shortSubtitle={grantsAs === 'count' ? '# of Students' : '% of Public School Enrollment'}
-            control={(
-              // The same size as the picker on the district EFA pages; a little narrower on phones, so it fits beside the title
-              <FormControl size="small" sx={{ minWidth: { xs: 130, sm: 150 } }}>
-                <Select
-                  value={grantsAs}
-                  onChange={event => setGrantsAs(event.target.value as 'count' | 'percentage')}
-                  inputProps={{ 'aria-label': 'Show EFA grants as' }}
-                >
-                  <MenuItem value="count"># of Grants</MenuItem>
-                  <MenuItem value="percentage">Percentage</MenuItem>
-                </Select>
-              </FormControl>
-            )}
+            control={<ChartSelect value={grantsAs} options={GRANTS_AS} onChange={setGrantsAs} label="Show EFA grants as" />}
             showViewToggle={false}
             {...(grantsAs === 'count'
               ? {
@@ -335,11 +317,11 @@ const StateEfa: React.FC = () => {
             format={value => formatDollarsInWords(value)}
             axisFormat={formatCompactDollars}
           />
-        </Box>
+        </ChartRow>
 
         <Divider />
 
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 3, '& > *': { flex: 1, minWidth: 0 } }}>
+        <ChartRow>
           <TrendChart
             title="% EFA Students Receiving Extra Aid By Year"
             shortTitle="% EFA Students w/ Extra Aid By Year"
@@ -372,7 +354,7 @@ const StateEfa: React.FC = () => {
             totalRow={latestTable.length ? { aid: 'Total', students: latest?.students ?? 0, amount: null, total: tableTotal } : undefined}
             note="Students can receive more than one kind of extra aid, so the total counts each student once (the base amount)."
           />
-        </Box>
+        </ChartRow>
       </Box>
     </StatePage>
   );

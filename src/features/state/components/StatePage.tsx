@@ -7,7 +7,7 @@ import LoadErrorAlert from '@/components/ui/LoadErrorAlert';
 import { PageLoadStatus } from '@/store/utils/loadingState';
 import DistrictPicker from './DistrictPicker';
 import { Note } from '@/components/ds';
-import { READING_WIDTH } from './chartText';
+import { keepYearsTogether, READING_WIDTH } from './chartText';
 
 export const STATE_NAME = 'New Hampshire';
 
@@ -20,6 +20,8 @@ interface StatePageProps {
   errorMessage: string;
   /** One or two plain-language sentences on what the page shows */
   intro?: React.ReactNode;
+  /** Sentences built from the key figures, shown as the intro's second paragraph */
+  takeaway?: string[];
   /** Headline numbers, shown once the data has loaded */
   keyFigures?: React.ReactNode;
   /** On wide screens, show the key figures to the right of the intro instead of under it */
@@ -43,6 +45,7 @@ const StatePage: React.FC<StatePageProps> = ({
   onRetry,
   errorMessage,
   intro,
+  takeaway = [],
   keyFigures,
   keyFiguresBesideIntro = false,
   districtSection,
@@ -103,7 +106,13 @@ const StatePage: React.FC<StatePageProps> = ({
           : undefined}
       >
         {intro && (
-          <Typography variant="body1" sx={{ mb: 3, maxWidth: READING_WIDTH }}>{intro}</Typography>
+          <Typography variant="body1" sx={{ mb: 3, maxWidth: READING_WIDTH }}>
+            {intro}
+            {/* A second paragraph within the intro, so the tiles sit beside both on wide screens */}
+            {takeaway.length > 0 && (
+              <Box component="span" sx={{ display: 'block', mt: 2 }}>{keepYearsTogether(takeaway.join(' '))}</Box>
+            )}
+          </Typography>
         )}
         {besideIntro && keyFigures}
       </Box>

@@ -3,11 +3,12 @@ import { Box, Divider } from '@mui/material';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import StatePage from '../components/StatePage';
 import StateTable from '../components/StateTable';
+import ChartRow from '../components/ChartRow';
 import TrendChart from '../components/TrendChart';
 import KeyFigures, { KeyFigure } from '../components/KeyFigures';
 import { useStateLoads } from '../hooks/useStateLoads';
 import { useStateOutcomeData } from '../hooks/useStatewideData';
-import { changeSince, formatCount, formatPercent, graduationRates, latestPoint, postGraduationShares, PRELIMINARY, REMOTE_SCHOOL_YEAR, sortByYear, toSeries } from '../utils/stateMetrics';
+import { changeSince, formatCount, formatPercent, graduationRates, latestPoint, postGraduationShares, PRELIMINARY, REMOTE_BAND, sortByYear, toSeries } from '../utils/stateMetrics';
 import { PLAN_LABELS, plainLabel } from '../utils/labels';
 import { tileDelta } from '../utils/phrases';
 
@@ -100,7 +101,7 @@ const StateOutcomes: React.FC = () => {
       source="NH Department of Education, graduation cohort, dropout and post-graduation plans reports"
     >
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 3, '& > *': { flex: 1, minWidth: 0 } }}>
+        <ChartRow>
           <TrendChart
             title="Four-year graduation rate"
             subtitle="Percentage of each class that started grade 9 together"
@@ -128,11 +129,11 @@ const StateOutcomes: React.FC = () => {
             yearLabel={classYear}
             yearHeader="Class of"
           />
-        </Box>
+        </ChartRow>
 
         <Divider />
 
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 3, '& > *': { flex: 1, minWidth: 0 } }}>
+        <ChartRow>
           <TrendChart
             title="Graduates' plans after high school"
             subtitle="Percentage of graduates"
@@ -157,7 +158,7 @@ const StateOutcomes: React.FC = () => {
             totalRow={latestPlans.length ? { plan: 'All graduates', graduates: latestPlansTotal, share: 100 } : undefined}
             csvName={`nh-post-graduation-plans-${latestPlansYear ?? ''}`}
           />
-        </Box>
+        </ChartRow>
 
         <Divider />
 
@@ -169,7 +170,7 @@ const StateOutcomes: React.FC = () => {
           tableSeries={[{ key: 'fourYear', name: 'Four-year estimate' }]}
           format={value => formatPercent(value, 1)}
           axisFormat={value => formatPercent(value)}
-          bands={[{ from: REMOTE_SCHOOL_YEAR - 1, to: REMOTE_SCHOOL_YEAR, label: 'COVID' }]}
+          bands={REMOTE_BAND}
           note="The shaded years include 2020-21, when many schools were remote or hybrid. This rate counts every high school student each year, so it's lower than the share of a class that drops out over four years (above). The table view also has the state's four-year estimate: the chance a student drops out at some point in grades 9-12 at that year's rates."
           csvName="nh-dropout-rate"
           csvUnit="%"

@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { Box, Divider, FormControl, MenuItem, Select } from '@mui/material';
+import { Box, Divider } from '@mui/material';
 import StatePage from '../components/StatePage';
 import StateTable from '../components/StateTable';
+import ChartRow from '../components/ChartRow';
+import ChartSelect from '../components/ChartSelect';
 import TrendChart, { ENTITY_COLORS, SERIES_COLORS } from '../components/TrendChart';
 import KeyFigures, { KeyFigure } from '../components/KeyFigures';
-import { keepYearsTogether } from '../components/chartText';
-import { COUNT, downloadWorkbook, ExcelSheet, PERCENT } from '../utils/excel';
+import { asFraction, COUNT, downloadWorkbook, ExcelSheet, notesSheet, PERCENT } from '../utils/excel';
 import { useStateLoads } from '../hooks/useStateLoads';
 import { useStateEnrollmentByTypeData } from '../hooks/useStatewideData';
 import {
@@ -18,8 +19,11 @@ import {
   formatSignedPercent,
   latestPoint,
   mergeSeries,
+  percentChange,
   publicStudents,
-  REMOTE_SCHOOL_YEAR,
+  REMOTE_BAND,
+  valueIn,
+  YearValue,
 } from '../utils/stateMetrics';
 import { formatThousands, shortYear, tileDelta } from '../utils/phrases';
 
@@ -31,7 +35,6 @@ const STUDENT_TICKS = [150000, 160000, 170000, 180000, 190000, 200000, 210000];
 const LEVEL_TICKS = [30000, 40000, 50000, 60000, 70000, 80000, 90000];
 // Preschool 2,614 to grade 12 15,918
 const ENTERING_TICKS = [2000, 4000, 6000, 8000, 10000, 12000, 14000, 16000];
-const REMOTE_BAND = [{ from: REMOTE_SCHOOL_YEAR - 1, to: REMOTE_SCHOOL_YEAR, label: 'COVID' }];
 
 // School levels, from the grades in the state's October 1 counts (preschool and post-graduate
 // students aren't in a level)
@@ -51,6 +54,17 @@ const PUBLIC_TYPES = [
   { name: 'Interstate Schools', label: 'Interstate Schools' },
 ];
 const NONPUBLIC = 'Nonpublic Schools';
+
+/** Students by year and type of school */
+type TypeTotals = Map<number, Map<string, number>>;
+/** Students in every public type of school in a year */
+const publicTotal = (typeTotals: TypeTotals, year: number) =>
+  PUBLIC_TYPES.reduce((sum, type) => sum + (typeTotals.get(year)?.get(type.name) ?? 0), 0);
+
+const STUDENTS_VIEWS: { value: 'all' | 'levels'; label: string }[] = [
+  { value: 'all', label: 'All Students' },
+  { value: 'levels', label: 'By Level' },
+];
 
 const StateEnrollment: React.FC = () => {
   const publicEnrollment = useStateEnrollmentByTypeData();
@@ -97,7 +111,7 @@ const StateEnrollment: React.FC = () => {
       const now = count(grade, year);
       if (now === null) return [];
       const earlier = count(grade, compareYear);
-      return [{ grade, students: now, earlier, change: earlier ? ((now - earlier) / earlier) * 100 : null }];
+      return [{ grade, students: now, earlier, change: percentChange(now, earlier) }];
     });
     return { year, compareYear, rows };
   }, [byType]);
@@ -109,7 +123,7 @@ const StateEnrollment: React.FC = () => {
       grade: 'All Grades',
       students: studentsTotal,
       earlier: earlierTotal,
-      change: earlierTotal ? ((studentsTotal - earlierTotal) / earlierTotal) * 100 : null,
+      change: percentChange(studentsTotal, earlierTotal),
     };
   }, [gradeTable.rows]);
 
@@ -158,7 +172,7 @@ const StateEnrollment: React.FC = () => {
 
   // October 1 students (all grades) by year and type of school
   const typeTotals = useMemo(() => {
-    const totals = new Map<number, Map<string, number>>();
+    const totals: TypeTotals = new Map();
     byType.forEach(row => {
       const year = totals.get(row.year) ?? new Map<string, number>();
       year.set(row.enrollment_type.name, (year.get(row.enrollment_type.name) ?? 0) + row.enrollment);
@@ -166,8 +180,6 @@ const StateEnrollment: React.FC = () => {
     });
     return totals;
   }, [byType]);
-  const publicTotal = (year: number) => PUBLIC_TYPES.reduce((sum, type) => sum + (typeTotals.get(year)?.get(type.name) ?? 0), 0);
-
 
   // Public and private schools in the latest year with both (private counts come out a year after
   // public ones), against 2014-15 like the key figures
@@ -178,12 +190,12 @@ const StateEnrollment: React.FC = () => {
     const year = Math.max(...(complete.length ? complete : years));
     const sinceYear = typeTotals.has(SINCE_YEAR) ? SINCE_YEAR : null;
     const count = (forYear: number | null, name: string) => (forYear === null ? null : typeTotals.get(forYear)?.get(name) ?? null);
-    const allSchools = (forYear: number) => publicTotal(forYear) + (count(forYear, NONPUBLIC) ?? 0);
+    const allSchools = (forYear: number) => publicTotal(typeTotals, forYear) + (count(forYear, NONPUBLIC) ?? 0);
     const everyone = allSchools(year);
     const row = (label: string, value: number, earlier: number | null, subtotal = false) => ({
       type: label,
       students: value,
-      change: earlier ? ((value - earlier) / earlier) * 100 : null,
+      change: percentChange(value, earlier),
       share: everyone ? (value / everyone) * 100 : null,
       subtotal,
     });
@@ -191,7 +203,7 @@ const StateEnrollment: React.FC = () => {
       ...PUBLIC_TYPES
         .filter(type => count(year, type.name) !== null)
         .map(type => row(type.label, count(year, type.name)!, count(sinceYear, type.name))),
-      row('All Public Schools', publicTotal(year), sinceYear ? publicTotal(sinceYear) : null, true),
+      row('All Public Schools', publicTotal(typeTotals, year), sinceYear ? publicTotal(typeTotals, sinceYear) : null, true),
       ...(count(year, NONPUBLIC) !== null ? [row('Private Schools', count(year, NONPUBLIC)!, count(sinceYear, NONPUBLIC))] : []),
     ];
     return {
@@ -201,18 +213,15 @@ const StateEnrollment: React.FC = () => {
       rows,
       total: count(year, NONPUBLIC) !== null ? row('All Schools', everyone, sinceYear && count(sinceYear, NONPUBLIC) !== null ? allSchools(sinceYear) : null) : null,
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [typeTotals]);
   const sinceText = typeTable.sinceYear ? formatSchoolYear(typeTable.sinceYear) : 'earlier';
 
   // Everything on the page in one workbook: a sheet per tile row, chart and table, then notes
   const downloadExcel = () => {
-    const percent = (value: number | null | undefined) => (typeof value === 'number' ? value / 100 : null);
-    const valueIn = (series: { year: number; value: number }[], year: number) => series.find(point => point.year === year)?.value ?? null;
     const years = students.map(point => point.year);
     const levelSeries = LEVELS.map(level => publicStudents(byType, { grades: level.grades }));
     const sinceLabel = formatSchoolYear(SINCE_YEAR);
-    const tileRow = (series: { year: number; value: number }[]) => {
+    const tileRow = (series: YearValue[]) => {
       const latest = latestPoint(series);
       const change = changeFrom(series, SINCE_YEAR);
       return [latest?.value ?? null, change ? change.percentChange / 100 : null];
@@ -254,9 +263,9 @@ const StateEnrollment: React.FC = () => {
           { header: `Change Since ${sinceText}`, width: 20, format: PERCENT },
           { header: 'Share of Total', width: 16, format: PERCENT },
         ],
-        rows: typeTable.rows.map(row => [row.type, row.students, percent(row.change), percent(row.share)]),
+        rows: typeTable.rows.map(row => [row.type, row.students, asFraction(row.change), asFraction(row.share)]),
         subtotalRows: typeTable.rows.flatMap((row, index) => (row.subtotal ? [index] : [])),
-        totalRow: typeTable.total ? [typeTable.total.type, typeTable.total.students, percent(typeTable.total.change), percent(typeTable.total.share)] : undefined,
+        totalRow: typeTable.total ? [typeTable.total.type, typeTable.total.students, asFraction(typeTable.total.change), asFraction(typeTable.total.share)] : undefined,
       },
       {
         name: 'Type of School By Year',
@@ -274,9 +283,9 @@ const StateEnrollment: React.FC = () => {
           return [
             formatSchoolYear(year),
             ...PUBLIC_TYPES.map(type => typeTotals.get(year)?.get(type.name) ?? null),
-            publicTotal(year),
+            publicTotal(typeTotals, year),
             privateCount,
-            privateCount === null ? null : publicTotal(year) + privateCount,
+            privateCount === null ? null : publicTotal(typeTotals, year) + privateCount,
           ];
         }),
       },
@@ -302,22 +311,15 @@ const StateEnrollment: React.FC = () => {
           { header: `In ${compareText}`, format: COUNT },
           { header: `Change Since ${compareText}`, width: 22, format: PERCENT },
         ],
-        rows: gradeTable.rows.map(row => [row.grade, row.students, row.earlier, percent(row.change)]),
-        totalRow: gradeTable.rows.length ? [gradeTotals.grade, gradeTotals.students, gradeTotals.earlier, percent(gradeTotals.change)] : undefined,
+        rows: gradeTable.rows.map(row => [row.grade, row.students, row.earlier, asFraction(row.change)]),
+        totalRow: gradeTable.rows.length ? [gradeTotals.grade, gradeTotals.students, gradeTotals.earlier, asFraction(gradeTotals.change)] : undefined,
       },
-      {
-        name: 'Notes',
-        title: 'About This Data',
-        subtitle: 'Statewide Enrollment',
-        columns: [{ header: 'Notes', width: 100, wrap: true }],
-        rows: [[[
-          `From NH Education Facts (${window.location.href}), downloaded ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}.`,
-          'Source: NH Department of Education, State Totals Ten Years Public and Private Fall Enrollments (October 1 enrollment by type of school and grade).',
-          'Public schools are district, academy (and joint maintenance agreement), charter and interstate schools. Interstate schools are shared with Vermont; these are their New Hampshire students.',
-          'School levels: elementary is kindergarten to grade 5, middle grades 6 to 8, high grades 9 to 12. Preschool and post-graduate students aren\'t in a level.',
-          'Private school counts come out a year after public ones. Education Freedom Account students aren\'t counted.',
-        ].join('\n\n')]],
-      },
+      notesSheet('Statewide Enrollment', [
+        'Source: NH Department of Education, State Totals Ten Years Public and Private Fall Enrollments (October 1 enrollment by type of school and grade).',
+        'Public schools are district, academy (and joint maintenance agreement), charter and interstate schools. Interstate schools are shared with Vermont; these are their New Hampshire students.',
+        'School levels: elementary is kindergarten to grade 5, middle grades 6 to 8, high grades 9 to 12. Preschool and post-graduate students aren\'t in a level.',
+        'Private school counts come out a year after public ones. Education Freedom Account students aren\'t counted.',
+      ]),
     ];
     return downloadWorkbook('nh-enrollment.xlsx', sheets);
   };
@@ -330,42 +332,25 @@ const StateEnrollment: React.FC = () => {
       status={status}
       onRetry={retry}
       errorMessage="Statewide enrollment data could not be loaded."
-      intro={(
-        <>
-          How many students New Hampshire's public schools serve, and how that is changing grade by grade.
-          {/* The takeaway as a second paragraph, so the tiles sit beside the text on wide screens */}
-          {keyFigures.takeaway.length > 0 && (
-            <Box component="span" sx={{ display: 'block', mt: 2 }}>{keepYearsTogether(keyFigures.takeaway.join(' '))}</Box>
-          )}
-        </>
-      )}
+      intro="How many students New Hampshire's public schools serve, and how that is changing grade by grade."
+      takeaway={keyFigures.takeaway}
       keyFigures={<KeyFigures figures={keyFigures.figures} centerLastTile />}
       keyFiguresBesideIntro
       onDownload={downloadExcel}
     >
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 3, '& > *': { flex: 1, minWidth: 0 } }}>
+        <ChartRow>
           <TrendChart
             title="Public School Students"
             showViewToggle={false}
             subtitle={studentsChart.subtitle}
-            control={(
-              <FormControl size="small" sx={{ minWidth: { xs: 130, sm: 150 } }}>
-                <Select
-                  value={studentsView}
-                  onChange={event => setStudentsView(event.target.value as 'all' | 'levels')}
-                  inputProps={{ 'aria-label': 'Show public school students' }}
-                >
-                  <MenuItem value="all">All Students</MenuItem>
-                  <MenuItem value="levels">By Level</MenuItem>
-                </Select>
-              </FormControl>
-            )}
+            control={<ChartSelect value={studentsView} options={STUDENTS_VIEWS} onChange={setStudentsView} label="Show public school students" />}
             data={studentsChart.data}
             series={studentsChart.series}
             yTicks={studentsChart.yTicks}
             format={formatCount}
             axisFormat={value => formatCompact(value)}
+            bands={REMOTE_BAND}
           />
           {typeTable.year && (
             <StateTable
@@ -391,11 +376,11 @@ const StateEnrollment: React.FC = () => {
               ].filter(Boolean).join(' ')}
             />
           )}
-        </Box>
+        </ChartRow>
 
         <Divider />
 
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 3, '& > *': { flex: 1, minWidth: 0 } }}>
+        <ChartRow>
           <TrendChart
             title="Students Starting and Finishing School"
             showViewToggle={false}
@@ -426,7 +411,7 @@ const StateEnrollment: React.FC = () => {
             rows={gradeTable.rows}
             totalRow={gradeTable.rows.length ? gradeTotals : undefined}
           />
-        </Box>
+        </ChartRow>
       </Box>
     </StatePage>
   );
