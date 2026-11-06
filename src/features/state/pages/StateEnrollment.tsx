@@ -22,6 +22,7 @@ import {
   percentChange,
   publicStudents,
   REMOTE_BAND,
+  REMOTE_SCHOOL_YEAR,
   valueIn,
   YearValue,
 } from '../utils/stateMetrics';
@@ -54,6 +55,7 @@ const PUBLIC_TYPES = [
   { name: 'Interstate Schools', label: 'Interstate Schools' },
 ];
 const NONPUBLIC = 'Nonpublic Schools';
+const CHARTER = 'Public Charter Schools';
 
 /** Students by year and type of school */
 type TypeTotals = Map<number, Map<string, number>>;
@@ -141,8 +143,38 @@ const StateEnrollment: React.FC = () => {
         delta: tileDelta(studentChange, { unit: 'percent', higherIsBetter: true }),
       });
       if (studentChange) {
-        takeaway.push(`${formatCount(latestStudents.value)} students were enrolled in public schools in ${formatSchoolYear(latestStudents.year)}, ${describeChange(studentChange.percentChange)} from ${formatSchoolYear(studentChange.from.year)}.`);
+        // "Keeps falling" while it's down overall and fell again in the latest year
+        const previousStudents = students.find(point => point.year === latestStudents.year - 1);
+        const since = `${describeChange(studentChange.percentChange)} since ${formatSchoolYear(studentChange.from.year)}`;
+        takeaway.push(studentChange.percentChange < 0 && previousStudents && latestStudents.value < previousStudents.value
+          ? `Public school enrollment keeps falling, ${since}.`
+          : `Public school enrollment is ${since}.`);
       }
+    }
+    // Charter schools: their growth, and their share of public school students
+    const charter = publicStudents(byType, { type: CHARTER });
+    const latestCharter = latestPoint(charter);
+    const charterChange = changeFrom(charter, SINCE_YEAR);
+    const allPublic = latestCharter ? students.find(point => point.year === latestCharter.year)?.value : undefined;
+    if (latestCharter && charterChange && charterChange.percentChange > 0 && allPublic) {
+      takeaway.push(`Over the same years, charter school enrollment is ${describeChange(charterChange.percentChange)}, `
+        + `though charters still serve only ${formatPercent((latestCharter.value / allPublic) * 100, 1)} of public school students.`);
+    }
+    // Preschool and kindergarten as a share of public school students (the counts themselves follow
+    // the smaller classes), and the COVID dip
+    const earlyShare = students.flatMap(point => {
+      const early = (valueIn(gradeSeries.preschool, point.year) ?? 0) + (valueIn(gradeSeries.kindergarten, point.year) ?? 0);
+      return early && point.value ? [{ year: point.year, value: (early / point.value) * 100 }] : [];
+    });
+    const latestEarly = latestPoint(earlyShare);
+    const earlyThen = earlyShare.find(point => point.year === SINCE_YEAR);
+    if (latestEarly && earlyThen && latestEarly.value > earlyThen.value) {
+      const remote = earlyShare.find(point => point.year === REMOTE_SCHOOL_YEAR);
+      const beforeRemote = earlyShare.find(point => point.year === REMOTE_SCHOOL_YEAR - 1);
+      const dip = remote && beforeRemote && remote.value < beforeRemote.value
+        ? `A brief COVID dip in ${formatSchoolYear(remote.year)} aside, more`
+        : 'More';
+      takeaway.push(`${dip} families are choosing public preschool and kindergarten.`);
     }
     const kindergarten = latestPoint(gradeSeries.kindergarten);
     const grade12 = latestPoint(gradeSeries.grade12);
@@ -161,12 +193,9 @@ const StateEnrollment: React.FC = () => {
         period: shortYear(grade12.year),
         delta: tileDelta(changeFrom(gradeSeries.grade12, SINCE_YEAR), { unit: 'percent', higherIsBetter: true }),
       });
-      if (kindergarten && kindergarten.year === grade12.year) {
-        takeaway.push(`This year's kindergarten class (${formatCount(kindergarten.value)}) is ${kindergarten.value < grade12.value ? 'smaller' : 'larger'} than the graduating class (${formatCount(grade12.value)}).`);
-      }
     }
     return { figures, takeaway };
-  }, [students, gradeSeries]);
+  }, [students, gradeSeries, byType]);
 
   const compareText = gradeTable.compareYear ? formatSchoolYear(gradeTable.compareYear) : 'earlier';
 

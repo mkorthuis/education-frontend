@@ -477,15 +477,17 @@ const K12_EXCLUDED = new Set(['Preschool', 'Post Graduate']);
 
 /**
  * October 1 public school students by year: every public school (district, academy, charter and
- * interstate), all grades by default, or kindergarten to grade 12 with `k12`, or one grade or a set.
+ * interstate) or one `type` of them, all grades by default, or kindergarten to grade 12 with `k12`,
+ * or one grade or a set.
  */
 export const publicStudents = (
   rows: StateEnrollmentByTypeData[],
-  options: { k12?: boolean; grade?: string; grades?: string[] } = {},
+  options: { type?: string; k12?: boolean; grade?: string; grades?: string[] } = {},
 ): YearValue[] => {
   const totals = new Map<number, number>();
   rows.forEach(row => {
     if (!PUBLIC_ENROLLMENT_TYPES.includes(row.enrollment_type.name)) return;
+    if (options.type && row.enrollment_type.name !== options.type) return;
     if (options.k12 && K12_EXCLUDED.has(row.grade.name)) return;
     if (options.grade && row.grade.name !== options.grade) return;
     if (options.grades && !options.grades.includes(row.grade.name)) return;
