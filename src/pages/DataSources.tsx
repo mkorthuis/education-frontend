@@ -243,6 +243,18 @@ const DataSources: React.FC = () => {
         />
         <Divider sx={{ my: 2 }} />
         <DataSourceItem
+          title="State Totals: Public and Private Fall Enrollments"
+          description="Statewide October 1 enrollment by grade for each type of school: public district schools, public academies and joint maintenance agreement schools, public charter schools, interstate schools and nonpublic (private) schools. Education Freedom Account students aren't included."
+          originalSource="https://my.doe.nh.gov/iPlatform/Report/Report?path=%2FBDMQ%2FiPlatform%20Reports%2FEnrollment%20Data%2FState%20Totals%2FState%20Totals%20Ten%20Years%20Public%20and%20Private%20Fall%20Enrollments&name=State%20Totals%20Ten%20Years%20Public%20and%20Private%20Fall%20Enrollments&categoryName=State%20Totals&categoryId=12"
+          originalSourceText="NH DOE State Totals Ten Years Public and Private Fall Enrollments"
+          additionalSourceInfo="Each export covers ten school years; two exports cover 2007-2008 through 2026-2027"
+          loadedFrom="https://github.com/mkorthuis/education-backend/tree/main/backend/app/alembic/assets/state-enrollment-type"
+          loadedFromText="State Enrollment Totals Reports (XSLX)"
+          additionalLoadedInfo="Readiness (a class between kindergarten and grade 1) is counted as grade 1, as the report does."
+        />
+        <Divider sx={{ my: 2 }} />
+
+        <DataSourceItem
           title="Teacher Attainment By District"
           description="Reported for each district are the percent of individuals who hold a Bachelor's, Master's and beyond Master's Degrees. This data has been collected for full and part-time teachers of grades kindergarten through high school (preschool teachers are not included). This data does not include administrators and non-teacher professionals."
           originalSource="https://my.doe.nh.gov/iPlatform/Report/Report?path=%2FBDMQ%2FiPlatform%20Reports%2FEnvironment%20Data%2FStaff%20Reports%2FTeacher%20Attainment&name=Teacher%20Attainment&categoryName=Staff%20Reports&categoryId=27"

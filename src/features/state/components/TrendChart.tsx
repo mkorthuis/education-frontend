@@ -87,6 +87,8 @@ interface TrendChartProps {
   axis?: AxisMode;
   /** A fixed y range, e.g. [0, 100] for percentages */
   yDomain?: [number, number];
+  /** Exact y-axis ticks, lowest first, when the automatic steps leave the line too flat; the axis runs from the first to the last */
+  yTicks?: number[];
   /** Extra values the axis must cover, so it doesn't move when a toggle changes the data */
   axisIncludes?: number[];
   /** Lines: one line per series. Share: one 100% stacked column per year. */
@@ -198,6 +200,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
   axisFormat,
   axis = 'zero',
   yDomain,
+  yTicks,
   axisIncludes = [],
   kind = 'line',
   markers = [],
@@ -245,13 +248,17 @@ const TrendChart: React.FC<TrendChartProps> = ({
 
   const yAxis = useMemo(() => {
     if (kind === 'share') return niceAxis(0, 100, 'span');
+    if (yTicks && yTicks.length > 1) {
+      return { domain: [yTicks[0], yTicks[yTicks.length - 1]] as [number, number], ticks: yTicks, step: yTicks[1] - yTicks[0] };
+    }
     if (yDomain) return niceAxis(yDomain[0], yDomain[1], 'span');
     const values = data
       .flatMap(row => colored.map(entry => row[entry.key]))
       .filter((value): value is number => typeof value === 'number');
     const all = [...values, ...axisIncludes];
     return all.length ? niceAxis(Math.min(...all), Math.max(...all), axis) : null;
-  }, [kind, yDomain, data, colored, axisIncludes, axis]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind, yDomain, yTicks?.join(','), data, colored, axisIncludes, axis]);
   // Fall back to the value format when the axis format would print two ticks the same (0.5% as "1%")
   const tickFormat = useMemo(() => {
     const preferred = axisFormat ?? format;

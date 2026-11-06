@@ -53,6 +53,15 @@ export interface TownEnrollmentData {
     grade: GradeData;
 }
 
+/** Statewide October 1 enrollment for one type of school and grade */
+export interface StateEnrollmentByTypeData {
+    id: number;
+    year: number;
+    enrollment_type: { id: number; name: string };
+    grade: GradeData;
+    enrollment: number;
+}
+
 export interface StateTownEnrollmentData {
     year: number;
     grade_id: number;
@@ -82,6 +91,10 @@ export const enrollmentApi = {
     getStateSchoolCounts: (forceRefresh = false) =>
         fetchData(buildEnrollmentUrl('school-counts/state'), forceRefresh),
         
+    // Statewide October 1 enrollment by type of school (district, academy, charter, interstate, nonpublic) and grade
+    getStateEnrollmentByType: (forceRefresh = false) =>
+        fetchData(buildEnrollmentUrl('type/state'), forceRefresh),
+
     // Statewide K-12 students and those eligible for free or reduced-price lunch, by year
     getStateReducedLunch: (forceRefresh = false) =>
         fetchData(buildEnrollmentUrl('reduced-lunch/state'), forceRefresh),

@@ -7,7 +7,7 @@ import TrendChart, { SERIES_COLORS } from '../components/TrendChart';
 import { formatDollarsShort, formatThousands, shortYear, tileDelta } from '../utils/phrases';
 import KeyFigures, { KeyFigure } from '../components/KeyFigures';
 import { useStateLoads } from '../hooks/useStateLoads';
-import { useStateEfaData } from '../hooks/useStatewideData';
+import { useStateEfaData, useStateEnrollmentByTypeData } from '../hooks/useStatewideData';
 import { StudentGroup, useStatewideGroups } from '../hooks/useStatewideGroups';
 import {
   EFA_BASE_AID,
@@ -21,6 +21,7 @@ import {
   formatSchoolYear,
   pivotByYear,
   PRELIMINARY,
+  publicStudents,
   shareOfEnrollment,
 } from '../utils/stateMetrics';
 import { EFA_AID_LABELS, plainLabel, titleCase } from '../utils/labels';
@@ -58,8 +59,9 @@ const statewideKey = (aid: string) => `statewide:${aid}`;
 
 
 const StateEfa: React.FC = () => {
-  const { loads, entries, entryTypes, enrollment } = useStateEfaData();
-  const { status, retry } = useStateLoads(loads);
+  const { loads, entries, entryTypes } = useStateEfaData();
+  const publicEnrollment = useStateEnrollmentByTypeData();
+  const { status, retry } = useStateLoads([...loads, ...publicEnrollment.loads]);
   // The grants chart shows a count or a share of public school enrollment, like the district pages
   const [grantsAs, setGrantsAs] = useState<'count' | 'percentage'>('count');
 
@@ -104,15 +106,15 @@ const StateEfa: React.FC = () => {
     return { rows, series, note };
   }, [entries, typeNames, totals, statewideGroups]);
 
-  // Grants as a percentage of public school enrollment, for years with both
+  // Grants as a percentage of public school enrollment, for years with both: October 1 students in
+  // kindergarten to grade 12, the grades EFA students are in
   const grantShare = useMemo(() => {
-    const enrolled = new Map<number, number>();
-    enrollment.forEach(row => enrolled.set(row.year, (enrolled.get(row.year) ?? 0) + row.total_enrollment));
+    const enrolled = new Map(publicStudents(publicEnrollment.byType, { k12: true }).map(point => [point.year, point.value]));
     const counts = totals.flatMap(row => (typeof row.students === 'number' ? [{ year: row.year, value: row.students }] : []));
     const shares = shareOfEnrollment(counts, [...enrolled].map(([year, value]) => ({ year, value })));
     const missing = counts.filter(point => !shares.some(share => share.year === point.year)).map(point => point.year);
     return { rows: shares.map(point => ({ year: point.year, grants: point.value })), missing, enrolled };
-  }, [totals, enrollment]);
+  }, [totals, publicEnrollment.byType]);
 
   const latest = totals.length ? totals[totals.length - 1] : null;
   const previous = totals.length > 1 ? totals[totals.length - 2] : null;
@@ -194,7 +196,7 @@ const StateEfa: React.FC = () => {
         columns: [
           { header: 'School Year', width: 12 },
           { header: 'EFA Grants', format: COUNT },
-          { header: 'Public School Enrollment', width: 24, format: COUNT },
+          { header: 'K-12 Public School Enrollment', width: 28, format: COUNT },
           { header: '% of Public School Enrollment', width: 28, format: PERCENT },
         ],
         rows: totals.map(row => [
@@ -251,7 +253,7 @@ const StateEfa: React.FC = () => {
             ? [`${formatSchoolYear(PRELIMINARY.efaYear)} numbers are preliminary, from the state's count as of ${PRELIMINARY.efaAsOf}; other years are final.`]
             : []),
           'EFA grants, estimated cost and aid by category: NH Department of Education, Education Freedom Account aid calculations (RSA 194-F). Estimated cost is the students in each aid category times that year\'s per-student amount, not actual payments to families.',
-          'Public school enrollment: NH Department of Education, Town Enrollment By Grade (kindergarten to grade 12, by town of residence).',
+          'Public school enrollment: NH Department of Education, State Totals Ten Years Public and Private Fall Enrollments (October 1, kindergarten to grade 12, in district, academy, charter and interstate schools).',
           'State Low Income: NH Department of Education, Free Reduced K-12 School Lunch Eligibility Rates by School (statewide, as of October 1).',
           'State Special Education: NH Department of Education school metrics, "Students with Disability (%)", district figures weighted by enrollment.',
           'Students can receive more than one kind of extra aid, so the aid table\'s total counts each student once (the base amount).',
@@ -315,7 +317,8 @@ const StateEfa: React.FC = () => {
               : {
                 data: grantShare.rows,
                 format: (value: number) => formatPercent(value, 1),
-                axisFormat: (value: number) => formatPercent(value),
+                // Whole percents, or one decimal for steps like 2.5%
+                axisFormat: (value: number) => formatPercent(value, Number.isInteger(value) ? 0 : 1),
                 note: grantShare.missing.length
                   ? `${grantShare.missing.map(formatSchoolYear).join(', ')} isn't shown: the state hasn't published that year's enrollment yet.`
                   : undefined,

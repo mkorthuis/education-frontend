@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
-import { enrollmentApi, TownEnrollmentData, StateTownEnrollmentData, SchoolEnrollmentData } from '@/services/api/endpoints/enrollments';
+import { enrollmentApi, TownEnrollmentData, StateTownEnrollmentData, SchoolEnrollmentData, StateEnrollmentByTypeData } from '@/services/api/endpoints/enrollments';
 import { LoadingState, retryFailedLoads, resetFailedStatuses } from '@/store/utils/loadingState';
 import { createOptionsKeyDropNull } from '@/store/utils/cacheKey';
 import { createKeyedThunk, addKeyedCases, needsRequest } from '@/store/utils/keyedResource';
@@ -24,7 +24,7 @@ export interface StateTownEnrollmentParams extends BaseEnrollmentParams {
 }
 
 // Type definitions
-export type EnrollmentCategory = 'townEnrollments' | 'stateTownEnrollments' | 'schoolEnrollments';
+export type EnrollmentCategory = 'townEnrollments' | 'stateTownEnrollments' | 'schoolEnrollments' | 'stateEnrollmentByType';
 
 // State interface
 interface EnrollmentState {
@@ -36,6 +36,7 @@ interface EnrollmentState {
         townEnrollments: Record<string, TownEnrollmentData[]>;
         stateTownEnrollments: Record<string, StateTownEnrollmentData[]>;
         schoolEnrollments: Record<string, SchoolEnrollmentData[]>;
+        stateEnrollmentByType: Record<string, StateEnrollmentByTypeData[]>;
     }
 }
 
@@ -44,12 +45,14 @@ const initialState: EnrollmentState = {
     loadingStatus: {
         townEnrollments: {},
         stateTownEnrollments: {},
-        schoolEnrollments: {}
+        schoolEnrollments: {},
+        stateEnrollmentByType: {}
     },
     data: {
         townEnrollments: {},
         stateTownEnrollments: {},
-        schoolEnrollments: {}
+        schoolEnrollments: {},
+        stateEnrollmentByType: {}
     }
 }
 
@@ -65,6 +68,13 @@ export const fetchStateTownEnrollment = createKeyedThunk<StateTownEnrollmentPara
     key: createOptionsKeyDropNull,
     status: (getState, key) => (getState() as RootState).enrollment.loadingStatus.stateTownEnrollments[key],
     request: (options, forceRefresh) => enrollmentApi.getStateTownEnrollment(options, forceRefresh),
+});
+
+// Statewide October 1 enrollment by type of school and grade (no parameters)
+export const fetchStateEnrollmentByType = createKeyedThunk<BaseEnrollmentParams, StateEnrollmentByTypeData>('enrollment/fetchStateEnrollmentByType', {
+    key: createOptionsKeyDropNull,
+    status: (getState, key) => (getState() as RootState).enrollment.loadingStatus.stateEnrollmentByType[key],
+    request: (_options, forceRefresh) => enrollmentApi.getStateEnrollmentByType(forceRefresh),
 });
 
 // Hand-written: schoolId is a path param, re-added to the key; no default arg.
@@ -110,6 +120,13 @@ export const enrollmentSlice = createSlice({
             key: createOptionsKeyDropNull,
         });
 
+        // State enrollment by type of school
+        addKeyedCases(builder, fetchStateEnrollmentByType, {
+            data: (state) => state.data.stateEnrollmentByType,
+            status: (state) => state.loadingStatus.stateEnrollmentByType,
+            key: createOptionsKeyDropNull,
+        });
+
         // School Enrollments
         addKeyedCases(builder, fetchSchoolEnrollments, {
             data: (state) => state.data.schoolEnrollments,
@@ -128,11 +145,13 @@ export const enrollmentSlice = createSlice({
 // Loading selectors: key keeps forceRefresh (as pending does) and undefined params give '_default'
 export const selectTownEnrollmentLoadingStatus = makeStatusSelector<RootState, TownEnrollmentParams>((state) => state.enrollment.loadingStatus.townEnrollments, createOptionsKeyDropNull);
 export const selectStateTownEnrollmentLoadingStatus = makeStatusSelector<RootState, StateTownEnrollmentParams>((state) => state.enrollment.loadingStatus.stateTownEnrollments, createOptionsKeyDropNull);
+export const selectStateEnrollmentByTypeLoadingStatus = makeStatusSelector<RootState, BaseEnrollmentParams>((state) => state.enrollment.loadingStatus.stateEnrollmentByType, createOptionsKeyDropNull);
 export const selectSchoolEnrollmentLoadingStatus = makeStatusSelector<RootState, { schoolId: number } & BaseEnrollmentParams>((state) => state.enrollment.loadingStatus.schoolEnrollments, createOptionsKeyDropNull);
 
 // Data selectors (memoized): key strips forceRefresh; undefined params throw
 export const selectTownEnrollment = makeMemoDataSelector<RootState, TownEnrollmentParams, TownEnrollmentData>((state) => state.enrollment.data.townEnrollments, createOptionsKeyDropNull);
 export const selectStateTownEnrollment = makeMemoDataSelector<RootState, StateTownEnrollmentParams, StateTownEnrollmentData>((state) => state.enrollment.data.stateTownEnrollments, createOptionsKeyDropNull);
+export const selectStateEnrollmentByType = makeMemoDataSelector<RootState, BaseEnrollmentParams, StateEnrollmentByTypeData>((state) => state.enrollment.data.stateEnrollmentByType, createOptionsKeyDropNull);
 export const selectSchoolEnrollment = makeMemoDataSelector<RootState, { schoolId: number } & BaseEnrollmentParams, SchoolEnrollmentData>((state) => state.enrollment.data.schoolEnrollments, createOptionsKeyDropNull);
 
 export default enrollmentSlice.reducer; 

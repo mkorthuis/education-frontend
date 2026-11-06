@@ -207,12 +207,34 @@ describe('State pages', () => {
     expect(salaryChange).toHaveStyle({ color: '#2e7d32' });
   });
 
-  it('enrollment compares grades with the year before the pandemic, not 2020-21', async () => {
+  it('enrollment compares the tiles, type of school and grades with 2014-15', async () => {
     renderPage(<StateEnrollment />, '/state/enrollment');
-    expect(await screen.findByText('Enrollment by grade, 2025-26', undefined, TIMEOUT)).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Change since 2019-20' })).toBeInTheDocument();
-    expect(within(screen.getByText('Kindergarten', { selector: 'th' }).closest('tr')!).getByText('−6%')).toBeInTheDocument();
-    expect(screen.getByText(/^Compared with 2019-20, before the pandemic/)).toBeInTheDocument();
+    expect(await screen.findByText('Public School Enrollment By Grade, 2025-26', undefined, TIMEOUT)).toBeInTheDocument();
+    expect(screen.getAllByRole('columnheader', { name: /^Change Since 2014-15/ })[0]).toBeInTheDocument();
+    expect(within(screen.getByText('Kindergarten', { selector: 'th' }).closest('tr')!).getByText('+6%')).toBeInTheDocument();
+    // All three tiles compare with 2014-15; no district picker, note box or source line
+    const tile = (label: string) => screen.getAllByText(label, { selector: 'p' }).map(element => element.closest('.MuiCard-root')).find(Boolean);
+    expect(tile('Kindergarten')).toHaveTextContent('Up 6% since 2014-15');
+    expect(tile('Grade 12')).toHaveTextContent('Up 2% since 2014-15');
+    // The students chart shows all students, the three levels, or one grade
+    await userEvent.click(screen.getByRole('combobox', { name: 'Show public school students' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'By Level' }));
+    expect(await screen.findByText('Elementary (K-5)')).toBeInTheDocument();
+    expect(screen.getByText('# of Students By Level')).toBeInTheDocument();
+    // One Excel download for the page in place of CSV links
+    expect(screen.getByRole('button', { name: 'Download Excel' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: /as CSV$/ })).not.toBeInTheDocument();
+    // No Chart/Table toggle on any enrollment chart
+    expect(screen.queryByRole('button', { name: 'Table' })).not.toBeInTheDocument();
+    // Charter schools beside district schools, from the state's enrollment by type of school
+    expect(await screen.findByText('Enrollment by Type of School, 2024-25')).toBeInTheDocument();
+    expect(within(screen.getByText('Charter Schools', { selector: 'th' }).closest('tr')!).getByText('+140%')).toBeInTheDocument();
+    expect(screen.getByText(/^Private School Counts unavailable for 25\/26\. Displaying 24\/25\. EFA Students not counted here\.$/)).toBeInTheDocument();
+    expect(within(screen.getByText('Private Schools', { selector: 'th' }).closest('tr')!).getByText('16,700')).toBeInTheDocument();
+    expect(screen.getByText('All Schools', { selector: 'th' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('See these figures for your district')).not.toBeInTheDocument();
+    expect(screen.queryByText('Not on this page')).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Source:/)).not.toBeInTheDocument();
   });
 
   it('safety gives truancy as a share of students and lists incidents by type', async () => {

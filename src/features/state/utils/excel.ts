@@ -22,6 +22,8 @@ export interface ExcelSheet {
   subtitle?: string;
   columns: ExcelColumn[];
   rows: ExcelValue[][];
+  /** Indexes of rows (in `rows`) shown as subtotals, in bold */
+  subtotalRows?: number[];
   /** A bold last row, e.g. the total */
   totalRow?: ExcelValue[];
 }
@@ -99,7 +101,10 @@ export const downloadWorkbook = async (fileName: string, sheets: ExcelSheet[]) =
         header(sheet),
         // Every other row banded, so long tables are easy to follow across
         ...sheet.rows.map((row, rowIndex) => row.map((value, index) =>
-          cell(value, sheet.columns[index], rowIndex % 2 ? { backgroundColor: BAND } : {}))),
+          cell(value, sheet.columns[index], {
+            ...(rowIndex % 2 ? { backgroundColor: BAND } : {}),
+            ...(sheet.subtotalRows?.includes(rowIndex) ? { fontWeight: 'bold' } : {}),
+          }))),
         ...(sheet.totalRow
           ? [sheet.totalRow.map((value, index) => cell(value, sheet.columns[index], {
             fontWeight: 'bold', backgroundColor: TOTAL_FILL, topBorderStyle: 'medium', topBorderColor: '#999999',

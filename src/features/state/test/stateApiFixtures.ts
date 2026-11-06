@@ -56,6 +56,9 @@ export const STATE_API_FIXTURES: Record<string, unknown> = {
   },
   'enrollment/town/state': [
     // 2020-21 (the pandemic dip) is skipped as the comparison year in favor of 2019-20
+    // 2014-15, the year the key figure tiles compare with
+    { year: 2015, grade_id: 2, total_enrollment: 12500, grade: grade(2, 'Kindergarten') },
+    { year: 2015, grade_id: 14, total_enrollment: 14000, grade: grade(14, 'Grade 12') },
     { year: 2020, grade_id: 2, total_enrollment: 11250, grade: grade(2, 'Kindergarten') },
     { year: 2021, grade_id: 2, total_enrollment: 10000, grade: grade(2, 'Kindergarten') },
     { year: 2026, grade_id: 2, total_enrollment: 10625, grade: grade(2, 'Kindergarten') },
@@ -127,6 +130,22 @@ export const STATE_API_FIXTURES: Record<string, unknown> = {
   'measurement/type': [
     { id: 34, name: 'Economically Disadvantaged Students (%)', measurement_type_category_id: 1 },
     { id: 36, name: 'Students with Disability (%)', measurement_type_category_id: 1 },
+  ],
+  // October 1 public school enrollment: 2025-26 the latest year, compared with 2019-20 (the year
+  // before the pandemic dip) by grade and with 2014-15 on the tiles; private counts a year behind
+  'enrollment/type/state': [
+    { id: 1, year: 2015, enrollment_type: { id: 1, name: 'Public District Schools' }, grade: grade(2, 'Kindergarten'), enrollment: 10000 },
+    { id: 2, year: 2015, enrollment_type: { id: 1, name: 'Public District Schools' }, grade: grade(14, 'Grade 12'), enrollment: 12000 },
+    { id: 3, year: 2015, enrollment_type: { id: 3, name: 'Public Charter Schools' }, grade: grade(8, 'Grade 6'), enrollment: 2500 },
+    { id: 4, year: 2020, enrollment_type: { id: 1, name: 'Public District Schools' }, grade: grade(2, 'Kindergarten'), enrollment: 11268 },
+    { id: 5, year: 2021, enrollment_type: { id: 1, name: 'Public District Schools' }, grade: grade(2, 'Kindergarten'), enrollment: 9000 },
+    { id: 6, year: 2026, enrollment_type: { id: 1, name: 'Public District Schools' }, grade: grade(2, 'Kindergarten'), enrollment: 10625 },
+    { id: 7, year: 2026, enrollment_type: { id: 1, name: 'Public District Schools' }, grade: grade(14, 'Grade 12'), enrollment: 12269 },
+    { id: 8, year: 2026, enrollment_type: { id: 3, name: 'Public Charter Schools' }, grade: grade(8, 'Grade 6'), enrollment: 7000 },
+    { id: 9, year: 2025, enrollment_type: { id: 5, name: 'Nonpublic Schools' }, grade: grade(2, 'Kindergarten'), enrollment: 16700 },
+    // 2024-25 public counts, so the type of school table has a year with both public and private
+    { id: 10, year: 2025, enrollment_type: { id: 1, name: 'Public District Schools' }, grade: grade(2, 'Kindergarten'), enrollment: 10600 },
+    { id: 11, year: 2025, enrollment_type: { id: 3, name: 'Public Charter Schools' }, grade: grade(8, 'Grade 6'), enrollment: 6000 },
   ],
   'enrollment/reduced-lunch/state': [{ id: 1, year: 2026, enrollment: 155853, eligible: 36085 }],
   'enrollment/english-learner/state': [{ id: 1, year: 2026, enrollment: 160257, eligible: 6074, monitor: 1821 }],

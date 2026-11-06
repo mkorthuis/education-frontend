@@ -1,4 +1,5 @@
 import { calculateInflationAdjustedAmount } from '@/utils/calculations';
+import type { StateEnrollmentByTypeData } from '@/services/api/endpoints/enrollments';
 
 // Statewide figures for the State pages. Every function is pure: it takes the rows the API returns
 // and gives chart-ready series (one object per year, oldest first) or single values.
@@ -63,6 +64,15 @@ export const changeSince = (series: YearValue[], yearsBack: number): Change | nu
   const candidates = series.filter(point => point.year >= to.year - yearsBack && point.year < to.year);
   if (!candidates.length) return null;
   const from = candidates.reduce((earliest, point) => (point.year < earliest.year ? point : earliest));
+  const change = to.value - from.value;
+  return { from, to, change, percentChange: from.value === 0 ? 0 : (change / from.value) * 100 };
+};
+
+/** The change from a given year to the latest, or null when the series doesn't have that year. */
+export const changeFrom = (series: YearValue[], fromYear: number): Change | null => {
+  const to = latestPoint(series);
+  const from = series.find(point => point.year === fromYear);
+  if (!to || !from || to.year <= fromYear) return null;
   const change = to.value - from.value;
   return { from, to, change, percentChange: from.value === 0 ? 0 : (change / from.value) * 100 };
 };
@@ -442,4 +452,34 @@ export const describeChange = (percentChange: number, digits = 0): string => {
   const rounded = Number(Math.abs(percentChange).toFixed(digits));
   if (rounded === 0) return 'unchanged';
   return `${percentChange > 0 ? 'up' : 'down'} ${rounded}%`;
+};
+
+// -------------------- October 1 enrollment by type of school --------------------
+
+/** The public types of school in the state's enrollment totals; the other type is nonpublic (private) schools */
+export const PUBLIC_ENROLLMENT_TYPES = [
+  'Public District Schools',
+  'Public Academies and Joint Maintenance Agreement Schools',
+  'Public Charter Schools',
+  'Interstate Schools',
+];
+const K12_EXCLUDED = new Set(['Preschool', 'Post Graduate']);
+
+/**
+ * October 1 public school students by year: every public school (district, academy, charter and
+ * interstate), all grades by default, or kindergarten to grade 12 with `k12`, or one grade or a set.
+ */
+export const publicStudents = (
+  rows: StateEnrollmentByTypeData[],
+  options: { k12?: boolean; grade?: string; grades?: string[] } = {},
+): YearValue[] => {
+  const totals = new Map<number, number>();
+  rows.forEach(row => {
+    if (!PUBLIC_ENROLLMENT_TYPES.includes(row.enrollment_type.name)) return;
+    if (options.k12 && K12_EXCLUDED.has(row.grade.name)) return;
+    if (options.grade && row.grade.name !== options.grade) return;
+    if (options.grades && !options.grades.includes(row.grade.name)) return;
+    totals.set(row.year, (totals.get(row.year) ?? 0) + row.enrollment);
+  });
+  return sortByYear([...totals].map(([year, value]) => ({ year, value })));
 };

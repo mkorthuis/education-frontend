@@ -21,6 +21,8 @@ export interface StateTableColumn<T> {
 
 interface StateTableProps<T> {
   title?: string;
+  /** A shorter title for phones, e.g. with the short year */
+  shortTitle?: string;
   subtitle?: string;
   /** Table caption for screen readers when there's no visible title (e.g. a chart's table view) */
   caption?: string;
@@ -30,6 +32,8 @@ interface StateTableProps<T> {
   totalRow?: T;
   /** Groups rows under subheadings, e.g. "Race and ethnicity"; rows must already be in group order */
   sectionOf?: (row: T) => string;
+  /** Rows shown as subtotals: semibold, with a rule above (the total row stays heavier) */
+  isSubtotal?: (row: T) => boolean;
   csvName?: string;
   emptyMessage?: string;
   note?: React.ReactNode;
@@ -89,12 +93,14 @@ const cellText = <T,>(column: StateTableColumn<T>, row: T): React.ReactNode => {
 
 function StateTable<T>({
   title,
+  shortTitle,
   subtitle,
   caption,
   columns,
   rows,
   totalRow,
   sectionOf,
+  isSubtotal,
   csvName,
   emptyMessage = 'No data available',
   note,
@@ -142,8 +148,12 @@ function StateTable<T>({
         </TableRow>
       );
     }
+    const subtotal = isSubtotal?.(row) ?? false;
     bodyRows.push(
-      <TableRow key={index} sx={{ backgroundColor: SURFACE }}>
+      <TableRow
+        key={index}
+        sx={{ backgroundColor: SURFACE, ...(subtotal && { '& td, & th': { fontWeight: 600, borderTop: '1px solid', borderTopColor: 'grey.400' } }) }}
+      >
         {columns.map((column, columnIndex) => (
           <TableCell
             key={column.key}
@@ -152,7 +162,7 @@ function StateTable<T>({
             scope={columnIndex === 0 ? 'row' : undefined}
             sx={cellSx(column, columnIndex, {
               whiteSpace: column.key === 'year' || column.align === 'right' ? 'nowrap' : undefined,
-              fontWeight: 'normal',
+              fontWeight: subtotal ? 600 : 'normal',
               // Row labels keep a readable width when a wide table scrolls on a phone
               minWidth: columnIndex === 0 && columns.length > 3 ? 140 : undefined,
             })}
@@ -170,6 +180,7 @@ function StateTable<T>({
         <ChartHeader
           titleId={titleId}
           title={title ?? ''}
+          shortTitle={shortTitle}
           subtitle={subtitle}
           // No CSV on phones, where a download is little use
           actions={csvName && allRows.length > 0 && !isMobile ? (
