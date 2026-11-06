@@ -12,7 +12,6 @@ import {
 } from '@/store/slices/locationSlice';
 import * as staffSlice from '@/store/slices/staffSlice';
 import * as classSizeSlice from '@/store/slices/classSizeSlice';
-import * as enrollmentSlice from '@/store/slices/enrollmentSlice';
 import { 
   fetchLatestMeasurements,
   selectLatestMeasurements,
@@ -70,9 +69,7 @@ const Staff: React.FC = () => {
     districtTeacherSalaryBandData,
     stateTeacherSalaryBandData,
     districtClassSizeData,
-    stateClassSizeData,
-    districtEnrollmentData,
-    stateEnrollmentData
+    stateClassSizeData
   } = useAppSelector(state => ({
     staffTypes: staffSlice.selectStaffTypes(state),
     teacherEducationTypes: staffSlice.selectTeacherEducationTypes(state),
@@ -86,9 +83,7 @@ const Staff: React.FC = () => {
     districtTeacherSalaryBandData: staffSlice.selectDistrictTeacherSalaryBandData(state, districtParams),
     stateTeacherSalaryBandData: staffSlice.selectStateTeacherSalaryBandData(state, stateParams),
     districtClassSizeData: classSizeSlice.selectDistrictClassSizeData(state, districtParams),
-    stateClassSizeData: classSizeSlice.selectStateClassSizeData(state, stateParams),
-    districtEnrollmentData: enrollmentSlice.selectTownEnrollment(state, districtParams),
-    stateEnrollmentData: enrollmentSlice.selectStateTownEnrollment(state, stateParams)
+    stateClassSizeData: classSizeSlice.selectStateClassSizeData(state, stateParams)
   }));
 
   // Loading states
@@ -103,16 +98,14 @@ const Staff: React.FC = () => {
       teacherEducation: staffSlice.selectDistrictTeacherEducationLoadingStatus(state, districtParams),
       teacherAverageSalary: staffSlice.selectDistrictTeacherAverageSalaryLoadingStatus(state, districtParams),
       teacherSalaryBand: staffSlice.selectDistrictTeacherSalaryBandLoadingStatus(state, districtParams),
-      classSize: classSizeSlice.selectDistrictClassSizeLoadingStatus(state, districtParams),
-      enrollment: enrollmentSlice.selectTownEnrollmentLoadingStatus(state, districtParams)
+      classSize: classSizeSlice.selectDistrictClassSizeLoadingStatus(state, districtParams)
     },
     state: {
       staff: staffSlice.selectStateStaffLoadingStatus(state, stateParams),
       teacherEducation: staffSlice.selectStateTeacherEducationLoadingStatus(state, stateParams),
       teacherAverageSalary: staffSlice.selectStateTeacherAverageSalaryLoadingStatus(state, stateParams),
       teacherSalaryBand: staffSlice.selectStateTeacherSalaryBandLoadingStatus(state, stateParams),
-      classSize: classSizeSlice.selectStateClassSizeLoadingStatus(state, stateParams),
-      enrollment: enrollmentSlice.selectStateTownEnrollmentLoadingStatus(state, stateParams)
+      classSize: classSizeSlice.selectStateClassSizeLoadingStatus(state, stateParams)
     }
   }));
 
@@ -169,9 +162,6 @@ const Staff: React.FC = () => {
       if (shouldFetchData(loadingStates.district.classSize, districtClassSizeData)) {
         dispatch(classSizeSlice.fetchDistrictClassSizeData(districtParams));
       }
-      if (shouldFetchData(loadingStates.district.enrollment, districtEnrollmentData)) {
-        dispatch(enrollmentSlice.fetchTownEnrollment(districtParams));
-      }
 
       // Fetch state data
       if (shouldFetchData(loadingStates.state.staff, stateStaffData)) {
@@ -189,9 +179,6 @@ const Staff: React.FC = () => {
       if (shouldFetchData(loadingStates.state.classSize, stateClassSizeData)) {
         dispatch(classSizeSlice.fetchStateClassSizeData(stateParams));
       }
-      if (shouldFetchData(loadingStates.state.enrollment, stateEnrollmentData)) {
-        dispatch(enrollmentSlice.fetchStateTownEnrollment(stateParams));
-      }
     }
   }, [
     dispatch, districtId, district,
@@ -200,8 +187,7 @@ const Staff: React.FC = () => {
     teacherSalaryBandTypes, districtStaffData, districtTeacherEducationData,
     districtTeacherAverageSalaryData, districtTeacherSalaryBandData,
     stateStaffData, stateTeacherEducationData, stateTeacherAverageSalaryData,
-    stateTeacherSalaryBandData, districtClassSizeData, stateClassSizeData,
-    districtEnrollmentData, stateEnrollmentData
+    stateTeacherSalaryBandData, districtClassSizeData, stateClassSizeData
   ]);
 
   if (hasLoadError) {
