@@ -16,7 +16,6 @@ import {
   formatCount,
   formatPercent,
   formatSchoolYear,
-  formatSignedPercent,
   latestPoint,
   mergeSeries,
   pivotByYear,
@@ -118,7 +117,8 @@ const StateSafety: React.FC = () => {
         shortLabel: 'Truant',
         value: formatPercent(latestShare.value, 1),
         period: shortYear(latestShare.year),
-        delta: tileDelta(change, { unit: 'points', higherIsBetter: false }),
+        // The change relative to the share then (9.1% to 18.8% is up 107%), like the other tiles
+        delta: tileDelta(change, { unit: 'percent', higherIsBetter: false }),
       });
       const count = truancyRows.find(row => row.year === latestShare.year)?.students;
       if (change) {
@@ -168,13 +168,10 @@ const StateSafety: React.FC = () => {
   // Everything on the page as one workbook: a sheet per chart or table, and the notes the page leaves out
   const downloadExcel = () => {
     const number = (value: number | string | null | undefined) => (typeof value === 'number' ? value : null);
-    const tileRow = (figure: string, series: YearValue[], text: (value: number) => string, points = false): (string | number | null)[] => {
+    const tileRow = (figure: string, series: YearValue[], text: (value: number) => string): (string | number | null)[] => {
       const latest = latestPoint(series);
       const change = changeSince(series, TREND_YEARS);
-      const changeText = change
-        ? points ? `${change.change >= 0 ? '+' : '−'}${Math.abs(change.change).toFixed(1)} percentage points` : formatSignedPercent(change.percentChange)
-        : null;
-      return [figure, latest ? formatSchoolYear(latest.year) : null, latest ? text(latest.value) : null, changeText, change ? formatSchoolYear(change.from.year) : null];
+      return [figure, latest ? formatSchoolYear(latest.year) : null, latest ? text(latest.value) : null, asFraction(change?.percentChange), change ? formatSchoolYear(change.from.year) : null];
     };
     const typesByName = [...incidentTypes]
       .sort((a, b) => bySection(incidentSection(a.label), incidentSection(b.label)) || a.label.localeCompare(b.label));
@@ -185,11 +182,11 @@ const StateSafety: React.FC = () => {
           { header: 'Figure', width: 26 },
           { header: 'School Year', width: 12 },
           { header: 'Value', width: 12 },
-          { header: 'Change', width: 26 },
+          { header: 'Change', format: PERCENT },
           { header: 'Since', width: 12 },
         ],
         rows: [
-          tileRow('Students Who Were Truant', toSeries(truancyRows, row => row.share), value => formatPercent(value, 1), true),
+          tileRow('Students Who Were Truant', toSeries(truancyRows, row => row.share), value => formatPercent(value, 1)),
           tileRow('Bullying Reports', toSeries(bullyingRows, row => row.reported), formatCount),
           tileRow('Restraints', toSeries(restraintRows, row => row.restraints), formatCount),
         ],
