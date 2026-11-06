@@ -132,12 +132,3 @@ export const INCIDENT_LABELS: Record<string, string> = {
   'Robberies': 'Robbery',
 };
 
-// Staff types from the state's Full Time Equivalent Staff Count report
-export const STAFF_LABELS: Record<string, string> = {
-  'Teacher': 'Teachers',
-  'Instruction Support': 'Instructional support',
-  'Librarian': 'Librarians',
-  'Specialist': 'Specialists',
-  'Admin Support': 'Administrative support',
-  'All Other Support': 'All other support',
-};

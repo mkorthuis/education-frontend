@@ -74,11 +74,14 @@ export const STATE_API_FIXTURES: Record<string, unknown> = {
     { id: 2, year: 2026, salary: 71857 },
   ],
   'staff/state/teacher-education': [
+    { id: 3, year: 2015, value: 6000, teacher_type: { id: 2, name: 'Bachelor' } },
+    { id: 4, year: 2015, value: 7000, teacher_type: { id: 3, name: 'Masters' } },
     { id: 1, year: 2025, value: 5000, teacher_type: { id: 2, name: 'Bachelor' } },
     { id: 2, year: 2025, value: 8000, teacher_type: { id: 3, name: 'Masters' } },
   ],
   'class-size/class-size/state': [
-    { id: 1, year: 2025, grades_1_2: 15.9, grades_3_4: 17.1, grades_5_8: 13.8, all_grades: null },
+    { id: 2, year: 2024, grades_1_2: 16.4, grades_3_4: 17.9, grades_5_8: 16.7, all_grades: 16.9 },
+    { id: 1, year: 2025, grades_1_2: 15.9, grades_3_4: 17.1, grades_5_8: 13.8, all_grades: 15.3 },
   ],
   'outcome/outcome/graduation-cohort/state': [
     { id: 1, year: 2015, cohort_size: 1000, graduate: 880, earned_hiset: 20, dropped_out: 30 },

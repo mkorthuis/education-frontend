@@ -53,6 +53,17 @@ const DataSources: React.FC = () => {
         <Divider sx={{ my: 2 }} />
         
         <DataSourceItem
+          title="State Average Class Size"
+          description="New Hampshire's average class size for all grades, one figure per year from 2015-16. NH DOE publishes it only in iExplore's Compare view, not in the class size reports, which give the state average for grades 1&2, 3&4, and 5-8."
+          originalSource="https://jwt.nh.gov/?src_route=/iExplore/Explore-Dashboard"
+          originalSourceText="NH DOE iExplore"
+          additionalSourceInfo="Compare view with State of New Hampshire selected, Average Class Size downloaded as CSV; each download holds three years"
+          loadedFrom="https://github.com/mkorthuis/education-backend/tree/main/backend/app/alembic/assets/average-class-size/state"
+          loadedFromText="State Average Class Size Downloads (CSV)"
+        />
+        <Divider sx={{ my: 2 }} />
+        
+        <DataSourceItem
           title="Cohort Counts By School"
           description="Beginning with 2009-2010, the Department will report the NH Annual Graduate Rate based on a cohort model using US Department of Education established parameters. This report identifies the number of students who graduated in four years with a regular high school diploma or an adult high school diploma and the graduation rate by school and district."
           originalSource="https://my.doe.nh.gov/iPlatform/Report/Report?path=%2FBDMQ%2FiPlatform%20Reports%2FPerformance%20Data%2FDropouts%20and%20Completers%2FCohort%20Counts%20By%20School&name=Cohort%20Counts%20By%20School&categoryName=Dropouts%20and%20Completers&categoryId=23"

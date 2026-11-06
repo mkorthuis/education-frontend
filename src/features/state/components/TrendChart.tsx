@@ -1,4 +1,4 @@
-import React, { useId, useMemo, useState } from 'react';
+import React, { useId, useMemo, useRef, useState } from 'react';
 import { Box, Button, ToggleButton, ToggleButtonGroup, Typography, useMediaQuery, useTheme } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import {
@@ -73,6 +73,8 @@ interface TrendChartProps {
   shortSubtitle?: string;
   /** Leave the subtitle off on phones */
   hideSubtitleOnPhone?: boolean;
+  /** The legend under the plot instead of over it, e.g. so a chart lines up with one beside it that has none */
+  legendBelow?: boolean;
   /** A control shown before the chart's buttons, e.g. a picker for what the chart counts */
   control?: React.ReactNode;
   /** Offer the Chart/Table toggle (default on) */
@@ -186,6 +188,17 @@ const EndLabels = (props: any) => {
   );
 };
 
+/**
+ * The same value for as long as its contents are the same. Recharts restarts its animation, morphing
+ * from the old lines, whenever it gets a new data array, and pages build their arrays on every render.
+ */
+const useStableByContent = <T,>(value: T): T => {
+  const ref = useRef<{ key: string; value: T }>();
+  const key = JSON.stringify(value);
+  if (!ref.current || ref.current.key !== key) ref.current = { key, value };
+  return ref.current.value;
+};
+
 const TrendChart: React.FC<TrendChartProps> = ({
   title,
   shortTitle,
@@ -194,6 +207,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
   hideSubtitleOnPhone,
   control,
   showViewToggle = true,
+  legendBelow = false,
   data,
   series,
   format,
@@ -217,6 +231,8 @@ const TrendChart: React.FC<TrendChartProps> = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  // Lines draw in and bars grow, like the district charts, unless the reader has asked for less motion
+  const animate = !useMediaQuery('(prefers-reduced-motion: reduce)');
   const [view, setView] = useState<'chart' | 'table'>('chart');
   const { ref, width } = useElementWidth<HTMLDivElement>();
   const titleId = useId();
@@ -245,6 +261,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
     return { chartData: rows, eras: eraList };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, years, colored, breakKey, yearLabel]);
+  const stableChartData = useStableByContent(chartData);
 
   const yAxis = useMemo(() => {
     if (kind === 'share') return niceAxis(0, 100, 'span');
@@ -356,6 +373,28 @@ const TrendChart: React.FC<TrendChartProps> = ({
 
   const axisTick = { fontSize: 12, fill: theme.palette.text.secondary };
 
+  // A single line needs no legend (the title names it), so the chart starts right under the title
+  const legend = (showLegend || markerKey) ? (
+    <Box component="ul" aria-hidden sx={{ display: 'flex', flexWrap: 'wrap', columnGap: 2, rowGap: 0.5, listStyle: 'none', p: 0, m: 0, ...(legendBelow ? { mt: 1 } : { mb: 1 }), minHeight: 24 }}>
+      {showLegend && legendOrder.map(entry => (
+        <Box component="li" key={entry.key} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+          {entry.dashed ? (
+            <Box sx={{ width: 16, height: 0, borderTop: '3px dashed', borderColor: entry.color, flexShrink: 0 }} />
+          ) : (
+            <Box sx={{ width: 16, height: kind === 'share' ? 10 : 3, borderRadius: kind === 'share' ? 0.5 : 2, backgroundColor: entry.color, flexShrink: 0 }} />
+          )}
+          <Typography variant="body2" color="text.primary">{entry.name}</Typography>
+        </Box>
+      ))}
+      {markerKey && (
+        <Box component="li" sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+          <Box sx={{ width: 16, height: 0, borderTop: '2px dashed', borderColor: 'grey.400', flexShrink: 0 }} />
+          <Typography variant="body2" color="text.secondary">{markerKey}</Typography>
+        </Box>
+      )}
+    </Box>
+  ) : null;
+
   return (
     <Box component="figure" aria-labelledby={titleId} aria-describedby={summaryId} sx={{ m: 0, minWidth: 0 }}>
       <ChartHeader
@@ -422,32 +461,14 @@ const TrendChart: React.FC<TrendChartProps> = ({
         />
       ) : (
         <>
-          {/* A single line needs no legend (the title names it), so the chart starts right under the title */}
-          {(showLegend || markerKey) && (
-            <Box component="ul" aria-hidden sx={{ display: 'flex', flexWrap: 'wrap', columnGap: 2, rowGap: 0.5, listStyle: 'none', p: 0, m: 0, mb: 1, minHeight: 24 }}>
-              {showLegend && legendOrder.map(entry => (
-                <Box component="li" key={entry.key} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                  {entry.dashed ? (
-                    <Box sx={{ width: 16, height: 0, borderTop: '3px dashed', borderColor: entry.color, flexShrink: 0 }} />
-                  ) : (
-                    <Box sx={{ width: 16, height: kind === 'share' ? 10 : 3, borderRadius: kind === 'share' ? 0.5 : 2, backgroundColor: entry.color, flexShrink: 0 }} />
-                  )}
-                  <Typography variant="body2" color="text.primary">{entry.name}</Typography>
-                </Box>
-              ))}
-              {markerKey && (
-                <Box component="li" sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                  <Box sx={{ width: 16, height: 0, borderTop: '2px dashed', borderColor: 'grey.400', flexShrink: 0 }} />
-                  <Typography variant="body2" color="text.secondary">{markerKey}</Typography>
-                </Box>
-              )}
-            </Box>
-          )}
+          {!legendBelow && legend}
           <Box ref={ref} aria-hidden sx={{ height, width: '100%' }}>
-            {data.length > 0 && yAxis ? (
+            {/* Drawn once the width is known: the height and label room depend on it, and a chart
+                resized mid-animation morphs instead of drawing in */}
+            {data.length > 0 && yAxis ? width > 0 && (
               <ResponsiveContainer width="100%" height="100%">
                 {kind === 'share' ? (
-                  <BarChart data={chartData} margin={{ top: 8, right: 16, left: isMobile ? 0 : 4, bottom: 4 }} barCategoryGap="20%">
+                  <BarChart data={stableChartData} margin={{ top: 8, right: 16, left: isMobile ? 0 : 4, bottom: 4 }} barCategoryGap="20%">
                     <CartesianGrid stroke={theme.palette.grey[200]} vertical={false} />
                     <XAxis dataKey="label" tick={axisTick} axisLine={{ stroke: theme.palette.grey[300] }} tickLine={false} minTickGap={16} />
                     <YAxis domain={yAxis.domain} ticks={yAxis.ticks} tickFormatter={tickFormat} tick={axisTick} axisLine={false} tickLine={false} width={isMobile ? 44 : 56} />
@@ -462,12 +483,12 @@ const TrendChart: React.FC<TrendChartProps> = ({
                         stroke={theme.palette.background.paper}
                         strokeWidth={1}
                         maxBarSize={24}
-                        isAnimationActive={false}
+                        isAnimationActive={animate}
                       />
                     ))}
                   </BarChart>
                 ) : (
-                  <LineChart data={chartData} margin={{ top: 16, right: labelRoom, left: isMobile ? 0 : 4, bottom: 4 }}>
+                  <LineChart data={stableChartData} margin={{ top: 16, right: labelRoom, left: isMobile ? 0 : 4, bottom: 4 }}>
                     <CartesianGrid stroke={theme.palette.grey[200]} vertical={false} />
                     {bands.filter(band => years.includes(band.from) && years.includes(band.to)).map(band => (
                       <ReferenceArea
@@ -523,7 +544,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
                         dot={dotFor(entry.color, entry.key)}
                         activeDot={{ r: 6, strokeWidth: 2, stroke: theme.palette.background.paper }}
                         connectNulls={false}
-                        isAnimationActive={false}
+                        isAnimationActive={animate}
                       />
                     )))}
                     {directLabels && <Customized component={<EndLabels series={colored} color={theme.palette.text.secondary} />} />}
@@ -536,6 +557,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
               </Box>
             )}
           </Box>
+          {legendBelow && legend}
         </>
       )}
 

@@ -192,20 +192,73 @@ describe('State pages', () => {
     expect(screen.queryByText(/^At \/district/)).not.toBeInTheDocument();
   });
 
-  it('staff lists staff by type with the base year in the header', async () => {
+  it('staff compares staff by type with 2014-15 by default', async () => {
     renderPage(<StateStaff />, '/state/staff');
-    expect(await screen.findByText('Staff by type, 2024-25', undefined, TIMEOUT)).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Change since 2014-15' })).toBeInTheDocument();
-    expect(within(screen.getByText('Teachers', { selector: 'th' }).closest('tr')!).getByText('−7%')).toBeInTheDocument();
-    expect(within(screen.getByText('All staff').closest('tr')!).getByText('20,000')).toBeInTheDocument();
+    expect(await screen.findByText('Staff By Type', undefined, TIMEOUT)).toBeInTheDocument();
+    // Both tables put the latest year next to 2014-15
+    expect(screen.getAllByRole('columnheader', { name: /^2024-25/ })).toHaveLength(2);
+    expect(screen.getAllByRole('columnheader', { name: /^2014-15/ })).toHaveLength(2);
+    expect(screen.getByRole('combobox', { name: 'Compare staff with' })).toHaveTextContent('Compare 14/15');
+    // The district Staff page's staff type names, in its order
+    const teachers = within(screen.getAllByText('Teacher')[0].closest('tr')!);
+    expect(teachers.getByText('15,000')).toBeInTheDocument();
+    expect(teachers.getByText('−7%')).toBeInTheDocument();
+    // A type the earlier year doesn't have shows a dash and no change
+    expect(within(screen.getAllByText('Instruction Support')[0].closest('tr')!).getAllByText('—')).toHaveLength(2);
+    expect(within(screen.getByText('All Staff').closest('tr')!).getByText('20,000')).toBeInTheDocument();
+    expect(screen.getByLabelText('Staff who support classroom instruction but are not classroom teachers')).toBeInTheDocument();
+
+    // Teacher education compares the same way, degrees in order
+    expect(screen.getByRole('combobox', { name: 'Compare teacher education with' })).toHaveTextContent('Compare 14/15');
+    const bachelors = within(screen.getByText("Bachelor's", { selector: 'th' }).closest('tr')!);
+    expect(bachelors.getByText('5,000')).toBeInTheDocument();
+    expect(bachelors.getByText('6,000')).toBeInTheDocument();
+    expect(bachelors.getByText('−17%')).toBeInTheDocument();
+    expect(within(screen.getByText('All Teachers').closest('tr')!).getAllByText('13,000')).toHaveLength(2);
+    expect(screen.queryByText("Teachers' highest degree")).not.toBeInTheDocument();
+    // The class size tile is the statewide average for all grades
+    const classTile = within(screen.getAllByText('Average Class Size').map(el => el.closest('.MuiCard-root')).find(Boolean) as HTMLElement);
+    expect(classTile.getByText('15.3')).toBeInTheDocument();
+    expect(classTile.getByText('24/25')).toBeInTheDocument();
+    // Average class size starts with NH DOE's statewide average for all grades, then by grade level
+    const classSizeView = screen.getByRole('combobox', { name: 'Show average class size' });
+    expect(classSizeView).toHaveTextContent('All Students');
+    expect(screen.getByText('Students per Class, All Grades')).toBeInTheDocument();
+    await userEvent.click(classSizeView);
+    await userEvent.click(await screen.findByRole('option', { name: 'By Grade Level' }));
+    expect(screen.getByText('Students per Class By Grade Level')).toBeInTheDocument();
+    // and students per teacher, titled as such
+    await userEvent.click(classSizeView);
+    await userEvent.click(await screen.findByRole('option', { name: 'Students per Teacher' }));
+    expect(screen.getByText('Students Divided By Full-Time-Equivalent Teachers')).toBeInTheDocument();
+    // The staff share chart picks a staff type, teachers first
+    expect(screen.getByRole('combobox', { name: 'Show staff type' })).toHaveTextContent('Teachers');
+    expect(screen.getByText('As % of Staff')).toBeInTheDocument();
+    // Titles, headers and labels in Title Case
+    ['Teacher Education', 'Percent Change in Staff', 'Students Divided By Full-Time-Equivalent Teachers'].forEach(text =>
+      expect(screen.getByText(text)).toBeInTheDocument());
 
     // Key figures use the shared tile: short year, an arrow change colored by whether it's good,
     // and the change in words for screen readers
-    const salaryTile = within(screen.getByText('Average Teacher Salary').closest('.MuiCard-root') as HTMLElement);
+    // The salary chart shares the tile's name
+    const salaryTile = within(screen.getAllByText('Average Teacher Salary').map(el => el.closest('.MuiCard-root')).find(Boolean) as HTMLElement);
     expect(salaryTile.getByText('25/26')).toBeInTheDocument();
     expect(salaryTile.getByText(/^Since \d\d\/\d\d$/)).toBeInTheDocument();
     const salaryChange = salaryTile.getByText(/^Up \d+% since \d{4}-\d{2}$/).closest('p');
     expect(salaryChange).toHaveStyle({ color: '#2e7d32' });
+    expect(salaryTile.queryByText(/after inflation$/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('See these figures for your district')).not.toBeInTheDocument();
+
+    // The salary chart is one State Average line, in actual or inflation-adjusted dollars
+    expect(screen.getByText('(Annual Salary)')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Adj. For Inflation' }));
+    expect(screen.getByText(/^\(Annual Salary in \d{4}-\d{2} Dollars\)$/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /as CSV$/ })).not.toBeInTheDocument();
+    // One Excel download for the whole page
+    expect(screen.getByRole('button', { name: 'Download Excel' })).toBeInTheDocument();
+    // No "Not on this page" box or source line
+    expect(screen.queryByText('Not on this page')).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Source:/)).not.toBeInTheDocument();
   });
 
   it('enrollment compares the tiles, type of school and grades with 2014-15', async () => {

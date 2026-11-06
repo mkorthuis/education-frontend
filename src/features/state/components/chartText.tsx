@@ -33,7 +33,9 @@ interface ChartHeaderProps {
 }
 
 export const ChartHeader: React.FC<ChartHeaderProps> = ({ title, shortTitle, subtitle, shortSubtitle, hideSubtitleOnPhone = false, titleId, component = 'h2', actions }) => (
-  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', columnGap: 2, rowGap: 1, mb: 1.5, flexWrap: 'wrap' }}>
+  // A title on its own is centered on the picker or buttons beside it; with a subtitle, the two lines
+  // start at the top
+  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: subtitle ? 'flex-start' : 'center', columnGap: 2, rowGap: 1, mb: 1.5, flexWrap: 'wrap' }}>
     <Box sx={{ flex: 1, minWidth: { xs: 140, sm: 200 } }}>
       <Typography id={titleId} component={component} sx={{ ...type.chartTitle, m: 0 }}>
         {shortTitle ? (

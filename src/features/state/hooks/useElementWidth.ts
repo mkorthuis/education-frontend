@@ -1,12 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
-/** The rendered width of an element, updated as it resizes (0 until measured). */
+/**
+ * The rendered width of an element, updated as it resizes (0 until measured). The ref is a callback,
+ * so an element that unmounts and mounts again (a chart switched to its table and back) is measured
+ * afresh rather than left at the width it had when it was removed.
+ */
 export const useElementWidth = <T extends HTMLElement>() => {
-  const ref = useRef<T>(null);
+  const [element, setElement] = useState<T | null>(null);
   const [width, setWidth] = useState(0);
 
   useEffect(() => {
-    const element = ref.current;
     if (!element) return;
     setWidth(element.getBoundingClientRect().width);
     const observer = new ResizeObserver(entries => {
@@ -15,7 +18,7 @@ export const useElementWidth = <T extends HTMLElement>() => {
     });
     observer.observe(element);
     return () => observer.disconnect();
-  }, []);
+  }, [element]);
 
-  return { ref, width };
+  return { ref: setElement, width };
 };

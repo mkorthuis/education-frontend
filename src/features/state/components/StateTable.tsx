@@ -14,6 +14,8 @@ export interface StateTableColumn<T> {
   format?: (row: T) => string;
   /** Shorter display text for phones, e.g. "$54.4M" for "$54.4 million" */
   shortFormat?: (row: T) => string;
+  /** Display content beyond text, e.g. a name with a help icon; takes the place of format */
+  render?: (row: T) => React.ReactNode;
   value?: (row: T) => unknown;
   /** Left out on phones to keep the table on screen; it stays in the CSV */
   hideOnPhone?: boolean;
@@ -39,6 +41,8 @@ interface StateTableProps<T> {
   note?: React.ReactNode;
   /** Narrow tables read better than ones stretched across the page */
   maxWidth?: number;
+  /** A control shown before the CSV button, e.g. a picker for the year to compare with */
+  control?: React.ReactNode;
 }
 
 // The same grey as the district tables
@@ -81,6 +85,7 @@ const csvValue = (value: unknown) =>
   typeof value === 'number' && !Number.isInteger(value) ? Number(value.toFixed(2)) : value;
 
 const cellText = <T,>(column: StateTableColumn<T>, row: T): React.ReactNode => {
+  if (column.render) return column.render(row);
   const text = column.format ? column.format(row) : String(rawValue(column, row) ?? '');
   if (!column.shortFormat) return text;
   return (
@@ -105,6 +110,7 @@ function StateTable<T>({
   emptyMessage = 'No data available',
   note,
   maxWidth,
+  control,
 }: StateTableProps<T>) {
   const titleId = useId();
   const isMobile = useMediaQuery(useTheme().breakpoints.down('sm'));
@@ -183,15 +189,20 @@ function StateTable<T>({
           shortTitle={shortTitle}
           subtitle={subtitle}
           // No CSV on phones, where a download is little use
-          actions={csvName && allRows.length > 0 && !isMobile ? (
-            <Button
-              size="small"
-              startIcon={<DownloadIcon fontSize="small" />}
-              onClick={handleDownload}
-              aria-label={`Download ${title ?? 'table'} as CSV`}
-            >
-              CSV
-            </Button>
+          actions={control || (csvName && allRows.length > 0 && !isMobile) ? (
+            <>
+              {control}
+              {csvName && allRows.length > 0 && !isMobile && (
+                <Button
+                  size="small"
+                  startIcon={<DownloadIcon fontSize="small" />}
+                  onClick={handleDownload}
+                  aria-label={`Download ${title ?? 'table'} as CSV`}
+                >
+                  CSV
+                </Button>
+              )}
+            </>
           ) : undefined}
         />
       )}
