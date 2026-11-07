@@ -220,13 +220,28 @@ export interface AssessmentRow {
   above_proficient_percentage: number | null;
   /** The highest of the four achievement levels ("above proficient" on the district pages) */
   level_4_percentage?: number | null;
+  /** Set when the state reports only that the share is under 10% or over 90% (unlike too few students, where there's no result) */
+  bound?: ProficiencyBound | null;
 }
+
+/** A share the state withholds, reporting only that it's under 10% or over 90%. */
+export type ProficiencyBound = '<10%' | '>90%';
+
+/** The share to draw for a withheld one, at the edge of its range, as the district charts do */
+export const BOUND_VALUES: Record<ProficiencyBound, number> = { '<10%': 10, '>90%': 90 };
+
+const boundOf = (exception: string | null | undefined): ProficiencyBound | null =>
+  exception === 'SCORE_UNDER_10' ? '<10%' : exception === 'SCORE_OVER_90' ? '>90%' : null;
+
+/** Whether the state reported a result: a share, or one withheld as under 10% or over 90% (not too few students). */
+export const hasProficiencyResult = (row: AssessmentRow): boolean => row.above_proficient_percentage !== null || Boolean(row.bound);
 
 // Rows as the assessment slice stores them: its enrichment replaces the id fields with the
 // related objects (the grade's id may be a string), even though the slice's type still lists the ids.
 export interface StoredAssessmentRow {
   year: number;
   above_proficient_percentage: number | null;
+  above_proficient_percentage_exception?: string | null;
   level_4_percentage?: number | null;
   assessment_subgroup_id?: number;
   assessment_subject_id?: number;
@@ -247,6 +262,7 @@ export const normalizeAssessmentRows = (rows: StoredAssessmentRow[]): NamedAsses
       year: row.year,
       above_proficient_percentage: row.above_proficient_percentage,
       level_4_percentage: row.level_4_percentage ?? null,
+      bound: row.above_proficient_percentage === null ? boundOf(row.above_proficient_percentage_exception) : null,
       assessment_subgroup_id: row.assessment_subgroup?.id ?? row.assessment_subgroup_id ?? NaN,
       assessment_subject_id: row.assessment_subject?.id ?? row.assessment_subject_id ?? NaN,
       grade_id: row.grade ? Number(row.grade.id) : row.grade_id ?? null,
@@ -256,13 +272,19 @@ export const normalizeAssessmentRows = (rows: StoredAssessmentRow[]): NamedAsses
 
 const subjectKey = (subjectId: number) => SUBJECTS.find(subject => subject.id === subjectId)?.key;
 
-/** Percent proficient by year for one subgroup, all grades together, with a column per subject. */
-export const proficiencyBySubject = (rows: AssessmentRow[], subgroupId = ALL_STUDENTS_SUBGROUP_ID): YearRow[] => {
+/** Each subject's share proficient by year, for one student group in all grades (or one grade). */
+export const proficiencyBySubject = (
+  rows: AssessmentRow[],
+  subgroupId = ALL_STUDENTS_SUBGROUP_ID,
+  gradeId: number | null = null,
+  /** Draw withheld shares at 10% or 90% */
+  withBounds = false
+): YearRow[] => {
   const seriesByKey: Record<string, YearValue[]> = {};
   SUBJECTS.forEach(subject => {
     seriesByKey[subject.key] = toSeries(
-      rows.filter(row => row.grade_id === null && row.assessment_subgroup_id === subgroupId && row.assessment_subject_id === subject.id),
-      row => row.above_proficient_percentage
+      rows.filter(row => row.grade_id === gradeId && row.assessment_subgroup_id === subgroupId && row.assessment_subject_id === subject.id),
+      row => row.above_proficient_percentage ?? (withBounds && row.bound ? BOUND_VALUES[row.bound] : null)
     );
   });
   return mergeSeries(seriesByKey);
@@ -280,16 +302,23 @@ export interface ProficiencyTableRow {
   math: number | null;
   reading: number | null;
   science: number | null;
+  /** Subjects where the state withholds the share, reporting only that it's under 10% or over 90% */
+  bounds?: Partial<Record<SubjectKey, ProficiencyBound>>;
 }
 
+type SubjectKey = typeof SUBJECTS[number]['key'];
+
 const proficiencyRow = (id: number, name: string, rows: AssessmentRow[]): ProficiencyTableRow => {
-  const row: ProficiencyTableRow = { id, name, math: null, reading: null, science: null };
+  const row: ProficiencyTableRow = { id, name, math: null, reading: null, science: null, bounds: {} };
   rows.forEach(assessment => {
     const key = subjectKey(assessment.assessment_subject_id);
-    if (key) row[key] = assessment.above_proficient_percentage;
+    if (!key) return;
+    row[key] = assessment.above_proficient_percentage;
+    if (assessment.bound) row.bounds![key] = assessment.bound;
   });
   return row;
 };
+
 
 /** One year's percent proficient for each subgroup (all grades), in the order the subgroups are given. */
 export const proficiencyBySubgroup = (
@@ -299,8 +328,7 @@ export const proficiencyBySubgroup = (
 ): ProficiencyTableRow[] =>
   subgroups
     .map(subgroup => proficiencyRow(subgroup.id, subgroup.name, rows.filter(row =>
-      row.year === year && row.grade_id === null && row.assessment_subgroup_id === subgroup.id)))
-    .filter(row => row.math !== null || row.reading !== null || row.science !== null);
+      row.year === year && row.grade_id === null && row.assessment_subgroup_id === subgroup.id)));
 
 /** One year's percent proficient for each tested grade (all students), in grade order. */
 export const proficiencyByGrade = (
@@ -311,8 +339,7 @@ export const proficiencyByGrade = (
   [...grades]
     .sort((a, b) => a.id - b.id)
     .map(grade => proficiencyRow(grade.id, grade.name, rows.filter(row =>
-      row.year === year && row.grade_id === grade.id && row.assessment_subgroup_id === ALL_STUDENTS_SUBGROUP_ID)))
-    .filter(row => row.math !== null || row.reading !== null || row.science !== null);
+      row.year === year && row.grade_id === grade.id && row.assessment_subgroup_id === ALL_STUDENTS_SUBGROUP_ID)));
 
 // ================ Money ================
 

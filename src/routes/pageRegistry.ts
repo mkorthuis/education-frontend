@@ -149,7 +149,8 @@ export const PAGE_REGISTRY: PageRegistry = {
     academic: {
       id: 'state.academic',
       component: StateAcademics,
-      urlPatterns: ['/state/academic'],
+      // The second form names the test the chart shows, e.g. /state/academic/math
+      urlPatterns: ['/state/academic', '/state/academic/:subjectName'],
       displayName: 'Academic Performance',
       shortName: 'Academics',
       order: 2,

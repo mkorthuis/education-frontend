@@ -1,12 +1,9 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Box, Button, CircularProgress, Divider, GlobalStyles, Typography } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import SectionTitle from '@/components/ui/SectionTitle';
 import LoadErrorAlert from '@/components/ui/LoadErrorAlert';
 import { PageLoadStatus } from '@/store/utils/loadingState';
-import DistrictPicker from './DistrictPicker';
-import { Note } from '@/components/ds';
 import { keepYearsTogether, READING_WIDTH } from './chartText';
 
 export const STATE_NAME = 'New Hampshire';
@@ -26,18 +23,12 @@ interface StatePageProps {
   keyFigures?: React.ReactNode;
   /** On wide screens, show the key figures to the right of the intro instead of under it */
   keyFiguresBesideIntro?: boolean;
-  /** The matching district page (e.g. "financials"), for the "see your district" picker */
-  districtSection?: string;
-  /** What people look for here that the page doesn't have, and where it might be */
-  notCovered?: React.ReactNode;
   /** Saves everything on the page as one Excel file, from a button beside the title (tablets and up) */
   onDownload?: () => Promise<void> | void;
-  /** Where the figures come from, shown under the content; the overview leaves it out */
-  source?: string;
   children: React.ReactNode;
 }
 
-/** Title, intro, key figures, loading/error handling and source note shared by every State page. */
+/** Title, intro, key figures and loading/error handling shared by every State page. */
 const StatePage: React.FC<StatePageProps> = ({
   displayName,
   entityName = STATE_NAME,
@@ -48,10 +39,7 @@ const StatePage: React.FC<StatePageProps> = ({
   takeaway = [],
   keyFigures,
   keyFiguresBesideIntro = false,
-  districtSection,
-  notCovered,
   onDownload,
-  source,
   children,
 }) => {
   const [downloading, setDownloading] = useState(false);
@@ -126,18 +114,7 @@ const StatePage: React.FC<StatePageProps> = ({
       ) : (
         <>
           {!besideIntro && keyFigures}
-          {districtSection && <DistrictPicker section={districtSection} />}
           {children}
-          {notCovered && (
-            <Box sx={{ mt: 4 }}>
-              <Note title="Not on this page">{notCovered}</Note>
-            </Box>
-          )}
-          {source && (
-            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 4, maxWidth: READING_WIDTH }}>
-              Source: {source}. See <Link to="/datasources">Data Sources</Link> for details.
-            </Typography>
-          )}
         </>
       )}
     </>

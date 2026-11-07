@@ -2,12 +2,13 @@ import React, { useId, useMemo, useRef, useState } from 'react';
 import { Box, Button, ToggleButton, ToggleButtonGroup, Typography, useMediaQuery, useTheme } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import {
+  Area,
   Bar,
   BarChart,
   CartesianGrid,
+  ComposedChart,
   Customized,
   Line,
-  LineChart,
   ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
@@ -66,6 +67,8 @@ export interface TrendSeries {
   format?: (value: number) => string;
   /** Leave the series' column out of the table view on phones, e.g. a rate beside its count */
   hideOnPhone?: boolean;
+  /** Shade the area under the line, e.g. the one line a chart is about */
+  fill?: boolean;
 }
 
 interface TrendChartProps {
@@ -103,13 +106,24 @@ interface TrendChartProps {
   markers?: { year: number; label: string }[];
   /** Shaded spans between two years, e.g. remote school */
   bands?: { from: number; to: number; label: string }[];
-  /** Years where the lines start over (values before and after aren't comparable) */
+  /** Years the measure changed (values before and after aren't comparable); the summary compares only from the latest */
   breaks?: number[];
+  /** Draw the lines straight through years with no value, e.g. a year with no test */
+  connectGaps?: boolean;
   /** Columns shown only in the table view and CSV */
   tableSeries?: TrendSeries[];
-  /** A comparison shown in the tooltip and table, e.g. all students when a student group is chosen */
+  /** A comparison drawn as gray dashed lines and shown in the tooltip and table, e.g. all students
+   * when a student group is chosen */
   compare?: { data: YearRow[]; label: string };
   note?: React.ReactNode;
+  /** Let the note run the chart's full width instead of a reading width */
+  wideNote?: boolean;
+  /** Pickers under the title that choose what the chart shows */
+  filters?: React.ReactNode;
+  /** Shown in place of the chart when there's no data, e.g. a prompt to pick something */
+  emptyMessage?: string;
+  /** Tooltip text in place of the formatted value for some points, e.g. "<10%" for a share drawn at 10% */
+  valueLabel?: (year: number, key: string) => string | undefined;
   /** File name for the chart's CSV download; no CSV button without one */
   csvName?: string;
   /** Unit added to the CSV column headers, e.g. "% change from 2014-15" */
@@ -120,20 +134,19 @@ interface TrendChartProps {
   legendByValue?: boolean;
 }
 
-const eraKey = (key: string, era: number) => `${key}__${era}`;
+const compareKey = (key: string) => `compare__${key}`;
 
 const roundForCsv = (value: number | null | undefined) =>
   value === null || value === undefined ? null : Number.isInteger(value) ? value : Number(value.toFixed(2));
 
-const ChartTooltip = ({ active, payload, label, format, series, compareByYear, compareLabel }: any) => {
+const ChartTooltip = ({ active, payload, label, format, series, compareByYear, compareLabel, valueLabel }: any) => {
   if (!active || !payload || !payload.length) return null;
   const year = payload[0]?.payload?.year;
   const comparison = compareByYear?.get(year);
   const entries = (series as TrendSeries[])
     .map(entry => ({
       entry,
-      item: payload.find((item: any) => (item.dataKey === entry.key || String(item.dataKey).startsWith(`${entry.key}__`))
-        && item.value !== null && item.value !== undefined),
+      item: payload.find((item: any) => item.dataKey === entry.key && item.value !== null && item.value !== undefined),
     }))
     .filter(({ item }) => item);
   if (!entries.length) return null;
@@ -144,7 +157,7 @@ const ChartTooltip = ({ active, payload, label, format, series, compareByYear, c
         <Box key={entry.key} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
           <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: entry.color, flexShrink: 0 }} />
           <Typography variant="body2">
-            {entry.name}: {format(item.value)}
+            {entry.name}: {valueLabel?.(year, entry.key) ?? format(item.value)}
             {comparison && typeof comparison[entry.key] === 'number' && (
               <Box component="span" sx={{ color: 'text.secondary' }}> ({compareLabel}: {format(comparison[entry.key])})</Box>
             )}
@@ -162,7 +175,7 @@ const EndLabels = (props: any) => {
   const ends = (series as TrendSeries[]).map(entry => {
     const items = formattedGraphicalItems.filter((item: any) => {
       const key = String(item.props?.dataKey ?? item.item?.props?.dataKey ?? '');
-      return key === entry.key || key.startsWith(`${entry.key}__`);
+      return key === entry.key;
     });
     const points = items
       .flatMap((item: any) => item.props?.points ?? [])
@@ -224,9 +237,14 @@ const TrendChart: React.FC<TrendChartProps> = ({
   markers = [],
   bands = [],
   breaks = [],
+  connectGaps = false,
   tableSeries = [],
   compare,
   note,
+  wideNote = false,
+  filters,
+  emptyMessage = 'No data available',
+  valueLabel,
   csvName,
   csvUnit,
   yearLabel = formatSchoolYear,
@@ -249,22 +267,13 @@ const TrendChart: React.FC<TrendChartProps> = ({
   const years = useMemo(() => data.map(row => row.year), [data]);
   const breakKey = breaks.join(',');
 
-  // Each series is split into one line per era, so nothing is drawn across a break
-  const { chartData, eras } = useMemo(() => {
-    const eraOf = (year: number) => breaks.filter(breakYear => year >= breakYear).length;
-    const eraList = [...new Set(years.map(eraOf))];
-    const rows = data.map(row => {
-      const chartRow: Record<string, number | string | null> = { ...row, label: yearLabel(row.year) };
-      if (breaks.length) {
-        colored.forEach(entry => {
-          eraList.forEach(era => { chartRow[eraKey(entry.key, era)] = eraOf(row.year) === era ? row[entry.key] ?? null : null; });
-        });
-      }
-      return chartRow;
-    });
-    return { chartData: rows, eras: eraList };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, years, colored, breakKey, yearLabel]);
+  const compareByYear = useMemo(() => (compare ? new Map(compare.data.map(row => [row.year, row])) : null), [compare]);
+
+  const chartData = useMemo(() => data.map(row => {
+    const chartRow: Record<string, number | string | null> = { ...row, label: yearLabel(row.year) };
+    if (compareByYear) colored.forEach(entry => { chartRow[compareKey(entry.key)] = compareByYear.get(row.year)?.[entry.key] ?? null; });
+    return chartRow;
+  }), [data, yearLabel, compareByYear, colored]);
   const stableChartData = useStableByContent(chartData);
 
   const yAxis = useMemo(() => {
@@ -273,13 +282,13 @@ const TrendChart: React.FC<TrendChartProps> = ({
       return { domain: [yTicks[0], yTicks[yTicks.length - 1]] as [number, number], ticks: yTicks, step: yTicks[1] - yTicks[0] };
     }
     if (yDomain) return niceAxis(yDomain[0], yDomain[1], 'span');
-    const values = data
+    const values = [...data, ...(compare ? compare.data.filter(row => years.includes(row.year)) : [])]
       .flatMap(row => colored.map(entry => row[entry.key]))
       .filter((value): value is number => typeof value === 'number');
     const all = [...values, ...axisIncludes];
     return all.length ? niceAxis(Math.min(...all), Math.max(...all), axis) : null;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kind, yDomain, yTicks?.join(','), data, colored, axisIncludes, axis]);
+  }, [kind, yDomain, yTicks?.join(','), data, compare, years, colored, axisIncludes, axis]);
   // Fall back to the value format when the axis format would print two ticks the same (0.5% as "1%")
   const tickFormat = useMemo(() => {
     const preferred = axisFormat ?? format;
@@ -289,9 +298,9 @@ const TrendChart: React.FC<TrendChartProps> = ({
   }, [axisFormat, format, yAxis]);
   const axisNote = axis === 'fit' && yAxis && yAxis.domain[0] > 0 ? `The vertical axis starts at ${tickFormat(yAxis.domain[0])}, not zero.` : null;
 
-  const compareByYear = useMemo(() => (compare ? new Map(compare.data.map(row => [row.year, row])) : null), [compare]);
-
   const showLegend = colored.length > 1;
+  // The comparison's dashed line has its own key in the legend (line charts only)
+  const showCompareKey = Boolean(compare) && kind === 'line';
   // Labels at the ends of the lines, with room kept for them on the right, only when every line runs
   // to the last year: a line ending early would have its label in the middle of the chart
   const lastYear = years.length ? Math.max(...years) : null;
@@ -325,11 +334,10 @@ const TrendChart: React.FC<TrendChartProps> = ({
     return [...colored].sort((a, b) => last(b.key) - last(a.key));
   }, [colored, data, kind, legendByValue]);
   const visibleMarkers = markers.filter(marker => years.includes(marker.year));
-  const markerKey = [...new Set(visibleMarkers.map(marker => marker.label))].join(' / ');
 
   // One sentence a screen reader can use in place of the chart
   const summary = useMemo(() => {
-    // With breaks, only compare within the latest era, as the chart does
+    // With breaks, only compare within the latest era, since scores across a change aren't comparable
     const since = breaks.filter(year => data.some(row => row.year >= year)).reduce((latest, year) => Math.max(latest, year), -Infinity);
     const parts = colored.map(entry => {
       const points = data.filter(row => typeof row[entry.key] === 'number' && row.year >= since);
@@ -378,7 +386,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
   const axisTick = { fontSize: 12, fill: theme.palette.text.secondary };
 
   // A single line needs no legend (the title names it), so the chart starts right under the title
-  const legend = (showLegend || markerKey) ? (
+  const legend = (showLegend || showCompareKey) ? (
     <Box component="ul" aria-hidden sx={{ display: 'flex', flexWrap: 'wrap', columnGap: 2, rowGap: 0.5, listStyle: 'none', p: 0, m: 0, ...(legendBelow ? { mt: 1 } : { mb: 1 }), minHeight: 24 }}>
       {showLegend && legendOrder.map(entry => (
         <Box component="li" key={entry.key} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
@@ -390,10 +398,10 @@ const TrendChart: React.FC<TrendChartProps> = ({
           <Typography variant="body2" color="text.primary">{isMobile && entry.phoneName ? entry.phoneName : entry.name}</Typography>
         </Box>
       ))}
-      {markerKey && (
+      {showCompareKey && compare && (
         <Box component="li" sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-          <Box sx={{ width: 16, height: 0, borderTop: '2px dashed', borderColor: 'grey.400', flexShrink: 0 }} />
-          <Typography variant="body2" color="text.secondary">{markerKey}</Typography>
+          <Box sx={{ width: 16, height: 0, borderTop: '2px dashed', borderColor: CONTEXT_COLOR, flexShrink: 0 }} />
+          <Typography variant="body2" color="text.secondary">{compare.label}</Typography>
         </Box>
       )}
     </Box>
@@ -467,6 +475,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
         />
       ) : (
         <>
+          {filters}
           {!legendBelow && legend}
           <Box ref={ref} aria-hidden sx={{ height, width: '100%' }}>
             {/* Drawn once the width is known: the height and label room depend on it, and a chart
@@ -494,7 +503,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
                     ))}
                   </BarChart>
                 ) : (
-                  <LineChart data={stableChartData} margin={{ top: 16, right: labelRoom, left: isMobile ? 0 : 4, bottom: 4 }}>
+                  <ComposedChart data={stableChartData} margin={{ top: 16, right: labelRoom, left: isMobile ? 0 : 4, bottom: 4 }}>
                     <CartesianGrid stroke={theme.palette.grey[200]} vertical={false} />
                     {bands.filter(band => years.includes(band.from) && years.includes(band.to)).map(band => (
                       <ReferenceArea
@@ -524,7 +533,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
                       width={isMobile ? 48 : 60}
                     />
                     <Tooltip
-                      content={<ChartTooltip format={format} series={colored} compareByYear={compareByYear} compareLabel={compare?.label} />}
+                      content={<ChartTooltip format={format} series={colored} compareByYear={compareByYear} compareLabel={compare?.label} valueLabel={valueLabel} />}
                       cursor={{ stroke: theme.palette.grey[400], strokeWidth: 1 }}
                     />
                     {visibleMarkers.map(marker => (
@@ -536,11 +545,42 @@ const TrendChart: React.FC<TrendChartProps> = ({
                         label={isMobile ? undefined : { value: marker.label, position: 'insideTopLeft', fontSize: 12, fill: theme.palette.text.secondary }}
                       />
                     ))}
-                    {colored.flatMap(entry => (breaks.length ? eras.map(era => eraKey(entry.key, era)) : [entry.key]).map(dataKey => (
-                      <Line
-                        key={dataKey}
+                    {colored.filter(entry => entry.fill).map(entry => (
+                      <Area
+                        key={`fill-${entry.key}`}
                         type="linear"
-                        dataKey={dataKey}
+                        dataKey={entry.key}
+                        fill={entry.color}
+                        fillOpacity={0.12}
+                        stroke="none"
+                        activeDot={false}
+                        tooltipType="none"
+                        legendType="none"
+                        connectNulls={connectGaps}
+                        isAnimationActive={animate}
+                      />
+                    ))}
+                    {compare && colored.map(entry => (
+                      <Line
+                        key={compareKey(entry.key)}
+                        type="linear"
+                        dataKey={compareKey(entry.key)}
+                        name={`${entry.name}, ${compare.label.toLowerCase()}`}
+                        stroke={CONTEXT_COLOR}
+                        strokeWidth={2}
+                        strokeDasharray="6 4"
+                        strokeLinecap="round"
+                        dot={false}
+                        activeDot={false}
+                        connectNulls={connectGaps}
+                        isAnimationActive={animate}
+                      />
+                    ))}
+                    {colored.map(entry => (
+                      <Line
+                        key={entry.key}
+                        type="linear"
+                        dataKey={entry.key}
                         name={entry.name}
                         stroke={entry.color}
                         strokeWidth={2}
@@ -549,17 +589,17 @@ const TrendChart: React.FC<TrendChartProps> = ({
                         strokeLinejoin="round"
                         dot={dotFor(entry.color, entry.key)}
                         activeDot={{ r: 6, strokeWidth: 2, stroke: theme.palette.background.paper }}
-                        connectNulls={false}
+                        connectNulls={connectGaps}
                         isAnimationActive={animate}
                       />
-                    )))}
+                    ))}
                     {directLabels && <Customized component={<EndLabels series={colored} color={theme.palette.text.secondary} />} />}
-                  </LineChart>
+                  </ComposedChart>
                 )}
               </ResponsiveContainer>
             ) : (
               <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Typography variant="body1" color="text.secondary">No data available</Typography>
+                <Typography variant="body1" color="text.secondary" sx={{ textAlign: 'center', px: 2 }}>{emptyMessage}</Typography>
               </Box>
             )}
           </Box>
@@ -568,7 +608,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
       )}
 
       {(note || axisNote) && (
-        <ChartNote>
+        <ChartNote fullWidth={wideNote}>
           {note}
           {note && axisNote ? ' ' : null}
           {axisNote}

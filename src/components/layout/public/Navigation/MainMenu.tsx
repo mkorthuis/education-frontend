@@ -22,7 +22,7 @@ import {
   getPageType,
   PageType
 } from '@/store/store';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, matchPath } from 'react-router-dom';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 // State section pages after the overview, in menu order
@@ -288,7 +288,8 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
                 <ListItem key={page.id} disablePadding>
                   <ListItemButton 
                     onClick={() => handleNavigate(page.urlPatterns[0])}
-                    selected={location.pathname === page.urlPatterns[0]}
+                    // Any of the page's addresses, e.g. /state/academic/math for Academics
+                    selected={page.urlPatterns.some(pattern => matchPath({ path: pattern, end: true }, location.pathname))}
                     sx={{
                       pl: 4, // Add indentation
                       py: 0.5, // Reduce vertical spacing

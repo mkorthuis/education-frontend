@@ -135,11 +135,14 @@ describe('assessments', () => {
       { year: 2026, above_proficient_percentage: 50, assessment_subgroup: { id: 1 }, assessment_subject: { id: 1 }, grade: { id: '5', name: 'Grade 3' } },
       { year: 2026, above_proficient_percentage: 55, assessment_subgroup_id: 1, assessment_subject_id: 2, grade_id: null },
       { year: 2026, above_proficient_percentage: 10, assessment_subject: { id: 1 } },
+      { year: 2026, above_proficient_percentage: null, above_proficient_percentage_exception: 'SCORE_UNDER_10', assessment_subgroup_id: 9, assessment_subject_id: 1, grade_id: null },
     ];
     expect(normalizeAssessmentRows(stored)).toEqual([
-      { year: 2026, above_proficient_percentage: 44, level_4_percentage: 20, assessment_subgroup_id: 1, assessment_subject_id: 1, grade_id: null, grade_name: null },
-      { year: 2026, above_proficient_percentage: 50, level_4_percentage: null, assessment_subgroup_id: 1, assessment_subject_id: 1, grade_id: 5, grade_name: 'Grade 3' },
-      { year: 2026, above_proficient_percentage: 55, level_4_percentage: null, assessment_subgroup_id: 1, assessment_subject_id: 2, grade_id: null, grade_name: null },
+      { year: 2026, above_proficient_percentage: 44, level_4_percentage: 20, bound: null, assessment_subgroup_id: 1, assessment_subject_id: 1, grade_id: null, grade_name: null },
+      { year: 2026, above_proficient_percentage: 50, level_4_percentage: null, bound: null, assessment_subgroup_id: 1, assessment_subject_id: 1, grade_id: 5, grade_name: 'Grade 3' },
+      { year: 2026, above_proficient_percentage: 55, level_4_percentage: null, bound: null, assessment_subgroup_id: 1, assessment_subject_id: 2, grade_id: null, grade_name: null },
+      // A share the state withholds as under 10% is marked, not dropped
+      { year: 2026, above_proficient_percentage: null, level_4_percentage: null, bound: '<10%', assessment_subgroup_id: 9, assessment_subject_id: 1, grade_id: null, grade_name: null },
     ]);
   });
 
@@ -155,14 +158,26 @@ describe('assessments', () => {
     expect(latestAssessmentYear([row(2027, 1, null)])).toBeNull();
   });
 
-  it('lists subgroups with results, dropping fully suppressed ones', () => {
+  it('lists every subgroup given, keeping ones without results so the table hides none', () => {
     const table = proficiencyBySubgroup(rows, 2026, [
       { id: 1, name: 'All students' },
       { id: 2, name: 'Am. Indian' },
       { id: 9, name: 'IEP/SWD' },
     ]);
-    expect(table.map(entry => entry.name)).toEqual(['All students', 'IEP/SWD']);
-    expect(table[1]).toMatchObject({ math: 20, reading: 21, science: null });
+    expect(table.map(entry => entry.name)).toEqual(['All students', 'Am. Indian', 'IEP/SWD']);
+    expect(table[1]).toMatchObject({ math: null, reading: null, science: null });
+    expect(table[2]).toMatchObject({ math: 20, reading: 21, science: null });
+  });
+
+  it('marks shares the state withholds as under 10% or over 90%', () => {
+    const table = proficiencyBySubgroup([{ ...row(2026, 1, null, 9), bound: '<10%' as const }, { ...row(2026, 2, null, 9), bound: '>90%' as const }], 2026, [{ id: 9, name: 'IEP/SWD' }]);
+    expect(table).toEqual([{ id: 9, name: 'IEP/SWD', math: null, reading: null, science: null, bounds: { math: '<10%', reading: '>90%' } }]);
+  });
+
+  it('draws withheld shares at 10% or 90% only when asked', () => {
+    const withheld = [{ ...row(2026, 1, null), bound: '<10%' as const }, { ...row(2026, 2, null), bound: '>90%' as const }];
+    expect(proficiencyBySubject(withheld)).toEqual([]);
+    expect(proficiencyBySubject(withheld, 1, null, true)).toEqual([{ year: 2026, math: 10, reading: 90, science: null }]);
   });
 
   it('lists tested grades in grade order', () => {
@@ -171,7 +186,7 @@ describe('assessments', () => {
       { id: 5, name: 'Grade 3' },
       { id: 6, name: 'Grade 4' },
     ]);
-    expect(table.map(entry => entry.name)).toEqual(['Grade 3', 'Grade 11']);
+    expect(table.map(entry => entry.name)).toEqual(['Grade 3', 'Grade 4', 'Grade 11']);
     expect(table[0]).toMatchObject({ math: 50, reading: 60 });
   });
 });

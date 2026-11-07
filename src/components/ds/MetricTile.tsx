@@ -44,11 +44,17 @@ export interface MetricTileProps {
   detail?: string;
   /** A shorter note for phones; phones show the note when left out */
   shortDetail?: string;
+  /** Leave the note off on phones */
+  hideDetailOnPhone?: boolean;
   trend?: { year: number; value: number }[];
   /** The page with the full trend; the whole tile becomes the link */
   to?: string;
   /** What the link opens, for screen readers: "test scores" ends the link with "See test scores" */
   linkLabel?: string;
+  /** Makes the tile a button that chooses what the page shows below, e.g. which test a chart shows */
+  onSelect?: () => void;
+  /** Whether the tile is the chosen one; drawn with a heavier, colored border */
+  selected?: boolean;
 }
 
 const deltaColor = (tone: TileDelta['tone']) => (tone === 'good' ? color.good : tone === 'bad' ? color.bad : color.neutral);
@@ -97,11 +103,11 @@ const Responsive: React.FC<{ full?: string; short?: string }> = ({ full, short }
 
 const captionText = { ...type.caption, color: 'text.secondary', m: 0 } as const;
 
-const TileBody: React.FC<MetricTileProps> = ({ label, shortLabel, value, shortValue, period, delta, detail, shortDetail, trend, to, linkLabel }) => (
+const TileBody: React.FC<MetricTileProps> = ({ label, shortLabel, value, shortValue, period, delta, detail, shortDetail, hideDetailOnPhone, trend, to, linkLabel, onSelect }) => (
   <CardContent sx={{ p: space.tilePadding, '&:last-child': { pb: space.tilePadding }, fontVariantNumeric: 'tabular-nums' }}>
     {/* Two lines kept for the label from tablets up, so tiles in a row line up; phones use the
         short labels, which fit on one line */}
-    <Typography component="p" sx={{ ...type.tileLabel, m: 0, pr: to ? { sm: 3 } : 0, minHeight: { xs: 0, sm: 44 }, color: 'text.secondary' }}>
+    <Typography component="p" sx={{ ...type.tileLabel, m: 0, pr: to || onSelect ? { sm: 3 } : 0, minHeight: { xs: 0, sm: 44 }, color: 'text.secondary' }}>
       <Responsive full={label} short={shortLabel} />
     </Typography>
 
@@ -126,7 +132,7 @@ const TileBody: React.FC<MetricTileProps> = ({ label, shortLabel, value, shortVa
     </Box>
 
     {detail && (
-      <Typography component="p" sx={{ ...captionText, mt: 1 }}>
+      <Typography component="p" sx={{ ...captionText, mt: 1, ...(hideDetailOnPhone && { display: { xs: 'none', sm: 'block' } }) }}>
         <Responsive full={detail} short={shortDetail} />
       </Typography>
     )}
@@ -145,17 +151,34 @@ const MetricTile: React.FC<MetricTileProps> = (props) => (
       borderColor: color.border,
       borderRadius: radius.card,
       backgroundColor: color.surface,
-      transition: 'border-color 120ms',
-      ...(props.to && {
+      transition: 'border-color 120ms, box-shadow 120ms',
+      ...((props.to || props.onSelect) && {
         '&:hover, &:focus-within': { borderColor: 'primary.main' },
         '&:hover .tile-chevron, &:focus-within .tile-chevron': { opacity: 1 },
       }),
+      // A second pixel of border drawn inside, so choosing a tile doesn't move its contents
+      // and keeps the chevron a hovered tile shows
+      ...(props.selected && {
+        borderColor: 'primary.main',
+        boxShadow: (theme: any) => `inset 0 0 0 1px ${theme.palette.primary.main}`,
+        '& .tile-chevron': { opacity: 1 },
+      }),
     }}
   >
-    {props.to ? (
-      <CardActionArea component={Link} to={props.to} sx={{ height: '100%', alignItems: 'stretch', position: 'relative', '& .MuiCardActionArea-focusHighlight': { opacity: 0 } }}>
+    {props.to || props.onSelect ? (
+      <CardActionArea
+        // A link to the tile's page, or a button that chooses what the page shows; the two look the same
+        {...(props.to ? { component: Link, to: props.to } : { onClick: props.onSelect, 'aria-pressed': Boolean(props.selected) })}
+        sx={{
+          height: '100%',
+          alignItems: 'stretch',
+          position: 'relative',
+          // The chosen tile keeps the grey of a hovered one
+          '& .MuiCardActionArea-focusHighlight': { opacity: props.selected ? (theme: any) => theme.palette.action.hoverOpacity : 0 },
+        }}
+      >
         <TileBody {...props} />
-        {/* The whole tile is the link; a chevron shows it on hover and keyboard focus */}
+        {/* The whole tile is the link or button; a chevron shows it on hover and keyboard focus */}
         <Box
           component="svg"
           className="tile-chevron"

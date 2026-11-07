@@ -128,34 +128,92 @@ describe('State pages', () => {
   it('academics leads with key figures, lists grades first, and names student groups plainly', async () => {
     renderPage(<StateAcademics />, '/state/academic');
 
-    expect(await screen.findByText(sentence('In 2025-26, 44% of students were proficient in math, 55% in reading and 38% in science.'), undefined, TIMEOUT)).toBeInTheDocument();
+    // The takeaway is the intro's second paragraph, beside the tiles on wide screens
+    expect(await screen.findByText(sentence(/In 2025-26, 44% of students were proficient in math, 55% in reading and 38% in science\. Significant variations in different student groups can be seen below\./), undefined, TIMEOUT)).toBeInTheDocument();
+    // No CSV links
+    expect(screen.queryByRole('button', { name: /CSV/ })).not.toBeInTheDocument();
     expect(screen.getByText(sentence('22% at the highest level (4 of 4)'))).toBeInTheDocument();
-    const gradeTable = screen.getByText('Percent proficient by grade, 2025-26');
-    const groupTable = screen.getByText('Percent proficient by student group, 2025-26');
+    const gradeTable = screen.getByText('Percent Proficient By Grade, 2025-26');
+    const groupTable = screen.getByText('Percent Proficient By Student Group, 2025-26');
     expect(gradeTable.compareDocumentPosition(groupTable) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(within(screen.getByText('Grade 3').closest('tr')!).getByText('54%')).toBeInTheDocument();
+    // Each table leads with the row the others are read against
+    const allGradesRow = screen.getByText('All Grades', { selector: 'th' }).closest('tr')!;
+    expect(within(allGradesRow).getByText('44%')).toBeInTheDocument();
+    expect(allGradesRow.parentElement!.firstElementChild).toBe(allGradesRow);
 
-    const iepRow = screen.getByText('Students with disabilities (IEP)').closest('tr')!;
+    const iepRow = screen.getByText('Students with Disabilities (IEP)').closest('tr')!;
     expect(within(iepRow).getByText('13%')).toBeInTheDocument();
     expect(within(iepRow).getByText('17%')).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Disability' })).toBeInTheDocument();
+    // No "Not on this page" box or source line
+    expect(screen.queryByText('Not on this page')).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Source:/)).not.toBeInTheDocument();
   });
 
-  it('academics shows the student group from the address, compared with all students', async () => {
-    renderPage(<StateAcademics />, '/state/academic?group=9');
+  it('academics asks for a test before charting, like the district pages', async () => {
+    renderPage(<StateAcademics />, '/state/academic');
 
-    expect(await screen.findByText(sentence('Students with disabilities (IEP), 2025-26: 13% proficient in math and 17% in reading.'), undefined, TIMEOUT)).toBeInTheDocument();
-    expect(screen.getByText('For comparison, 44% of all students were proficient in math, so this group is 31 points below all students.')).toBeInTheDocument();
-    expect(screen.getByText('Percent proficient by year: Students with disabilities (IEP)')).toBeInTheDocument();
-    expect(screen.getByText(sentence('7% at the highest level (4 of 4); All students: 44%'))).toBeInTheDocument();
+    expect(await screen.findByText('Select Math, Reading or Science above to see the percent proficient by year.', undefined, TIMEOUT)).toBeInTheDocument();
+    // The tiles pick the test; none is chosen at first
+    const mathTile = screen.getByRole('button', { name: /Proficient in Math/ });
+    expect(mathTile).toHaveAttribute('aria-pressed', 'false');
+    // The group and grade pickers appear once a test is chosen
+    expect(screen.queryByLabelText('Student Group')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Grade')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Table' })).not.toBeInTheDocument();
+
+    await userEvent.click(mathTile);
+    expect(await screen.findByText('Percent Proficient in Math By Year')).toBeInTheDocument();
+    expect(screen.getByText('All Students, All Grades')).toBeInTheDocument();
+    expect(mathTile).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText('Student Group')).toBeInTheDocument();
+    expect(screen.getByLabelText('Grade')).toBeInTheDocument();
+  });
+
+  it('academics charts the chosen test and student group, starting over on each visit, and keeps the key figures for all students', async () => {
+    // Choices left in the address from an older link don't preselect anything
+    renderPage(<StateAcademics />, '/state/academic?test=math&group=9');
+    expect(await screen.findByText('Select Math, Reading or Science above to see the percent proficient by year.', undefined, TIMEOUT)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /Proficient in Math/ }));
+    await userEvent.click(screen.getByRole('combobox', { name: 'Student Group' }));
+    await userEvent.click(screen.getByRole('option', { name: 'Students with Disabilities (IEP)' }));
+
+    expect(await screen.findByText('Percent Proficient in Math By Year')).toBeInTheDocument();
+    expect(screen.getByText('Students with Disabilities (IEP), All Grades')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Proficient in Math/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /Proficient in Reading/ })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByLabelText('Student Group')).toHaveTextContent('Students with Disabilities (IEP)');
+    expect(screen.getByLabelText('Grade')).toHaveTextContent('All Grades');
+    // One test, so the screen reader summary names only math
+    const summary = screen.getByText(/^Line chart\./);
+    expect(summary).toHaveTextContent('Math');
+    expect(summary).not.toHaveTextContent('Reading');
+    // The choices change only the chart
+    expect(screen.getByText(sentence(/In 2025-26, 44% of students were proficient in math, 55% in reading and 38% in science\./))).toBeInTheDocument();
+    expect(screen.getByText(sentence('22% at the highest level (4 of 4)'))).toBeInTheDocument();
+  });
+
+  it('academics charts the test named in the address, so the back button can step through tile clicks', async () => {
+    renderPage(<StateAcademics />, '/state/academic/reading');
+
+    expect(await screen.findByText('Percent Proficient in Reading By Year', undefined, TIMEOUT)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Proficient in Reading/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /Proficient in Math/ })).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('graduation leads with the rate and uses the same plan names in the table', async () => {
     renderPage(<StateOutcomes />, '/state/outcomes');
-    expect(await screen.findByText(sentence('87.5% of the class of 2025 graduated in four years; 2.2% dropped out.'), undefined, TIMEOUT)).toBeInTheDocument();
-    expect(screen.getByText('Plans of the Class of 2025 (preliminary)')).toBeInTheDocument();
-    expect(within(screen.getByText('Four-year college', { selector: 'th' }).closest('tr')!).getByText('50.0%')).toBeInTheDocument();
-    expect(within(screen.getByText('All graduates').closest('tr')!).getByText('1,000')).toBeInTheDocument();
+    // The takeaway is the intro's second paragraph, beside the tiles on wide screens
+    expect(await screen.findByText(sentence(/87\.5% of the class of 2025 graduated in four years; 2\.2% dropped out\./), undefined, TIMEOUT)).toBeInTheDocument();
+    expect(screen.getByText('Plans of the Class of 2025 (Preliminary)')).toBeInTheDocument();
+    expect(within(screen.getByText('Four-Year College', { selector: 'th' }).closest('tr')!).getByText('50.0%')).toBeInTheDocument();
+    expect(within(screen.getByText('All Graduates').closest('tr')!).getByText('1,000')).toBeInTheDocument();
+    // No "Not on this page" box or source line
+    expect(screen.queryByText('Not on this page')).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Source:/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /CSV/ })).not.toBeInTheDocument();
   });
 
   it('financials compares students and spending over the same ten years, and totals revenue', async () => {
@@ -251,20 +309,10 @@ describe('State pages', () => {
     expect(screen.queryByLabelText('See these figures for your district')).not.toBeInTheDocument();
   });
 
-  it('graduation explains when a district has no graduation page instead of opening an empty one', async () => {
-    vi.mocked(fetchData).mockImplementation(async (url: string) => {
-      if (url.includes('location/school')) return [];
-      const fixture = fixtureFor(url);
-      if (fixture === undefined) throw new Error(`No fixture for ${url}`);
-      return structuredClone(fixture);
-    });
+  it('graduation has no district picker', async () => {
     renderPage(<StateOutcomes />, '/state/outcomes');
-    const picker = await screen.findByLabelText('See these figures for your district', undefined, TIMEOUT);
-    await userEvent.type(picker, 'Ber');
-    await userEvent.click(await screen.findByRole('option', { name: 'Berlin' }));
-    expect(await screen.findByText(/^Berlin doesn't run its own schools; its students attend schools in other districts\. It has no Graduation page on this site\./)).toBeInTheDocument();
-    expect(screen.getByText("Go to Berlin's overview").closest('a')).toHaveAttribute('href', '/district/3');
-    expect(screen.queryByText(/^At \/district/)).not.toBeInTheDocument();
+    expect(await screen.findByText('Plans of the Class of 2025 (Preliminary)', undefined, TIMEOUT)).toBeInTheDocument();
+    expect(screen.queryByLabelText('See these figures for your district')).not.toBeInTheDocument();
   });
 
   it('staff compares staff by type with 2014-15 by default', async () => {

@@ -44,6 +44,8 @@ interface StateTableProps<T> {
   sectionSummary?: (section: string, rows: T[]) => T;
   /** Rows shown as subtotals: semibold, with a rule above (the total row stays heavier) */
   isSubtotal?: (row: T) => boolean;
+  /** A leading row the others are read against, e.g. all students: bold, with a rule below */
+  isHighlighted?: (row: T) => boolean;
   csvName?: string;
   emptyMessage?: string;
   note?: React.ReactNode;
@@ -116,6 +118,7 @@ function StateTable<T>({
   sectionOf,
   sectionSummary,
   isSubtotal,
+  isHighlighted,
   csvName,
   emptyMessage = 'No data available',
   note,
@@ -204,10 +207,16 @@ function StateTable<T>({
     // A closed accordion section's rows stay out of the table
     if (accordion && rowSection && !openSections.has(rowSection)) return;
     const subtotal = isSubtotal?.(row) ?? false;
+    const highlighted = isHighlighted?.(row) ?? false;
     bodyRows.push(
       <TableRow
         key={index}
-        sx={{ backgroundColor: SURFACE, ...(subtotal && { '& td, & th': { fontWeight: 600, borderTop: '1px solid', borderTopColor: 'grey.400' } }) }}
+        sx={{
+          backgroundColor: SURFACE,
+          ...(subtotal && { '& td, & th': { fontWeight: 600, borderTop: '1px solid', borderTopColor: 'grey.400' } }),
+          // A thinner, darker rule than the header's, so the two don't read as the same line
+          ...(highlighted && { '& td, & th': { fontWeight: 600, borderBottom: '1px solid', borderBottomColor: 'grey.500' } }),
+        }}
       >
         {columns.map((column, columnIndex) => (
           <TableCell
@@ -217,7 +226,7 @@ function StateTable<T>({
             scope={columnIndex === 0 ? 'row' : undefined}
             sx={cellSx(column, columnIndex, {
               whiteSpace: column.key === 'year' || column.align === 'right' ? 'nowrap' : undefined,
-              fontWeight: subtotal ? 600 : 'normal',
+              fontWeight: subtotal || highlighted ? 600 : 'normal',
               // Row labels keep a readable width when a wide table scrolls on a phone
               minWidth: columnIndex === 0 && columns.length > 3 ? 140 : undefined,
               // An accordion's rows sit in from its name

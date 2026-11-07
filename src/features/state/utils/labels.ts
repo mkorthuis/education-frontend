@@ -16,36 +16,36 @@ export const titleCase = (text: string): string =>
 
 // Assessment student groups, in the order the picker and table show them: pairs sit together
 export const STUDENT_GROUP_SECTIONS: { section: string; groups: { name: string; label: string }[] }[] = [
-  { section: 'All students', groups: [{ name: 'All students', label: 'All students' }] },
+  { section: 'All Students', groups: [{ name: 'All students', label: 'All Students' }] },
   {
     section: 'Disability',
     groups: [
-      { name: 'IEP/SWD', label: 'Students with disabilities (IEP)' },
-      { name: 'Not IEP/SWD', label: 'Students without an IEP' },
+      { name: 'IEP/SWD', label: 'Students with Disabilities (IEP)' },
+      { name: 'Not IEP/SWD', label: 'Students Without an IEP' },
     ],
   },
   {
-    section: 'Family income',
+    section: 'Family Income',
     groups: [
-      { name: 'SES', label: 'Low-income (free or reduced-price meals)' },
-      { name: 'Not SES', label: 'Not low-income' },
+      { name: 'SES', label: 'Low-Income (Free or Reduced-Price Meals)' },
+      { name: 'Not SES', label: 'Not Low-Income' },
     ],
   },
   {
-    section: 'English learner status',
+    section: 'English Learner Status',
     groups: [
-      { name: 'EL - Current', label: 'English learners' },
-      { name: 'EL - Curr + Monitor Yr1-4', label: 'English learners, current and recently exited' },
+      { name: 'EL - Current', label: 'English Learners' },
+      { name: 'EL - Curr + Monitor Yr1-4', label: 'English Learners, Current and Recently Exited' },
     ],
   },
   {
-    section: 'Race and ethnicity',
+    section: 'Race and Ethnicity',
     groups: [
       { name: 'Am. Indian', label: 'American Indian or Alaska Native' },
       { name: 'Asian+PI+Hawaiian', label: 'Asian or Pacific Islander' },
       { name: 'Black', label: 'Black' },
       { name: 'Hispanic', label: 'Hispanic' },
-      { name: 'Two or More races', label: 'Two or more races' },
+      { name: 'Two or More races', label: 'Two or More Races' },
       { name: 'White', label: 'White' },
     ],
   },
@@ -57,12 +57,12 @@ export const STUDENT_GROUP_SECTIONS: { section: string; groups: { name: string; 
     ],
   },
   {
-    section: 'Other groups',
+    section: 'Other Groups',
     groups: [
-      { name: 'Foster', label: 'In foster care' },
-      { name: 'Homeless', label: 'Experiencing homelessness' },
-      { name: 'Migrant', label: 'Migrant families' },
-      { name: 'Military', label: 'Military-connected families' },
+      { name: 'Foster', label: 'In Foster Care' },
+      { name: 'Homeless', label: 'Experiencing Homelessness' },
+      { name: 'Migrant', label: 'Migrant Families' },
+      { name: 'Military', label: 'Military-Connected Families' },
     ],
   },
 ];
@@ -78,7 +78,7 @@ export interface GroupedSubgroup<T> {
 
 /**
  * Subgroups sorted into the sections above, with plain labels. A group the list doesn't know
- * goes under "Other groups" with its source name.
+ * goes under "Other Groups" with its source name.
  */
 export const groupSubgroups = <T extends { name: string }>(subgroups: T[]): GroupedSubgroup<T>[] => {
   const known = new Set(Object.keys(STUDENT_GROUP_LABELS));
@@ -88,7 +88,7 @@ export const groupSubgroups = <T extends { name: string }>(subgroups: T[]): Grou
         .map(group => subgroups.find(subgroup => subgroup.name === group.name))
         .filter((subgroup): subgroup is T => Boolean(subgroup))
         .map(subgroup => ({ ...subgroup, label: STUDENT_GROUP_LABELS[subgroup.name] }));
-      if (section.section === 'Other groups') {
+      if (section.section === 'Other Groups') {
         subgroups
           .filter(subgroup => !known.has(subgroup.name))
           .forEach(subgroup => items.push({ ...subgroup, label: subgroup.name }));
@@ -100,13 +100,13 @@ export const groupSubgroups = <T extends { name: string }>(subgroups: T[]): Grou
 
 // Post-graduation plans (by the plan type's name); chart legends and table rows use the same words
 export const PLAN_LABELS: Record<string, string> = {
-  '4 Year College': 'Four-year college',
-  'Less 4 Year College': 'Two-year college or shorter program',
+  '4 Year College': 'Four-Year College',
+  'Less 4 Year College': 'Two-Year College or Shorter Program',
   'Employed': 'Working',
   'Armed Forces': 'Military',
-  'Unemployed': 'Not working',
+  'Unemployed': 'Not Working',
   'Unknown': 'Unknown',
-  'Addl. High School': 'Postgraduate year at a high school',
+  'Addl. High School': 'Postgraduate Year at a High School',
 };
 
 // Education Freedom Account aid categories

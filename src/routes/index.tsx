@@ -30,11 +30,11 @@ const router = createBrowserRouter(
           element: <page.component />,
         })),
         
-        // Map state routes
-        ...Object.values(PAGE_REGISTRY.state).map(page => ({
-          path: page.urlPatterns[0],
+        // Map state routes, every form of each page's address (e.g. the academics page with a test)
+        ...Object.values(PAGE_REGISTRY.state).flatMap(page => page.urlPatterns.map(path => ({
+          path,
           element: <page.component />,
-        })),
+        }))),
         
         // Map district routes
         ...Object.values(PAGE_REGISTRY.district).map(page => ({

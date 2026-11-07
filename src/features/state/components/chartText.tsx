@@ -61,8 +61,9 @@ export const ChartHeader: React.FC<ChartHeaderProps> = ({ title, shortTitle, sub
   </Box>
 );
 
-export const ChartNote: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Typography variant="body2" component="p" sx={{ color: 'text.secondary', mt: 1, maxWidth: READING_WIDTH }}>
+/** A note under a chart, kept to a reading width unless it's short enough to run the chart's full width */
+export const ChartNote: React.FC<{ children: React.ReactNode; fullWidth?: boolean }> = ({ children, fullWidth = false }) => (
+  <Typography variant="body2" component="p" sx={{ color: 'text.secondary', mt: 1, maxWidth: fullWidth ? 'none' : READING_WIDTH }}>
     {children}
   </Typography>
 );
