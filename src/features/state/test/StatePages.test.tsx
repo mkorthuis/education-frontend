@@ -162,6 +162,8 @@ describe('State pages', () => {
     renderPage(<StateFinancials />, '/state/financials');
     // The takeaway is the intro's second paragraph, beside the tiles on wide screens
     expect(await screen.findByText(sentence(/From 2014-15 to 2024-25, the number of students went down 9% while total spending went up 38% \(up \d+% after inflation\)\./), undefined, TIMEOUT)).toBeInTheDocument();
+    // Support services ($150M to $200M) and the state's share of revenue (33.3% to 25%) since 2014-15
+    expect(screen.getByText(sentence(/Spending on support services increased 33% since 2014-15\. Meanwhile, the state's share of school funding decreased 25%\./))).toBeInTheDocument();
     // Revenue by source, 2024-25 against 2014-15, without shares
     expect(screen.getByText('Revenue By Source')).toBeInTheDocument();
     const localRow = within(screen.getByText('Local', { selector: 'th' }).closest('tr')!);

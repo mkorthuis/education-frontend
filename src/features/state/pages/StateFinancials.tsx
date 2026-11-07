@@ -212,11 +212,22 @@ const StateFinancials: React.FC = () => {
       takeaway.push(`From ${formatSchoolYear(spendingChange.from.year)} to ${formatSchoolYear(spendingChange.to.year)}, the number of students went ${describeChange(studentChange.percentChange)}`
         + ` while total spending went ${describeChange(spendingChange.percentChange)} (${describeChange(realPercentChange(spendingChange))} after inflation).`);
     }
-    if (latestPerPupil) {
-      takeaway.push(`Schools spent ${formatDollars(latestPerPupil.value)} per student in ${formatSchoolYear(latestPerPupil.year)}.`);
+    // Support services spending, and the state's share of revenue, over the same years
+    const changed = (change: number) => `${change > 0 ? 'increased' : 'decreased'} ${Math.abs(Math.round(change))}%`;
+    const supportLines = SPENDING_LINES.filter(line => line.section === 'Support Services').map(line => line.name);
+    const supportChange = changeSince(
+      spendingLines.map(row => ({ year: row.year, value: supportLines.reduce((sum, line) => sum + (row[line] ?? 0), 0) })),
+      TREND_YEARS
+    );
+    if (supportChange) {
+      takeaway.push(`Spending on support services ${changed(supportChange.percentChange)} since ${formatSchoolYear(supportChange.from.year)}.`);
+    }
+    const stateShareChange = changeSince(toSeries(revenueShares, row => row.state), TREND_YEARS);
+    if (stateShareChange) {
+      takeaway.push(`Meanwhile, the state's share of school funding ${changed(stateShareChange.percentChange)}.`);
     }
     return { figures, takeaway };
-  }, [finance.perPupil, finance.rollups, enrollment.adm, localShare, latestRevenue, revenueShares]);
+  }, [finance.perPupil, finance.rollups, enrollment.adm, localShare, latestRevenue, revenueShares, spendingLines]);
 
   return (
     <StatePage
