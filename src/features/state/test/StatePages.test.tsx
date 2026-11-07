@@ -130,8 +130,9 @@ describe('State pages', () => {
 
     // The takeaway is the intro's second paragraph, beside the tiles on wide screens
     expect(await screen.findByText(sentence(/In 2025-26, 44% of students were proficient in math, 55% in reading and 38% in science\. Significant variations in different student groups can be seen below\./), undefined, TIMEOUT)).toBeInTheDocument();
-    // No CSV links
+    // No CSV links; one Excel download for the page
     expect(screen.queryByRole('button', { name: /CSV/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Download Excel' })).toBeEnabled();
     expect(screen.getByText(sentence('22% at the highest level (4 of 4)'))).toBeInTheDocument();
     const gradeTable = screen.getByText('Percent Proficient By Grade, 2025-26');
     const groupTable = screen.getByText('Percent Proficient By Student Group, 2025-26');

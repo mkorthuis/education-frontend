@@ -27,6 +27,7 @@ import {
   toSeries,
   withEmptyYears,
 } from '../utils/stateMetrics';
+import { asFraction, downloadWorkbook, ExcelSheet, ExcelValue, notesSheet, PERCENT } from '../utils/excel';
 import { groupSubgroups } from '../utils/labels';
 import { shortYear, tileDelta } from '../utils/phrases';
 
@@ -183,6 +184,112 @@ const StateAcademics: React.FC = () => {
 
   const yearText = latestYear ? formatSchoolYear(latestYear) : '';
 
+  // One workbook: the key figures, the two tables, and for each test the share proficient by student
+  // group and by grade in every year, which is everything the chart's pickers can show
+  const downloadExcel = () => {
+    const byKey = new Map(assessments.map(row => [`${row.assessment_subject_id}|${row.assessment_subgroup_id}|${row.grade_id ?? ALL_GRADES}|${row.year}`, row]));
+    // A share as a fraction for the PERCENT format, "<10%" or ">90%" where the state withholds it, blank when there's no result
+    const share = (subjectId: number, groupId: number, gradeId: number, year: number): ExcelValue => {
+      const row = byKey.get(`${subjectId}|${groupId}|${gradeId}|${year}`);
+      return row ? asFraction(row.above_proficient_percentage) ?? row.bound : null;
+    };
+    const tableShare = (row: ProficiencyTableRow, key: typeof SUBJECT_KEYS[number]): ExcelValue => asFraction(row[key]) ?? row.bounds?.[key];
+    type SheetRow = { label: string; groupId: number; gradeId: number; section?: boolean };
+    // Rows down the side, years across; years with no result in the sheet are left out
+    const byYearSheet = (name: string, title: string, subtitle: string, firstHeader: string, subjectId: number, rows: SheetRow[]): ExcelSheet => {
+      const years = [...new Set(assessments.filter(row => row.assessment_subject_id === subjectId).map(row => row.year))]
+        .sort((a, b) => a - b)
+        .filter(year => rows.some(row => !row.section && share(subjectId, row.groupId, row.gradeId, year) != null));
+      return {
+        name,
+        title,
+        subtitle,
+        columns: [{ header: firstHeader, width: 40 }, ...years.map(year => ({ header: formatSchoolYear(year), width: 10, format: PERCENT }))],
+        rows: rows.map(row => [row.label, ...years.map(year => (row.section ? null : share(subjectId, row.groupId, row.gradeId, year)))]),
+        subtotalRows: rows.flatMap((row, index) => (row.section ? [index] : [])),
+      };
+    };
+    // The groups with their section headings, as in the table
+    const groupRows: SheetRow[] = grouped.flatMap(section => [
+      ...(section.section === 'All Students' ? [] : [{ label: section.section, groupId: 0, gradeId: ALL_GRADES, section: true }]),
+      ...section.items.map(item => ({ label: item.label, groupId: item.id, gradeId: ALL_GRADES })),
+    ]);
+    const tileRows = SUBJECTS.map(entry => {
+      const series = toSeries(allStudents, row => row[entry.key]);
+      const latest = series[series.length - 1];
+      const change = changeSince(series.filter(point => point.year >= CURRENT_TEST_FIRST_YEAR), TREND_YEARS);
+      return [
+        `Proficient in ${entry.name}`,
+        latest ? formatSchoolYear(latest.year) : null,
+        latest ? latest.value / 100 : null,
+        change ? change.percentChange / 100 : null,
+        change ? formatSchoolYear(change.from.year) : null,
+        latest ? asFraction(byKey.get(`${entry.id}|${ALL_STUDENTS_SUBGROUP_ID}|${ALL_GRADES}|${latest.year}`)?.level_4_percentage) : null,
+      ];
+    });
+    const sheets: ExcelSheet[] = [
+      {
+        name: 'Key Figures',
+        subtitle: 'All students, all tested grades',
+        columns: [
+          { header: 'Figure', width: 24 },
+          { header: 'School Year', width: 12 },
+          { header: 'Percent Proficient', width: 12, format: PERCENT },
+          { header: 'Change', format: PERCENT },
+          { header: 'Since', width: 12 },
+          { header: 'At the Highest Level (4 of 4)', width: 16, format: PERCENT },
+        ],
+        rows: tileRows,
+      },
+      {
+        name: 'Proficient By Grade',
+        title: `Percent Proficient By Grade, ${yearText}`,
+        subtitle: 'All students; science is tested only in grades 5, 8 and 11',
+        columns: [{ header: 'Grade', width: 16 }, ...SUBJECTS.map(entry => ({ header: entry.name, format: PERCENT }))],
+        rows: byGrade.map(row => [row.name, ...SUBJECT_KEYS.map(key => tableShare(row, key))]),
+        subtotalRows: [0],
+      },
+      {
+        name: 'Proficient By Student Group',
+        title: `Percent Proficient By Student Group, ${yearText}`,
+        subtitle: 'All tested grades',
+        columns: [{ header: 'Student Group', width: 40 }, ...SUBJECTS.map(entry => ({ header: entry.name, format: PERCENT }))],
+        rows: groupRows.map(row => {
+          const tableRow = bySubgroup.find(entry => entry.id === row.groupId);
+          return [row.label, ...SUBJECT_KEYS.map(key => (tableRow ? tableShare(tableRow, key) : null))];
+        }),
+        subtotalRows: groupRows.flatMap((row, index) => (row.section || row.groupId === ALL_STUDENTS_SUBGROUP_ID ? [index] : [])),
+      },
+      ...SUBJECTS.map(entry => byYearSheet(
+        `${entry.name} By Group By Year`,
+        `Percent Proficient in ${entry.name} By Student Group and Year`,
+        'All tested grades',
+        'Student Group',
+        entry.id,
+        groupRows
+      )),
+      ...SUBJECTS.map(entry => byYearSheet(
+        `${entry.name} By Grade By Year`,
+        `Percent Proficient in ${entry.name} By Grade and Year`,
+        'All students',
+        'Grade',
+        entry.id,
+        [
+          { label: 'All Grades', groupId: ALL_STUDENTS_SUBGROUP_ID, gradeId: ALL_GRADES },
+          ...gradesIn(assessments.filter(row => row.assessment_subject_id === entry.id && hasProficiencyResult(row)))
+            .map(grade => ({ label: grade.name, groupId: ALL_STUDENTS_SUBGROUP_ID, gradeId: grade.id })),
+        ]
+      )),
+      notesSheet('Academic Performance for New Hampshire', [
+        'Source: NH Department of Education, statewide assessment results.',
+        'Percent proficient is the share of students who met or exceeded the grade-level standard: level 3 or 4 of the four achievement levels. Students take the tests in grades 3 through 8, with the SAT in grade 11; science is tested in grades 5, 8 and 11 (grade 4 on the earlier tests).',
+        'The state changed tests in 2014-15 and 2017-18, so scores before and after a change aren\'t directly comparable. No tests were given in spring 2020. Key figure changes are measured from 2017-18, the first year of the current test, and are relative to the share then.',
+        'Where the state reports only that a share is under 10% or over 90%, the sheets show "<10%" or ">90%". A blank cell means there\'s no result: too few students to report, or the test wasn\'t given in that grade or year. Student groups are reported from 2017-18; groups with no result in the latest year are left out.',
+      ]),
+    ];
+    return downloadWorkbook('nh-academics.xlsx', sheets);
+  };
+
   return (
     <StatePage
       displayName={PAGE.displayName}
@@ -203,6 +310,7 @@ const StateAcademics: React.FC = () => {
         />
       )}
       keyFiguresBesideIntro
+      onDownload={downloadExcel}
     >
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
 
