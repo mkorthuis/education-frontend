@@ -59,7 +59,7 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
   
   // Determine if we're on a page that needs secondary nav
   const isHomePage = location.pathname === '/' || location.pathname === '/home';
-  const isGeneralPage = ['/privacy', '/terms', '/districts', '/contact', '/faq', '/about', '/datasources'].includes(location.pathname);
+  const isGeneralPage = ['/privacy', '/terms', '/districts', '/schools', '/contact', '/faq', '/about', '/datasources'].includes(location.pathname);
   const needsSecondaryNav = !isSmallScreen && !isHomePage && !isGeneralPage;
   
   // Calculate the top position based on whether secondary nav is present
@@ -322,7 +322,15 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
                   onClick={() => handleNavigate('/districts')}
                   sx={{ py: 0.5 }}
                 >
-                  <ListItemText primary="Available Districts and Schools" />
+                  <ListItemText primary="Available Districts" />
+                </ListItemButton>
+              </ListItem>
+              <ListItem disablePadding>
+                <ListItemButton 
+                  onClick={() => handleNavigate('/schools')}
+                  sx={{ py: 0.5 }}
+                >
+                  <ListItemText primary="Available Schools" />
                 </ListItemButton>
               </ListItem>
               <ListItem disablePadding>

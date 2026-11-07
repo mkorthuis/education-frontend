@@ -239,8 +239,8 @@ const StateOverview: React.FC = () => {
             detail="K-12, not counting charter schools"
             shortDetail="excl. charter"
             trend={lastYears(figures.schools)}
-            to="/districts"
-            linkLabel="all districts"
+            to="/schools"
+            linkLabel="all schools"
           />
         )}
       </Band>

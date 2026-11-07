@@ -85,7 +85,17 @@ const Footer = () => {
                 variant="body2"
                 sx={{ opacity: 0.8, '&:hover': { opacity: 1 } }}
               >
-                Available Districts and Schools
+                Available Districts
+              </MuiLink>
+              <MuiLink 
+                component={RouterLink} 
+                to="/schools" 
+                color="inherit" 
+                display="block" 
+                variant="body2"
+                sx={{ opacity: 0.8, '&:hover': { opacity: 1 } }}
+              >
+                Available Schools
               </MuiLink>
               <MuiLink 
                 component={RouterLink} 

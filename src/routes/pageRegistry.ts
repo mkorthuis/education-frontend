@@ -32,6 +32,7 @@ export type PageRegistry = {
 // Import components lazily for better performance
 const Home = lazy(() => import('@/pages/Home'));
 const DistrictList = lazy(() => import('@/pages/DistrictList'));
+const SchoolList = lazy(() => import('@/pages/SchoolList'));
 const District = lazy(() => import('@/features/district/pages/District'));
 const Privacy = lazy(() => import('@/pages/Privacy'));
 const Terms = lazy(() => import('@/pages/Terms'));
@@ -94,12 +95,20 @@ export const PAGE_REGISTRY: PageRegistry = {
       order: 3,
       enabled: true,
     },
+    schools: {
+      id: 'general.schools',
+      component: SchoolList,
+      urlPatterns: ['/schools'],
+      displayName: 'All Schools',
+      order: 4,
+      enabled: true,
+    },
     datasources: {
       id: 'general.datasources',
       component: DataSources,
       urlPatterns: ['/datasources'],
       displayName: 'Data Sources',
-      order: 4,
+      order: 5,
       enabled: true,
     },
     privacy: {
@@ -107,7 +116,7 @@ export const PAGE_REGISTRY: PageRegistry = {
       component: Privacy,
       urlPatterns: ['/privacy'],
       displayName: 'Privacy Policy',
-      order: 5,
+      order: 6,
       enabled: true,
     },
     terms: {
@@ -115,7 +124,7 @@ export const PAGE_REGISTRY: PageRegistry = {
       component: Terms,
       urlPatterns: ['/terms'],
       displayName: 'Terms of Use',
-      order: 6,
+      order: 7,
       enabled: true,
     },
     contact: {
@@ -123,7 +132,7 @@ export const PAGE_REGISTRY: PageRegistry = {
       component: Contact,
       urlPatterns: ['/contact'],
       displayName: 'Contact Us',
-      order: 7,
+      order: 8,
       enabled: true,
     },
     faq: {
@@ -131,7 +140,7 @@ export const PAGE_REGISTRY: PageRegistry = {
       component: FAQ,
       urlPatterns: ['/faq'],
       displayName: 'FAQ',
-      order: 8,
+      order: 9,
       enabled: true,
     },
   },

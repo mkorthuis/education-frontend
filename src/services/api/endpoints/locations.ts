@@ -13,6 +13,10 @@ export const locationApi = {
     getDistricts: (forceRefresh = false) => 
         fetchData(buildLocationUrl('district', { is_public: true }), forceRefresh),
     
+    // The schools in the state's current list
+    getSchools: (forceRefresh = false) => 
+        fetchData(buildLocationUrl('school'), forceRefresh),
+    
     getGrades: (forceRefresh = false) => 
         fetchData(buildLocationUrl('grade'), forceRefresh),
     
