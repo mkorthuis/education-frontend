@@ -37,7 +37,7 @@ import {
   YearRow,
   YearValue,
 } from '../utils/stateMetrics';
-import { formatDollarsShort, formatThousands, realChangeText, realPercentChange, shortYear, tileDelta } from '../utils/phrases';
+import { changedBy, formatDollarsShort, formatThousands, realChangeText, realPercentChange, shortYear, tileDelta } from '../utils/phrases';
 import { asFraction, COUNT, DOLLARS, downloadWorkbook, ExcelSheet, ExcelValue, notesSheet, PERCENT } from '../utils/excel';
 
 const PAGE = PAGE_REGISTRY.state.financials;
@@ -215,18 +215,17 @@ const StateFinancials: React.FC = () => {
         + ` while total spending went ${describeChange(spendingChange.percentChange)} (${describeChange(realPercentChange(spendingChange))} after inflation).`);
     }
     // Support services spending, and the state's share of revenue, over the same years
-    const changed = (change: number) => `${change > 0 ? 'increased' : 'decreased'} ${Math.abs(Math.round(change))}%`;
     const supportLines = SPENDING_LINES.filter(line => line.section === 'Support Services').map(line => line.name);
     const supportChange = changeSince(
       spendingLines.map(row => ({ year: row.year, value: supportLines.reduce((sum, line) => sum + (row[line] ?? 0), 0) })),
       TREND_YEARS
     );
     if (supportChange) {
-      takeaway.push(`Spending on support services ${changed(supportChange.percentChange)} since ${formatSchoolYear(supportChange.from.year)}.`);
+      takeaway.push(`Spending on support services ${changedBy(supportChange.percentChange)} since ${formatSchoolYear(supportChange.from.year)}.`);
     }
     const stateShareChange = changeSince(toSeries(revenueShares, row => row.state), TREND_YEARS);
     if (stateShareChange) {
-      takeaway.push(`Meanwhile, the state's share of school funding ${changed(stateShareChange.percentChange)}.`);
+      takeaway.push(`Meanwhile, the state's share of school funding ${changedBy(stateShareChange.percentChange)}.`);
     }
     return { figures, takeaway };
   }, [finance.perPupil, finance.rollups, enrollment.adm, localShare, latestRevenue, revenueShares, spendingLines]);

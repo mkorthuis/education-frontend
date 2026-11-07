@@ -207,10 +207,17 @@ describe('State pages', () => {
   it('graduation leads with the rate and uses the same plan names in the table', async () => {
     renderPage(<StateOutcomes />, '/state/outcomes');
     // The takeaway is the intro's second paragraph, beside the tiles on wide screens
-    expect(await screen.findByText(sentence(/87\.5% of the class of 2025 graduated in four years; 2\.2% dropped out\./), undefined, TIMEOUT)).toBeInTheDocument();
-    expect(screen.getByText('Plans of the Class of 2025 (Preliminary)')).toBeInTheDocument();
-    expect(within(screen.getByText('Four-Year College', { selector: 'th' }).closest('tr')!).getByText('50.0%')).toBeInTheDocument();
+    // Ten years of classes, like the other State pages: graduation and four-year college steady,
+    // working up (17% to 33%) and two-year college down (23.1% to 17%)
+    expect(await screen.findByText(sentence(/From the class of 2015 to 2025, the graduation rate \(88%\) and the share of graduates planning a four-year college \(50%\) held steady\. Meanwhile, the share planning to work increased 94% while the share planning a two-year college or shorter program decreased 26%\./), undefined, TIMEOUT)).toBeInTheDocument();
+    expect(screen.getByText('Plans of the Class of 2025')).toBeInTheDocument();
+    expect(within(screen.getByText('Four-Year College', { selector: 'th span' }).closest('tr')!).getByText('50.0%')).toBeInTheDocument();
     expect(within(screen.getByText('All Graduates').closest('tr')!).getByText('1,000')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Download Excel' })).toBeEnabled();
+    // No Chart/Table toggle on any graduation chart
+    expect(screen.queryByRole('button', { name: 'Table' })).not.toBeInTheDocument();
+    // The class of 2025 isn't flagged as preliminary anywhere on the page
+    expect(screen.queryAllByText(/preliminary/i)).toHaveLength(0);
     // No "Not on this page" box or source line
     expect(screen.queryByText('Not on this page')).not.toBeInTheDocument();
     expect(screen.queryByText(/^Source:/)).not.toBeInTheDocument();
@@ -312,7 +319,7 @@ describe('State pages', () => {
 
   it('graduation has no district picker', async () => {
     renderPage(<StateOutcomes />, '/state/outcomes');
-    expect(await screen.findByText('Plans of the Class of 2025 (Preliminary)', undefined, TIMEOUT)).toBeInTheDocument();
+    expect(await screen.findByText('Plans of the Class of 2025', undefined, TIMEOUT)).toBeInTheDocument();
     expect(screen.queryByLabelText('See these figures for your district')).not.toBeInTheDocument();
   });
 

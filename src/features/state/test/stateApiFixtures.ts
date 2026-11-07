@@ -112,6 +112,11 @@ export const STATE_API_FIXTURES: Record<string, unknown> = {
     { id: 2, year: 2025, cohort_size: 1000, graduate: 875, earned_hiset: 22, dropped_out: 22 },
   ],
   'outcome/outcome/post-graduation/state': [
+    // The class of 2015, for the ten-year comparison: four-year college 49.5%, two-year 23.1%, working 17%
+    { id: 4, year: 2015, value: 495, post_graduation_type: { id: 1, name: '4 Year College', description: 'Entering Four Year Colleges & Universities' } },
+    { id: 5, year: 2015, value: 231, post_graduation_type: { id: 2, name: 'Less 4 Year College', description: 'Entering Less Than Four Years' } },
+    { id: 6, year: 2015, value: 170, post_graduation_type: { id: 4, name: 'Employed', description: 'Employed' } },
+    { id: 7, year: 2015, value: 104, post_graduation_type: { id: 7, name: 'Unknown', description: 'Unknown' } },
     { id: 1, year: 2025, value: 500, post_graduation_type: { id: 1, name: '4 Year College', description: 'Entering Four Year Colleges & Universities' } },
     { id: 2, year: 2025, value: 170, post_graduation_type: { id: 2, name: 'Less 4 Year College', description: 'Entering Less Than Four Years' } },
     { id: 3, year: 2025, value: 330, post_graduation_type: { id: 4, name: 'Employed', description: 'Employed' } },

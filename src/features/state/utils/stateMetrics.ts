@@ -40,7 +40,6 @@ export const REMOTE_BAND = [{ from: REMOTE_SCHOOL_YEAR - 1, to: REMOTE_SCHOOL_YE
 // Figures the state has published as preliminary. Keep in step with the notes on the Data Sources
 // page (src/pages/DataSources.tsx).
 export const PRELIMINARY = {
-  graduationClass: 2025,
   efaYear: 2027,
   efaAsOf: 'August 2, 2026',
 };

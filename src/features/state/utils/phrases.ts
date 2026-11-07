@@ -10,6 +10,12 @@ export const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.
 export const changeText = (change: Change | null): string | undefined =>
   change ? `${capitalize(describeChange(change.percentChange))} since ${formatSchoolYear(change.from.year)}` : undefined;
 
+/** For a takeaway sentence: "increased 35%" or "decreased 26%"; "held steady" when the change is under `steady` percent */
+export const changedBy = (percentChange: number, steady = 0): string =>
+  Math.abs(percentChange) < steady
+    ? 'held steady'
+    : `${percentChange > 0 ? 'increased' : 'decreased'} ${Math.abs(Math.round(percentChange))}%`;
+
 /** Change in percentage points, for rates: "Up 2 percentage points since the class of 2015" */
 export const pointChangeText = (change: Change | null, since: string): string | undefined => {
   if (!change) return undefined;

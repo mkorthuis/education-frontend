@@ -97,11 +97,13 @@ const csvValue = (value: unknown) =>
 const cellText = <T,>(column: StateTableColumn<T>, row: T): React.ReactNode => {
   if (column.render) return column.render(row);
   const text = column.format ? column.format(row) : String(rawValue(column, row) ?? '');
-  if (!column.shortFormat) return text;
+  const short = column.shortFormat?.(row);
+  // One text when the phone text is the same, e.g. a plan name that's already short
+  if (short === undefined || short === text) return text;
   return (
     <>
       <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>{text}</Box>
-      <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>{column.shortFormat(row)}</Box>
+      <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>{short}</Box>
     </>
   );
 };
