@@ -1,5 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import authReducer from '@/features/auth/store/authSlice';
+import askReducer from '@/store/slices/askSlice';
 import locationReducer from '@/store/slices/locationSlice';
 import measurementReducer from '@/store/slices/measurementSlice';
 import financeReducer from '@/store/slices/financeSlice';
@@ -45,7 +46,8 @@ export const store = configureStore({
     outcomes: outcomeReducer,
     staff: staffReducer,
     classSize: classSizeReducer,
-    page: pageReducer
+    page: pageReducer,
+    ask: askReducer
   },
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware({

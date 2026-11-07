@@ -24,6 +24,8 @@ export interface StateTableColumn<T> {
 
 interface StateTableProps<T> {
   title?: string;
+  /** The title's heading level; h2 on the State pages, h3 inside an answer under its own h2 */
+  titleComponent?: React.ElementType;
   /** A shorter title for phones, e.g. with the short year */
   shortTitle?: string;
   subtitle?: string;
@@ -110,6 +112,7 @@ const cellText = <T,>(column: StateTableColumn<T>, row: T): React.ReactNode => {
 
 function StateTable<T>({
   title,
+  titleComponent,
   shortTitle,
   subtitle,
   shortSubtitle,
@@ -248,6 +251,7 @@ function StateTable<T>({
         <ChartHeader
           titleId={titleId}
           title={title ?? ''}
+          component={titleComponent}
           shortTitle={shortTitle}
           subtitle={subtitle}
           shortSubtitle={shortSubtitle}

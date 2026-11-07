@@ -73,6 +73,8 @@ export interface TrendSeries {
 
 interface TrendChartProps {
   title: string;
+  /** The title's heading level; h2 on the State pages, h3 inside an answer under its own h2 */
+  titleComponent?: React.ElementType;
   /** A shorter title for phones */
   shortTitle?: string;
   subtitle?: string;
@@ -218,6 +220,7 @@ const useStableByContent = <T,>(value: T): T => {
 
 const TrendChart: React.FC<TrendChartProps> = ({
   title,
+  titleComponent,
   shortTitle,
   subtitle,
   shortSubtitle,
@@ -412,6 +415,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
       <ChartHeader
         titleId={titleId}
         title={title}
+        component={titleComponent}
         shortTitle={shortTitle}
         subtitle={subtitle}
         shortSubtitle={shortSubtitle}
