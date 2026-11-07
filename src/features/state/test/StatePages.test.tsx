@@ -187,6 +187,8 @@ describe('State pages', () => {
     expect(buttons).toHaveLength(3);
     expect(screen.queryByText(/The vertical axis starts at/)).not.toBeInTheDocument();
     expect(screen.queryByText(/adjusted for inflation with the Consumer Price Index/)).not.toBeInTheDocument();
+    // One Excel download for the whole page
+    expect(screen.getByRole('button', { name: 'Download Excel' })).toBeEnabled();
     // No "Not on this page" box or source line
     expect(screen.queryByText('Not on this page')).not.toBeInTheDocument();
     expect(screen.queryByText(/^Source:/)).not.toBeInTheDocument();

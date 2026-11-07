@@ -33,10 +33,12 @@ import {
   spendingByLine,
   spendingShares,
   toSeries,
+  valueIn,
   YearRow,
   YearValue,
 } from '../utils/stateMetrics';
 import { formatDollarsShort, formatThousands, realChangeText, realPercentChange, shortYear, tileDelta } from '../utils/phrases';
+import { asFraction, COUNT, DOLLARS, downloadWorkbook, ExcelSheet, ExcelValue, notesSheet, PERCENT } from '../utils/excel';
 
 const PAGE = PAGE_REGISTRY.state.financials;
 const TREND_YEARS = 10;
@@ -229,9 +231,149 @@ const StateFinancials: React.FC = () => {
     return { figures, takeaway };
   }, [finance.perPupil, finance.rollups, enrollment.adm, localShare, latestRevenue, revenueShares, spendingLines]);
 
+  // Everything on the page as one workbook: a sheet per chart or table, and the notes the page leaves out
+  const downloadExcel = () => {
+    const dollarsYear = latestYear ? `${formatSchoolYear(latestYear)} Dollars` : 'Today\'s Dollars';
+    const tileRow = (figure: string, series: YearValue[], text: (value: number) => string, withInflation: boolean): ExcelValue[] => {
+      const latest = latestPoint(series);
+      const change = changeSince(series, TREND_YEARS);
+      return [
+        figure,
+        latest ? formatSchoolYear(latest.year) : null,
+        latest ? text(latest.value) : null,
+        change ? change.percentChange / 100 : null,
+        change && withInflation ? realPercentChange(change) / 100 : null,
+        change ? formatSchoolYear(change.from.year) : null,
+      ];
+    };
+    const yearColumn = { header: 'School Year', width: 12 };
+    const localShares = toSeries(revenueShares, row => row.local);
+
+    // Spending lines down the side and years across, each category's total above its lines
+    const spendingYears = spendingLines.map(row => row.year);
+    const breakdownSheet = (name: string, subtitle: string, byYear: YearRow[]): ExcelSheet => {
+      const rows: ExcelValue[][] = [];
+      const subtotalRows: number[] = [];
+      const sum = (row: YearRow, lines: string[]) => lines.reduce((total, line) => total + (row[line] ?? 0), 0);
+      [...new Set(SPENDING_LINES.map(line => line.section))].forEach(section => {
+        const lines = SPENDING_LINES.filter(line => line.section === section && byYear.some(row => typeof row[line.name] === 'number')).map(line => line.name);
+        if (!lines.length) return;
+        subtotalRows.push(rows.length);
+        rows.push([section, ...byYear.map(row => sum(row, lines))]);
+        lines.forEach(line => rows.push([`    ${line}`, ...byYear.map(row => row[line] ?? null)]));
+      });
+      const allLines = SPENDING_LINES.map(line => line.name);
+      return {
+        name,
+        subtitle,
+        columns: [{ header: 'Category', width: 36 }, ...spendingYears.map(year => ({ header: formatSchoolYear(year), width: 15, format: DOLLARS }))],
+        rows,
+        subtotalRows,
+        totalRow: ['All Spending', ...byYear.map(row => sum(row, allLines))],
+      };
+    };
+
+    const perPupilAdjusted = latestYear ? adjustSeriesForInflation(toSeries(finance.perPupil, row => row.total), latestYear) : [];
+    const spendingSeries = toSeries(finance.rollups, row => row.total);
+    const spendingAdjustedSeries = latestYear ? adjustSeriesForInflation(spendingSeries, latestYear) : [];
+    const studentSeries = toSeries(enrollment.adm, row => row.total);
+    const revenueTotal = (row: YearRow) => REVENUE_SOURCES.reduce((sum, source) => sum + (row[source.key] ?? 0), 0);
+
+    const sheets: ExcelSheet[] = [
+      {
+        name: 'Key Figures',
+        columns: [
+          { header: 'Figure', width: 24 },
+          { header: 'School Year', width: 12 },
+          { header: 'Value', width: 12 },
+          { header: 'Change', format: PERCENT },
+          { header: 'After Inflation', width: 16, format: PERCENT },
+          { header: 'Since', width: 12 },
+        ],
+        rows: [
+          tileRow('Cost per Student', toSeries(finance.perPupil, row => row.total), formatDollars, true),
+          tileRow('Total Spending', spendingSeries, value => formatDollarsShort(value), true),
+          tileRow('Revenue Raised Locally', localShares, value => formatPercent(value), false),
+        ],
+      },
+      breakdownSheet('Spending Breakdown By Year', 'Districts\' reported spending by category, less bond principal and transfers between funds', spendingLines),
+      ...(spendingLines.length
+        ? [breakdownSheet('Spending Breakdown, Adjusted', `In ${dollarsYear.toLowerCase()}`, adjustRowsForInflation(spendingLines, spendingLines[spendingLines.length - 1].year))]
+        : []),
+      {
+        name: 'Change in Spending',
+        title: studentsVsSpending.baseYear ? `Change in Spending Since ${formatSchoolYear(studentsVsSpending.baseYear)}` : 'Change in Spending',
+        subtitle: `Total spending, as spent and in ${dollarsYear.toLowerCase()}, and students (average daily membership)`,
+        columns: [
+          yearColumn,
+          { header: 'Total Spending', width: 16, format: DOLLARS },
+          { header: `In ${dollarsYear}`, width: 22, format: DOLLARS },
+          { header: '# of Students', width: 14, format: COUNT },
+          { header: 'Total Spending, % Change', width: 16, format: PERCENT, wrap: true },
+          { header: 'After Inflation, % Change', width: 16, format: PERCENT, wrap: true },
+          { header: '# of Students, % Change', width: 16, format: PERCENT, wrap: true },
+        ],
+        rows: studentsVsSpending.rows.map(row => [
+          formatSchoolYear(row.year),
+          valueIn(spendingSeries, row.year),
+          valueIn(spendingAdjustedSeries, row.year),
+          valueIn(studentSeries, row.year),
+          asFraction(row.spending),
+          asFraction(row.realSpending),
+          asFraction(row.students),
+        ]),
+      },
+      {
+        name: 'Cost per Student',
+        subtitle: 'Less tuition and transportation, per student',
+        columns: [
+          yearColumn,
+          ...LEVELS.map(level => ({ header: level.name, width: 14, format: DOLLARS })),
+          { header: `All Grades, In ${dollarsYear}`, width: 24, format: DOLLARS },
+        ],
+        rows: [...finance.perPupil].sort((a, b) => a.year - b.year).map(row => [
+          formatSchoolYear(row.year),
+          ...LEVELS.map(level => row[level.key] ?? null),
+          valueIn(perPupilAdjusted, row.year),
+        ]),
+      },
+      {
+        name: 'Where School Spending Goes',
+        subtitle: 'Percentage of district spending, less bond principal and transfers between funds',
+        columns: [yearColumn, ...SPENDING_GROUPS.map(group => ({ header: group.name, width: 16, format: PERCENT }))],
+        rows: spendingGroupShares.map(row => [formatSchoolYear(row.year), ...SPENDING_GROUPS.map(group => asFraction(row[group.key]))]),
+      },
+      {
+        name: 'Revenue By Source',
+        subtitle: 'District revenue, as received',
+        columns: [
+          yearColumn,
+          ...REVENUE_SOURCES.map(source => ({ header: source.name, width: 16, format: DOLLARS })),
+          { header: 'Total', width: 16, format: DOLLARS },
+        ],
+        rows: revenue.map(row => [formatSchoolYear(row.year), ...REVENUE_SOURCES.map(source => row[source.key] ?? null), revenueTotal(row)]),
+      },
+      {
+        name: 'Where School Revenue Comes From',
+        subtitle: 'Percentage of district revenue',
+        columns: [yearColumn, ...REVENUE_SOURCES.map(source => ({ header: source.name, width: 16, format: PERCENT }))],
+        rows: revenueShares.map(row => [formatSchoolYear(row.year), ...REVENUE_SOURCES.map(source => asFraction(row[source.key]))]),
+      },
+      notesSheet('Financials for New Hampshire', [
+        'Sources: NH Department of Education DOE-25 district annual financial reports (spending by category and revenue), the statewide expenditure summary (total spending) and cost per pupil reports; students are average daily membership.',
+        'Total spending is NH DOE\'s total expenditures for elementary and secondary education. The spending breakdown is districts\' reported spending by line, less bond principal and transfers between funds, so its total differs slightly from total spending.',
+        'Cost per student is NH DOE\'s cost per pupil: current spending less tuition and transportation, divided by average daily membership.',
+        'Revenue and spending come from different state reports, so the totals don\'t match. Revenue includes borrowing (bond sales) and money moved between a district\'s own funds, shown as borrowing and transfers. Local revenue is mostly property taxes.',
+        `Figures in ${dollarsYear.toLowerCase()} are adjusted with the consumer price index (CPI-U, U.S. city average).`,
+      ]),
+    ];
+    return downloadWorkbook('nh-financials.xlsx', sheets);
+  };
+
   return (
     <StatePage
       displayName={PAGE.displayName}
+      onDownload={downloadExcel}
       status={status}
       onRetry={retry}
       errorMessage="Statewide financial data could not be loaded."
