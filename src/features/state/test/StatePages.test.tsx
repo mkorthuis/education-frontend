@@ -209,7 +209,9 @@ describe('State pages', () => {
     // The takeaway is the intro's second paragraph, beside the tiles on wide screens
     // Ten years of classes, like the other State pages: graduation and four-year college steady,
     // working up (17% to 33%) and two-year college down (23.1% to 17%)
-    expect(await screen.findByText(sentence(/From the class of 2015 to 2025, the graduation rate \(88%\) and the share of graduates planning a four-year college \(50%\) held steady\. Meanwhile, the share planning to work increased 94% while the share planning a two-year college or shorter program decreased 26%\./), undefined, TIMEOUT)).toBeInTheDocument();
+    expect(await screen.findByText(sentence(/From the class of 2015 to 2025, the graduation rate \(87\.5%\) and the share of graduates planning a four-year college \(50\.0%\) held steady\. Meanwhile, the share planning to work increased 94% \(17% to 33% of graduates\) while the share planning a two-year college or shorter program decreased 26% \(23% to 17% of graduates\)\./), undefined, TIMEOUT)).toBeInTheDocument();
+    // No chart points screen readers to a table view it doesn't have
+    expect(screen.queryByText(/The table view lists every year/)).not.toBeInTheDocument();
     expect(screen.getByText('Plans of the Class of 2025')).toBeInTheDocument();
     expect(within(screen.getByText('Four-Year College', { selector: 'th span' }).closest('tr')!).getByText('50.0%')).toBeInTheDocument();
     expect(within(screen.getByText('All Graduates').closest('tr')!).getByText('1,000')).toBeInTheDocument();
@@ -299,10 +301,10 @@ describe('State pages', () => {
     expect(screen.getByText('Where School Spending Goes')).toBeInTheDocument();
     // The chart's shares leave out principal and transfers too: $1.5B of $2.6B is instruction. It
     // shows one category at a time, Instruction first
-    expect(screen.getByText(/^Line chart\.[^]*Instruction: 62\.5% in 2014-15 and 57\.7% in 2024-25\. The table/)).toBeInTheDocument();
+    expect(screen.getByText(/^Line chart\.[^]*Instruction: 62\.5% in 2014-15 and 57\.7% in 2024-25\.$/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('combobox', { name: 'Show spending category' }));
     await userEvent.click(screen.getByRole('option', { name: 'Special Education' }));
-    expect(screen.getByText(/^Line chart\.[^]*Special Education: 25\.0% in 2014-15 and 30\.8% in 2024-25\. The table/)).toBeInTheDocument();
+    expect(screen.getByText(/^Line chart\.[^]*Special Education: 25\.0% in 2014-15 and 30\.8% in 2024-25\.$/)).toBeInTheDocument();
     // Adjusted for inflation, the latest year stays as spent and 2014-15 is restated in 2024-25 dollars
     // The spending table's button is the first on the page
     await userEvent.click(screen.getAllByRole('button', { name: 'Adj. For Inflation' })[0]);

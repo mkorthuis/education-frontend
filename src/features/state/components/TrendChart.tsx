@@ -349,9 +349,9 @@ const TrendChart: React.FC<TrendChartProps> = ({
         : `${entry.name}: ${format(first[entry.key] as number)} in ${yearLabel(first.year)} and ${format(last[entry.key] as number)} in ${yearLabel(last.year)}`;
     }).filter(Boolean);
     const sinceText = Number.isFinite(since) ? ` Since ${yearLabel(since)}, when the measure last changed:` : '';
-    return `${kind === 'share' ? 'Stacked column chart' : 'Line chart'}.${sinceText} ${parts.length ? `${parts.join('. ')}.` : 'No data.'} The table view lists every year.`;
+    return `${kind === 'share' ? 'Stacked column chart' : 'Line chart'}.${sinceText} ${parts.length ? `${parts.join('. ')}.` : 'No data.'}${showViewToggle ? ' The table view lists every year.' : ''}`;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [colored, data, format, kind, yearLabel, breakKey]);
+  }, [colored, data, format, kind, yearLabel, breakKey, showViewToggle]);
 
   const tableColumns = [...colored, ...tableSeries];
   const handleDownload = () => {

@@ -79,7 +79,6 @@ const StateOutcomes: React.FC = () => {
         value: formatPercent(latestRates.droppedOut, 1),
         period: String(latest.year),
         delta: tileDelta(changeSince(toSeries(rates, row => row.droppedOut), TREND_YEARS), { unit: 'percent', classYears: true, higherIsBetter: false }),
-        detail: `${formatPercent(latestRates.hiset, 1)} earned a HiSET instead`,
       });
     }
     if (college) {
@@ -102,8 +101,8 @@ const StateOutcomes: React.FC = () => {
     const fourYear = planChange('4 Year College');
     if (gradChange && fourYear) {
       const from = `From the class of ${gradChange.from.year} to ${gradChange.to.year}`;
-      const rate = `the graduation rate (${formatPercent(gradChange.to.value)})`;
-      const college = `the share of graduates planning a four-year college (${formatPercent(fourYear.to.value)})`;
+      const rate = `the graduation rate (${formatPercent(gradChange.to.value, 1)})`;
+      const college = `the share of graduates planning a four-year college (${formatPercent(fourYear.to.value, 1)})`;
       takeaway.push(Math.abs(gradChange.percentChange) < STEADY && Math.abs(fourYear.percentChange) < STEADY
         ? `${from}, ${rate} and ${college} held steady.`
         : `${from}, ${rate} ${changed(gradChange.percentChange)} and ${college} ${changed(fourYear.percentChange)}.`);
@@ -111,7 +110,9 @@ const StateOutcomes: React.FC = () => {
     const working = planChange('Employed');
     const twoYear = planChange('Less 4 Year College');
     if (working && twoYear) {
-      takeaway.push(`Meanwhile, the share planning to work ${changed(working.percentChange)} while the share planning a two-year college or shorter program ${changed(twoYear.percentChange)}.`);
+      // The shares themselves alongside the change, so "increased 35%" isn't read as 35% of graduates
+      const fromTo = (change: NonNullable<typeof working>) => `${formatPercent(change.from.value)} to ${formatPercent(change.to.value)} of graduates`;
+      takeaway.push(`Meanwhile, the share planning to work ${changed(working.percentChange)} (${fromTo(working)}) while the share planning a two-year college or shorter program ${changed(twoYear.percentChange)} (${fromTo(twoYear)}).`);
     }
     return { figures, takeaway };
   }, [rates, shares]);
