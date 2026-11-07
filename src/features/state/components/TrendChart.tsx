@@ -57,6 +57,8 @@ export interface TrendSeries {
   name: string;
   /** Label at the end of the line, when the name is long */
   shortName?: string;
+  /** The legend's name on phones, when the name is too long for a phone's legend */
+  phoneName?: string;
   color?: string;
   /** A dashed line, for a comparison drawn in the same color as the line it's compared with */
   dashed?: boolean;
@@ -308,11 +310,11 @@ const TrendChart: React.FC<TrendChartProps> = ({
     return null;
   };
 
-  // Legend in series order (grades, school levels and subjects have a natural order), or for
-  // unordered lists in the order the lines end, highest first, so it reads like the chart
+  // Legend in series order (grades, school levels and subjects have a natural order; stacked
+  // columns from the bottom up), or for unordered lists in the order the lines end, highest first,
+  // so it reads like the chart
   const legendOrder = useMemo(() => {
-    if (kind === 'share') return [...colored].reverse();
-    if (!legendByValue) return colored;
+    if (kind === 'share' || !legendByValue) return colored;
     const last = (key: string) => {
       for (let index = data.length - 1; index >= 0; index -= 1) {
         const value = data[index][key];
@@ -385,7 +387,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
           ) : (
             <Box sx={{ width: 16, height: kind === 'share' ? 10 : 3, borderRadius: kind === 'share' ? 0.5 : 2, backgroundColor: entry.color, flexShrink: 0 }} />
           )}
-          <Typography variant="body2" color="text.primary">{entry.name}</Typography>
+          <Typography variant="body2" color="text.primary">{isMobile && entry.phoneName ? entry.phoneName : entry.name}</Typography>
         </Box>
       ))}
       {markerKey && (

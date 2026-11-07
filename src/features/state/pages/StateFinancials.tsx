@@ -1,30 +1,37 @@
-import React, { useMemo } from 'react';
-import { Box, Divider, FormControlLabel, Switch, Typography } from '@mui/material';
+import React, { useMemo, useState } from 'react';
+import { Box, Divider, ToggleButton, useMediaQuery, useTheme } from '@mui/material';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectAdjustForInflation, toggleInflationAdjustment } from '@/store/slices/financeSlice';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import StatePage from '../components/StatePage';
 import StateTable from '../components/StateTable';
 import ChartRow from '../components/ChartRow';
+import ChartSelect from '../components/ChartSelect';
+import { compareByType, ComparisonRow, comparisonColumns, CompareYearPicker, useCompareYear } from '../components/CompareYear';
 import TrendChart, { CONTEXT_COLOR, ENTITY_COLORS, SERIES_COLORS } from '../components/TrendChart';
 import KeyFigures, { KeyFigure } from '../components/KeyFigures';
 import { useStateLoads } from '../hooks/useStateLoads';
 import { useStateEnrollmentData, useStateFinanceData } from '../hooks/useStatewideData';
 import {
+  adjustRowsForInflation,
   adjustSeriesForInflation,
   changeSince,
   describeChange,
   formatCompactDollars,
   formatDollars,
-  formatDollarsInWords,
   formatPercent,
   formatSchoolYear,
   formatSignedPercent,
   latestPoint,
   mergeSeries,
+  percentChange,
   percentChangeSeries,
   REVENUE_SOURCES,
   revenueBySource,
+  SPENDING_GROUPS,
+  SPENDING_LINES,
+  spendingByLine,
+  spendingShares,
   toSeries,
   YearRow,
   YearValue,
@@ -35,7 +42,7 @@ const PAGE = PAGE_REGISTRY.state.financials;
 const TREND_YEARS = 10;
 
 const LEVELS = [
-  { key: 'total', name: 'All grades', color: ENTITY_COLORS.total },
+  { key: 'total', name: 'All Grades', color: ENTITY_COLORS.total },
   { key: 'elementary', name: 'Elementary', color: ENTITY_COLORS.elementary },
   { key: 'middle', name: 'Middle', color: ENTITY_COLORS.middle },
   { key: 'high', name: 'High', color: ENTITY_COLORS.high },
@@ -45,37 +52,54 @@ const LEVELS = [
 const toDollars = (series: YearValue[], adjust: boolean, latestYear: number | null) =>
   adjust && latestYear ? adjustSeriesForInflation(series, latestYear) : series;
 
+type SpendingRow = ComparisonRow & { section: string };
+
+// The cost per student chart shows all grades or the three school levels
+type CostView = 'all' | 'levels';
+const COST_VIEWS: { value: CostView; label: string }[] = [
+  { value: 'all', label: 'All Grades' },
+  { value: 'levels', label: 'By Grade Level' },
+];
+// Phones' shorter names for the spending table's categories
+const SPENDING_PHONE_NAMES: Record<string, string> = {
+  'Special Education': 'Special Ed.',
+  'Support Services': 'Support Service',
+};
+
+// The spending share chart shows one category at a time
+type SpendingGroupKey = typeof SPENDING_GROUPS[number]['key'];
+const SPENDING_GROUP_OPTIONS = SPENDING_GROUPS.map(group => ({ value: group.key as SpendingGroupKey, label: group.name }));
+
 const valuesOf = (rows: Record<string, number | null>[], keys: string[]) =>
   rows.flatMap(row => keys.map(key => row[key])).filter((value): value is number => typeof value === 'number');
 
 const StateFinancials: React.FC = () => {
   const dispatch = useAppDispatch();
+  const isMobile = useMediaQuery(useTheme().breakpoints.down('sm'));
   const adjustForInflation = useAppSelector(selectAdjustForInflation);
   const finance = useStateFinanceData();
   const enrollment = useStateEnrollmentData();
-  const { status, retry } = useStateLoads([...finance.loads, ...finance.revenueLoads, ...enrollment.loads]);
+  const { status, retry } = useStateLoads([...finance.loads, ...finance.revenueLoads, ...finance.expenditureLoads, ...enrollment.loads]);
 
   const latestYear = useMemo(() => latestPoint(toSeries(finance.perPupil, row => row.total))?.year ?? null, [finance.perPupil]);
-  const dollarsYear = latestYear ? formatSchoolYear(latestYear) : '';
 
-  // Both versions of each dollar chart, so its axis can cover both and stay put when the switch changes
+  // Both versions of the chart's dollars, so its axis covers both and stays put when the inflation
+  // switch changes; the axis fits the lines the view shows
+  const [costView, setCostView] = useState<CostView>('all');
+  const [spendingGroup, setSpendingGroup] = useState<SpendingGroupKey>('instruction');
   const perPupil = useMemo(() => {
     const build = (adjust: boolean) => mergeSeries(Object.fromEntries(LEVELS.map(level => [
       level.key, toDollars(toSeries(finance.perPupil, row => row[level.key]), adjust, latestYear),
     ])));
     const nominal = build(false);
     const adjusted = build(true);
-    return { rows: adjustForInflation ? adjusted : nominal, axis: valuesOf([...nominal, ...adjusted], LEVELS.map(level => level.key)) };
-  }, [finance.perPupil, adjustForInflation, latestYear]);
-
-  const spending = useMemo(() => {
-    const nominal = toSeries(finance.rollups, row => row.total);
-    const adjusted = toDollars(nominal, true, latestYear);
+    const series = costView === 'all' ? LEVELS.filter(level => level.key === 'total') : LEVELS.filter(level => level.key !== 'total');
     return {
-      rows: (adjustForInflation ? adjusted : nominal).map(point => ({ year: point.year, total: point.value })),
-      axis: [...nominal, ...adjusted].map(point => point.value),
+      rows: adjustForInflation ? adjusted : nominal,
+      series,
+      axis: valuesOf([...nominal, ...adjusted], series.map(level => level.key)),
     };
-  }, [finance.rollups, adjustForInflation, latestYear]);
+  }, [finance.perPupil, adjustForInflation, latestYear, costView]);
 
   // Students and spending as percent change over the same ten years as the overview
   const studentsVsSpending = useMemo(() => {
@@ -94,6 +118,23 @@ const StateFinancials: React.FC = () => {
     };
   }, [enrollment.adm, finance.rollups, latestYear]);
 
+  // Spending by DOE-25 line: each group's share each year, and the latest year by line against a
+  // year the reader picks, like the Staff page's tables
+  const spendingLines = useMemo(() => spendingByLine(finance.expenditure, finance.expenditureEntryTypes), [finance.expenditure, finance.expenditureEntryTypes]);
+  const spendingGroupShares = useMemo(() => spendingShares(spendingLines), [spendingLines]);
+  const spendingCompare = useCompareYear(spendingLines.map(row => row.year));
+  // The table in dollars as spent, or every year in the latest year's dollars
+  const [spendingAdjusted, setSpendingAdjusted] = useState(false);
+  const spendingTable = useMemo(() => {
+    const latest = spendingLines[spendingLines.length - 1];
+    const byYear = spendingAdjusted && latest ? adjustRowsForInflation(spendingLines, latest.year) : spendingLines;
+    // Only the lines the latest year has, in the table's order
+    const order = SPENDING_LINES.filter(line => typeof latest?.[line.name] === 'number').map(line => line.name);
+    const { year, rows, total } = compareByType(byYear, spendingCompare.year, line => line, 'All Spending', order);
+    const sectioned: SpendingRow[] = rows.map(row => ({ ...row, section: SPENDING_LINES.find(line => line.name === row.type)?.section ?? '' }));
+    return { year, rows: sectioned, total: total && { ...total, section: '' } };
+  }, [spendingLines, spendingCompare.year, spendingAdjusted]);
+
   const revenue = useMemo(() => revenueBySource(finance.revenue, finance.revenueEntryTypes), [finance.revenue, finance.revenueEntryTypes]);
   const revenueShares = useMemo(() => revenue.map(row => {
     const total = REVENUE_SOURCES.reduce((sum, source) => sum + (row[source.key] ?? 0), 0);
@@ -103,12 +144,23 @@ const StateFinancials: React.FC = () => {
   }), [revenue]);
   const latestRevenue = revenue[revenue.length - 1];
   const latestRevenueTotal = latestRevenue ? REVENUE_SOURCES.reduce((sum, source) => sum + (latestRevenue[source.key] ?? 0), 0) : 0;
+  // The latest year by source against a year the reader picks, as received or in the latest year's dollars
+  const revenueCompare = useCompareYear(revenue.map(row => row.year));
+  const [revenueAdjusted, setRevenueAdjusted] = useState(false);
+  const revenueTable = useMemo(() => {
+    const byYear = revenueAdjusted && latestRevenue ? adjustRowsForInflation(revenue, latestRevenue.year) : revenue;
+    const name = (key: string) => {
+      const source = REVENUE_SOURCES.find(entry => entry.key === key);
+      return (isMobile && source?.phoneName) || source?.name || key;
+    };
+    return compareByType(byYear, revenueCompare.year, name, 'Total', REVENUE_SOURCES.map(source => source.key));
+  }, [revenue, latestRevenue, revenueCompare.year, revenueAdjusted, isMobile]);
   // How the state's share has moved, which is hard to read off stacked columns
   const stateShareText = useMemo(() => {
     const first = revenueShares[0];
     const last = revenueShares[revenueShares.length - 1];
     if (!first || !last || first === last || typeof first.state !== 'number' || typeof last.state !== 'number') return '';
-    return `The state's share went from ${formatPercent(first.state, 1)} in ${formatSchoolYear(first.year)} to ${formatPercent(last.state, 1)} in ${formatSchoolYear(last.year)}.`;
+    return `The state's share went from ${formatPercent(first.state)} in ${shortYear(first.year)} to ${formatPercent(last.state)} in ${shortYear(last.year)}.`;
   }, [revenueShares]);
   const localShare = latestRevenue && latestRevenueTotal ? ((latestRevenue.local ?? 0) / latestRevenueTotal) * 100 : null;
 
@@ -132,6 +184,7 @@ const StateFinancials: React.FC = () => {
         shortValue: `$${formatThousands(latestPerPupil.value)}`,
         period: shortYear(latestPerPupil.year),
         delta: tileDelta(perPupilChange, { unit: 'percent', higherIsBetter: false }),
+        // The same change after inflation, under the value
         detail: realChangeText(perPupilChange),
       });
     }
@@ -151,7 +204,8 @@ const StateFinancials: React.FC = () => {
         shortLabel: 'Raised Locally',
         value: formatPercent(localShare),
         period: shortYear(latestRevenue.year),
-        detail: 'Mostly town property taxes',
+        // The change relative to the share then, like the other tiles; neither direction is better
+        delta: tileDelta(changeSince(toSeries(revenueShares, row => row.local), TREND_YEARS), { unit: 'percent' }),
       });
     }
     if (spendingChange && studentChange && studentChange.from.year === spendingChange.from.year) {
@@ -162,11 +216,7 @@ const StateFinancials: React.FC = () => {
       takeaway.push(`Schools spent ${formatDollars(latestPerPupil.value)} per student in ${formatSchoolYear(latestPerPupil.year)}.`);
     }
     return { figures, takeaway };
-  }, [finance.perPupil, finance.rollups, enrollment.adm, localShare, latestRevenue]);
-
-  const dollarNote = adjustForInflation && latestYear
-    ? `In ${dollarsYear} dollars (adjusted for inflation with the Consumer Price Index).`
-    : 'Dollars as spent each year, not adjusted for inflation.';
+  }, [finance.perPupil, finance.rollups, enrollment.adm, localShare, latestRevenue, revenueShares]);
 
   return (
     <StatePage
@@ -175,97 +225,142 @@ const StateFinancials: React.FC = () => {
       onRetry={retry}
       errorMessage="Statewide financial data could not be loaded."
       intro="What New Hampshire school districts spend, per student and in total, and where the money comes from."
-      keyFigures={<KeyFigures takeaway={keyFigures.takeaway} figures={keyFigures.figures} />}
-      districtSection="financials"
-      notCovered="Statewide spending by category (such as instruction, administration and transportation) isn't on these pages yet; each district's Financials page breaks down its own spending. Tuition paid between towns and each town's school property tax rate aren't on the site yet."
-      source="NH Department of Education, DOE-25 district financial reports and cost per pupil reports"
+      takeaway={keyFigures.takeaway}
+      keyFigures={<KeyFigures figures={keyFigures.figures} centerLastTile />}
+      keyFiguresBesideIntro
     >
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        <TrendChart
-          title={studentsVsSpending.baseYear ? `Students and spending since ${formatSchoolYear(studentsVsSpending.baseYear)}` : 'Students and spending'}
-          subtitle={studentsVsSpending.baseYear ? `Percent change from ${formatSchoolYear(studentsVsSpending.baseYear)}` : undefined}
-          data={studentsVsSpending.rows}
-          series={[
-            { key: 'students', name: 'Students', color: CONTEXT_COLOR },
-            { key: 'spending', name: 'Total spending', color: SERIES_COLORS[1] },
-            { key: 'realSpending', name: 'Total spending, after inflation', shortName: 'After inflation', color: ENTITY_COLORS.adjusted },
-          ]}
-          format={value => formatSignedPercent(value)}
-          axis="span"
-          note="Shows whether spending kept pace with the number of students. Students are average daily membership."
-          csvName="nh-students-vs-spending"
-          csvUnit={studentsVsSpending.baseYear ? `% change from ${formatSchoolYear(studentsVsSpending.baseYear)}` : '% change'}
-        />
-
-        <Divider />
-
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', columnGap: 2 }}>
-          <FormControlLabel
-            control={<Switch checked={adjustForInflation} onChange={() => dispatch(toggleInflationAdjustment())} />}
-            label={<Typography sx={{ fontWeight: 500 }}>Show in today's dollars (adjusted for inflation)</Typography>}
+        <ChartRow>
+          <StateTable
+            title="Spending Breakdown By Year"
+            control={(
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 1 }}>
+                {/* Like the Staff page's salary chart button */}
+                <ToggleButton
+                  value="adjusted"
+                  size="small"
+                  selected={spendingAdjusted}
+                  onChange={() => setSpendingAdjusted(adjusted => !adjusted)}
+                  sx={{ whiteSpace: 'nowrap' }}
+                >
+                  Adj. For Inflation
+                </ToggleButton>
+                {spendingCompare.year !== null && (
+                  <CompareYearPicker years={spendingCompare.years} year={spendingCompare.year} onChange={spendingCompare.setYear} label="Compare spending with" />
+                )}
+              </Box>
+            )}
+            columns={comparisonColumns<SpendingRow>(
+              'Category',
+              spendingTable.year,
+              spendingCompare.year,
+              row => (isMobile && SPENDING_PHONE_NAMES[row.type]) || row.type,
+              value => formatDollarsShort(value)
+            )}
+            rows={spendingTable.rows}
+            totalRow={spendingTable.total}
+            sectionOf={row => row.section}
+            // Each category's totals, opening to its lines
+            sectionSummary={(section, lines) => {
+              const count = lines.reduce((sum, line) => sum + line.count, 0);
+              const before = lines.some(line => line.before !== null) ? lines.reduce((sum, line) => sum + (line.before ?? 0), 0) : null;
+              return { type: section, section, count, before, change: percentChange(count, before) };
+            }}
+            note={isMobile ? undefined : "Districts' reported spending by category, less bond principal and transfers between funds."}
           />
-          <Typography variant="body2" color="text.secondary">
-            {adjustForInflation ? `On: in ${dollarsYear} dollars.` : 'Off: dollars as spent.'} Applies to the two charts below.
-          </Typography>
-        </Box>
-
-        <TrendChart
-          title="Cost per student by school level"
-          subtitle="Day-to-day spending, less tuition and transportation, per student"
-          data={perPupil.rows}
-          series={[...LEVELS]}
-          format={formatDollars}
-          axisFormat={formatCompactDollars}
-          axis="fit"
-          axisIncludes={perPupil.axis}
-          note={dollarNote}
-          csvName={`nh-cost-per-student${adjustForInflation ? '-inflation-adjusted' : ''}`}
-          csvUnit={adjustForInflation ? `${dollarsYear} dollars` : 'dollars as spent'}
-        />
-
-        <TrendChart
-          title="Total school district spending"
-          subtitle="All funds, statewide"
-          data={spending.rows}
-          series={[{ key: 'total', name: 'Total spending' }]}
-          format={value => formatDollarsInWords(value)}
-          axisFormat={formatCompactDollars}
-          axisIncludes={spending.axis}
-          note={dollarNote}
-          csvName={`nh-total-spending${adjustForInflation ? '-inflation-adjusted' : ''}`}
-          csvUnit={adjustForInflation ? `${dollarsYear} dollars` : 'dollars as spent'}
-        />
+          <TrendChart
+            title={studentsVsSpending.baseYear ? `Change in Spending Since ${formatSchoolYear(studentsVsSpending.baseYear)}` : 'Change in Spending'}
+            showViewToggle={false}
+            data={studentsVsSpending.rows}
+            series={[
+              { key: 'spending', name: 'Total Spending', phoneName: 'Total Spend', color: SERIES_COLORS[1] },
+              { key: 'realSpending', name: 'Total Spending, After Inflation', shortName: 'After Inflation', phoneName: 'After Inflation', color: ENTITY_COLORS.adjusted },
+              { key: 'students', name: '# of Students', phoneName: '# Students', color: CONTEXT_COLOR },
+            ]}
+            format={value => formatSignedPercent(value)}
+            axis="span"
+          />
+        </ChartRow>
 
         <Divider />
 
         <ChartRow>
           <TrendChart
-            title="Where school revenue comes from"
-            subtitle="Percentage of district revenue"
-            kind="share"
-            data={revenueShares}
-            series={REVENUE_SOURCES.map(source => ({ key: source.key, name: source.name }))}
+            title="Cost per Student"
+            subtitle="Less Tuition and Transportation, per Student"
+            showViewToggle={false}
+            control={(
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 1 }}>
+                {/* Like the Staff page's salary chart button */}
+                <ToggleButton
+                  value="adjusted"
+                  size="small"
+                  selected={adjustForInflation}
+                  onChange={() => dispatch(toggleInflationAdjustment())}
+                  sx={{ whiteSpace: 'nowrap' }}
+                >
+                  Adj. For Inflation
+                </ToggleButton>
+                <ChartSelect value={costView} options={COST_VIEWS} onChange={setCostView} label="Show cost per student" />
+              </Box>
+            )}
+            data={perPupil.rows}
+            series={perPupil.series}
+            format={formatDollars}
+            axisFormat={formatCompactDollars}
+            // Starts just under the lowest cost, without a note saying so
+            axis="span"
+            axisIncludes={perPupil.axis}
+          />
+          <TrendChart
+            title="Where School Spending Goes"
+            subtitle="Percentage of District Spending"
+            showViewToggle={false}
+            control={<ChartSelect value={spendingGroup} options={SPENDING_GROUP_OPTIONS} onChange={setSpendingGroup} label="Show spending category" />}
+            data={spendingGroupShares}
+            // Each category in its own color
+            series={SPENDING_GROUPS.flatMap((group, index) => (group.key === spendingGroup ? [{ key: group.key, name: group.name, color: SERIES_COLORS[index] }] : []))}
             format={value => formatPercent(value, 1)}
             axisFormat={value => formatPercent(value)}
-            note={`Local revenue is mostly property taxes raised by each town.${stateShareText ? ` ${stateShareText}` : ''}`}
-            csvName="nh-revenue-by-source"
-            csvUnit="% of revenue"
+            axis="span"
           />
+        </ChartRow>
+
+        <Divider />
+
+        <ChartRow>
           <StateTable
-            title={latestRevenue ? `Revenue by source, ${formatSchoolYear(latestRevenue.year)}` : 'Revenue by source'}
-            columns={[
-              { key: 'name', label: 'Source' },
-              { key: 'amount', label: 'Amount', align: 'right', format: row => formatDollarsInWords(row.amount) },
-              { key: 'share', label: 'Share', align: 'right', format: row => formatPercent(row.share, 1) },
-            ]}
-            rows={latestRevenue ? REVENUE_SOURCES.map(source => ({
-              name: source.name as string,
-              amount: latestRevenue[source.key] ?? 0,
-              share: latestRevenueTotal ? ((latestRevenue[source.key] ?? 0) / latestRevenueTotal) * 100 : null,
-            })) : []}
-            totalRow={latestRevenue ? { name: 'Total', amount: latestRevenueTotal, share: 100 } : undefined}
-            note="Revenue and spending come from different state reports, so the totals don't match. Revenue includes borrowing (bond sales) and money moved between a district's own funds, shown as borrowing and transfers."
-            csvName={`nh-revenue-by-source-${latestRevenue?.year ?? ''}`}
+            title="Revenue By Source"
+            control={(
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 1 }}>
+                <ToggleButton
+                  value="adjusted"
+                  size="small"
+                  selected={revenueAdjusted}
+                  onChange={() => setRevenueAdjusted(adjusted => !adjusted)}
+                  sx={{ whiteSpace: 'nowrap' }}
+                >
+                  Adj. For Inflation
+                </ToggleButton>
+                {revenueCompare.year !== null && (
+                  <CompareYearPicker years={revenueCompare.years} year={revenueCompare.year} onChange={revenueCompare.setYear} label="Compare revenue with" />
+                )}
+              </Box>
+            )}
+            columns={comparisonColumns('Source', revenueTable.year, revenueCompare.year, undefined, value => formatDollarsShort(value))}
+            rows={revenueTable.rows}
+            totalRow={revenueTable.total}
+          />
+          <TrendChart
+            title="Where School Revenue Comes From"
+            subtitle="Percentage of District Revenue"
+            kind="share"
+            showViewToggle={false}
+            data={revenueShares}
+            series={REVENUE_SOURCES.map(source => ({ key: source.key, name: source.name, phoneName: source.phoneName }))}
+            format={value => formatPercent(value, 1)}
+            axisFormat={value => formatPercent(value)}
+            note={`Local revenue is mostly property taxes by each town.${stateShareText ? ` ${stateShareText}` : ''}`}
           />
         </ChartRow>
       </Box>

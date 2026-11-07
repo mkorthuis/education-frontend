@@ -73,12 +73,16 @@ export const compareByType = (
   return { year: latest.year as number | null, rows, total };
 };
 
-/** Type, the latest year, the year compared with (a dash where it has no count) and the change */
+/**
+ * Type, the latest year, the year compared with (a dash where it has no count) and the change.
+ * Counts by default; `format` for other values, e.g. dollars.
+ */
 export const comparisonColumns = <T extends ComparisonRow>(
   typeLabel: string,
   year: number | null,
   compareYear: number | null,
-  renderType?: (row: T) => React.ReactNode
+  renderType?: (row: T) => React.ReactNode,
+  format: (value: number) => string = formatCount
 ): StateTableColumn<T>[] => [
   { key: 'type', label: typeLabel, render: renderType },
   ...(year ? [{
@@ -86,14 +90,14 @@ export const comparisonColumns = <T extends ComparisonRow>(
     label: formatSchoolYear(year),
     shortLabel: shortYear(year),
     align: 'right' as const,
-    format: (row: T) => formatCount(row.count),
+    format: (row: T) => format(row.count),
   }] : []),
   ...(compareYear !== null ? [{
     key: 'before',
     label: formatSchoolYear(compareYear),
     shortLabel: shortYear(compareYear),
     align: 'right' as const,
-    format: (row: T) => (row.before === null ? '—' : formatCount(row.before)),
+    format: (row: T) => (row.before === null ? '—' : format(row.before)),
   }] : []),
   { key: 'change', label: '% Change', shortLabel: 'Change', align: 'right', format: row => formatSignedPercent(row.change) },
 ];

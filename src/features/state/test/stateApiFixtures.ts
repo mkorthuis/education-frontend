@@ -43,12 +43,36 @@ export const STATE_API_FIXTURES: Record<string, unknown> = {
     { id: 2, year: 2025, total: 4140000000 },
   ],
   'finance/state-revenue': [
+    { id: 3, year: 2015, entry_type_id: 1, value: 2000 },
+    { id: 4, year: 2015, entry_type_id: 2, value: 1000 },
     { id: 1, year: 2025, entry_type_id: 1, value: 3000 },
     { id: 2, year: 2025, entry_type_id: 2, value: 1000 },
   ],
+  // DOE-25 spending lines: two instruction lines, a support service and debt interest, 2014-15 and
+  // 2024-25, plus bond principal and a fund transfer, which the breakdown leaves out
+  'finance/state-expenditure': [
+    { id: 1, year: 2015, entry_type_id: 1, value: 1000000000 },
+    { id: 2, year: 2015, entry_type_id: 2, value: 400000000 },
+    { id: 3, year: 2015, entry_type_id: 3, value: 150000000 },
+    { id: 4, year: 2015, entry_type_id: 4, value: 50000000 },
+    { id: 5, year: 2025, entry_type_id: 1, value: 1500000000 },
+    { id: 6, year: 2025, entry_type_id: 2, value: 800000000 },
+    { id: 7, year: 2025, entry_type_id: 3, value: 200000000 },
+    { id: 8, year: 2025, entry_type_id: 4, value: 100000000 },
+    { id: 9, year: 2015, entry_type_id: 5, value: 90000000 },
+    { id: 10, year: 2025, entry_type_id: 5, value: 80000000 },
+    { id: 11, year: 2025, entry_type_id: 6, value: 30000000 },
+  ],
   'finance/entry-types': {
     balance_entry_types: [],
-    expenditure_entry_types: [],
+    expenditure_entry_types: [
+      { id: 1, name: 'Regular Programs', page: '', account_no: '', line: '', category: { id: 1, name: 'Instruction', super_category: { id: 1, name: 'General Fund - Elementary Expenditures' } } },
+      { id: 2, name: 'Special Programs', page: '', account_no: '', line: '', category: { id: 1, name: 'Instruction', super_category: { id: 1, name: 'General Fund - Elementary Expenditures' } } },
+      { id: 3, name: 'Student Transportation', page: '', account_no: '', line: '', category: { id: 2, name: 'Support Services', super_category: { id: 1, name: 'General Fund - Elementary Expenditures' } } },
+      { id: 4, name: 'Interest', page: '', account_no: '', line: '', category: { id: 3, name: 'Debt Service', super_category: { id: 2, name: 'General Fund - Other Financing Uses' } } },
+      { id: 5, name: 'Principal', page: '', account_no: '', line: '', category: { id: 3, name: 'Debt Service', super_category: { id: 2, name: 'General Fund - Other Financing Uses' } } },
+      { id: 6, name: 'Trust/Agency Funds', page: '', account_no: '', line: '', category: { id: 4, name: 'Fund Transfers', super_category: { id: 2, name: 'General Fund - Other Financing Uses' } } },
+    ],
     revenue_entry_types: [
       { id: 1, name: 'Taxes', page: '', account_no: '', line: '', category: { id: 1, name: 'Local', super_category: { id: 1, name: 'Revenue from Local Sources' } } },
       { id: 2, name: 'Adequacy', page: '', account_no: '', line: '', category: { id: 2, name: 'State', super_category: { id: 2, name: 'Revenue from State Sources' } } },

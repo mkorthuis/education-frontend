@@ -160,20 +160,91 @@ describe('State pages', () => {
 
   it('financials compares students and spending over the same ten years, and totals revenue', async () => {
     renderPage(<StateFinancials />, '/state/financials');
-    expect(await screen.findByText(sentence(/^From 2014-15 to 2024-25, the number of students went down 9% while total spending went up 38% \(up \d+% after inflation\)\.$/), undefined, TIMEOUT)).toBeInTheDocument();
-    expect(screen.getByText('Revenue by source, 2024-25')).toBeInTheDocument();
-    expect(within(screen.getByText('Local', { selector: 'th' }).closest('tr')!).getByText('75.0%')).toBeInTheDocument();
-    expect(within(screen.getByText('Total').closest('tr')!).getByText('$4,000')).toBeInTheDocument();
-    expect(screen.getByRole('checkbox', { name: "Show in today's dollars (adjusted for inflation)" })).toBeInTheDocument();
-    expect(screen.getByText(/The vertical axis starts at \$\d+K, not zero\./)).toBeInTheDocument();
+    // The takeaway is the intro's second paragraph, beside the tiles on wide screens
+    expect(await screen.findByText(sentence(/From 2014-15 to 2024-25, the number of students went down 9% while total spending went up 38% \(up \d+% after inflation\)\./), undefined, TIMEOUT)).toBeInTheDocument();
+    // Revenue by source, 2024-25 against 2014-15, without shares
+    expect(screen.getByText('Revenue By Source')).toBeInTheDocument();
+    const localRow = within(screen.getByText('Local', { selector: 'th' }).closest('tr')!);
+    expect(localRow.getByText('$3,000')).toBeInTheDocument();
+    expect(localRow.getByText('$2,000')).toBeInTheDocument();
+    expect(localRow.getByText('+50%')).toBeInTheDocument();
+    expect(localRow.queryByText('75.0%')).not.toBeInTheDocument();
+    const revenueTable = screen.getByText('Local', { selector: 'th' }).closest('table')!;
+    const totalRow = within(within(revenueTable).getByText('Total').closest('tr')!);
+    expect(totalRow.getByText('$4,000')).toBeInTheDocument();
+    expect(totalRow.getByText('$3,000')).toBeInTheDocument();
+    // Its inflation button restates 2014-15 in 2024-25 dollars
+    const buttons = screen.getAllByRole('button', { name: 'Adj. For Inflation' });
+    await userEvent.click(buttons[buttons.length - 1]);
+    expect(buttons[buttons.length - 1]).toHaveAttribute('aria-pressed', 'true');
+    expect(localRow.queryByText('$2,000')).not.toBeInTheDocument();
+    // The revenue chart has no Chart/Table toggle, and no CSV links anywhere
+    expect(screen.queryByRole('button', { name: 'Table' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /CSV/ })).not.toBeInTheDocument();
+    // Cost per student has the Adj. For Inflation button (between the spending and revenue tables') and no notes
+    expect(buttons).toHaveLength(3);
+    expect(screen.queryByText(/The vertical axis starts at/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/adjusted for inflation with the Consumer Price Index/)).not.toBeInTheDocument();
+    // No "Not on this page" box or source line
+    expect(screen.queryByText('Not on this page')).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Source:/)).not.toBeInTheDocument();
   });
 
-  it('financials sends the district picker to the same page for that district', async () => {
+  it('financials breaks spending down by category, compared with 2014-15', async () => {
     renderPage(<StateFinancials />, '/state/financials');
-    const picker = await screen.findByLabelText('See these figures for your district', undefined, TIMEOUT);
-    await userEvent.type(picker, 'Bed');
-    await userEvent.click(await screen.findByRole('option', { name: 'Bedford' }));
-    expect(await screen.findByText('At /district/7/financials')).toBeInTheDocument();
+    expect(await screen.findByText('Spending Breakdown By Year', undefined, TIMEOUT)).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Compare spending with' })).toHaveTextContent('Compare 14/15');
+    // Each category is an accordion: closed, it shows the category's totals
+    const line = (name: string) => within(screen.getByText(name, { selector: 'td, th' }).closest('tr')!);
+    const category = (name: string) => screen.getByRole('button', { name });
+    const categoryRow = (name: string) => within(category(name).closest('tr')!);
+    expect(category('Instruction')).toHaveAttribute('aria-expanded', 'false');
+    expect(categoryRow('Instruction').getByText('$1.50B')).toBeInTheDocument();
+    expect(categoryRow('Instruction').getByText('$1.00B')).toBeInTheDocument();
+    // Special education is its own category, opening to its one line
+    expect(categoryRow('Special Education').getByText('$800.0M')).toBeInTheDocument();
+    expect(categoryRow('Special Education').getByText('$400.0M')).toBeInTheDocument();
+    expect(categoryRow('Support Services').getByText('$200.0M')).toBeInTheDocument();
+    expect(categoryRow('Other Spending').getByText('$100.0M')).toBeInTheDocument();
+    expect(screen.queryByText('Regular Instruction')).not.toBeInTheDocument();
+    // Opened, its DOE-25 lines under readable names, with the latest year, 2014-15 and the change
+    await userEvent.click(category('Instruction'));
+    expect(category('Instruction')).toHaveAttribute('aria-expanded', 'true');
+    expect(line('Regular Instruction').getByText('$1.50B')).toBeInTheDocument();
+    expect(line('Regular Instruction').getByText('$1.00B')).toBeInTheDocument();
+    await userEvent.click(category('Special Education'));
+    expect(screen.getAllByText('Special Education', { selector: 'td, th' })).toHaveLength(1);
+    await userEvent.click(category('Support Services'));
+    expect(line('Transportation').getByText('$200.0M')).toBeInTheDocument();
+    await userEvent.click(category('Other Spending'));
+    expect(line('Debt Interest').getByText('$100.0M')).toBeInTheDocument();
+    // Bond principal and fund transfers are left out, as NH DOE's total leaves them out
+    expect(line('All Spending').getByText('$2.60B')).toBeInTheDocument();
+    expect(line('All Spending').getByText('$1.60B')).toBeInTheDocument();
+    expect(screen.queryByText('Debt Payments')).not.toBeInTheDocument();
+    // Closing a category hides its lines again
+    await userEvent.click(category('Instruction'));
+    expect(screen.queryByText('Regular Instruction')).not.toBeInTheDocument();
+    await userEvent.click(category('Instruction'));
+    expect(screen.getByText('Where School Spending Goes')).toBeInTheDocument();
+    // The chart's shares leave out principal and transfers too: $1.5B of $2.6B is instruction. It
+    // shows one category at a time, Instruction first
+    expect(screen.getByText(/^Line chart\.[^]*Instruction: 62\.5% in 2014-15 and 57\.7% in 2024-25\. The table/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('combobox', { name: 'Show spending category' }));
+    await userEvent.click(screen.getByRole('option', { name: 'Special Education' }));
+    expect(screen.getByText(/^Line chart\.[^]*Special Education: 25\.0% in 2014-15 and 30\.8% in 2024-25\. The table/)).toBeInTheDocument();
+    // Adjusted for inflation, the latest year stays as spent and 2014-15 is restated in 2024-25 dollars
+    // The spending table's button is the first on the page
+    await userEvent.click(screen.getAllByRole('button', { name: 'Adj. For Inflation' })[0]);
+    expect(screen.getAllByRole('button', { name: 'Adj. For Inflation' })[0]).toHaveAttribute('aria-pressed', 'true');
+    expect(line('Regular Instruction').getByText('$1.50B')).toBeInTheDocument();
+    expect(line('Regular Instruction').queryByText('$1.00B')).not.toBeInTheDocument();
+  });
+
+  it('financials has no district picker', async () => {
+    renderPage(<StateFinancials />, '/state/financials');
+    expect(await screen.findByText('Revenue By Source', undefined, TIMEOUT)).toBeInTheDocument();
+    expect(screen.queryByLabelText('See these figures for your district')).not.toBeInTheDocument();
   });
 
   it('graduation explains when a district has no graduation page instead of opening an empty one', async () => {

@@ -91,6 +91,13 @@ export const valueIn = (series: YearValue[], year: number): number | null =>
 export const adjustSeriesForInflation = (series: YearValue[], toYear: number): YearValue[] =>
   series.map(point => ({ year: point.year, value: calculateInflationAdjustedAmount(point.value, point.year, toYear) }));
 
+/** Every value in each year's row restated in `toYear` dollars. */
+export const adjustRowsForInflation = (rows: YearRow[], toYear: number): YearRow[] =>
+  rows.map(({ year, ...values }) => ({
+    year,
+    ...Object.fromEntries(Object.entries(values).map(([key, value]) => [key, value === null ? null : calculateInflationAdjustedAmount(value, year, toYear)])),
+  }) as YearRow);
+
 /** Percent change of each point from the first point at or after `baseYear`, for putting unlike series on one chart. */
 export const percentChangeSeries = (series: YearValue[], baseYear: number): YearValue[] => {
   const sorted = sortByYear(series).filter(point => point.year >= baseYear);
@@ -320,13 +327,14 @@ export interface RevenueEntryType {
   category?: { super_category?: { name: string } };
 }
 
-export const REVENUE_SOURCES = [
+/** `phoneName` is the shorter name phones show */
+export const REVENUE_SOURCES: readonly { key: 'local' | 'state' | 'federal' | 'other'; name: string; phoneName?: string }[] = [
   { key: 'local', name: 'Local' },
   { key: 'state', name: 'State' },
   { key: 'federal', name: 'Federal' },
   // The DOE-25 "Other Financing Sources": bond sales, transfers between funds and from trust funds
-  { key: 'other', name: 'Borrowing and transfers' },
-] as const;
+  { key: 'other', name: 'Borrowing and Transfers', phoneName: 'Borrowing' },
+];
 
 // Same grouping as the district Revenue card: by the entry type's super category name
 const revenueSource = (superCategoryName: string | undefined) => {
@@ -346,6 +354,97 @@ export const revenueBySource = (rows: RevenueRow[], entryTypes: RevenueEntryType
     return row;
   });
 };
+
+export interface ExpenditureEntryType {
+  id: number;
+  name: string;
+  category?: { name: string; super_category?: { name: string } };
+}
+
+// The groups the spending chart shows each year's share of
+export const SPENDING_GROUPS = [
+  { key: 'instruction', name: 'Instruction' },
+  { key: 'specialEducation', name: 'Special Education' },
+  { key: 'support', name: 'Support Services' },
+  { key: 'other', name: 'Everything Else' },
+] as const;
+type SpendingGroup = typeof SPENDING_GROUPS[number]['key'];
+
+// The spending table's lines, in its order: each DOE-25 line (summed over school levels and funds),
+// the table section it's under and the chart group it's in. Bond principal and transfers between a
+// district's own funds are left out, as NH DOE's statewide total leaves them out: principal repays
+// spending already counted when it was made, and transfers aren't spending.
+export const SPENDING_LINES: { name: string; section: string; group: SpendingGroup }[] = [
+  { name: 'Regular Instruction', section: 'Instruction', group: 'instruction' },
+  { name: 'Vocational Education', section: 'Instruction', group: 'instruction' },
+  { name: 'Other Instruction', section: 'Instruction', group: 'instruction' },
+  { name: 'Special Education', section: 'Special Education', group: 'specialEducation' },
+  { name: 'Building Operations and Maintenance', section: 'Support Services', group: 'support' },
+  { name: 'Student Support', section: 'Support Services', group: 'support' },
+  { name: 'School Administration', section: 'Support Services', group: 'support' },
+  { name: 'Transportation', section: 'Support Services', group: 'support' },
+  { name: 'District Administration', section: 'Support Services', group: 'support' },
+  { name: 'Instructional Staff Support', section: 'Support Services', group: 'support' },
+  { name: 'Central Services', section: 'Support Services', group: 'support' },
+  { name: 'Business Services', section: 'Support Services', group: 'support' },
+  { name: 'Other Support Services', section: 'Support Services', group: 'support' },
+  { name: 'Debt Interest', section: 'Other Spending', group: 'other' },
+  { name: 'Food Service', section: 'Other Spending', group: 'other' },
+  { name: 'Construction and Facilities', section: 'Other Spending', group: 'other' },
+  { name: 'Other Programs', section: 'Other Spending', group: 'other' },
+];
+
+const INSTRUCTION_LINES: Record<string, string> = {
+  'Regular Programs': 'Regular Instruction',
+  'Special Programs': 'Special Education',
+  'Vocational Programs': 'Vocational Education',
+};
+const SUPPORT_LINES: Record<string, string> = {
+  'Operation/Maintenance of Plant': 'Building Operations and Maintenance',
+  Student: 'Student Support',
+  'School Administration': 'School Administration',
+  'Student Transportation': 'Transportation',
+  'General Administration': 'District Administration',
+  'Instructional Staff': 'Instructional Staff Support',
+  Central: 'Central Services',
+  Business: 'Business Services',
+};
+
+/** The spending table line a DOE-25 expenditure entry type is part of, or null when it's left out. */
+const spendingLine = (type: ExpenditureEntryType | undefined): string | null => {
+  const category = type?.category?.name;
+  const name = type?.name ?? '';
+  if (category === 'Fund Transfers' || name === 'Transfer to Other Funds' || name === 'Principal') return null;
+  if (category === 'Instruction') return INSTRUCTION_LINES[name] ?? 'Other Instruction';
+  if (category === 'Support Services') return SUPPORT_LINES[name] ?? 'Other Support Services';
+  if (category === 'Debt Service') return 'Debt Interest';
+  if (type?.category?.super_category?.name.includes('Food Service')) return 'Food Service';
+  if (name === 'Facilities Acquisition & Construction') return 'Construction and Facilities';
+  // Adult education, community service, programs for private schools, and payments to charter
+  // schools and other agencies
+  return 'Other Programs';
+};
+
+/** Statewide district spending by year, a column per spending table line. */
+export const spendingByLine = (rows: RevenueRow[], entryTypes: ExpenditureEntryType[]): YearRow[] => {
+  const typesById = new Map(entryTypes.map(type => [type.id, type]));
+  const counted = rows.flatMap(row => {
+    const line = spendingLine(typesById.get(row.entry_type_id));
+    return line ? [{ ...row, line }] : [];
+  });
+  return pivotByYear(counted, row => row.line, row => row.value);
+};
+
+/** Each spending group's percentage of the year's spending, from `spendingByLine`'s rows. */
+export const spendingShares = (byLine: YearRow[]): YearRow[] => byLine.map(row => {
+  const sum = (lines: string[]) => lines.reduce((total, line) => total + (row[line] ?? 0), 0);
+  const total = sum(SPENDING_LINES.map(line => line.name));
+  const shares: Record<string, number | null> = {};
+  SPENDING_GROUPS.forEach(group => {
+    shares[group.key] = total ? (sum(SPENDING_LINES.filter(line => line.group === group.key).map(line => line.name)) / total) * 100 : null;
+  });
+  return { year: row.year, ...shares } as YearRow;
+});
 
 export interface EfaStateRow {
   year: number;

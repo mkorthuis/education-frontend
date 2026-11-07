@@ -62,7 +62,14 @@ export const useStateFinanceData = () => {
     { status: useAppSelector(financeStatus('stateRevenue')), load: () => dispatch(financeSlice.fetchStateRevenue({})) },
     { status: useAppSelector(financeStatus('entryTypes')), load: () => dispatch(financeSlice.fetchEntryTypes()) },
   ];
-  return { loads, revenueLoads, perPupil, rollups, revenue, revenueEntryTypes };
+  // Spending by DOE-25 line, every year (the same request as the district Financials page); its
+  // entry types come with revenue's
+  const expenditure = useAppSelector(state => state.finance.stateExpenditureAllData);
+  const expenditureEntryTypes = useAppSelector(financeSlice.selectExpenditureEntryTypes);
+  const expenditureLoads: StateLoad[] = [
+    { status: useAppSelector(financeStatus('stateExpenditure')), load: () => dispatch(financeSlice.fetchStateExpenditure({})) },
+  ];
+  return { loads, revenueLoads, expenditureLoads, perPupil, rollups, revenue, revenueEntryTypes, expenditure, expenditureEntryTypes };
 };
 
 export const useStateStaffData = () => {

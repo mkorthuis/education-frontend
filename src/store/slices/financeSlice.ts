@@ -76,6 +76,7 @@ export interface StateExpenditure {
   id: number;
   entry_type_id: number;
   year: number;
+  value: number;
 }
 
 export interface FinancialItemRaw {

@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { Box, Button, SxProps, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Theme, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Button, ButtonBase, SxProps, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Theme, Typography, useMediaQuery, useTheme } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { downloadCsv } from '../utils/csv';
 import { ChartHeader, ChartNote, keepYearsTogether, visuallyHidden } from './chartText';
 
@@ -36,6 +37,11 @@ interface StateTableProps<T> {
   totalRow?: T;
   /** Groups rows under subheadings, e.g. "Race and ethnicity"; rows must already be in group order */
   sectionOf?: (row: T) => string;
+  /**
+   * Makes each section an accordion: its subheading becomes a row of the section's totals (this
+   * row, from the section's rows) that opens to show the rows themselves. Sections start closed.
+   */
+  sectionSummary?: (section: string, rows: T[]) => T;
   /** Rows shown as subtotals: semibold, with a rule above (the total row stays heavier) */
   isSubtotal?: (row: T) => boolean;
   csvName?: string;
@@ -108,6 +114,7 @@ function StateTable<T>({
   rows,
   totalRow,
   sectionOf,
+  sectionSummary,
   isSubtotal,
   csvName,
   emptyMessage = 'No data available',
@@ -141,14 +148,51 @@ function StateTable<T>({
     ]));
   };
 
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set());
+  const toggleSection = (name: string) => setOpenSections(open => {
+    const next = new Set(open);
+    if (next.has(name)) next.delete(name); else next.add(name);
+    return next;
+  });
+
   const bodyRows: React.ReactNode[] = [];
   let section: string | null = null;
   rows.forEach((row, index) => {
     const rowSection = sectionOf?.(row) ?? null;
+    const accordion = Boolean(sectionSummary && rowSection);
     if (sectionOf && rowSection !== section) {
       section = rowSection;
+      if (accordion && rowSection) {
+        // The section's totals, its name a button that opens and closes the section
+        const name = rowSection;
+        const open = openSections.has(name);
+        const summary = sectionSummary!(name, rows.filter(item => sectionOf(item) === name));
+        bodyRows.push(
+          <TableRow key={`section-${index}`} sx={{ backgroundColor: 'grey.100', '& td, & th': { fontWeight: 600 } }}>
+            {columns.map((column, columnIndex) => (
+              <TableCell
+                key={column.key}
+                align={column.align ?? 'left'}
+                component={columnIndex === 0 ? 'th' : 'td'}
+                scope={columnIndex === 0 ? 'row' : undefined}
+                sx={cellSx(column, columnIndex, { whiteSpace: column.align === 'right' ? 'nowrap' : undefined })}
+              >
+                {columnIndex === 0 ? (
+                  <ButtonBase
+                    onClick={() => toggleSection(name)}
+                    aria-expanded={open}
+                    sx={{ font: 'inherit', fontWeight: 600, textAlign: 'left', gap: 0.5, ml: -0.5, borderRadius: 0.5 }}
+                  >
+                    <ExpandMoreIcon fontSize="small" sx={{ transition: 'transform 150ms', transform: open ? 'none' : 'rotate(-90deg)', color: 'text.secondary' }} />
+                    {cellText(column, summary)}
+                  </ButtonBase>
+                ) : cellText(column, summary)}
+              </TableCell>
+            ))}
+          </TableRow>
+        );
       // An empty section name (e.g. "All students" at the top) gets no subheading
-      if (rowSection) bodyRows.push(
+      } else if (rowSection) bodyRows.push(
         <TableRow key={`section-${index}`}>
           <TableCell component="th" scope="colgroup" colSpan={columns.length} sx={{ fontWeight: 600, backgroundColor: 'grey.100', color: 'text.secondary', py: 0.75, px: { xs: 1, sm: 2 } }}>
             {/* Stays in view while the table scrolls sideways */}
@@ -157,6 +201,8 @@ function StateTable<T>({
         </TableRow>
       );
     }
+    // A closed accordion section's rows stay out of the table
+    if (accordion && rowSection && !openSections.has(rowSection)) return;
     const subtotal = isSubtotal?.(row) ?? false;
     bodyRows.push(
       <TableRow
@@ -174,6 +220,8 @@ function StateTable<T>({
               fontWeight: subtotal ? 600 : 'normal',
               // Row labels keep a readable width when a wide table scrolls on a phone
               minWidth: columnIndex === 0 && columns.length > 3 ? 140 : undefined,
+              // An accordion's rows sit in from its name
+              ...(accordion && columnIndex === 0 ? { pl: { xs: 4, sm: 5 } } : {}),
             })}
           >
             {cellText(column, row)}
