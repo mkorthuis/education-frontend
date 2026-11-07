@@ -134,6 +134,20 @@ describe('Ask a Question', () => {
     expect(screen.queryByText('No.')).not.toBeInTheDocument();
   });
 
+  it('labels a general explanation as not from the site\'s data', async () => {
+    ask.mockResolvedValue(answer({
+      status: 'general',
+      answer: ['An IEP is a written plan for a student with a disability.'],
+      references: [{ label: 'Education Freedom Accounts', path: '/state/efa' }],
+    }));
+    renderBox();
+    await typeAndAsk('What is an IEP?');
+    expect(await screen.findByText('An IEP is a written plan for a student with a disability.')).toBeInTheDocument();
+    expect(screen.getByText("General information, not from this site's data.")).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Related Pages on This Site' })).toBeInTheDocument();
+    expect(screen.queryByText('Check the Numbers on These Pages')).not.toBeInTheDocument();
+  });
+
   it('asks an example question in one tap', async () => {
     ask.mockResolvedValue(answer());
     renderBox();

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { Box, Button, List, ListItemButton, Typography } from '@mui/material';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import { AskAnswer, AskChart, AskTable } from '@/services/api/endpoints/ask';
 import { type } from '@/theme/tokens';
@@ -74,64 +75,74 @@ interface AskAnswerViewProps {
 }
 
 /** One answer: its text, the pages to check it on, its charts and tables, and follow-up questions. */
-const AskAnswerView: React.FC<AskAnswerViewProps> = ({ answer, onAsk, onAskAnother }) => (
-  <>
-    <Box sx={{ maxWidth: READING_WIDTH }}>
-      {answer.answer.map((paragraph, index) => (
-        // Plain text only: the answer is written by AI, so it's never rendered as markup
-        <Typography key={index} component="p" variant="body1" sx={{ mb: 2, ...(index === 0 && { fontSize: '1.125rem' }) }}>
-          {keepYearsTogether(paragraph)}
-        </Typography>
-      ))}
-    </Box>
-
-    {answer.references.length > 0 && (
-      <Box sx={{ mt: 4 }}>
-        <Typography component="h3" sx={{ ...type.chartTitle, m: 0 }}>Check the Numbers on These Pages</Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-          This answer was written by AI. These pages show the numbers it used.
-        </Typography>
-        <List disablePadding sx={{ border: 1, borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
-          {answer.references.map((reference, index) => (
-            <ListItemButton
-              key={reference.path}
-              component={RouterLink}
-              to={reference.path}
-              divider={index < answer.references.length - 1}
-              sx={{ minHeight: 44, gap: 1, color: 'primary.dark', textDecoration: 'underline' }}
-            >
-              <Box component="span" sx={{ flex: 1 }}>{reference.label}</Box>
-              <ChevronRightIcon aria-hidden fontSize="small" />
-            </ListItemButton>
-          ))}
-        </List>
-      </Box>
-    )}
-
-    {answer.charts.map((chart, index) => (
-      <Box key={`chart-${index}`} sx={{ mt: 4 }}><AnswerChart chart={chart} /></Box>
-    ))}
-    {answer.tables.map((table, index) => (
-      <Box key={`table-${index}`} sx={{ mt: 4 }}><AnswerTable table={table} /></Box>
-    ))}
-
-    {answer.follow_ups.length > 0 && (
-      <Box sx={{ mt: 4 }}>
-        <Typography component="h3" id="ask-follow-ups" sx={{ ...type.chartTitle, m: 0, mb: 1 }}>You Could Also Ask</Typography>
-        <Box component="ul" aria-labelledby="ask-follow-ups" sx={{ listStyle: 'none', p: 0, m: 0, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, flexWrap: 'wrap', alignItems: 'flex-start', gap: 1 }}>
-          {answer.follow_ups.map(question => (
-            <Box component="li" key={question}>
-              <Button variant="outlined" onClick={() => onAsk(question)} sx={chipSx}>{question}</Button>
-            </Box>
-          ))}
+const AskAnswerView: React.FC<AskAnswerViewProps> = ({ answer, onAsk, onAskAnother }) => {
+  // A general explanation isn't from the site's data, so it says so and its links aren't "the numbers"
+  const general = answer.status === 'general';
+  return (
+    <>
+      {general && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, color: 'text.secondary' }}>
+          <InfoOutlinedIcon aria-hidden fontSize="small" />
+          <Typography variant="body2">General information, not from this site's data.</Typography>
         </Box>
+      )}
+      <Box sx={{ maxWidth: READING_WIDTH }}>
+        {answer.answer.map((paragraph, index) => (
+          // Plain text only: the answer is written by AI, so it's never rendered as markup
+          <Typography key={index} component="p" variant="body1" sx={{ mb: 2, ...(index === 0 && { fontSize: '1.125rem' }) }}>
+            {keepYearsTogether(paragraph)}
+          </Typography>
+        ))}
       </Box>
-    )}
 
-    <Button variant="outlined" startIcon={<ArrowUpwardIcon />} onClick={onAskAnother} sx={{ mt: 4, textTransform: 'none', minHeight: 44, width: { xs: '100%', sm: 'auto' } }}>
-      Ask Another Question
-    </Button>
-  </>
-);
+      {answer.references.length > 0 && (
+        <Box sx={{ mt: 4 }}>
+          <Typography component="h3" sx={{ ...type.chartTitle, m: 0 }}>{general ? 'Related Pages on This Site' : 'Check the Numbers on These Pages'}</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            {general ? 'This answer was written by AI.' : 'This answer was written by AI. These pages show the numbers it used.'}
+          </Typography>
+          <List disablePadding sx={{ border: 1, borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+            {answer.references.map((reference, index) => (
+              <ListItemButton
+                key={reference.path}
+                component={RouterLink}
+                to={reference.path}
+                divider={index < answer.references.length - 1}
+                sx={{ minHeight: 44, gap: 1, color: 'primary.dark', textDecoration: 'underline' }}
+              >
+                <Box component="span" sx={{ flex: 1 }}>{reference.label}</Box>
+                <ChevronRightIcon aria-hidden fontSize="small" />
+              </ListItemButton>
+            ))}
+          </List>
+        </Box>
+      )}
+
+      {answer.charts.map((chart, index) => (
+        <Box key={`chart-${index}`} sx={{ mt: 4 }}><AnswerChart chart={chart} /></Box>
+      ))}
+      {answer.tables.map((table, index) => (
+        <Box key={`table-${index}`} sx={{ mt: 4 }}><AnswerTable table={table} /></Box>
+      ))}
+
+      {answer.follow_ups.length > 0 && (
+        <Box sx={{ mt: 4 }}>
+          <Typography component="h3" id="ask-follow-ups" sx={{ ...type.chartTitle, m: 0, mb: 1 }}>You Could Also Ask</Typography>
+          <Box component="ul" aria-labelledby="ask-follow-ups" sx={{ listStyle: 'none', p: 0, m: 0, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, flexWrap: 'wrap', alignItems: 'flex-start', gap: 1 }}>
+            {answer.follow_ups.map(question => (
+              <Box component="li" key={question}>
+                <Button variant="outlined" onClick={() => onAsk(question)} sx={chipSx}>{question}</Button>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+      )}
+
+      <Button variant="outlined" startIcon={<ArrowUpwardIcon />} onClick={onAskAnother} sx={{ mt: 4, textTransform: 'none', minHeight: 44, width: { xs: '100%', sm: 'auto' } }}>
+        Ask Another Question
+      </Button>
+    </>
+  );
+};
 
 export default AskAnswerView;

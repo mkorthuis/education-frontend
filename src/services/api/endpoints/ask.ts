@@ -27,8 +27,9 @@ export interface AskTable {
 }
 
 export interface AskAnswer {
-  /** answered, partial (part of the question), no_data (the site doesn't have it) or declined (off-topic or private) */
-  status: 'answered' | 'partial' | 'no_data' | 'declined';
+  /** answered, partial (part of the question), no_data (the site doesn't have it), general (an explanation
+   * from general knowledge, not the site's data) or declined (off-topic or private) */
+  status: 'answered' | 'partial' | 'no_data' | 'general' | 'declined';
   /** Plain-text paragraphs */
   answer: string[];
   charts: AskChart[];
