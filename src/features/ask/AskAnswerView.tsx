@@ -1,17 +1,16 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { Box, Button, List, ListItemButton, Typography } from '@mui/material';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import { AskAnswer, AskChart, AskTable } from '@/services/api/endpoints/ask';
-import { type } from '@/theme/tokens';
+import { READING_WIDTH, type } from '@/theme/tokens';
 import TrendChart, { SERIES_COLORS } from '@/features/state/components/TrendChart';
 import StateTable from '@/features/state/components/StateTable';
-import { keepYearsTogether, READING_WIDTH } from '@/features/state/components/chartText';
+import { keepYearsTogether } from '@/features/state/components/chartText';
 import CategoryBars from './CategoryBars';
 import { chartShape, formatAxis, formatCell, formatValue, slug, yearOf, yearRows } from './askFormat';
-import { chipSx } from './askStyles';
+import QuestionButtons from './QuestionButtons';
 
 // Charts and tables in an answer come from the database, so they say so
 const DATA_NOTE = "From this site's data.";
@@ -71,77 +70,83 @@ const AnswerTable: React.FC<{ table: AskTable }> = ({ table }) => {
 interface AskAnswerViewProps {
   answer: AskAnswer;
   onAsk: (question: string) => void;
-  onAskAnother: () => void;
 }
 
-/** One answer: its text, the pages to check it on, its charts and tables, and follow-up questions. */
-const AskAnswerView: React.FC<AskAnswerViewProps> = ({ answer, onAsk, onAskAnother }) => {
+/**
+ * One answer: its text and follow-up questions, and the pages to check it on with its charts and
+ * tables. On wide screens the text and follow-ups are on the left and the rest on the right; narrower,
+ * the follow-ups come last.
+ */
+const AskAnswerView: React.FC<AskAnswerViewProps> = ({ answer, onAsk }) => {
+  const followUpsId = useId();
   // A general explanation isn't from the site's data, so it says so and its links aren't "the numbers"
   const general = answer.status === 'general';
+  const hasSide = answer.references.length > 0 || answer.charts.length > 0 || answer.tables.length > 0;
   return (
-    <>
-      {general && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, color: 'text.secondary' }}>
-          <InfoOutlinedIcon aria-hidden fontSize="small" />
-          <Typography variant="body2">General information, not from this site's data.</Typography>
-        </Box>
-      )}
-      <Box sx={{ maxWidth: READING_WIDTH }}>
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: hasSide ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)' },
+        gridTemplateAreas: hasSide ? { xs: '"text" "side" "followUps"', lg: '"text side" "followUps side"' } : '"text" "followUps"',
+        // The follow-ups sit right under the text, however tall the right column runs
+        gridTemplateRows: { lg: 'auto 1fr' },
+        columnGap: 6,
+        rowGap: 4,
+        alignItems: 'start',
+      }}
+    >
+      <Box sx={{ gridArea: 'text', maxWidth: READING_WIDTH }}>
+        {general && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, color: 'text.secondary' }}>
+            <InfoOutlinedIcon aria-hidden fontSize="small" />
+            <Typography variant="body2">General information, not from this site's data.</Typography>
+          </Box>
+        )}
         {answer.answer.map((paragraph, index) => (
           // Plain text only: the answer is written by AI, so it's never rendered as markup
-          <Typography key={index} component="p" variant="body1" sx={{ mb: 2, ...(index === 0 && { fontSize: '1.125rem' }) }}>
+          <Typography key={index} component="p" variant="body1" sx={{ mb: 2, '&:last-of-type': { mb: 0 }, ...(index === 0 && { fontSize: '1.125rem' }) }}>
             {keepYearsTogether(paragraph)}
           </Typography>
         ))}
       </Box>
 
-      {answer.references.length > 0 && (
-        <Box sx={{ mt: 4 }}>
-          <Typography component="h3" sx={{ ...type.chartTitle, m: 0 }}>{general ? 'Related Pages on This Site' : 'Check the Numbers on These Pages'}</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            {general ? 'This answer was written by AI.' : 'This answer was written by AI. These pages show the numbers it used.'}
-          </Typography>
-          <List disablePadding sx={{ border: 1, borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
-            {answer.references.map((reference, index) => (
-              <ListItemButton
-                key={reference.path}
-                component={RouterLink}
-                to={reference.path}
-                divider={index < answer.references.length - 1}
-                sx={{ minHeight: 44, gap: 1, color: 'primary.dark', textDecoration: 'underline' }}
-              >
-                <Box component="span" sx={{ flex: 1 }}>{reference.label}</Box>
-                <ChevronRightIcon aria-hidden fontSize="small" />
-              </ListItemButton>
-            ))}
-          </List>
+      {hasSide && (
+        <Box sx={{ gridArea: 'side', display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+          {answer.references.length > 0 && (
+            <Box>
+              <Typography component="h3" sx={{ ...type.chartTitle, m: 0 }}>{general ? 'Related Pages on This Site' : 'Check the Numbers on These Pages'}</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                {general ? 'This answer was written by AI.' : 'This answer was written by AI. These pages show the numbers it used.'}
+              </Typography>
+              <List disablePadding sx={{ border: 1, borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+                {answer.references.map((reference, index) => (
+                  <ListItemButton
+                    key={reference.path}
+                    component={RouterLink}
+                    to={reference.path}
+                    divider={index < answer.references.length - 1}
+                    sx={{ minHeight: 44, gap: 1, color: 'primary.dark', textDecoration: 'underline' }}
+                  >
+                    <Box component="span" sx={{ flex: 1 }}>{reference.label}</Box>
+                    <ChevronRightIcon aria-hidden fontSize="small" />
+                  </ListItemButton>
+                ))}
+              </List>
+            </Box>
+          )}
+
+          {answer.charts.map((chart, index) => <AnswerChart key={`chart-${index}`} chart={chart} />)}
+          {answer.tables.map((table, index) => <AnswerTable key={`table-${index}`} table={table} />)}
         </Box>
       )}
-
-      {answer.charts.map((chart, index) => (
-        <Box key={`chart-${index}`} sx={{ mt: 4 }}><AnswerChart chart={chart} /></Box>
-      ))}
-      {answer.tables.map((table, index) => (
-        <Box key={`table-${index}`} sx={{ mt: 4 }}><AnswerTable table={table} /></Box>
-      ))}
 
       {answer.follow_ups.length > 0 && (
-        <Box sx={{ mt: 4 }}>
-          <Typography component="h3" id="ask-follow-ups" sx={{ ...type.chartTitle, m: 0, mb: 1 }}>You Could Also Ask</Typography>
-          <Box component="ul" aria-labelledby="ask-follow-ups" sx={{ listStyle: 'none', p: 0, m: 0, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, flexWrap: 'wrap', alignItems: 'flex-start', gap: 1 }}>
-            {answer.follow_ups.map(question => (
-              <Box component="li" key={question}>
-                <Button variant="outlined" onClick={() => onAsk(question)} sx={chipSx}>{question}</Button>
-              </Box>
-            ))}
-          </Box>
+        <Box sx={{ gridArea: 'followUps', maxWidth: READING_WIDTH }}>
+          <Typography component="h3" id={followUpsId} sx={{ ...type.chartTitle, m: 0, mb: 1 }}>You Could Also Ask</Typography>
+          <QuestionButtons labelledBy={followUpsId} questions={answer.follow_ups} onAsk={onAsk} />
         </Box>
       )}
-
-      <Button variant="outlined" startIcon={<ArrowUpwardIcon />} onClick={onAskAnother} sx={{ mt: 4, textTransform: 'none', minHeight: 44, width: { xs: '100%', sm: 'auto' } }}>
-        Ask Another Question
-      </Button>
-    </>
+    </Box>
   );
 };
 

@@ -33,6 +33,7 @@ export type PageRegistry = {
 const Home = lazy(() => import('@/pages/Home'));
 const DistrictList = lazy(() => import('@/pages/DistrictList'));
 const SchoolList = lazy(() => import('@/pages/SchoolList'));
+const AskPage = lazy(() => import('@/features/ask/AskPage'));
 const District = lazy(() => import('@/features/district/pages/District'));
 const Privacy = lazy(() => import('@/pages/Privacy'));
 const Terms = lazy(() => import('@/pages/Terms'));
@@ -101,6 +102,14 @@ export const PAGE_REGISTRY: PageRegistry = {
       urlPatterns: ['/schools'],
       displayName: 'All Schools',
       order: 4,
+      enabled: true,
+    },
+    ask: {
+      id: 'general.ask',
+      component: AskPage,
+      urlPatterns: ['/ask'],
+      displayName: 'Ask a Question',
+      order: 5,
       enabled: true,
     },
     datasources: {
@@ -602,3 +611,11 @@ export const extractIdsFromUrl = (url: string): { districtId?: number, schoolId?
   
   return result;
 }; 
+
+/** Whether a path is the home page */
+export const isHomePath = (pathname: string): boolean => pathname === '/' || pathname === '/home';
+
+/** Whether a path is one of the general pages (About, the lists, Ask and the like), which, like the
+ * home page, have no secondary navigation bar */
+export const isGeneralPath = (pathname: string): boolean =>
+  Object.values(PAGE_REGISTRY.general).some(page => page.urlPatterns[0] !== '/' && page.urlPatterns.includes(pathname));

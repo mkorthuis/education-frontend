@@ -132,3 +132,15 @@ export const INCIDENT_LABELS: Record<string, string> = {
   'Robberies': 'Robbery',
 };
 
+// One line on what each statewide page shows, for the cards that link to them (the overview page and
+// the home page), keyed by the page's id in the page registry
+export const STATE_PAGE_DESCRIPTIONS: Record<string, string> = {
+  overview: 'Key figures and ten-year trends for the whole state',
+  academic: 'Test scores by subject, grade and student group',
+  outcomes: 'Graduation, dropouts and graduates\' plans',
+  financials: 'Cost per student, total spending and revenue',
+  safety: 'Truancy, bullying, restraint and serious incidents',
+  staff: 'Teacher pay, staffing levels and class size',
+  enrollment: 'Students by year, school level and grade',
+  efa: 'EFA students and estimated state cost',
+};

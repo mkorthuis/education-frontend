@@ -44,9 +44,16 @@ export const ASK_MAX_LENGTH = 500;
 /** Answers usually take 5 to 15 seconds; the visitor gets an error after this long */
 export const ASK_TIMEOUT_MS = 45000;
 
+/** An earlier question on the Ask page and its answer, which a follow-up may refer to */
+export interface AskEarlierTurn {
+  question: string;
+  answer: string[];
+}
+
 export const askApi = {
-  ask: async (question: string, signal?: AbortSignal): Promise<AskAnswer> => {
-    const response = await axiosInstance.post(`${BASE_API_URL}ask`, { question }, { timeout: ASK_TIMEOUT_MS, skipCache: true, signal });
+  /** `history` is the page's earlier questions, oldest first, so "What about science?" knows what came before */
+  ask: async (question: string, history: AskEarlierTurn[], signal?: AbortSignal): Promise<AskAnswer> => {
+    const response = await axiosInstance.post(`${BASE_API_URL}ask`, { question, history }, { timeout: ASK_TIMEOUT_MS, skipCache: true, signal });
     return response.data;
   },
 };

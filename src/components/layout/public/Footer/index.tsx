@@ -99,6 +99,16 @@ const Footer = () => {
               </MuiLink>
               <MuiLink 
                 component={RouterLink} 
+                to="/ask" 
+                color="inherit" 
+                display="block" 
+                variant="body2"
+                sx={{ opacity: 0.8, '&:hover': { opacity: 1 } }}
+              >
+                Ask a Question
+              </MuiLink>
+              <MuiLink 
+                component={RouterLink} 
                 to="/datasources" 
                 color="inherit" 
                 display="block" 

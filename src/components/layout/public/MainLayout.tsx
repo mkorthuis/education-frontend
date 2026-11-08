@@ -1,6 +1,7 @@
 import { Box, Container, useTheme, useMediaQuery } from "@mui/material";
 import { Outlet, useLocation } from "react-router-dom";
 import Footer from "./Footer/index";
+import { isGeneralPath, isHomePath } from "@/routes/pageRegistry";
 
 interface MainLayoutProps {
   children?: React.ReactNode;
@@ -15,8 +16,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const isMediumOrLarger = useMediaQuery(theme.breakpoints.up('md'));
   
   // Determine if we're on a page that needs secondary nav
-  const isHomePage = location.pathname === '/' || location.pathname === '/home';
-  const isGeneralPage = ['/privacy', '/terms', '/districts', '/schools', '/contact', '/faq', '/about', '/datasources'].includes(location.pathname);
+  const isHomePage = isHomePath(location.pathname);
+  const isGeneralPage = isGeneralPath(location.pathname);
   const needsSecondaryNav = isMediumOrLarger && !isHomePage && !isGeneralPage;
   
   // Calculate padding based on whether secondary nav is needed

@@ -17,6 +17,10 @@ export const locationApi = {
     getSchools: (forceRefresh = false) => 
         fetchData(buildLocationUrl('school'), forceRefresh),
     
+    // Every town, with the districts that serve it
+    getTowns: (forceRefresh = false) =>
+        fetchData(buildLocationUrl('town'), forceRefresh),
+
     getGrades: (forceRefresh = false) => 
         fetchData(buildLocationUrl('grade'), forceRefresh),
     

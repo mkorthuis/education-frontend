@@ -18,6 +18,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import { useRef, useState } from 'react';
 import MainMenu from '../Navigation/MainMenu';
 import SecondaryNav from './SecondaryNav';
+import { isGeneralPath, isHomePath } from '@/routes/pageRegistry';
 
 // Define District interface locally
 interface District {
@@ -52,10 +53,10 @@ const AppBar: React.FC<AppBarProps> = ({
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
-  const isHomePage = location.pathname === '/' || location.pathname === '/home';
+  const isHomePage = isHomePath(location.pathname);
   
   // Check if the current page is a general page like privacy or terms
-  const isGeneralPage = ['/privacy', '/terms', '/districts', '/schools', '/contact', '/faq', '/about', '/datasources'].includes(location.pathname);
+  const isGeneralPage = isGeneralPath(location.pathname);
 
   const toggleMobileSearch = () => {
     setShowMobileSearch(!showMobileSearch);

@@ -23,7 +23,7 @@ import {
   PageType
 } from '@/store/store';
 import { useNavigate, useLocation, matchPath } from 'react-router-dom';
-import { PAGE_REGISTRY } from '@/routes/pageRegistry';
+import { isGeneralPath, isHomePath, PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 // State section pages after the overview, in menu order
 const statePages = Object.values(PAGE_REGISTRY.state)
@@ -58,8 +58,8 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
   const pageType = getPageType(currentPageId);
   
   // Determine if we're on a page that needs secondary nav
-  const isHomePage = location.pathname === '/' || location.pathname === '/home';
-  const isGeneralPage = ['/privacy', '/terms', '/districts', '/schools', '/contact', '/faq', '/about', '/datasources'].includes(location.pathname);
+  const isHomePage = isHomePath(location.pathname);
+  const isGeneralPage = isGeneralPath(location.pathname);
   const needsSecondaryNav = !isSmallScreen && !isHomePage && !isGeneralPage;
   
   // Calculate the top position based on whether secondary nav is present
@@ -280,6 +280,15 @@ const MainMenu: React.FC<MainMenuProps> = ({ open, onClose, anchorEl, hasSeconda
                   sx={{ py: 0.5 }}
                 >
                   <ListItemText primary="Statewide Data" />
+                </ListItemButton>
+              </ListItem>
+
+              <ListItem disablePadding>
+                <ListItemButton 
+                  onClick={() => handleNavigate(PAGE_REGISTRY.general.ask.urlPatterns[0])}
+                  sx={{ py: 0.5 }}
+                >
+                  <ListItemText primary="Ask a Question" />
                 </ListItemButton>
               </ListItem>
               

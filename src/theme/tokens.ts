@@ -64,3 +64,6 @@ export const radius = {
 
 /** Running text stops at about 75 characters */
 export const READING_WIDTH = 720;
+
+/** Pages laid out in columns (the home and Ask pages) stop here, so neither column sprawls */
+export const PAGE_WIDTH = 1200;

@@ -32,6 +32,7 @@ import {
   toSeries,
   YearValue,
 } from '../utils/stateMetrics';
+import { STATE_PAGE_DESCRIPTIONS } from '../utils/labels';
 import { capitalize, formatDollarsShort, formatThousands, realPercentChange, shortYear, tileDelta } from '../utils/phrases';
 
 
@@ -40,16 +41,6 @@ const TREND_YEARS = 10;
 // as on the other statewide pages; tiles whose data starts later use their earliest year in the last ten
 const SINCE_YEAR = 2015;
 const STATE_PAGES = PAGE_REGISTRY.state;
-
-const PAGE_DESCRIPTIONS: Record<string, string> = {
-  academic: 'Test scores by subject, grade and student group',
-  outcomes: 'Graduation, dropouts and graduates\' plans',
-  financials: 'Cost per student, total spending and revenue',
-  safety: 'Truancy, bullying, restraint and serious incidents',
-  staff: 'Teacher pay, staffing levels and class size',
-  enrollment: 'Students by year, school level and grade',
-  efa: 'EFA students and estimated state cost',
-};
 
 /** A tile's change: since 2014-15 when the series has it, otherwise over the last ten years. */
 const tileChange = (series: YearValue[]) => changeFrom(series, SINCE_YEAR) ?? changeSince(series, TREND_YEARS);
@@ -180,7 +171,7 @@ const StateOverview: React.FC = () => {
         {Object.values(STATE_PAGES)
           .filter(page => page.id !== STATE_PAGES.overview.id)
           .map(page => (
-            <NavCard key={page.id} title={page.displayName} description={PAGE_DESCRIPTIONS[page.id.split('.')[1]]} to={page.urlPatterns[0]} />
+            <NavCard key={page.id} title={page.displayName} description={STATE_PAGE_DESCRIPTIONS[page.id.split('.')[1]]} to={page.urlPatterns[0]} />
           ))}
       </NavCardGrid>
 
