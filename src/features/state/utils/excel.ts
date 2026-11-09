@@ -1,5 +1,6 @@
 // Excel export for a whole State page: one workbook, a sheet per chart or table. The library loads
 // only when someone downloads, so it isn't part of the page's own download.
+import { trackEvent } from '@/utils/analytics';
 
 export type ExcelValue = string | number | null | undefined;
 
@@ -106,6 +107,7 @@ const header = (sheet: ExcelSheet) => sheet.columns.map(column => ({
 
 /** Saves the sheets as one .xlsx file: a title over each table, headers that stay put while scrolling. */
 export const downloadWorkbook = async (fileName: string, sheets: ExcelSheet[]) => {
+  trackEvent('file_download', { file_name: fileName, file_extension: 'xlsx', page_path: window.location.pathname });
   const { default: writeExcelFile } = await import('write-excel-file/browser');
   await writeExcelFile(sheets.map(sheet => {
     const titles = titleRows(sheet);

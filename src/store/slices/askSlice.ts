@@ -2,6 +2,7 @@ import { createAction, createAsyncThunk, createSlice, PayloadAction } from '@red
 import axios from 'axios';
 import { RootState } from '@/store/store';
 import { AskAnswer, askApi, AskEarlierTurn } from '@/services/api/endpoints/ask';
+import { trackEvent } from '@/utils/analytics';
 
 // The Ask page's questions and answers, oldest first. Kept in memory only (never in browser storage,
 // since family devices are shared), so Back from a linked page brings the answers back without asking
@@ -71,13 +72,21 @@ export const showPartial = createAction<{ id: string; paragraphs: string[] }>('a
 export const askQuestion = createAsyncThunk<AskAnswer, AskRequest, { rejectValue: AskErrorKind }>(
   'ask/askQuestion',
   async ({ question, context, deep = false }, { signal, rejectWithValue, dispatch, requestId }) => {
+    // How Ask is used and how it does, never what was asked
+    const asked = { follow_up: context.length > 0, more_time: deep };
+    trackEvent('ask_question', asked);
+    const failed = (kind: AskErrorKind) => {
+      trackEvent('ask_failed', { ...asked, reason: signal.aborted ? 'canceled' : kind });
+      return rejectWithValue(kind);
+    };
     try {
       const answer = await askApi.ask(question, context, signal, deep, paragraphs => dispatch(showPartial({ id: requestId, paragraphs })));
       // An answer with no text is no answer
-      if (!answer || !Array.isArray(answer.answer) || answer.answer.length === 0) return rejectWithValue('server');
+      if (!answer || !Array.isArray(answer.answer) || answer.answer.length === 0) return failed('server');
+      trackEvent('ask_answer', { ...asked, status: answer.status, cached: answer.cached });
       return answer;
     } catch (error) {
-      return rejectWithValue(errorKind(error));
+      return failed(errorKind(error));
     }
   }
 );

@@ -5,6 +5,7 @@ import { PageEntry, extractIdsFromUrl, getAllPages } from '@/routes/pageRegistry
 import { pageTitle, schoolName, SITE_NAME } from '@/seo/staticPages';
 import { useAppSelector } from '@/store/hooks';
 import type { District, School, Town } from '@/store/slices/locationSlice';
+import { trackOutboundClick } from '@/utils/analytics';
 import { GA_MEASUREMENT_ID, IS_DEV } from '@/utils/environment';
 import { schoolTown } from '@/utils/formatting';
 
@@ -92,11 +93,17 @@ const usePageTracking = (): void => {
     document.title = documentTitle(location.pathname, subject);
   }, [location.pathname, subject]);
 
+  // Links to other sites, such as sources, from any page
+  useEffect(() => {
+    document.addEventListener('click', trackOutboundClick);
+    return () => document.removeEventListener('click', trackOutboundClick);
+  }, []);
+
   useEffect(() => {
     if (IS_DEV) return; // Don't send in dev
     if (typeof window.gtag !== 'function') return;
     if (!GA_MEASUREMENT_ID) return;
-    
+
     const pagePath = location.pathname + location.search;
     const title = getPageTitle(location.pathname);
     

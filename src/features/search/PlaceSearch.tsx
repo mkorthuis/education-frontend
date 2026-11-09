@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Autocomplete, Box, InputAdornment, TextField, Typography } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { locationApi } from '@/services/api/endpoints/locations';
+import { trackEvent } from '@/utils/analytics';
 import { buildPlaceOptions, DistrictRow, PLACE_KINDS, PlaceOption, SchoolRow, searchPlaces } from './placeOptions';
 
 interface PlaceSearchProps {
@@ -50,6 +51,7 @@ const PlaceSearch: React.FC<PlaceSearchProps> = ({ id, inputRef, compact = false
       onInputChange={(_event, value, reason) => { if (reason !== 'reset') setInput(value); }}
       onChange={(_event, option) => {
         if (!option) return;
+        trackEvent('search', { search_term: input.trim(), place_kind: option.kind, place_name: option.name, search_box: compact ? 'header' : 'page' });
         navigate(option.path);
         setInput('');
         onSelect?.();

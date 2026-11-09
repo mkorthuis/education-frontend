@@ -1,4 +1,5 @@
 // CSV export for the State pages' charts and tables
+import { trackEvent } from '@/utils/analytics';
 
 const escapeCell = (value: unknown): string => {
   if (value === null || value === undefined) return '';
@@ -15,6 +16,7 @@ export const downloadCsv = (filename: string, header: string[], rows: unknown[][
   const link = document.createElement('a');
   link.href = url;
   link.download = filename.endsWith('.csv') ? filename : `${filename}.csv`;
+  trackEvent('file_download', { file_name: link.download, file_extension: 'csv', page_path: window.location.pathname });
   document.body.appendChild(link);
   link.click();
   link.remove();
