@@ -65,6 +65,14 @@ district, school and town lists from the production API, so the build needs the 
 also writes `dist/serve.json`, which serves those pages and answers any other address with a 404.
 To check it locally: `npm run build && npm start`.
 
+### Load test
+
+`node scripts/load-test.mjs` sends simulated visitors through the live site, in stages of 5, 15, 30
+and 60 at once. Each visit loads a page and the API calls the app makes for it. The test stops early
+when more than 2% of requests fail or the 95th-percentile time passes 4 seconds, and lists the
+requests that failed. It leaves out Ask a Question, whose new answers cost money. Options are at the
+top of the script.
+
 ## Available Scripts
 
 - `npm run dev` - Start development server
