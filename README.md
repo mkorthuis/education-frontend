@@ -58,6 +58,13 @@ npm run build
 npm run preview
 ```
 
+After `vite build`, `scripts/prerender.ts` writes an HTML page for every address on the site (each
+district and school page, the statewide and general pages) with its own title, description, share
+tags and links, so search engines and link previews see more than an empty page. It reads the
+district, school and town lists from the production API, so the build needs the API to be up. It
+also writes `dist/serve.json`, which serves those pages and answers any other address with a 404.
+To check it locally: `npm run build && npm start`.
+
 ## Available Scripts
 
 - `npm run dev` - Start development server
