@@ -16,7 +16,7 @@ const DataSources: React.FC = () => {
           Below are the data sources we use to provide accurate and reliable information about New Hampshire's education system.
         </Typography> 
         <Typography variant="body1" sx={{ fontSize: '1.1rem', mb: 6 }}>
-          To simplify processing, each report has been saved as a CSV or XLS file in our GitHub repository.
+          To simplify processing, each report has been saved as a CSV, XLS or JSON file in our GitHub repository.
         </Typography>
         
         <DataSourceItem
@@ -178,6 +178,18 @@ const DataSources: React.FC = () => {
         <Divider sx={{ my: 2 }} />
         
         <DataSourceItem
+          title="NAEP: The Nation's Report Card"
+          description="Reading and math results in grades 4 and 8 for every state, Washington, D.C., the Department of Defense schools and the nation's public schools, 2003 to 2024, from the National Assessment of Educational Progress, which the National Center for Education Statistics runs. Includes NAEP's own tests of whether New Hampshire differs from each place and from its earlier years, and results by student group for New Hampshire and the nation. Used to answer questions on the Ask page; comparisons on the statewide pages are coming soon."
+          originalSource="https://www.nationsreportcard.gov/ndecore/xplore/NDE"
+          originalSourceText="NAEP Data Explorer (NCES)"
+          additionalSourceInfo="Downloaded from NCES's NAEP Data Service, the data behind the NAEP Data Explorer. New Hampshire's comparisons with other states are NAEP's, adjusted for comparing every state at once, as in NAEP's state reports."
+          loadedFrom="https://github.com/mkorthuis/education-backend/tree/main/backend/app/alembic/assets/naep"
+          loadedFromText="NAEP Results (JSON)"
+          additionalLoadedInfo="Groups with too few New Hampshire students for NAEP to report are marked as not reported."
+        />
+        <Divider sx={{ my: 2 }} />
+
+        <DataSourceItem
           title="Public School Enrollment By Grade"
           description="October 1st enrollments by school by grade are reported for each of the New Hampshire school districts by school."
           originalSource="https://my.doe.nh.gov/iPlatform/Report/Report?path=%2FBDMQ%2FiPlatform%20Reports%2FEnrollment%20Data%2FEnrollments%20by%20Grade%2FSchool%20Enrollments%20by%20Grade%20Public&name=Public%20School%20Enrollments%20by%20Grade&categoryName=Enrollments%20by%20Grade&categoryId=10"
@@ -232,6 +244,18 @@ const DataSources: React.FC = () => {
         />
         <Divider sx={{ my: 2 }} />
         
+        <DataSourceItem
+          title="School System Finances By State"
+          description="Revenue of every state's public school systems from federal, state and local sources, and the programs and taxes within them, such as Title I, special education and property taxes, for fiscal years 2010 to 2024, from the U.S. Census Bureau. Includes the fall enrollment the Census Bureau uses for per-pupil amounts; the site calculates shares and revenue per pupil from these figures. Used to answer questions on the Ask page; comparisons on the statewide pages are coming soon."
+          originalSource="https://www2.census.gov/programs-surveys/school-finances/tables/"
+          originalSourceText="Census Bureau Annual Survey of School System Finances"
+          additionalSourceInfo="Each year's school-system data file added up by state and checked against the Census Bureau's own state totals"
+          loadedFrom="https://github.com/mkorthuis/education-backend/tree/main/backend/app/alembic/assets/census-finance"
+          loadedFromText="State Revenue and Enrollment (JSON)"
+          additionalLoadedInfo="2019 and 2021 come from the Census Bureau's revised Excel files. Its 2024 summary table shows Nebraska's local revenue in error; the school-system data is used instead."
+        />
+        <Divider sx={{ my: 2 }} />
+
         <DataSourceItem
           title="State Total Expenditures"
           description="Compilation of each school district's Annual Financial Report (DOE-25) data indicating expenditures and costs at each grade level."
