@@ -104,6 +104,14 @@ describe('rendering a page', () => {
     expect(html).not.toContain('New Hampshire Education Facts</title>');
   });
 
+  it('hides the content from browsers that run scripts, before the body is drawn', () => {
+    const html = renderPage(TEMPLATE, staticPages(INDEX).find(p => p.path === '/district/8')!);
+    const head = html.slice(0, html.indexOf('</head>'));
+    expect(head).toContain("<script>document.documentElement.classList.add('scripts-run')</script>");
+    expect(head).toContain('<style>.scripts-run .static-page{display:none}</style>');
+    expect(html).toMatch(/<div id="root"><div class="static-page" style="/);
+  });
+
   it('gives the 404 page links home and keeps it out of search results', () => {
     const html = renderPage(TEMPLATE, notFoundPage());
     expect(html).toContain('<title>Page not found | NH Education Facts</title>');

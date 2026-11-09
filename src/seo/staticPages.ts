@@ -332,15 +332,20 @@ const headTags = (page: StaticPage): string[] => {
   ];
 };
 
-// Shown until the app starts, and to visitors and crawlers without JavaScript
-const BODY_STYLE = "max-width:960px;margin:0 auto;padding:16px;max-height:100vh;overflow:hidden;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#333;line-height:1.5";
+// For visitors and crawlers without JavaScript. Browsers that run it never draw it (the head marks
+// the page as running scripts before the body is drawn), so it doesn't flash before the app starts
+const BODY_STYLE = "max-width:960px;margin:0 auto;padding:16px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#333;line-height:1.5";
+const HIDE_WITH_SCRIPTS = [
+  "<script>document.documentElement.classList.add('scripts-run')</script>",
+  '<style>.scripts-run .static-page{display:none}</style>',
+];
 
 const bodyHtml = (page: StaticPage): string => {
   if (!page.index && !page.sections.length) return '';
   const sections = page.sections.map(section =>
     `<h2>${escaped(section.heading)}</h2><ul>${section.links.map(link => `<li><a href="${escaped(link.href)}">${escaped(link.text)}</a></li>`).join('')}</ul>`
   ).join('');
-  return `<div style="${BODY_STYLE}"><p><a href="/">${SITE_NAME}</a></p><h1>${escaped(page.heading)}</h1><p>${escaped(page.description)}</p>${sections ? `<nav>${sections}</nav>` : ''}</div>`;
+  return `<div class="static-page" style="${BODY_STYLE}"><p><a href="/">${SITE_NAME}</a></p><h1>${escaped(page.heading)}</h1><p>${escaped(page.description)}</p>${sections ? `<nav>${sections}</nav>` : ''}</div>`;
 };
 
 /** sitemap.xml: every page search engines should index */
@@ -358,6 +363,6 @@ export const renderPage = (template: string, page: StaticPage): string => {
     throw new Error('index.html needs a <title> and an empty <div id="root"></div>');
   }
   return template
-    .replace(/<title>[^<]*<\/title>/, () => [`<title>${escaped(page.title)}</title>`, ...headTags(page)].join('\n    '))
+    .replace(/<title>[^<]*<\/title>/, () => [`<title>${escaped(page.title)}</title>`, ...headTags(page), ...HIDE_WITH_SCRIPTS].join('\n    '))
     .replace('<div id="root"></div>', () => `<div id="root">${bodyHtml(page)}</div>`);
 };
