@@ -12,6 +12,8 @@ import { AI_NOTE, EXAMPLE_QUESTIONS } from '@/features/ask/askCopy';
 import { ASK_PATH, askState } from '@/features/ask/askRoute';
 import QuestionButtons from '@/features/ask/QuestionButtons';
 import { STATE_PAGE_DESCRIPTIONS } from '@/features/state/utils/labels';
+import { useAppDispatch } from '@/store/hooks';
+import { clearTurns } from '@/store/slices/askSlice';
 
 // The home page offers two ways in, side by side on wide screens and stacked on phones: look up a
 // place and browse its pages, or ask a question, which opens the Ask page. Below them, the
@@ -62,6 +64,12 @@ const WayIn: React.FC<WayInProps> = ({ id, title, intro, field, children }) => (
 
 export default function Home() {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  // A question from here starts a new discussion: the earlier questions are cleared, not continued
+  const askFresh = (question: string) => {
+    dispatch(clearTurns());
+    navigate(ASK_PATH, askState(question));
+  };
   const location = useLocation();
   const searchRef = useRef<HTMLInputElement>(null);
   const questionRef = useRef<HTMLTextAreaElement>(null);
@@ -125,9 +133,9 @@ export default function Home() {
           id="ask-heading"
           title="Or Try Asking a Question"
           intro="In your own words. Answers come from this site with charts and links to source data."
-          field={<AskForm id="home-question" label="Your question" onAsk={question => navigate(ASK_PATH, askState(question))} fieldRef={questionRef} hint={false} />}
+          field={<AskForm id="home-question" label="Your question" onAsk={askFresh} fieldRef={questionRef} hint={false} />}
         >
-          <QuestionButtons label="Example questions" questions={EXAMPLE_QUESTIONS.slice(0, HOME_EXAMPLES)} onAsk={example => navigate(ASK_PATH, askState(example))} />
+          <QuestionButtons label="Example questions" questions={EXAMPLE_QUESTIONS.slice(0, HOME_EXAMPLES)} onAsk={askFresh} />
           <Typography variant="body2" color="text.secondary">{AI_NOTE}</Typography>
         </WayIn>
       </Box>

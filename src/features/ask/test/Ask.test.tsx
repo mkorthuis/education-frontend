@@ -6,7 +6,7 @@ import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AxiosError, AxiosHeaders } from 'axios';
 import { store } from '@/store/store';
-import { AskTurn, clearTurns, contextFrom, setDraft } from '@/store/slices/askSlice';
+import { askQuestion, AskTurn, clearTurns, contextFrom, setDraft } from '@/store/slices/askSlice';
 import { AskAnswer, askApi } from '@/services/api/endpoints/ask';
 import Home from '@/pages/Home';
 import AskPage from '../AskPage';
@@ -296,5 +296,19 @@ describe('Home page', () => {
     expect(await screen.findByRole('heading', { name: 'Ask About New Hampshire Schools' }, { timeout: 5000 })).toBeInTheDocument();
     expect(await screen.findByText(/Concord spent \$24,351 per student/, {}, { timeout: 5000 })).toBeInTheDocument();
     expect(ask).toHaveBeenCalledTimes(1);
+  });
+
+  it('starts a new discussion, clearing the questions asked before', async () => {
+    ask.mockResolvedValue(answer({ answer: ['Earlier answer.'] }));
+    await store.dispatch(askQuestion({ question: 'What is the average class size in Claremont?', context: [] }));
+    expect(store.getState().ask.turns).toHaveLength(1);
+    ask.mockResolvedValue(answer());
+    renderAt('/');
+    await typeAndAsk('How much does Concord spend per student?');
+    expect(await screen.findByText(/Concord spent \$24,351 per student/, {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(screen.queryByText('What is the average class size in Claremont?')).not.toBeInTheDocument();
+    expect(screen.queryByText('Earlier answer.')).not.toBeInTheDocument();
+    // Asked on its own, not as a follow-up
+    expect(ask).toHaveBeenLastCalledWith('How much does Concord spend per student?', [], expect.anything());
   });
 });
