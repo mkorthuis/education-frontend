@@ -40,8 +40,8 @@ export interface MetricTileProps {
   /** The value's year, e.g. "25/26" or "2025" */
   period: string;
   delta?: TileDelta;
-  /** Grey note under the figures */
-  detail?: string;
+  /** Grey note under the figures; a list is one line each ("Statewide $22,699", "Up 31% after inflation") */
+  detail?: string | string[];
   /** A shorter note for phones; phones show the note when left out */
   shortDetail?: string;
   /** Leave the note off on phones */
@@ -93,13 +93,16 @@ const TrendLine: React.FC<{ trend: { year: number; value: number }[] }> = ({ tre
 };
 
 /** Two versions of a piece of text: the full one from tablets up, the short one on phones. */
-const Responsive: React.FC<{ full?: string; short?: string }> = ({ full, short }) =>
+const Lines: React.FC<{ text?: string | string[] }> = ({ text }) =>
+  Array.isArray(text) ? <>{text.map((line, index) => <React.Fragment key={line}>{index > 0 && <br />}{line}</React.Fragment>)}</> : <>{text}</>;
+
+const Responsive: React.FC<{ full?: string | string[]; short?: string }> = ({ full, short }) =>
   short ? (
     <>
-      <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>{full}</Box>
+      <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}><Lines text={full} /></Box>
       <Box component="span" sx={{ display: { xs: 'inline', sm: 'none' } }}>{short}</Box>
     </>
-  ) : <>{full}</>;
+  ) : <Lines text={full} />;
 
 const captionText = { ...type.caption, color: 'text.secondary', m: 0 } as const;
 

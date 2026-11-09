@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
-import { Box } from '@mui/material';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
-import { GroupLabel, MetricTile, NavCard, NavCardGrid, SectionHeading } from '@/components/ds';
+import { MetricTile, NavCard, NavCardGrid, SectionHeading, TileGroup, TileGroupPair } from '@/components/ds';
 import StatePage from '../components/StatePage';
 import { useStateLoads } from '../hooks/useStateLoads';
 import { useSchoolCounts } from '../hooks/useSchoolCounts';
@@ -16,8 +15,6 @@ import {
 } from '../hooks/useStatewideData';
 import {
   ALL_STUDENTS_SUBGROUP_ID,
-  changeFrom,
-  changeSince,
   describeChange,
   efaTotals,
   formatCount,
@@ -29,57 +26,15 @@ import {
   proficiencyBySubject,
   studentsPerTeacher,
   publicStudents,
+  tileChange,
+  tileTrend,
   toSeries,
-  YearValue,
 } from '../utils/stateMetrics';
 import { STATE_PAGE_DESCRIPTIONS } from '../utils/labels';
 import { capitalize, formatDollarsShort, formatThousands, realPercentChange, shortYear, tileDelta } from '../utils/phrases';
 
 
-const TREND_YEARS = 10;
-// The year every tile compares with when its data goes back that far (2014-15, or the class of 2015),
-// as on the other statewide pages; tiles whose data starts later use their earliest year in the last ten
-const SINCE_YEAR = 2015;
 const STATE_PAGES = PAGE_REGISTRY.state;
-
-/** A tile's change: since 2014-15 when the series has it, otherwise over the last ten years. */
-const tileChange = (series: YearValue[]) => changeFrom(series, SINCE_YEAR) ?? changeSince(series, TREND_YEARS);
-
-/** A tile's trend line, from the same year its change is measured from. */
-const lastYears = (series: YearValue[]) => {
-  const from = tileChange(series)?.from.year;
-  if (from !== undefined) return series.filter(point => point.year >= from);
-  const latest = latestPoint(series);
-  return latest ? series.filter(point => point.year > latest.year - TREND_YEARS - 1) : series;
-};
-
-
-// Two tiles across on phones and tablets. Where four fit across (lg and up), a full-width group
-// is four across and a half-width group (two side by side) is 2 x 2. The two half-width groups
-// share their rows with each other (CSS subgrid), so the four tiles across a row are one height.
-const tileGrid = (half: boolean) => ({
-  display: 'grid',
-  gap: { xs: 1, sm: 2 },
-  gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', lg: half ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))' },
-  ...(half && { gridRow: { lg: 'span 2' }, gridTemplateRows: { lg: 'subgrid' } }),
-});
-
-// A group of tiles under the Key Statewide Figures heading
-const Band: React.FC<{ title: string; half?: boolean; children: React.ReactNode }> = ({ title, half = false, children }) => (
-  <Box
-    component="section"
-    // Groups are set apart by space and their label, not outlines: the tiles are the only boxes
-    sx={{
-      mb: 4,
-      minWidth: 0,
-      // Label in the shared grid's first row, tiles in the next two
-      ...(half && { display: { lg: 'grid' }, gridRow: { lg: 'span 3' }, gridTemplateRows: { lg: 'subgrid' }, rowGap: { lg: 0 } }),
-    }}
-  >
-    <GroupLabel>{title}</GroupLabel>
-    <Box sx={tileGrid(half)}>{children}</Box>
-  </Box>
-);
 
 const StateOverview: React.FC = () => {
   const enrollment = useStateEnrollmentData();
@@ -183,8 +138,8 @@ const StateOverview: React.FC = () => {
       <SectionHeading>Key Statewide Figures</SectionHeading>
 
       {/* Where four tiles fit across, Schools and Financials sit side by side, each 2 x 2 */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, minmax(0, 1fr))' }, columnGap: 3, rowGap: 0 }}>
-      <Band title="Schools" half>
+      <TileGroupPair>
+      <TileGroup title="Schools" half>
         {latest.students && (
           <MetricTile
             label="Students"
@@ -192,7 +147,7 @@ const StateOverview: React.FC = () => {
             shortValue={formatThousands(latest.students.value)}
             period={shortYear(latest.students.year)}
             delta={tileDelta(changes.students, { unit: 'percent', higherIsBetter: true })}
-            trend={lastYears(figures.students)}
+            trend={tileTrend(figures.students)}
             to={STATE_PAGES.enrollment.urlPatterns[0]}
             linkLabel="enrollment"
           />
@@ -203,7 +158,7 @@ const StateOverview: React.FC = () => {
             value={formatCount(latest.teachers.value)}
             period={shortYear(latest.teachers.year)}
             delta={tileDelta(changes.teachers, { unit: 'percent', higherIsBetter: true })}
-            trend={lastYears(figures.teachers)}
+            trend={tileTrend(figures.teachers)}
             to={STATE_PAGES.staff.urlPatterns[0]}
             linkLabel="staffing"
           />
@@ -216,7 +171,7 @@ const StateOverview: React.FC = () => {
             delta={tileDelta(changes.districts, { unit: 'percent', higherIsBetter: true })}
             detail={`${formatCount(latest.districts.value)} run their own schools`}
             shortDetail={`${formatCount(latest.districts.value)} run schools`}
-            trend={lastYears(figures.districts)}
+            trend={tileTrend(figures.districts)}
             to="/districts"
             linkLabel="all districts"
           />
@@ -229,14 +184,14 @@ const StateOverview: React.FC = () => {
             delta={tileDelta(changes.schools, { unit: 'percent', higherIsBetter: true })}
             detail="K-12, not counting charter schools"
             shortDetail="excl. charter"
-            trend={lastYears(figures.schools)}
+            trend={tileTrend(figures.schools)}
             to="/schools"
             linkLabel="all schools"
           />
         )}
-      </Band>
+      </TileGroup>
 
-      <Band title="Financials" half>
+      <TileGroup title="Financials" half>
         {latest.perPupil && (
           <MetricTile
             label="Cost per Student"
@@ -245,7 +200,7 @@ const StateOverview: React.FC = () => {
             period={shortYear(latest.perPupil.year)}
             delta={tileDelta(changes.perPupil, { unit: 'percent', higherIsBetter: false })}
             detail={changes.perPupil ? `${capitalize(describeChange(realPercentChange(changes.perPupil)))} after inflation` : undefined}
-            trend={lastYears(figures.perPupil)}
+            trend={tileTrend(figures.perPupil)}
             to={STATE_PAGES.financials.urlPatterns[0]}
             linkLabel="spending"
           />
@@ -259,7 +214,7 @@ const StateOverview: React.FC = () => {
             period={shortYear(latest.spending.year)}
             delta={tileDelta(changes.spending, { unit: 'percent', higherIsBetter: false })}
             detail={changes.spending ? `${capitalize(describeChange(realPercentChange(changes.spending)))} after inflation` : undefined}
-            trend={lastYears(figures.spending)}
+            trend={tileTrend(figures.spending)}
             to={STATE_PAGES.financials.urlPatterns[0]}
             linkLabel="spending"
           />
@@ -273,7 +228,7 @@ const StateOverview: React.FC = () => {
             period={shortYear(latest.salary.year)}
             delta={tileDelta(changes.salary, { unit: 'percent', higherIsBetter: true })}
             detail={changes.salary ? `${capitalize(describeChange(realPercentChange(changes.salary)))} after inflation` : undefined}
-            trend={lastYears(figures.salary)}
+            trend={tileTrend(figures.salary)}
             to={STATE_PAGES.staff.urlPatterns[0]}
             linkLabel="teacher pay"
           />
@@ -291,11 +246,11 @@ const StateOverview: React.FC = () => {
             linkLabel="EFAs"
           />
         )}
-      </Band>
+      </TileGroup>
 
-      </Box>
+      </TileGroupPair>
 
-      <Band title="Results">
+      <TileGroup title="Results">
         {latest.math && (
           <MetricTile
             label="Proficient in Math"
@@ -326,7 +281,7 @@ const StateOverview: React.FC = () => {
             // By school year like the other tiles: the class of 2025 graduated in 24/25
             period={shortYear(latest.graduation.year)}
             delta={tileDelta(changes.graduation, { unit: 'points', higherIsBetter: true })}
-            trend={lastYears(figures.graduation)}
+            trend={tileTrend(figures.graduation)}
             to={STATE_PAGES.outcomes.urlPatterns[0]}
             linkLabel="graduation"
           />
@@ -338,12 +293,12 @@ const StateOverview: React.FC = () => {
             value={formatPercent(latest.college.value)}
             period={shortYear(latest.college.year)}
             delta={tileDelta(changes.college, { unit: 'points', higherIsBetter: true })}
-            trend={lastYears(figures.college)}
+            trend={tileTrend(figures.college)}
             to={STATE_PAGES.outcomes.urlPatterns[0]}
             linkLabel="graduates' plans"
           />
         )}
-      </Band>
+      </TileGroup>
     </StatePage>
   );
 };

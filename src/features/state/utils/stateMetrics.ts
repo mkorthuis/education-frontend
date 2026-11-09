@@ -79,6 +79,24 @@ export const changeFrom = (series: YearValue[], fromYear: number): Change | null
 };
 
 /** Percent change from `then` to `now`; null when there's nothing (or zero) to compare with. */
+// The year key-figure tiles compare with when their data goes back that far (2014-15, or the class
+// of 2015), as on the statewide pages; tiles whose data starts later use their earliest year in the
+// last ten
+export const TILE_SINCE_YEAR = 2015;
+const TILE_TREND_YEARS = 10;
+
+/** A tile's change: since 2014-15 when the series has it, otherwise over the last ten years. */
+export const tileChange = (series: YearValue[]): Change | null =>
+  changeFrom(series, TILE_SINCE_YEAR) ?? changeSince(series, TILE_TREND_YEARS);
+
+/** A tile's trend line, from the same year its change is measured from. */
+export const tileTrend = (series: YearValue[]): YearValue[] => {
+  const from = tileChange(series)?.from.year;
+  if (from !== undefined) return series.filter(point => point.year >= from);
+  const latest = latestPoint(series);
+  return latest ? series.filter(point => point.year > latest.year - TILE_TREND_YEARS - 1) : series;
+};
+
 export const percentChange = (now: number, then: number | null): number | null =>
   (then ? ((now - then) / then) * 100 : null);
 
