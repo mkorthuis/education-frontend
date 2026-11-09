@@ -4,6 +4,7 @@ import { Box, Divider, FormControl, InputLabel, ListSubheader, MenuItem, Select 
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import StatePage from '../components/StatePage';
 import StateTable, { StateTableColumn } from '../components/StateTable';
+import { Note } from '@/components/ds';
 import ChartRow from '../components/ChartRow';
 import TrendChart, { ENTITY_COLORS } from '../components/TrendChart';
 import KeyFigures, { KeyFigure } from '../components/KeyFigures';
@@ -388,6 +389,10 @@ const StateAcademics: React.FC = () => {
             isHighlighted={row => row.id === ALL_STUDENTS_SUBGROUP_ID}
           />
         </ChartRow>
+
+        <Note title="National Comparisons Coming Soon">
+          This page will show how New Hampshire&apos;s test results compare with the nation and with other states.
+        </Note>
       </Box>
     </StatePage>
   );

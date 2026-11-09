@@ -313,6 +313,19 @@ describe('State pages', () => {
     expect(line('Regular Instruction').queryByText('$1.00B')).not.toBeInTheDocument();
   });
 
+  it('academics and financials say national comparisons are coming', async () => {
+    const pages: [React.ReactElement, string, RegExp][] = [
+      [<StateAcademics key="academics" />, '/state/academic', /test results compare/],
+      [<StateFinancials key="financials" />, '/state/financials', /funding and spending compare/],
+    ];
+    for (const [page, path, text] of pages) {
+      const { unmount } = renderPage(page, path);
+      expect(await screen.findByRole('heading', { name: 'National Comparisons Coming Soon' }, TIMEOUT)).toBeInTheDocument();
+      expect(screen.getByText(text)).toBeInTheDocument();
+      unmount();
+    }
+  });
+
   it('financials has no district picker', async () => {
     renderPage(<StateFinancials />, '/state/financials');
     expect(await screen.findByText('Revenue By Source', undefined, TIMEOUT)).toBeInTheDocument();

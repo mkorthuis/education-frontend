@@ -5,6 +5,7 @@ import { selectAdjustForInflation, toggleInflationAdjustment } from '@/store/sli
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import StatePage from '../components/StatePage';
 import StateTable from '../components/StateTable';
+import { Note } from '@/components/ds';
 import ChartRow from '../components/ChartRow';
 import ChartSelect from '../components/ChartSelect';
 import { compareByType, ComparisonRow, comparisonColumns, CompareYearPicker, useCompareYear } from '../components/CompareYear';
@@ -515,6 +516,10 @@ const StateFinancials: React.FC = () => {
             note={`Local revenue is mostly property taxes by each town.${stateShareText ? ` ${stateShareText}` : ''}`}
           />
         </ChartRow>
+
+        <Note title="National Comparisons Coming Soon">
+          This page will show how New Hampshire&apos;s school funding and spending compare with the nation and with other states.
+        </Note>
       </Box>
     </StatePage>
   );
