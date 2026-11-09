@@ -14,6 +14,8 @@ export const EXAMPLE_QUESTIONS = [
 
 export const AI_NOTE = "Answers written by AI from site's data. Validate with linked pages.";
 export const LOADING_TEXT = "Looking up the answer in this site's data. This usually takes 5 to 15 seconds.";
+export const DEEP_LOADING_TEXT = "Thinking it through with Deep Think. This can take up to a minute or more.";
+export const DEEP_THINK_TIP = "Deep Think takes more time to reason before answering. It's slower, often up to a minute, but can help with complex questions and comparisons.";
 
 export const ERRORS: Record<AskErrorKind, { message: string; severity: 'info' | 'error'; action: 'retry' | 'edit' | 'browse' }> = {
   limit: { message: "We've reached today's limit on questions. Please try again tomorrow. You can still look up any district or school, or see statewide data.", severity: 'info', action: 'browse' },

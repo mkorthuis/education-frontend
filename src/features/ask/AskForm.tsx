@@ -18,10 +18,12 @@ interface AskFormProps {
   /** The tip under the field, or false for none; the checks' messages show there either way */
   hint?: string | false;
   fieldRef?: React.RefObject<HTMLTextAreaElement>;
+  /** Beside the Ask button, such as the Deep Think switch */
+  controls?: React.ReactNode;
 }
 
 /** The question field and its Ask button. The field's text is shared by the home page and the Ask page. */
-const AskForm: React.FC<AskFormProps> = ({ id, label, onAsk, onMessage, disabled = false, hint = DEFAULT_HINT, fieldRef }) => {
+const AskForm: React.FC<AskFormProps> = ({ id, label, onAsk, onMessage, disabled = false, hint = DEFAULT_HINT, fieldRef, controls }) => {
   const dispatch = useAppDispatch();
   const { draft } = useAppSelector(selectAsk);
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -74,15 +76,19 @@ const AskForm: React.FC<AskFormProps> = ({ id, label, onAsk, onMessage, disabled
         inputProps={{ enterKeyHint: 'go' }}
         sx={{ '& textarea::placeholder': { color: 'text.secondary', opacity: 1 } }}
       />
-      <Button
-        type="submit"
-        variant="contained"
-        disableElevation
-        disabled={disabled}
-        sx={{ mt: 1.5, textTransform: 'none', minHeight: 44, px: 3, width: { xs: '100%', sm: 'auto' } }}
-      >
-        Ask
-      </Button>
+      {/* Phones: the button across the field's width, any controls under it */}
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', columnGap: 2, rowGap: 0.5, mt: 1.5 }}>
+        <Button
+          type="submit"
+          variant="contained"
+          disableElevation
+          disabled={disabled}
+          sx={{ textTransform: 'none', minHeight: 44, px: 3, width: { xs: '100%', sm: 'auto' } }}
+        >
+          Ask
+        </Button>
+        {controls}
+      </Box>
     </Box>
   );
 };

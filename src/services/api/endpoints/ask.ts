@@ -58,6 +58,8 @@ export interface AskAnswer {
 export const ASK_MAX_LENGTH = 500;
 /** Answers usually take 5 to 15 seconds; the visitor gets an error after this long */
 export const ASK_TIMEOUT_MS = 45000;
+/** Deep Think thinks longer: the server allows it 90 seconds */
+export const ASK_DEEP_TIMEOUT_MS = 100000;
 
 /** An earlier question on the Ask page and its answer, which a follow-up may refer to */
 export interface AskEarlierTurn {
@@ -66,9 +68,16 @@ export interface AskEarlierTurn {
 }
 
 export const askApi = {
-  /** `history` is the page's earlier questions, oldest first, so "What about science?" knows what came before */
-  ask: async (question: string, history: AskEarlierTurn[], signal?: AbortSignal): Promise<AskAnswer> => {
-    const response = await axiosInstance.post(`${BASE_API_URL}ask`, { question, history }, { timeout: ASK_TIMEOUT_MS, skipCache: true, signal });
+  /**
+   * `history` is the page's earlier questions, oldest first, so "What about science?" knows what came
+   * before. `deep` is Deep Think: Claude thinks longer, for complex questions.
+   */
+  ask: async (question: string, history: AskEarlierTurn[], signal?: AbortSignal, deep = false): Promise<AskAnswer> => {
+    const response = await axiosInstance.post(
+      `${BASE_API_URL}ask`,
+      { question, history, ...(deep && { deep: true }) },
+      { timeout: deep ? ASK_DEEP_TIMEOUT_MS : ASK_TIMEOUT_MS, skipCache: true, signal },
+    );
     return response.data;
   },
 };

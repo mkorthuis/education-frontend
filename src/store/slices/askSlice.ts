@@ -16,6 +16,8 @@ export interface AskTurn {
   question: string;
   /** The earlier questions it was asked after, sent again if it's retried */
   context: AskEarlierTurn[];
+  /** Asked with Deep Think, which a retry keeps */
+  deep: boolean;
   status: 'loading' | 'succeeded' | 'failed';
   response: AskAnswer | null;
   error: AskErrorKind | null;
@@ -25,6 +27,8 @@ export interface AskState {
   /** What's in the question field, sent or not; the home page and the Ask page share it */
   draft: string;
   turns: AskTurn[];
+  /** Whether the next question is asked with Deep Think */
+  deepThink: boolean;
 }
 
 // The page keeps the latest questions; older ones drop off the top
@@ -40,13 +44,14 @@ export const contextFrom = (turns: AskTurn[]): AskEarlierTurn[] =>
     .slice(-MAX_CONTEXT)
     .map(turn => ({ question: turn.question, answer: turn.response!.answer }));
 
-/** A question and the earlier ones it follows */
+/** A question, the earlier ones it follows, and whether it's asked with Deep Think */
 export interface AskRequest {
   question: string;
   context: AskEarlierTurn[];
+  deep?: boolean;
 }
 
-const initialState: AskState = { draft: '', turns: [] };
+const initialState: AskState = { draft: '', turns: [], deepThink: false };
 
 const errorKind = (error: unknown): AskErrorKind => {
   if (!axios.isAxiosError(error)) return 'server';
@@ -60,9 +65,9 @@ const errorKind = (error: unknown): AskErrorKind => {
 
 export const askQuestion = createAsyncThunk<AskAnswer, AskRequest, { rejectValue: AskErrorKind }>(
   'ask/askQuestion',
-  async ({ question, context }, { signal, rejectWithValue }) => {
+  async ({ question, context, deep = false }, { signal, rejectWithValue }) => {
     try {
-      const answer = await askApi.ask(question, context, signal);
+      const answer = await askApi.ask(question, context, signal, deep);
       // An answer with no text is no answer
       if (!answer || !Array.isArray(answer.answer) || answer.answer.length === 0) return rejectWithValue('server');
       return answer;
@@ -83,6 +88,9 @@ const askSlice = createSlice({
     removeTurn: (state, action: PayloadAction<string>) => {
       state.turns = state.turns.filter(turn => turn.id !== action.payload);
     },
+    setDeepThink: (state, action: PayloadAction<boolean>) => {
+      state.deepThink = action.payload;
+    },
     /** Start over: no questions, an empty field */
     clearTurns: (state) => {
       state.turns = [];
@@ -92,8 +100,8 @@ const askSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(askQuestion.pending, (state, action) => {
-        const { question, context } = action.meta.arg;
-        state.turns.push({ id: action.meta.requestId, question, context, status: 'loading', response: null, error: null });
+        const { question, context, deep = false } = action.meta.arg;
+        state.turns.push({ id: action.meta.requestId, question, context, deep, status: 'loading', response: null, error: null });
         state.turns = state.turns.slice(-MAX_TURNS);
         // The question moves into the thread; the field is ready for the next one
         state.draft = '';
@@ -119,6 +127,6 @@ const askSlice = createSlice({
   },
 });
 
-export const { setDraft, removeTurn, clearTurns } = askSlice.actions;
+export const { setDraft, setDeepThink, removeTurn, clearTurns } = askSlice.actions;
 export const selectAsk = (state: RootState) => state.ask;
 export default askSlice.reducer;

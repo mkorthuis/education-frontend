@@ -10,7 +10,10 @@ export const ASK_PATH = '/ask';
  * while Back, Forward and a reload still find them. `context` is the earlier questions it follows,
  * kept with it so a reload asks it the same way.
  */
-export const askState = (question: string, context: AskEarlierTurn[] = []) => ({ state: { question, context } });
+export const askState = (question: string, context: AskEarlierTurn[] = [], deep = false) => ({ state: { question, context, deep } });
+
+/** Whether a history entry's question is asked with Deep Think */
+export const deepIn = (state: unknown): boolean => (state as { deep?: unknown } | null)?.deep === true;
 
 /** The earlier questions a history entry's question follows */
 export const contextIn = (state: unknown): AskEarlierTurn[] => {

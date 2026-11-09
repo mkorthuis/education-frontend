@@ -12,8 +12,9 @@ import { ASK_MAX_LENGTH, AskEarlierTurn } from '@/services/api/endpoints/ask';
 import { LOOK_UP_HASH } from '@/features/search/placeOptions';
 import AskAnswerView from './AskAnswerView';
 import AskForm from './AskForm';
-import { AI_NOTE, DECLINED_MESSAGE, ERRORS, EXAMPLE_QUESTIONS, LOADING_TEXT, readyMessage } from './askCopy';
-import { ASK_PATH, askState, contextIn, questionIn } from './askRoute';
+import { AI_NOTE, DECLINED_MESSAGE, DEEP_LOADING_TEXT, ERRORS, EXAMPLE_QUESTIONS, LOADING_TEXT, readyMessage } from './askCopy';
+import { ASK_PATH, askState, contextIn, deepIn, questionIn } from './askRoute';
+import DeepThinkToggle from './DeepThinkToggle';
 import QuestionButtons from './QuestionButtons';
 
 // The Ask page: the visitor's questions and their answers, oldest first, with the question field
@@ -22,12 +23,12 @@ import QuestionButtons from './QuestionButtons';
 
 const STILL_WORKING_MS = 15000;
 
-/** Whether a question on the page is this one: the same words after the same earlier questions */
-const isAsked = (turn: AskTurn, question: string, context: AskEarlierTurn[]) =>
-  turn.question === question && turn.context.length === context.length && turn.context.every((earlier, index) => earlier.question === context[index].question);
+/** Whether a question on the page is this one: the same words after the same earlier questions, asked the same way */
+const isAsked = (turn: AskTurn, question: string, context: AskEarlierTurn[], deep: boolean) =>
+  turn.question === question && turn.deep === deep && turn.context.length === context.length && turn.context.every((earlier, index) => earlier.question === context[index].question);
 
 /** The spinner and "still working" note while a question is being answered */
-const Working: React.FC<{ onCancel: () => void; onStillWorking: () => void }> = ({ onCancel, onStillWorking }) => {
+const Working: React.FC<{ deep: boolean; onCancel: () => void; onStillWorking: () => void }> = ({ deep, onCancel, onStillWorking }) => {
   const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const [stillWorking, setStillWorking] = useState(false);
   useEffect(() => {
@@ -40,7 +41,7 @@ const Working: React.FC<{ onCancel: () => void; onStillWorking: () => void }> = 
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
         {reduceMotion ? <HourglassEmptyOutlinedIcon aria-hidden fontSize="small" color="action" /> : <CircularProgress size={20} aria-hidden />}
-        <Typography variant="body1">{stillWorking ? 'Still working. Thanks for waiting.' : LOADING_TEXT}</Typography>
+        <Typography variant="body1">{stillWorking ? 'Still working. Thanks for waiting.' : deep ? DEEP_LOADING_TEXT : LOADING_TEXT}</Typography>
       </Box>
       <Box aria-hidden>
         {['100%', '92%', '60%'].map(width => <Skeleton key={width} variant="text" width={width} animation={reduceMotion ? false : 'pulse'} />)}
@@ -56,7 +57,7 @@ const AskPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const question = questionIn(location.state);
-  const { turns } = useAppSelector(selectAsk);
+  const { turns, deepThink } = useAppSelector(selectAsk);
   const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const [announcement, setAnnouncement] = useState('');
   const fieldRef = useRef<HTMLTextAreaElement>(null);
@@ -86,10 +87,10 @@ const AskPage: React.FC = () => {
     if (select) field.select();
   };
 
-  const ask = (text: string, context: AskEarlierTurn[]) => {
-    const request = dispatch(askQuestion({ question: text, context }));
+  const ask = (text: string, context: AskEarlierTurn[], deep: boolean) => {
+    const request = dispatch(askQuestion({ question: text, context, deep }));
     requests.current.set(request.requestId, request);
-    announce('Looking up the answer. This usually takes 5 to 15 seconds.');
+    announce(deep ? DEEP_LOADING_TEXT : 'Looking up the answer. This usually takes 5 to 15 seconds.');
     window.requestAnimationFrame(() => showTurn(request.requestId, true));
   };
 
@@ -100,7 +101,8 @@ const AskPage: React.FC = () => {
     // The store's latest, not this render's, so a second run of this effect can't ask twice
     const current = store.getState().ask.turns;
     const context = contextIn(location.state);
-    const existing = [...current].reverse().find(turn => isAsked(turn, question, context) && turn.status !== 'failed');
+    const deep = deepIn(location.state);
+    const existing = [...current].reverse().find(turn => isAsked(turn, question, context, deep) && turn.status !== 'failed');
     if (existing) {
       window.requestAnimationFrame(() => showTurn(existing.id, false));
       return;
@@ -110,8 +112,8 @@ const AskPage: React.FC = () => {
       announce(ERRORS.tooLong.message);
       return;
     }
-    current.filter(turn => isAsked(turn, question, context)).forEach(turn => dispatch(removeTurn(turn.id)));
-    ask(question, context);
+    current.filter(turn => isAsked(turn, question, context, deep)).forEach(turn => dispatch(removeTurn(turn.id)));
+    ask(question, context, deep);
     // Once per history entry
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.key]);
@@ -130,12 +132,12 @@ const AskPage: React.FC = () => {
     });
   }, [turns]);
 
-  /** Each question gets its own history entry, which asks it after the questions answered on the page */
-  const submit = (text: string) => navigate(ASK_PATH, askState(text, contextFrom(turns)));
+  /** Each question gets its own history entry, which asks it after the questions answered on the page, with Deep Think if it's on */
+  const submit = (text: string) => navigate(ASK_PATH, askState(text, contextFrom(turns), deepThink));
 
   const retry = (turn: AskTurn) => {
     dispatch(removeTurn(turn.id));
-    ask(turn.question, turn.context);
+    ask(turn.question, turn.context, turn.deep);
   };
 
   const edit = (turn: AskTurn) => {
@@ -193,7 +195,7 @@ const AskPage: React.FC = () => {
           sx={{ scrollMarginTop: '72px' }}
         >
           <Box sx={{ borderLeft: '3px solid', borderColor: 'grey.300', pl: 1.5, mb: 3 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>You asked</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>{turn.deep ? 'You asked, with Deep Think' : 'You asked'}</Typography>
             <Typography
               id={`question-${turn.id}`}
               component="h2"
@@ -204,7 +206,7 @@ const AskPage: React.FC = () => {
             </Typography>
           </Box>
 
-          {turn.status === 'loading' && <Working onCancel={() => cancel(turn)} onStillWorking={() => announce('Still working.')} />}
+          {turn.status === 'loading' && <Working deep={turn.deep} onCancel={() => cancel(turn)} onStillWorking={() => announce('Still working.')} />}
 
           {turn.status === 'failed' && turn.error && (
             <Alert severity={ERRORS[turn.error].severity} role="none" action={<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>{errorActions(turn)}</Box>}
@@ -232,7 +234,16 @@ const AskPage: React.FC = () => {
         <Typography id="ask-form-heading" component="h2" sx={hasTurns ? { ...type.sectionTitle, m: 0, mb: 2 } : visuallyHidden}>
           {hasTurns ? 'Continue the Discussion' : 'Your Question'}
         </Typography>
-        <AskForm id="ask-question" label={hasTurns ? 'Ask your next question' : 'Your question'} onAsk={submit} onMessage={announce} fieldRef={fieldRef} disabled={loading} hint={hasTurns ? false : undefined} />
+        <AskForm
+          id="ask-question"
+          label={hasTurns ? 'Ask your next question' : 'Your question'}
+          onAsk={submit}
+          onMessage={announce}
+          fieldRef={fieldRef}
+          disabled={loading}
+          hint={hasTurns ? false : undefined}
+          controls={<DeepThinkToggle />}
+        />
 
         {!hasTurns && (
           <>
