@@ -1,6 +1,6 @@
 /**
  * After `vite build`: writes dist/<address>/index.html for every page on the site, the 404 page,
- * and dist/serve.json with the rewrites that serve them (see src/seo/staticPages.ts).
+ * dist/sitemap.xml, and dist/serve.json with the rewrites that serve them (see src/seo/staticPages.ts).
  *
  * Run with `vite-node --mode production scripts/prerender.ts`, so it reads the production API's
  * district, school and town lists. If the API can't be reached the build fails, and Heroku keeps
@@ -8,7 +8,7 @@
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { notFoundPage, paramRewrites, renderPage, SiteIndex, staticPages } from '@/seo/staticPages';
+import { notFoundPage, paramRewrites, renderPage, SiteIndex, sitemap, staticPages } from '@/seo/staticPages';
 
 const DIST = path.resolve(process.cwd(), 'dist');
 const API = `${import.meta.env.VITE_API_BASE_URL}/api/v1/location`;
@@ -36,6 +36,7 @@ const main = async () => {
     await writeFile(file, renderPage(template, page));
   }
   await writeFile(path.join(DIST, '404.html'), renderPage(template, notFoundPage()));
+  await writeFile(path.join(DIST, 'sitemap.xml'), sitemap(pages));
 
   // public/serve.json holds the headers; the rewrites come from the page registry
   const serveConfig = JSON.parse(await readFile(path.join(DIST, 'serve.json'), 'utf8'));

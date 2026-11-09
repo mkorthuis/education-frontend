@@ -314,6 +314,15 @@ const bodyHtml = (page: StaticPage): string => {
   return `<div style="${BODY_STYLE}"><p><a href="/">${SITE_NAME}</a></p><h1>${escaped(page.heading)}</h1><p>${escaped(page.description)}</p>${sections ? `<nav>${sections}</nav>` : ''}</div>`;
 };
 
+/** sitemap.xml: every page search engines should index */
+export const sitemap = (pages: StaticPage[]): string => [
+  '<?xml version="1.0" encoding="UTF-8"?>',
+  '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+  ...pages.filter(page => page.index).map(page => `  <url><loc>${escaped(`${SITE_URL}${page.path}`)}</loc></url>`),
+  '</urlset>',
+  '',
+].join('\n');
+
 /** The built index.html with a page's title, head tags and content */
 export const renderPage = (template: string, page: StaticPage): string => {
   if (!/<title>[^<]*<\/title>/.test(template) || !template.includes('<div id="root"></div>')) {

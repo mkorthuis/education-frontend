@@ -1,5 +1,5 @@
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
-import { notFoundPage, pageTitle, paramRewrites, renderPage, SiteIndex, staticPages } from '../staticPages';
+import { notFoundPage, pageTitle, paramRewrites, renderPage, SiteIndex, sitemap, staticPages } from '../staticPages';
 
 const grades = (...names: string[]) => names.map(name => ({ name }));
 
@@ -113,6 +113,19 @@ describe('rendering a page', () => {
 
   it('refuses a template it can’t fill', () => {
     expect(() => renderPage('<html><body><div id="app"></div></body></html>', notFoundPage())).toThrow(/root/);
+  });
+});
+
+describe('the sitemap', () => {
+  it('lists every page search engines should index, and not the others', () => {
+    vi.stubEnv('VITE_GRADUATION_GRADE', 'Grade 12');
+    const pages = staticPages(INDEX);
+    const xml = sitemap(pages);
+    expect(xml).toMatch(/^<\?xml version="1.0" encoding="UTF-8"\?>\n<urlset xmlns="http:\/\/www.sitemaps.org\/schemas\/sitemap\/0.9">/);
+    expect(xml).toContain('  <url><loc>https://www.nhfacts.com/</loc></url>');
+    expect(xml).toContain('  <url><loc>https://www.nhfacts.com/district/2/financials</loc></url>');
+    expect(xml).not.toContain('/admin');
+    expect(xml.match(/<url>/g)).toHaveLength(pages.filter(page => page.index).length);
   });
 });
 
