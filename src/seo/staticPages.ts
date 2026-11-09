@@ -128,6 +128,8 @@ export interface StaticPage {
   description: string;
   /** Lists of links, each under a heading */
   sections: { heading: string; links: PageLink[] }[];
+  /** Home to this page, e.g. Home › All Districts › Concord School District › Financials */
+  breadcrumbs: PageLink[];
   /** Whether search engines should index it */
   index: boolean;
 }
@@ -156,6 +158,8 @@ export const staticPages = (index: SiteIndex): StaticPage[] => {
   const pageLink = (page: PageEntry, id?: number): PageLink => ({ href: basePath(page.urlPatterns[0], id), text: page.shortName ?? page.displayName });
   const general = PAGE_REGISTRY.general;
   const mainLinks = [general.home, PAGE_REGISTRY.state.overview, general.districts, general.schools, general.ask, general.about, general.datasources].map(page => pageLink(page));
+  const home: PageLink = { href: general.home.urlPatterns[0], text: SITE_NAME };
+  const crumb = (page: PageEntry, id?: number): PageLink => ({ href: basePath(page.urlPatterns[0], id), text: page.displayName });
 
   const pages: StaticPage[] = [];
 
@@ -170,21 +174,25 @@ export const staticPages = (index: SiteIndex): StaticPage[] => {
       heading: page.displayName,
       description: GENERAL_DESCRIPTIONS[key] ?? `${page.displayName}, ${SITE_NAME}.`,
       sections,
+      breadcrumbs: page === general.home ? [home] : [home, crumb(page)],
       index: true,
     });
   }
 
   const statePages = Object.values(PAGE_REGISTRY.state);
+  const statewide: PageLink = { href: PAGE_REGISTRY.state.overview.urlPatterns[0], text: 'Statewide Data' };
   for (const page of statePages) {
+    const overview = pageKey(page) === 'overview';
     pages.push({
       path: page.urlPatterns[0],
       title: pageTitle(page),
-      heading: pageKey(page) === 'overview' ? 'New Hampshire Statewide Data' : `New Hampshire: ${page.displayName}`,
+      heading: overview ? 'New Hampshire Statewide Data' : `New Hampshire: ${page.displayName}`,
       description: `${STATE_SHOWS[pageKey(page)] ?? page.displayName}, ${SOURCE}.`,
       sections: [
         { heading: 'Statewide', links: statePages.map(statePage => pageLink(statePage)) },
         { heading: 'On this site', links: mainLinks },
       ],
+      breadcrumbs: overview ? [home, statewide] : [home, statewide, crumb(page)],
       index: true,
     });
   }
@@ -207,12 +215,14 @@ export const staticPages = (index: SiteIndex): StaticPage[] => {
       const overview = ownSchools.length
         ? `${capitalized(listNames(topics))} for ${name}${where}, ${SOURCE}.`
         : `${name}${where} doesn't run its own schools. See its ${listNames(topics)}, ${SOURCE}.`;
+      const trail = [home, crumb(general.districts), districtLink(district)];
       pages.push({
         path: basePath(page.urlPatterns[0], district.id),
         title: pageTitle(page, name),
         heading: key === 'overview' ? name : `${name}: ${page.displayName}`,
         description: key === 'overview' ? overview : `${SHOWS[key] ?? page.displayName} for ${name}${where}, ${SOURCE}.`,
         sections,
+        breadcrumbs: key === 'overview' ? trail : [...trail, crumb(page, district.id)],
         index: true,
       });
     }
@@ -230,6 +240,7 @@ export const staticPages = (index: SiteIndex): StaticPage[] => {
       ...(district ? [{ heading: 'District', links: [districtLink(district)] }] : []),
       { heading: 'On this site', links: mainLinks },
     ];
+    const trail = [home, ...(district ? [districtLink(district)] : [crumb(general.schools)]), schoolLink(school)];
     for (const page of enabled) {
       const key = pageKey(page);
       pages.push({
@@ -240,6 +251,7 @@ export const staticPages = (index: SiteIndex): StaticPage[] => {
           ? `${capitalized(listNames(topics))} for ${name}${inDistrict}, ${SOURCE}.`
           : `${SCHOOL_SHOWS[key] ?? page.displayName} for ${name}${inDistrict}, ${SOURCE}.`,
         sections,
+        breadcrumbs: key === 'overview' ? trail : [...trail, crumb(page, school.id)],
         index: true,
       });
     }
@@ -247,7 +259,7 @@ export const staticPages = (index: SiteIndex): StaticPage[] => {
 
   // Signed-in pages: the app alone, kept out of search results
   for (const page of Object.values(PAGE_REGISTRY.admin)) {
-    pages.push({ path: page.urlPatterns[0], title: pageTitle(page), heading: page.displayName, description: '', sections: [], index: false });
+    pages.push({ path: page.urlPatterns[0], title: pageTitle(page), heading: page.displayName, description: '', sections: [], breadcrumbs: [], index: false });
   }
 
   return pages;
@@ -260,6 +272,7 @@ export const notFoundPage = (): StaticPage => ({
   heading: 'Page not found',
   description: "We couldn't find that page.",
   sections: [{ heading: 'On this site', links: [PAGE_REGISTRY.general.home, PAGE_REGISTRY.general.districts, PAGE_REGISTRY.general.schools].map(page => ({ href: page.urlPatterns[0], text: page.displayName })) }],
+  breadcrumbs: [],
   index: false,
 });
 
@@ -281,9 +294,30 @@ export const paramRewrites = (): { source: string; destination: string }[] =>
 const escaped = (text: string): string =>
   text.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
 
+/**
+ * schema.org data for search results: the home page names the site (shown as the site's name in
+ * Google's results), and every other page gives its breadcrumb trail
+ */
+export const structuredData = (page: StaticPage): object | null => {
+  if (!page.index) return null;
+  if (page.path === PAGE_REGISTRY.general.home.urlPatterns[0]) {
+    return { '@context': 'https://schema.org', '@type': 'WebSite', name: SITE_NAME, alternateName: 'NHFacts.com', url: `${SITE_URL}/` };
+  }
+  if (page.breadcrumbs.length < 2) return null;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: page.breadcrumbs.map((link, i) => ({ '@type': 'ListItem', position: i + 1, name: link.text, item: `${SITE_URL}${link.href}` })),
+  };
+};
+
+// JSON in a <script>: "<" escaped so no name can end the script early
+const scriptJson = (data: object): string => JSON.stringify(data).replace(/</g, '\\u003c');
+
 const headTags = (page: StaticPage): string[] => {
   if (!page.index) return ['<meta name="robots" content="noindex" />'];
   const url = `${SITE_URL}${page.path}`;
+  const data = structuredData(page);
   return [
     `<meta name="description" content="${escaped(page.description)}" />`,
     `<link rel="canonical" href="${url}" />`,
@@ -294,6 +328,7 @@ const headTags = (page: StaticPage): string[] => {
     `<meta property="og:url" content="${url}" />`,
     '<meta property="og:locale" content="en_US" />',
     '<meta name="twitter:card" content="summary" />',
+    ...(data ? [`<script type="application/ld+json">${scriptJson(data)}</script>`] : []),
   ];
 };
 

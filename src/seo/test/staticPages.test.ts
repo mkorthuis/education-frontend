@@ -1,5 +1,5 @@
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
-import { notFoundPage, pageTitle, paramRewrites, renderPage, SiteIndex, sitemap, staticPages } from '../staticPages';
+import { notFoundPage, pageTitle, paramRewrites, renderPage, SiteIndex, sitemap, staticPages, structuredData } from '../staticPages';
 
 const grades = (...names: string[]) => names.map(name => ({ name }));
 
@@ -113,6 +113,39 @@ describe('rendering a page', () => {
 
   it('refuses a template it can’t fill', () => {
     expect(() => renderPage('<html><body><div id="app"></div></body></html>', notFoundPage())).toThrow(/root/);
+  });
+});
+
+describe('structured data', () => {
+  beforeEach(() => {
+    vi.stubEnv('VITE_GRADUATION_GRADE', 'Grade 12');
+  });
+
+  const page = (path: string) => staticPages(INDEX).find(p => p.path === path)!;
+
+  it('names the site on the home page', () => {
+    expect(structuredData(page('/'))).toEqual({
+      '@context': 'https://schema.org', '@type': 'WebSite', name: 'NH Education Facts', alternateName: 'NHFacts.com', url: 'https://www.nhfacts.com/',
+    });
+  });
+
+  it('gives each page its breadcrumb trail', () => {
+    const trail = (path: string) => (structuredData(page(path)) as { itemListElement: { name: string; item: string; position: number }[] })
+      .itemListElement.map(item => `${item.position} ${item.name} ${item.item.replace('https://www.nhfacts.com', '')}`);
+    expect(trail('/district/8/financials')).toEqual([
+      '1 NH Education Facts /', '2 All Districts /districts', '3 Concord School District /district/8', '4 Financials /district/8/financials',
+    ]);
+    expect(trail('/school/80')).toEqual(['1 NH Education Facts /', '2 Concord School District /district/8', '3 Concord High School, Concord /school/80']);
+    expect(trail('/state/efa')).toEqual(['1 NH Education Facts /', '2 Statewide Data /state', '3 Education Freedom Accounts /state/efa']);
+    expect(trail('/about')).toEqual(['1 NH Education Facts /', '2 About Us /about']);
+    expect(structuredData(page('/admin'))).toBeNull();
+  });
+
+  it('is written into the page so a name can’t end the script early', () => {
+    const html = renderPage(TEMPLATE, { ...page('/district/2'), breadcrumbs: [{ href: '/', text: 'Home' }, { href: '/x', text: '</script><b>' }] });
+    expect(html).toContain('<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList"');
+    expect(html).toContain('"name":"\\u003c/script>\\u003cb>"');
+    expect(html).not.toContain('</script><b>');
   });
 });
 
