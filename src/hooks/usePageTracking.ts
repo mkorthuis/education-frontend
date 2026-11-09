@@ -1,7 +1,12 @@
 import { useEffect } from 'react';
 import { useLocation, matchPath } from 'react-router-dom';
-import { PAGE_REGISTRY, getAllPages } from '@/routes/pageRegistry';
+import { districtTitle } from '@/features/district/utils/labels';
+import { PageEntry, extractIdsFromUrl, getAllPages } from '@/routes/pageRegistry';
+import { pageTitle, schoolName, SITE_NAME } from '@/seo/staticPages';
+import { useAppSelector } from '@/store/hooks';
+import type { District, School, Town } from '@/store/slices/locationSlice';
 import { GA_MEASUREMENT_ID, IS_DEV } from '@/utils/environment';
+import { schoolTown } from '@/utils/formatting';
 
 declare global {
   interface Window {
@@ -18,15 +23,24 @@ declare global {
   }
 }
 
-const SITE_NAME = 'NH Education Facts';
+const pageAt = (pathname: string): PageEntry | undefined =>
+  getAllPages().find(page => page.urlPatterns.some(pattern => matchPath({ path: pattern, end: true }, pathname)));
 
-/** "Financials – New Hampshire | NH Education Facts"; State pages say which entity they cover. */
-const getDocumentTitle = (pathname: string, pageTitle: string): string => {
-  if (pageTitle === SITE_NAME) return SITE_NAME;
-  const isStatePage = Object.values(PAGE_REGISTRY.state).some(page =>
-    page.urlPatterns.some(pattern => matchPath({ path: pattern, end: true }, pathname))
-  );
-  return `${pageTitle}${isStatePage && !/New Hampshire|Statewide/.test(pageTitle) ? ' – New Hampshire' : ''} | ${SITE_NAME}`;
+/**
+ * The district or school a page is about, once it has loaded ("Concord School District",
+ * "Rundlett Middle School, Concord"), the same names the pages written at build time use
+ */
+export const subjectOf = (pathname: string, district: District | null, school: School | null, towns: Town[]): string | undefined => {
+  const { districtId, schoolId } = extractIdsFromUrl(pathname);
+  if (schoolId) return school?.id === schoolId ? schoolName(school, schoolTown(school, towns)) : undefined;
+  if (districtId) return district?.id === districtId ? districtTitle(district.name) : undefined;
+  return undefined;
+};
+
+/** "Financials – Concord School District | NH Education Facts"; statewide pages say they cover New Hampshire */
+export const documentTitle = (pathname: string, subject?: string): string => {
+  const page = pageAt(pathname);
+  return page ? pageTitle(page, subject) : SITE_NAME;
 };
 
 /**
@@ -61,26 +75,22 @@ const usePageTracking = (): void => {
     window.gtag('config', GA_MEASUREMENT_ID);
   }, []);
 
-  const getPageTitle = (pathname: string): string => {
-    // Get all pages from the registry
-    const allPages = getAllPages();
-    
-    for (const page of allPages) {
-      for (const pattern of page.urlPatterns) {
-        if (matchPath({ path: pattern, end: true }, pathname)) {
-          return page.displayName;
-        }
-      }
-    }
+  // The page's name alone, so analytics groups each kind of page together
+  const getPageTitle = (pathname: string): string => pageAt(pathname)?.displayName ?? SITE_NAME;
 
-    // Fallback title
-    return 'NH Education Facts';
-  };
+  // Read from the state rather than locationSlice's selectors: the layouts import this hook, and
+  // importing locationSlice from here would load it before the store, which it imports back (through
+  // the API client's auth service), and the app wouldn't start
+  const district = useAppSelector(state => state.location.currentDistrict);
+  const school = useAppSelector(state => state.location.currentSchool);
+  const towns = useAppSelector(state => state.location.currentTowns);
+  const subject = subjectOf(location.pathname, district, school, towns);
 
-  // Update <title> for every route (browser tabs, history, screen readers), whether or not analytics runs
+  // Update <title> for every route (browser tabs, history, screen readers, search engines), whether or
+  // not analytics runs; a district's or school's pages add its name once it has loaded
   useEffect(() => {
-    document.title = getDocumentTitle(location.pathname, getPageTitle(location.pathname));
-  }, [location.pathname]);
+    document.title = documentTitle(location.pathname, subject);
+  }, [location.pathname, subject]);
 
   useEffect(() => {
     if (IS_DEV) return; // Don't send in dev

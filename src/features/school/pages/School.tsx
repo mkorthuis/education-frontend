@@ -13,7 +13,7 @@ import {
   selectLocationError,
 } from '@/store/slices/locationSlice';
 import { RootState } from '@/store/store';
-import { formatGradesDisplay } from '@/utils/formatting';
+import { formatGradesDisplay, schoolTown } from '@/utils/formatting';
 import { formatCount, formatPercent, latestPoint, tileChange, tileTrend } from '@/features/state/utils/stateMetrics';
 import { formatThousands, shortYear, tileDelta } from '@/features/state/utils/phrases';
 import { districtTitle, DISTRICT_PAGE_DESCRIPTIONS } from '@/features/district/utils/labels';
@@ -55,10 +55,6 @@ const selectSchoolLoading = (state: RootState) => {
 type School = NonNullable<ReturnType<typeof selectCurrentSchool>>;
 type District = ReturnType<typeof selectCurrentDistrict>;
 type Town = ReturnType<typeof selectCurrentTowns>[number];
-
-/** The town the school is in: its name from the district's towns, or the school's city ("CONCORD" as "Concord") */
-const townOf = (school: School, towns: Town[]) =>
-  towns.find(town => town.id === school.town_id)?.name ?? school.city?.toLowerCase().replace(/\b\w/g, letter => letter.toUpperCase());
 
 interface KeyFiguresProps {
   figures: SchoolKeyFigures;
@@ -152,7 +148,7 @@ const KeyFigures: React.FC<KeyFiguresProps> = ({ figures, schoolId, compareDistr
  * Nothing when there's nothing to show.
  */
 const schoolFacts = (school: School, district: District, towns: Town[], phone: boolean): React.ReactNode => {
-  const town = townOf(school, towns);
+  const town = schoolTown(school, towns);
   const grades = formatGradesDisplay(school);
   const facts: React.ReactNode[] = [
     town && `Located in ${town}`,

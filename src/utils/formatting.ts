@@ -1,4 +1,8 @@
-import { School, Staff } from '@/store/slices/locationSlice';
+import { School, Staff, Town } from '@/store/slices/locationSlice';
+
+/** The town a school is in: its name from the towns given, or the school's city ("CONCORD" as "Concord") */
+export const schoolTown = (school: Pick<School, 'town_id' | 'city'>, towns: Town[]): string | undefined =>
+  towns.find(town => town.id === school.town_id)?.name ?? school.city?.toLowerCase().replace(/\b\w/g, letter => letter.toUpperCase());
 
 /**
  * Formats a number to a compact representation (e.g., 1.25M, 250K)

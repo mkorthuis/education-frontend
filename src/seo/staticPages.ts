@@ -1,3 +1,4 @@
+import { districtTitle, listNames } from '@/features/district/utils/labels';
 import { PAGE_REGISTRY, PageEntry } from '@/routes/pageRegistry';
 
 /**
@@ -12,9 +13,6 @@ export const SITE_URL = 'https://www.nhfacts.com';
 const SOURCE = 'from New Hampshire Department of Education data';
 
 // -------------------- Names and titles --------------------
-
-/** A district as the site names it, e.g. "Concord School District" */
-export const districtName = (district: { name: string }): string => `${district.name} School District`;
 
 /** A school with its town, which tells apart schools that share a name */
 export const schoolName = (school: { name: string }, town?: string): string => (town ? `${school.name}, ${town}` : school.name);
@@ -86,10 +84,6 @@ const TOPICS: Record<string, string> = {
   efa: 'Education Freedom Accounts',
 };
 
-/** "a, b and c" */
-const listOf = (items: string[]): string =>
-  items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
-
 const capitalized = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
 
 // -------------------- The site's pages --------------------
@@ -157,7 +151,7 @@ export const staticPages = (index: SiteIndex): StaticPage[] => {
     .sort((a, b) => byName(a, b) || (townName.get(a.town_id) ?? '').localeCompare(townName.get(b.town_id) ?? ''));
   const schoolsOf = (districtId: number) => schools.filter(school => school.district_id === districtId);
 
-  const districtLink = (district: SiteDistrict): PageLink => ({ href: basePath(PAGE_REGISTRY.district.overview.urlPatterns[0], district.id), text: districtName(district) });
+  const districtLink = (district: SiteDistrict): PageLink => ({ href: basePath(PAGE_REGISTRY.district.overview.urlPatterns[0], district.id), text: districtTitle(district.name) });
   const schoolLink = (school: SiteSchool): PageLink => ({ href: basePath(PAGE_REGISTRY.school.overview.urlPatterns[0], school.id), text: schoolName(school, townName.get(school.town_id)) });
   const pageLink = (page: PageEntry, id?: number): PageLink => ({ href: basePath(page.urlPatterns[0], id), text: page.shortName ?? page.displayName });
   const general = PAGE_REGISTRY.general;
@@ -198,9 +192,9 @@ export const staticPages = (index: SiteIndex): StaticPage[] => {
   for (const district of districts) {
     const ownSchools = schoolsOf(district.id);
     const entity = { ...district, schools: ownSchools };
-    const name = districtName(district);
+    const name = districtTitle(district.name);
     const towns = district.towns.map(id => townName.get(id)).filter((town): town is string => Boolean(town));
-    const where = !towns.length || (towns.length === 1 && towns[0] === district.name) ? '' : ` (${listOf(towns)})`;
+    const where = !towns.length || (towns.length === 1 && towns[0] === district.name) ? '' : ` (${listNames(towns)})`;
     const enabled = Object.values(PAGE_REGISTRY.district).filter(page => isEnabled(page, entity));
     const topics = enabled.map(page => TOPICS[pageKey(page)]).filter(Boolean);
     const sections = [
@@ -211,8 +205,8 @@ export const staticPages = (index: SiteIndex): StaticPage[] => {
     for (const page of enabled) {
       const key = pageKey(page);
       const overview = ownSchools.length
-        ? `${capitalized(listOf(topics))} for ${name}${where}, ${SOURCE}.`
-        : `${name}${where} doesn't run its own schools. See its ${listOf(topics)}, ${SOURCE}.`;
+        ? `${capitalized(listNames(topics))} for ${name}${where}, ${SOURCE}.`
+        : `${name}${where} doesn't run its own schools. See its ${listNames(topics)}, ${SOURCE}.`;
       pages.push({
         path: basePath(page.urlPatterns[0], district.id),
         title: pageTitle(page, name),
@@ -230,7 +224,7 @@ export const staticPages = (index: SiteIndex): StaticPage[] => {
     const name = schoolName(school, town);
     const enabled = Object.values(PAGE_REGISTRY.school).filter(page => isEnabled(page, school));
     const topics = enabled.map(page => TOPICS[pageKey(page)]).filter(Boolean);
-    const inDistrict = district ? ` (${districtName(district)})` : '';
+    const inDistrict = district ? ` (${districtTitle(district.name)})` : '';
     const sections = [
       { heading: name, links: enabled.map(page => pageLink(page, school.id)) },
       ...(district ? [{ heading: 'District', links: [districtLink(district)] }] : []),
@@ -243,7 +237,7 @@ export const staticPages = (index: SiteIndex): StaticPage[] => {
         title: pageTitle(page, name),
         heading: key === 'overview' ? name : `${name}: ${page.displayName}`,
         description: key === 'overview'
-          ? `${capitalized(listOf(topics))} for ${name}${inDistrict}, ${SOURCE}.`
+          ? `${capitalized(listNames(topics))} for ${name}${inDistrict}, ${SOURCE}.`
           : `${SCHOOL_SHOWS[key] ?? page.displayName} for ${name}${inDistrict}, ${SOURCE}.`,
         sections,
         index: true,
