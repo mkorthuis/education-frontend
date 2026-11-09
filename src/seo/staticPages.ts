@@ -381,8 +381,9 @@ export const tileText = (tile: TileModel): string => {
     .join('. ') + '.';
 };
 
+// An overview with one untitled group (a school's) gets a plain heading
 const figuresHtml = (groups: TileGroupModel[]): string =>
-  groups.map(group => `<h2>${escaped(group.title)}</h2><ul>${group.tiles.map(tile => `<li>${escaped(tileText(tile))}</li>`).join('')}</ul>`).join('');
+  groups.map(group => `<h2>${escaped(group.title ?? 'Key Figures')}</h2><ul>${group.tiles.map(tile => `<li>${escaped(tileText(tile))}</li>`).join('')}</ul>`).join('');
 
 const bodyHtml = (page: StaticPage): string => {
   if (!page.index && !page.sections.length) return '';

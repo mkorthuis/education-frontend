@@ -14,26 +14,20 @@ import {
 } from '@/store/slices/locationSlice';
 import { RootState } from '@/store/store';
 import { formatGradesDisplay, schoolTown } from '@/utils/formatting';
-import { formatCount, formatPercent, latestPoint, tileChange, tileTrend } from '@/features/state/utils/stateMetrics';
-import { formatThousands, shortYear, tileDelta } from '@/features/state/utils/phrases';
 import { districtTitle, DISTRICT_PAGE_DESCRIPTIONS } from '@/features/district/utils/labels';
 import {
-  comparison,
-  Comparison,
   isPageAvailable,
   KeyFiguresLoading,
-  noteLines,
   OverviewGrid,
   OverviewSection,
   OverviewTitle,
   PageCards,
   pagePath,
   PHONE_SPACING,
-  plansUnknownNote,
   SchoolCards,
-  subjectTile,
 } from '@/features/entity/overview/OverviewParts';
 import { SchoolKeyFigures, useSchoolKeyFigures } from '../hooks/useSchoolKeyFigures';
+import { schoolTileGroups } from '../utils/keyFigures';
 import { SCHOOL_PAGE_DESCRIPTIONS } from '../utils/labels';
 
 // A school's overview, on the pattern of the district overview: its name, its district and grades,
@@ -66,80 +60,19 @@ interface KeyFiguresProps {
 }
 
 const KeyFigures: React.FC<KeyFiguresProps> = ({ figures, schoolId, compareDistrict, compareDistrictGraduation }) => {
-  const to = (key: keyof typeof SCHOOL_PAGES) => pagePath(SCHOOL_PAGES[key], schoolId);
-  // The district's figure, where it isn't just this school's, and the state's, for each result
-  const others = (key: keyof SchoolKeyFigures['state']): Comparison[] => {
-    const graduation = key === 'graduation' || key === 'college';
-    return [
-      ...((graduation ? compareDistrictGraduation : compareDistrict) ? [{ label: 'District', series: figures.district[key] }] : []),
-      { label: 'Statewide', series: figures.state[key] },
-    ];
-  };
-  // Those places' figures for the year, as note lines: "District 41%", "Statewide 44%"
-  const compared = (key: keyof SchoolKeyFigures['state'], year: number, format: (value: number) => string) =>
-    others(key).map(other => comparison(other.label, other.series, year, format));
-  const latest = {
-    students: latestPoint(figures.students),
-    graduation: latestPoint(figures.graduation),
-    college: latestPoint(figures.college),
-  };
-  const unknownPlans = latest.college ? plansUnknownNote(figures.plansUnknown, latest.college.year) : undefined;
-
-  // Each tile only when the school has the figure
-  const tiles = [
-    latest.students && (
-      <MetricTile
-        key="students"
-        label="Students"
-        value={formatCount(latest.students.value)}
-        // Phones shorten only large counts: 12K, not 0.3K
-        shortValue={latest.students.value >= 10000 ? formatThousands(latest.students.value) : undefined}
-        period={shortYear(latest.students.year)}
-        delta={tileDelta(tileChange(figures.students), { unit: 'percent', higherIsBetter: true })}
-        trend={tileTrend(figures.students)}
-        to={to('enrollment')}
-        linkLabel="enrollment"
-      />
-    ),
-    subjectTile('Proficient in Math', figures.math, others('math'), to('academic')),
-    subjectTile('Proficient in Reading', figures.reading, others('reading'), to('academic')),
-    subjectTile('Proficient in Science', figures.science, others('science'), to('academic')),
-    latest.graduation && (
-      <MetricTile
-        key="graduation"
-        label="Four-Year Graduation Rate"
-        shortLabel="Graduation Rate"
-        value={formatPercent(latest.graduation.value, 1)}
-        // By school year like the other tiles: the class of 2025 graduated in 24/25
-        period={shortYear(latest.graduation.year)}
-        delta={tileDelta(tileChange(figures.graduation), { unit: 'points', higherIsBetter: true })}
-        detail={noteLines(...compared('graduation', latest.graduation.year, value => formatPercent(value, 1)))}
-        trend={tileTrend(figures.graduation)}
-        to={to('outcomes')}
-        linkLabel="graduation"
-      />
-    ),
-    latest.college && (
-      <MetricTile
-        key="college"
-        label="Planning to Attend College"
-        shortLabel="Planning College"
-        value={formatPercent(latest.college.value)}
-        period={shortYear(latest.college.year)}
-        delta={tileDelta(tileChange(figures.college), { unit: 'points', higherIsBetter: true })}
-        detail={noteLines(...compared('college', latest.college.year, value => formatPercent(value)), unknownPlans?.full)}
-        shortDetail={unknownPlans?.short}
-        trend={tileTrend(figures.college)}
-        to={to('outcomes')}
-        linkLabel="graduates' plans"
-      />
-    ),
-  ].filter(Boolean);
-
-  if (tiles.length === 0) {
+  const groups = schoolTileGroups(figures, { compareDistrict, compareDistrictGraduation });
+  if (groups.length === 0) {
     return <Typography variant="body1" sx={{ mb: 4 }}>This school has no figures to show yet.</Typography>;
   }
-  return <TileGroup sx={PHONE_SPACING.section}>{tiles}</TileGroup>;
+  return (
+    <>
+      {groups.map((group, index) => (
+        <TileGroup key={index} title={group.title} sx={PHONE_SPACING.section}>
+          {group.tiles.map(({ key, page, ...tile }) => <MetricTile key={key} {...tile} to={pagePath(SCHOOL_PAGES[page], schoolId)} />)}
+        </TileGroup>
+      ))}
+    </>
+  );
 };
 
 /**

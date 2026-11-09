@@ -8,9 +8,9 @@ import { shortYear, tileDelta } from '@/features/state/utils/phrases';
 /** A tile, naming the page it links to (a page registry key such as "financials") rather than its address */
 export type TileModel = Omit<MetricTileProps, 'to'> & { key: string; page: string };
 
-/** A titled group of tiles, such as "Students and Spending" */
+/** A group of tiles, titled ("Students and Spending") where an overview has more than one */
 export interface TileGroupModel {
-  title: string;
+  title?: string;
   tiles: TileModel[];
 }
 
