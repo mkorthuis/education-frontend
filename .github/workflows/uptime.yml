@@ -1,0 +1,27 @@
+# Checks every 10 minutes that www.nhfacts.com and its API are up (scripts/uptime-check.sh). When a
+# check fails, the run fails and GitHub emails whoever last changed the schedule below, if their
+# notification settings send failed workflows (the default).
+# - Scheduled runs happen only on the default branch, and can start a few minutes late.
+# - GitHub turns off schedules in a public repository after 60 days without a commit; it emails a
+#   warning first, and the Actions tab can turn it back on.
+name: Uptime
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/uptime-check.sh
+          sparse-checkout-cone-mode: false
+      - name: Site and API answer
+        run: bash scripts/uptime-check.sh
