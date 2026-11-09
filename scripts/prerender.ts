@@ -3,16 +3,17 @@
  * dist/sitemap.xml, and dist/serve.json with the rewrites that serve them (see src/seo/staticPages.ts).
  *
  * Run with `vite-node --mode production scripts/prerender.ts`, so it reads the production API: the
- * district, school and town lists, and each district's key figures (about 1,300 requests, a few at a
- * time). If the lists can't be read, or more than a tenth of the districts' figures can't, the build
- * fails and Heroku keeps the release that's running. A district whose figures can't be read gets its
- * pages without them.
+ * district, school and town lists, and each district's and school's key figures (about 2,600
+ * requests, a few at a time). If the lists can't be read, or more than a tenth of the districts' or
+ * schools' figures can't, the build fails and Heroku keeps the release that's running. A place whose
+ * figures can't be read gets its pages without them.
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { DistrictFigureRows, districtKeyFigures, districtTileGroups } from '@/features/district/utils/keyFigures';
+import { SchoolFigureRows, schoolKeyFigures, schoolTileGroups } from '@/features/school/utils/keyFigures';
 import type { TileGroupModel } from '@/features/entity/overview/tileModels';
-import { districtFigureScope, notFoundPage, paramRewrites, renderPage, SiteIndex, sitemap, staticPages } from '@/seo/staticPages';
+import { districtFigureScope, notFoundPage, paramRewrites, renderPage, schoolFigureScope, SiteIndex, sitemap, staticPages } from '@/seo/staticPages';
 
 const DIST = path.resolve(process.cwd(), 'dist');
 const API = `${import.meta.env.VITE_API_BASE_URL}/api/v1`;
@@ -53,8 +54,16 @@ const inTurn = async <T>(tasks: (() => Promise<T>)[]): Promise<T[]> => {
   return results;
 };
 
-/** Each district's overview tiles, by the same requests and calculation as the app's overview */
-const districtFigures = async (index: SiteIndex): Promise<Map<number, TileGroupModel[]>> => {
+/** Fails the build when more than a tenth of the places' figures couldn't be read */
+const checkFailures = (failed: number, of: number, places: string) => {
+  if (failed > of / 10) throw new Error(`Key figures failed for ${failed} of ${of} ${places}`);
+};
+
+/**
+ * Each district's overview tiles, by the same requests and calculation as the app's overview, with
+ * the rows the schools' tiles compare with
+ */
+const districtFigures = async (index: SiteIndex) => {
   const allStudents = 'assessment_subgroup_id=1';
   const [perPupil, salary, assessments, cohorts, plans, efaEntryTypes] = await Promise.all([
     getJson<DistrictFigureRows['state']['perPupil']>(`${API}/finance/per-pupil/state`),
@@ -71,6 +80,7 @@ const districtFigures = async (index: SiteIndex): Promise<Map<number, TileGroupM
   const missing = { emptyIfMissing: true };
 
   const figures = new Map<number, TileGroupModel[]>();
+  const rows = new Map<number, DistrictFigureRows>();
   const failed: number[] = [];
   await inTurn(districtFigureScope(index).map(({ id, hasSchools, hasGraduation }) => async () => {
     const district = `district_id=${id}`;
@@ -84,17 +94,58 @@ const districtFigures = async (index: SiteIndex): Promise<Map<number, TileGroupM
         hasGraduation ? getJson<DistrictFigureRows['cohorts']>(`${API}/outcome/outcome/graduation-cohort/district?${district}`, missing) : none,
         hasGraduation ? getJson<DistrictFigureRows['plans']>(`${API}/outcome/outcome/post-graduation/district?${district}`, missing) : none,
       ]);
-      const rows = { townEnrollment, perPupil, salary, efaEntries, efaEntryTypes, assessments, cohorts, plans, state } as DistrictFigureRows;
+      const districtRows = { townEnrollment, perPupil, salary, efaEntries, efaEntryTypes, assessments, cohorts, plans, state } as DistrictFigureRows;
       const towns = districtById.get(id)!.towns.map(town => ({ name: townName.get(town) ?? '' }));
-      figures.set(id, districtTileGroups(districtKeyFigures(rows), towns));
+      figures.set(id, districtTileGroups(districtKeyFigures(districtRows), towns));
+      rows.set(id, districtRows);
     } catch (error) {
       console.warn(`District ${id}: no key figures (${error instanceof Error ? error.message : error})`);
       failed.push(id);
     }
   }));
-  if (failed.length > index.districts.length / 10) {
-    throw new Error(`Key figures failed for ${failed.length} of ${index.districts.length} districts`);
-  }
+  checkFailures(failed.length, index.districts.length, 'districts');
+  return { figures, rows };
+};
+
+/** Each school's overview tiles, by the same requests and calculation as the app's overview */
+const schoolFigures = async (index: SiteIndex, districtRows: Map<number, DistrictFigureRows>) => {
+  const allStudents = 'assessment_subgroup_id=1';
+  const none = Promise.resolve([]);
+  const missing = { emptyIfMissing: true };
+  const figures = new Map<number, TileGroupModel[]>();
+  const failed: number[] = [];
+  const scope = schoolFigureScope(index);
+  await inTurn(scope.map(({ id, districtId, hasGraduation, compareDistrict, compareDistrictGraduation }) => async () => {
+    const school = `school_id=${id}`;
+    const district = districtRows.get(districtId);
+    try {
+      if (!district) throw new Error(`no figures for district ${districtId}`);
+      const [enrollment, tests, cohorts, plans] = await Promise.all([
+        getJson<SchoolFigureRows['enrollment']>(`${API}/enrollment/school/${id}`, missing),
+        getJson<SchoolFigureRows['tests']>(`${API}/assessment/school?${school}&${allStudents}`, missing),
+        hasGraduation ? getJson<SchoolFigureRows['cohorts']>(`${API}/outcome/outcome/graduation-cohort/school?${school}`, missing) : none,
+        hasGraduation ? getJson<SchoolFigureRows['plans']>(`${API}/outcome/outcome/post-graduation/school?${school}`, missing) : none,
+      ]);
+      // The district's and the state's rows were read for the districts' pages
+      const rows: SchoolFigureRows = {
+        enrollment,
+        tests,
+        cohorts,
+        plans,
+        district: {
+          tests: compareDistrict ? district.assessments : [],
+          cohorts: hasGraduation && compareDistrictGraduation ? district.cohorts : [],
+          plans: hasGraduation && compareDistrictGraduation ? district.plans : [],
+        },
+        state: { tests: district.state.assessments, cohorts: hasGraduation ? district.state.cohorts : [], plans: hasGraduation ? district.state.plans : [] },
+      };
+      figures.set(id, schoolTileGroups(schoolKeyFigures(rows), { compareDistrict, compareDistrictGraduation }));
+    } catch (error) {
+      console.warn(`School ${id}: no key figures (${error instanceof Error ? error.message : error})`);
+      failed.push(id);
+    }
+  }));
+  checkFailures(failed.length, scope.length, 'schools');
   return figures;
 };
 
@@ -106,8 +157,9 @@ const main = async () => {
   ]);
   const index = { districts, schools, towns };
   const started = Date.now();
-  const figures = { districts: await districtFigures(index) };
-  console.log(`Read key figures for ${figures.districts.size} districts in ${Math.round((Date.now() - started) / 1000)} s`);
+  const districtResults = await districtFigures(index);
+  const figures = { districts: districtResults.figures, schools: await schoolFigures(index, districtResults.rows) };
+  console.log(`Read key figures for ${figures.districts.size} districts and ${figures.schools.size} schools in ${Math.round((Date.now() - started) / 1000)} s`);
 
   const template = await readFile(path.join(DIST, 'index.html'), 'utf8');
   const pages = staticPages(index, figures);

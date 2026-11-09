@@ -1,7 +1,7 @@
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import type { TileGroupModel, TileModel } from '@/features/entity/overview/tileModels';
 import {
-  districtFigureScope, notFoundPage, pageTitle, paramRewrites, renderPage, SiteIndex, sitemap, staticPages, structuredData, tileText,
+  districtFigureScope, notFoundPage, pageTitle, paramRewrites, renderPage, schoolFigureScope, SiteIndex, sitemap, staticPages, structuredData, tileText,
 } from '../staticPages';
 
 const grades = (...names: string[]) => names.map(name => ({ name }));
@@ -165,6 +165,23 @@ describe('key figures', () => {
     expect(districtFigureScope(INDEX)).toEqual([
       { id: 8, hasSchools: true, hasGraduation: true },
       { id: 2, hasSchools: false, hasGraduation: false },
+    ]);
+  });
+
+  it('shows a school’s tiles under a plain heading, its overview all of them and each topic page its own', () => {
+    const schoolGroups: TileGroupModel[] = [{ tiles: [tile('Students', 'enrollment'), tile('Proficient in Math', 'academic')] }];
+    const schoolPages = staticPages(INDEX, { schools: new Map([[81, schoolGroups]]) });
+    const at = (path: string) => schoolPages.find(p => p.path === path)!;
+    expect(at('/school/81').figures).toEqual(schoolGroups);
+    expect(at('/school/81/academic').figures).toEqual([{ tiles: [schoolGroups[0].tiles[1]] }]);
+    expect(renderPage(TEMPLATE, at('/school/81'))).toContain('<h2>Key Figures</h2><ul><li>Students: 1 (24/25).</li>');
+  });
+
+  it('compares a school with its district only where the district’s figures aren’t just the school’s', () => {
+    expect(schoolFigureScope(INDEX)).toEqual([
+      // Concord High is the district's one high school: its test scores are compared, its graduation isn't
+      { id: 80, districtId: 8, hasGraduation: true, compareDistrict: true, compareDistrictGraduation: false },
+      { id: 81, districtId: 8, hasGraduation: false, compareDistrict: true, compareDistrictGraduation: true },
     ]);
   });
 });

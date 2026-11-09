@@ -146,9 +146,10 @@ const isEnabled = (page: PageEntry, entity: unknown): boolean =>
 
 const byName = <T extends { name: string }>(a: T, b: T): number => a.name.localeCompare(b.name);
 
-/** Key figures written into the pages, by district id (from districtTileGroups) */
+/** Key figures written into the pages, by district id (from districtTileGroups) and school id (schoolTileGroups) */
 export interface PageFigures {
   districts?: Map<number, TileGroupModel[]>;
+  schools?: Map<number, TileGroupModel[]>;
 }
 
 /** A topic page's own tiles from the overview's: the financials page's spending, the academics page's test results */
@@ -167,6 +168,27 @@ export const districtFigureScope = (index: SiteIndex): { id: number; hasSchools:
   return index.districts.map(district => {
     const own = schools.filter(school => school.district_id === district.id);
     return { id: district.id, hasSchools: own.length > 0, hasGraduation: isEnabled(PAGE_REGISTRY.district.outcomes, { ...district, schools: own }) };
+  });
+};
+
+/**
+ * What a school's overview loads and compares, as the app decides it: graduation for a school with
+ * a graduation page; its district's test scores when the district has other schools, and its
+ * district's graduation when the district has another high school
+ */
+export const schoolFigureScope = (index: SiteIndex) => {
+  const publicIds = new Set(index.districts.map(district => district.id));
+  const schools = index.schools.filter(school => publicIds.has(school.district_id));
+  const hasGraduation = (school: SiteSchool) => isEnabled(PAGE_REGISTRY.school.outcomes, school);
+  return schools.map(school => {
+    const others = schools.filter(other => other.district_id === school.district_id && other.id !== school.id);
+    return {
+      id: school.id,
+      districtId: school.district_id,
+      hasGraduation: hasGraduation(school),
+      compareDistrict: others.length > 0,
+      compareDistrictGraduation: others.some(hasGraduation),
+    };
   });
 };
 
@@ -282,7 +304,7 @@ export const staticPages = (index: SiteIndex, figures: PageFigures = {}): Static
           : `${SCHOOL_SHOWS[key] ?? page.displayName} for ${name}${inDistrict}, ${SOURCE}.`,
         sections,
         breadcrumbs: key === 'overview' ? trail : [...trail, crumb(page, school.id)],
-        figures: [],
+        figures: figuresFor(figures.schools?.get(school.id) ?? [], key),
         index: true,
       });
     }
