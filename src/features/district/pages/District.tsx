@@ -13,39 +13,25 @@ import {
 } from '@/store/slices/locationSlice';
 import { RootState } from '@/store/store';
 import {
-  Change,
-  describeChange,
-  formatCount,
-  formatDollars,
-  formatPercent,
-  latestPoint,
-  tileChange,
-  tileTrend,
-} from '@/features/state/utils/stateMetrics';
-import { capitalize, formatThousands, realPercentChange, shortYear, tileDelta } from '@/features/state/utils/phrases';
-import {
-  comparison,
   isPageAvailable,
   KeyFiguresLoading,
-  noteLines,
   OverviewGrid,
   OverviewSection,
   OverviewTitle,
   PageCards,
   pagePath,
   PHONE_SPACING,
-  plansUnknownNote,
   SchoolCards,
-  subjectTile,
 } from '@/features/entity/overview/OverviewParts';
 import { DistrictKeyFigures, useDistrictKeyFigures } from '../hooks/useDistrictKeyFigures';
+import { DISTRICT_TILE_GROUPS, districtTileGroups } from '../utils/keyFigures';
 import { districtFacts, districtPhoneTitle, districtTitle, DISTRICT_PAGE_DESCRIPTIONS } from '../utils/labels';
 
 // A district's overview, on the pattern of the statewide overview: its name and what it is, cards to
 // its pages and its schools, and key figures with the state's beside them.
 
 const DISTRICT_PAGES = PAGE_REGISTRY.district;
-const GROUPS = ['Students and Spending', 'Results'];
+const GROUPS = DISTRICT_TILE_GROUPS;
 
 // Whether the district's own location data is loading. Not every location request: the overview's
 // test scores load the grade list, which would otherwise swap the page for a spinner mid-load.
@@ -58,141 +44,18 @@ type District = NonNullable<ReturnType<typeof selectCurrentDistrict>>;
 type School = ReturnType<typeof selectCurrentSchools>[number];
 type Town = ReturnType<typeof selectCurrentTowns>[number];
 
-/** A dollar tile's note: the state's figure and, as on the statewide tiles, the change after inflation */
-const dollarNote = (state: string | undefined, change: Change | null) =>
-  noteLines(state, change ? `${capitalize(describeChange(realPercentChange(change)))} after inflation` : undefined);
-
 const KeyFigures: React.FC<{ figures: DistrictKeyFigures; districtId: number; towns: Town[] }> = ({ figures, districtId, towns }) => {
-  const to = (key: keyof typeof DISTRICT_PAGES) => pagePath(DISTRICT_PAGES[key], districtId);
-  const statewide = (series: typeof figures.state.perPupil, year: number, format: (value: number) => string) =>
-    comparison('Statewide', series, year, format);
-  const latest = {
-    students: latestPoint(figures.students),
-    perPupil: latestPoint(figures.perPupil),
-    salary: latestPoint(figures.salary),
-    efaStudents: latestPoint(figures.efaStudents),
-    graduation: latestPoint(figures.graduation),
-    college: latestPoint(figures.college),
-  };
-  const changes = {
-    students: tileChange(figures.students),
-    perPupil: tileChange(figures.perPupil),
-    salary: tileChange(figures.salary),
-    efaStudents: tileChange(figures.efaStudents),
-    graduation: tileChange(figures.graduation),
-    college: tileChange(figures.college),
-  };
-  const unknownPlans = latest.college ? plansUnknownNote(figures.plansUnknown, latest.college.year) : undefined;
-  const livingIn = towns.length === 1 ? `living in ${towns[0].name}` : `living in its ${towns.length} towns`;
-
-  // Each tile only when the district has the figure
-  const studentsAndSpending = [
-    latest.students && (
-      <MetricTile
-        key="students"
-        label="Students"
-        value={formatCount(latest.students.value)}
-        // Phones shorten only large counts: 12K, not 0.3K
-        shortValue={latest.students.value >= 10000 ? formatThousands(latest.students.value) : undefined}
-        period={shortYear(latest.students.year)}
-        delta={tileDelta(changes.students, { unit: 'percent', higherIsBetter: true })}
-        detail={`Public school students ${livingIn}`}
-        shortDetail={capitalize(livingIn)}
-        trend={tileTrend(figures.students)}
-        to={to('enrollment')}
-        linkLabel="enrollment"
-      />
-    ),
-    latest.perPupil && (
-      <MetricTile
-        key="perPupil"
-        label="Cost per Student"
-        value={formatDollars(latest.perPupil.value)}
-        shortValue={`$${formatThousands(latest.perPupil.value)}`}
-        period={shortYear(latest.perPupil.year)}
-        delta={tileDelta(changes.perPupil, { unit: 'percent', higherIsBetter: false })}
-        detail={dollarNote(statewide(figures.state.perPupil, latest.perPupil.year, formatDollars), changes.perPupil)}
-        shortDetail={statewide(figures.state.perPupil, latest.perPupil.year, value => `$${formatThousands(value)}`)}
-        trend={tileTrend(figures.perPupil)}
-        to={to('financials')}
-        linkLabel="spending"
-      />
-    ),
-    latest.salary && (
-      <MetricTile
-        key="salary"
-        label="Average Teacher Salary"
-        shortLabel="Avg Teacher Salary"
-        value={formatDollars(latest.salary.value)}
-        shortValue={`$${formatThousands(latest.salary.value)}`}
-        period={shortYear(latest.salary.year)}
-        delta={tileDelta(changes.salary, { unit: 'percent', higherIsBetter: true })}
-        detail={dollarNote(statewide(figures.state.salary, latest.salary.year, formatDollars), changes.salary)}
-        shortDetail={statewide(figures.state.salary, latest.salary.year, value => `$${formatThousands(value)}`)}
-        trend={tileTrend(figures.salary)}
-        to={to('staff')}
-        linkLabel="teacher pay"
-      />
-    ),
-    latest.efaStudents && (
-      <MetricTile
-        key="efa"
-        label="Education Freedom Accounts"
-        shortLabel="EFA's"
-        value={formatCount(latest.efaStudents.value)}
-        period={shortYear(latest.efaStudents.year)}
-        delta={tileDelta(changes.efaStudents, { unit: 'percent', higherIsBetter: true })}
-        detail={`Students ${livingIn}`}
-        shortDetail={capitalize(livingIn)}
-        trend={figures.efaStudents}
-        to={to('efa')}
-        linkLabel="EFAs"
-      />
-    ),
-  ].filter(Boolean);
-
-  const results = [
-    subjectTile('Proficient in Math', figures.math, [{ label: 'Statewide', series: figures.state.math }], to('academic')),
-    subjectTile('Proficient in Reading', figures.reading, [{ label: 'Statewide', series: figures.state.reading }], to('academic')),
-    latest.graduation && (
-      <MetricTile
-        key="graduation"
-        label="Four-Year Graduation Rate"
-        shortLabel="Graduation Rate"
-        value={formatPercent(latest.graduation.value, 1)}
-        // By school year like the other tiles: the class of 2025 graduated in 24/25
-        period={shortYear(latest.graduation.year)}
-        delta={tileDelta(changes.graduation, { unit: 'points', higherIsBetter: true })}
-        detail={statewide(figures.state.graduation, latest.graduation.year, value => formatPercent(value, 1))}
-        trend={tileTrend(figures.graduation)}
-        to={to('outcomes')}
-        linkLabel="graduation"
-      />
-    ),
-    latest.college && (
-      <MetricTile
-        key="college"
-        label="Planning to Attend College"
-        shortLabel="Planning College"
-        value={formatPercent(latest.college.value)}
-        period={shortYear(latest.college.year)}
-        delta={tileDelta(changes.college, { unit: 'points', higherIsBetter: true })}
-        detail={noteLines(statewide(figures.state.college, latest.college.year, value => formatPercent(value)), unknownPlans?.full)}
-        shortDetail={unknownPlans?.short}
-        trend={tileTrend(figures.college)}
-        to={to('outcomes')}
-        linkLabel="graduates' plans"
-      />
-    ),
-  ].filter(Boolean);
-
-  if (studentsAndSpending.length === 0 && results.length === 0) {
+  const groups = districtTileGroups(figures, towns);
+  if (groups.length === 0) {
     return <Typography variant="body1" sx={{ mb: 4 }}>This district has no figures to show yet.</Typography>;
   }
   return (
     <>
-      {studentsAndSpending.length > 0 && <TileGroup title={GROUPS[0]} sx={PHONE_SPACING.section}>{studentsAndSpending}</TileGroup>}
-      {results.length > 0 && <TileGroup title={GROUPS[1]} sx={PHONE_SPACING.section}>{results}</TileGroup>}
+      {groups.map(group => (
+        <TileGroup key={group.title} title={group.title} sx={PHONE_SPACING.section}>
+          {group.tiles.map(({ key, page, ...tile }) => <MetricTile key={key} {...tile} to={pagePath(DISTRICT_PAGES[page], districtId)} />)}
+        </TileGroup>
+      ))}
     </>
   );
 };

@@ -6,8 +6,8 @@ import { PageEntry } from '@/routes/pageRegistry';
 import { selectCurrentSchools } from '@/store/slices/locationSlice';
 import { radius } from '@/theme/tokens';
 import { formatGradesDisplay } from '@/utils/formatting';
-import { formatPercent, latestPoint, SubjectFigures, tileChange, valueIn, YearValue } from '@/features/state/utils/stateMetrics';
-import { shortYear, tileDelta } from '@/features/state/utils/phrases';
+import { SubjectFigures } from '@/features/state/utils/stateMetrics';
+import { Comparison, subjectTileModel } from './tileModels';
 
 // The pieces the district and school overviews share: a title over a line of facts, cards to the
 // place's pages and to schools, sections laid out two across on wide screens, and the key-figure
@@ -20,10 +20,6 @@ export const PHONE_SPACING = {
   heading: { mt: { xs: 0.5, sm: 2 }, mb: { xs: 1.5, sm: 2 } },
   section: { mb: { xs: 2.5, sm: 4 } },
 };
-
-// From this share of graduates with unknown plans (6% statewide in 2025), the college tile says so:
-// the share planning college counts them among all graduates
-const PLANS_UNKNOWN_NOTE = 10;
 
 // ---------------------------------------------------------------- Layout
 
@@ -134,53 +130,16 @@ export const SchoolCards: React.FC<{ schools: School[]; label: string }> = ({ sc
 
 // ---------------------------------------------------------------- Key figures
 
-/** Another place's figure for the same year, for a tile's note: "Statewide 44%", "District 41%" */
-export const comparison = (label: string, series: YearValue[], year: number, format: (value: number) => string) => {
-  const value = valueIn(series, year);
-  return value === null ? undefined : `${label} ${format(value)}`;
-};
+// The tiles' content is plain data (tileModels.ts), shared with the pages written at build time
+export { comparison, noteLines, plansUnknownNote } from './tileModels';
+export type { Comparison } from './tileModels';
 
-/** A tile's note, one fact a line: "District 41%", "Statewide 44%" */
-export const noteLines = (...lines: (string | undefined)[]) => {
-  const kept = lines.filter((line): line is string => Boolean(line));
-  return kept.length ? kept : undefined;
-};
-
-/** The college tile's note when many graduates' plans are unknown: "Plans unknown for 37%" (phones: "37% unknown") */
-export const plansUnknownNote = (plansUnknown: YearValue[], year: number) => {
-  const share = valueIn(plansUnknown, year);
-  return share !== null && share >= PLANS_UNKNOWN_NOTE
-    ? { full: `Plans unknown for ${formatPercent(share)}`, short: `${formatPercent(share)} unknown` }
-    : undefined;
-};
-
-/** A place's series to compare a tile with: the district's or the state's */
-export interface Comparison {
-  label: string;
-  series: YearValue[];
-}
-
-/**
- * A share-proficient tile, compared with other places for the same year. Where the state reports
- * only "<10%" or ">90%", the tile says so and shows no change.
- */
+/** A share-proficient tile linking to `to`, compared with other places for the same year (see subjectTileModel) */
 export const subjectTile = (label: string, subject: SubjectFigures, comparisons: Comparison[], to: string) => {
-  const latest = latestPoint(subject.drawn);
-  if (!latest) return null;
-  const bound = subject.bounds.get(latest.year);
-  return (
-    <MetricTile
-      key={label}
-      label={label}
-      value={bound ?? formatPercent(latest.value)}
-      period={shortYear(latest.year)}
-      delta={bound ? undefined : tileDelta(tileChange(subject.exact), { unit: 'points', higherIsBetter: true })}
-      detail={noteLines(...comparisons.map(other => comparison(other.label, other.series, latest.year, value => formatPercent(value))))}
-      trend={subject.drawn}
-      to={to}
-      linkLabel="test scores"
-    />
-  );
+  const model = subjectTileModel(label, subject, comparisons, '');
+  if (!model) return null;
+  const { key, page: _page, ...tile } = model;
+  return <MetricTile key={key} {...tile} to={to} />;
 };
 
 /** Grey tiles where the figures will be, so the page doesn't jump when they arrive */

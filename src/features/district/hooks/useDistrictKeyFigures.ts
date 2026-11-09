@@ -9,49 +9,17 @@ import * as outcomeSlice from '@/store/slices/outcomeSlice';
 import * as assessmentSlice from '@/store/slices/assessmentSlice';
 import * as efaSlice from '@/store/slices/efaSlice';
 import { StateLoad, useStateLoads } from '@/features/state/hooks/useStateLoads';
-import {
-  ALL_STUDENTS_SUBGROUP_ID,
-  efaTotals,
-  graduationRates,
-  normalizeAssessmentRows,
-  postGraduationShares,
-  proficiencyBySubject,
-  StoredAssessmentRow,
-  SubjectFigures,
-  subjectFigures,
-  toSeries,
-  totalsByYear,
-  YearValue,
-} from '@/features/state/utils/stateMetrics';
+import { ALL_STUDENTS_SUBGROUP_ID, StoredAssessmentRow } from '@/features/state/utils/stateMetrics';
+import { DistrictKeyFigures, districtKeyFigures } from '../utils/keyFigures';
 
-// The figures on a district's overview, each with the state's for comparison. Only what the tiles
-// need is requested: test scores for all students (a district's full results run to megabytes), and
+export type { DistrictKeyFigures } from '../utils/keyFigures';
+
+// The figures on a district's overview, each with the state's for comparison (calculated in
+// utils/keyFigures, which the pages written at build time share). Only what the tiles need is requested: test scores for all students (a district's full results run to megabytes), and
 // nothing on schools, tests or graduation for a district that has none.
 
 const ALL_STUDENTS = { assessment_subgroup_id: ALL_STUDENTS_SUBGROUP_ID };
 const STATE_PARAMS = {};
-
-export interface DistrictKeyFigures {
-  /** Public school students living in the district's towns (October 1) */
-  students: YearValue[];
-  perPupil: YearValue[];
-  salary: YearValue[];
-  efaStudents: YearValue[];
-  math: SubjectFigures;
-  reading: SubjectFigures;
-  graduation: YearValue[];
-  college: YearValue[];
-  /** Graduates whose plans the district didn't report, as a share of all its graduates */
-  plansUnknown: YearValue[];
-  state: {
-    perPupil: YearValue[];
-    salary: YearValue[];
-    math: YearValue[];
-    reading: YearValue[];
-    graduation: YearValue[];
-    college: YearValue[];
-  };
-}
 
 export const useDistrictKeyFigures = (
   districtId: number,
@@ -123,30 +91,23 @@ export const useDistrictKeyFigures = (
   ];
   const { status, retry } = useStateLoads(loads);
 
-  const figures = useMemo((): DistrictKeyFigures => {
-    const districtTests = normalizeAssessmentRows(assessments as unknown as StoredAssessmentRow[]);
-    const stateTests = proficiencyBySubject(normalizeAssessmentRows(stateAssessments as unknown as StoredAssessmentRow[]));
-    const planShares = postGraduationShares(plans);
-    return {
-      students: totalsByYear(townEnrollment, row => row.enrollment),
-      perPupil: toSeries(perPupilRows, row => row.total),
-      salary: toSeries(salary, row => row.salary),
-      efaStudents: toSeries(efaTotals(efaEntries, efaEntryTypes), row => row.students),
-      math: subjectFigures(districtTests, 'math'),
-      reading: subjectFigures(districtTests, 'reading'),
-      graduation: toSeries(graduationRates(cohorts), row => row.graduated),
-      college: toSeries(planShares, row => row.college),
-      plansUnknown: toSeries(planShares, row => row.Unknown ?? 0),
-      state: {
-        perPupil: toSeries(statePerPupil, row => row.total),
-        salary: toSeries(stateSalary, row => row.salary),
-        math: toSeries(stateTests, row => row.math),
-        reading: toSeries(stateTests, row => row.reading),
-        graduation: toSeries(graduationRates(stateCohorts), row => row.graduated),
-        college: toSeries(postGraduationShares(statePlans), row => row.college),
-      },
-    };
-  }, [townEnrollment, perPupilRows, salary, efaEntries, efaEntryTypes, assessments, cohorts, plans, statePerPupil, stateSalary, stateAssessments, stateCohorts, statePlans]);
+  const figures = useMemo((): DistrictKeyFigures => districtKeyFigures({
+    townEnrollment,
+    perPupil: perPupilRows,
+    salary,
+    efaEntries,
+    efaEntryTypes,
+    assessments: assessments as unknown as StoredAssessmentRow[],
+    cohorts,
+    plans,
+    state: {
+      perPupil: statePerPupil,
+      salary: stateSalary,
+      assessments: stateAssessments as unknown as StoredAssessmentRow[],
+      cohorts: stateCohorts,
+      plans: statePlans,
+    },
+  }), [townEnrollment, perPupilRows, salary, efaEntries, efaEntryTypes, assessments, cohorts, plans, statePerPupil, stateSalary, stateAssessments, stateCohorts, statePlans]);
 
   return { status, retry, figures };
 };
