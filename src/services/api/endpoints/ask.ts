@@ -26,6 +26,17 @@ export interface AskTable {
   note?: string | null;
 }
 
+/** A page outside this site an answer relies on (a law, a study, an organization). The server only
+ * returns links stored with its reference facts and national data, never one the AI wrote. */
+export interface AskSource {
+  label: string;
+  url: string;
+  /** The website, e.g. gc.nh.gov */
+  site: string;
+  /** When the fact was checked against this page (YYYY-MM-DD) */
+  as_of?: string | null;
+}
+
 export interface AskAnswer {
   /** answered, partial (part of the question), no_data (the site doesn't have it), general (an explanation
    * from general knowledge, not the site's data) or declined (off-topic or private) */
@@ -37,6 +48,8 @@ export interface AskAnswer {
   /** Pages on this site, checked by the server */
   references: { label: string; path: string }[];
   follow_ups: string[];
+  /** Missing from answers saved before outside sources existed */
+  sources?: AskSource[];
   cached: boolean;
 }
 

@@ -2,8 +2,10 @@ import React, { useId, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { Box, Button, List, ListItemButton, Typography } from '@mui/material';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import { AskAnswer, AskChart, AskTable } from '@/services/api/endpoints/ask';
+import { AskAnswer, AskChart, AskSource, AskTable } from '@/services/api/endpoints/ask';
+import { visuallyHidden } from '@/components/ds';
 import { READING_WIDTH, type } from '@/theme/tokens';
 import TrendChart, { SERIES_COLORS } from '@/features/state/components/TrendChart';
 import StateTable from '@/features/state/components/StateTable';
@@ -77,11 +79,46 @@ interface AskAnswerViewProps {
  * tables. On wide screens the text and follow-ups are on the left and the rest on the right; narrower,
  * the follow-ups come last.
  */
+const CHECKED = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+/** The laws, studies and organizations an answer draws on, as links that open in a new tab */
+const OutsideSources: React.FC<{ sources: AskSource[] }> = ({ sources }) => (
+  <Box>
+    <Typography component="h3" sx={{ ...type.chartTitle, m: 0 }}>Sources Outside This Site</Typography>
+    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>The laws, studies and organizations this answer draws on.</Typography>
+    <List disablePadding sx={{ border: 1, borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
+      {sources.map((source, index) => (
+        <ListItemButton
+          key={source.url}
+          component="a"
+          href={source.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          divider={index < sources.length - 1}
+          sx={{ minHeight: 44, gap: 1, alignItems: 'flex-start' }}
+        >
+          <Box component="span" sx={{ flex: 1, minWidth: 0 }}>
+            <Box component="span" sx={{ display: 'block', color: 'primary.dark', textDecoration: 'underline', overflowWrap: 'anywhere' }}>
+              {source.label}
+            </Box>
+            <Box component="span" sx={{ display: 'block', typography: 'body2', color: 'text.secondary' }}>
+              {source.site}{source.as_of ? ` · checked ${CHECKED.format(new Date(`${source.as_of}T00:00:00`))}` : ''}
+            </Box>
+          </Box>
+          <OpenInNewIcon aria-hidden fontSize="small" sx={{ mt: 0.25, color: 'action.active' }} />
+          <Box component="span" sx={visuallyHidden}>(opens in a new tab)</Box>
+        </ListItemButton>
+      ))}
+    </List>
+  </Box>
+);
+
 const AskAnswerView: React.FC<AskAnswerViewProps> = ({ answer, onAsk }) => {
   const followUpsId = useId();
   // A general explanation isn't from the site's data, so it says so and its links aren't "the numbers"
   const general = answer.status === 'general';
-  const hasSide = answer.references.length > 0 || answer.charts.length > 0 || answer.tables.length > 0;
+  const sources = answer.sources ?? [];
+  const hasSide = answer.references.length > 0 || sources.length > 0 || answer.charts.length > 0 || answer.tables.length > 0;
   return (
     <Box
       sx={{
@@ -134,6 +171,8 @@ const AskAnswerView: React.FC<AskAnswerViewProps> = ({ answer, onAsk }) => {
               </List>
             </Box>
           )}
+
+          {sources.length > 0 && <OutsideSources sources={sources} />}
 
           {answer.charts.map((chart, index) => <AnswerChart key={`chart-${index}`} chart={chart} />)}
           {answer.tables.map((table, index) => <AnswerTable key={`table-${index}`} table={table} />)}

@@ -218,6 +218,34 @@ describe('Ask page', () => {
     expect(screen.queryByText('Check the Numbers on These Pages')).not.toBeInTheDocument();
   });
 
+  it('links to the sources outside the site, each opening in a new tab', async () => {
+    ask.mockResolvedValue(answer({
+      answer: ['Parents must be told within 48 hours of a bullying report.'],
+      references: [],
+      sources: [
+        { label: 'RSA 193-F:4, II(i)', url: 'https://gc.nh.gov/rsa/html/XV/193-F/193-F-4.htm', site: 'gc.nh.gov', as_of: '2026-11-08' },
+        { label: 'Parent Information Center', url: 'https://picnh.org/about-us/', site: 'picnh.org', as_of: null },
+      ],
+    }));
+    renderAt();
+    await typeAndAsk('What does the school have to do about bullying?');
+    expect(await screen.findByRole('heading', { name: 'Sources Outside This Site' })).toBeInTheDocument();
+    const law = screen.getByRole('link', { name: /RSA 193-F:4, II\(i\).*opens in a new tab/ });
+    expect(law).toHaveAttribute('href', 'https://gc.nh.gov/rsa/html/XV/193-F/193-F-4.htm');
+    expect(law).toHaveAttribute('target', '_blank');
+    expect(law).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(screen.getByText('gc.nh.gov · checked Nov 8, 2026')).toBeInTheDocument();
+    expect(screen.getByText('picnh.org')).toBeInTheDocument();
+  });
+
+  it('shows no outside sources for answers without them', async () => {
+    ask.mockResolvedValue(answer());
+    renderAt();
+    await typeAndAsk('How much does Concord spend per student?');
+    expect(await screen.findByText(/Concord spent \$24,351 per student/)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Sources Outside This Site' })).not.toBeInTheDocument();
+  });
+
   it('asks an example question in one tap', async () => {
     ask.mockResolvedValue(answer());
     renderAt();
