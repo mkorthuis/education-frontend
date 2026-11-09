@@ -1,6 +1,7 @@
 import React, { useId, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Button, List, ListItemButton, Typography } from '@mui/material';
+import { Box, Button, CircularProgress, List, ListItemButton, Skeleton, Typography, useMediaQuery } from '@mui/material';
+import HourglassEmptyOutlinedIcon from '@mui/icons-material/HourglassEmptyOutlined';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
@@ -117,6 +118,50 @@ const OutsideSources: React.FC<{ sources: AskSource[] }> = ({ sources }) => (
   </Box>
 );
 
+/** The answer's text beside its charts and links (under them on smaller screens), then follow-ups */
+const answerLayout = (hasSide: boolean) => ({
+  display: 'grid',
+  gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: hasSide ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)' },
+  gridTemplateAreas: hasSide ? { xs: '"text" "side" "followUps"', lg: '"text side" "followUps side"' } : '"text" "followUps"',
+  // The follow-ups sit right under the text, however tall the right column runs
+  gridTemplateRows: { lg: 'auto 1fr' },
+  columnGap: 6,
+  rowGap: 4,
+  alignItems: 'start',
+});
+
+/** Plain text only: the answer is written by AI, so it's never rendered as markup */
+const AnswerText: React.FC<{ paragraphs: string[] }> = ({ paragraphs }) => (
+  <>
+    {paragraphs.map((paragraph, index) => (
+      <Typography key={index} component="p" variant="body1" sx={{ mb: 2, '&:last-of-type': { mb: 0 }, ...(index === 0 && { fontSize: '1.125rem' }) }}>
+        {keepYearsTogether(paragraph)}
+      </Typography>
+    ))}
+  </>
+);
+
+/** An answer being written: its text so far where the answer's text goes, and room for its charts and links */
+export const AnswerInProgress: React.FC<{ paragraphs: string[]; onCancel: () => void }> = ({ paragraphs, onCancel }) => {
+  const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+  return (
+    <Box sx={answerLayout(true)}>
+      <Box sx={{ gridArea: 'text', maxWidth: READING_WIDTH }}>
+        <AnswerText paragraphs={paragraphs} />
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', columnGap: 1.5, mt: 2, color: 'text.secondary' }}>
+          {reduceMotion ? <HourglassEmptyOutlinedIcon aria-hidden fontSize="small" color="action" /> : <CircularProgress size={16} aria-hidden />}
+          <Typography variant="body2">Writing the answer. Charts and links come next.</Typography>
+          <Button onClick={onCancel} sx={{ textTransform: 'none' }}>Cancel</Button>
+        </Box>
+      </Box>
+      <Box aria-hidden sx={{ gridArea: 'side' }}>
+        <Skeleton variant="text" width="55%" animation={reduceMotion ? false : 'pulse'} />
+        <Skeleton variant="rounded" height={200} animation={reduceMotion ? false : 'pulse'} sx={{ mt: 1 }} />
+      </Box>
+    </Box>
+  );
+};
+
 const AskAnswerView: React.FC<AskAnswerViewProps> = ({ answer, onAsk }) => {
   const followUpsId = useId();
   // A general explanation isn't from the site's data, so it says so and its links aren't "the numbers"
@@ -124,18 +169,7 @@ const AskAnswerView: React.FC<AskAnswerViewProps> = ({ answer, onAsk }) => {
   const sources = answer.sources ?? [];
   const hasSide = answer.references.length > 0 || sources.length > 0 || answer.charts.length > 0 || answer.tables.length > 0;
   return (
-    <Box
-      sx={{
-        display: 'grid',
-        gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: hasSide ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)' },
-        gridTemplateAreas: hasSide ? { xs: '"text" "side" "followUps"', lg: '"text side" "followUps side"' } : '"text" "followUps"',
-        // The follow-ups sit right under the text, however tall the right column runs
-        gridTemplateRows: { lg: 'auto 1fr' },
-        columnGap: 6,
-        rowGap: 4,
-        alignItems: 'start',
-      }}
-    >
+    <Box sx={answerLayout(hasSide)}>
       <Box sx={{ gridArea: 'text', maxWidth: READING_WIDTH }}>
         {general && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, color: 'text.secondary' }}>
@@ -143,12 +177,7 @@ const AskAnswerView: React.FC<AskAnswerViewProps> = ({ answer, onAsk }) => {
             <Typography variant="body2">General information, not from this site's data.</Typography>
           </Box>
         )}
-        {answer.answer.map((paragraph, index) => (
-          // Plain text only: the answer is written by AI, so it's never rendered as markup
-          <Typography key={index} component="p" variant="body1" sx={{ mb: 2, '&:last-of-type': { mb: 0 }, ...(index === 0 && { fontSize: '1.125rem' }) }}>
-            {keepYearsTogether(paragraph)}
-          </Typography>
-        ))}
+        <AnswerText paragraphs={answer.answer} />
       </Box>
 
       {hasSide && (

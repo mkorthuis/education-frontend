@@ -1,6 +1,6 @@
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -122,6 +122,7 @@ describe('Ask page', () => {
       [{ question: 'How much does Concord spend per student?', answer: answer().answer }],
       expect.anything(),
       false,
+      expect.any(Function),
     );
     // Both questions are on the page, in the order asked
     const questions = screen.getAllByRole('heading', { level: 2 }).map(heading => heading.textContent);
@@ -147,13 +148,13 @@ describe('Ask page', () => {
       { question: 'How did Bedford do in math?', answer: ['Bedford answer.'] },
       { question: 'How did Nashua do in math?', answer: ['Nashua answer.'] },
       { question: 'How did Keene do in math?', answer: ['Keene answer.'] },
-    ], expect.anything(), false);
+    ], expect.anything(), false, expect.any(Function));
 
     await userEvent.click(screen.getByRole('button', { name: 'Clear All Questions' }));
     ask.mockResolvedValueOnce(answer({ answer: ['Statewide science answer.'], follow_ups: [] }));
     await fillAndAsk('What about science?');
     expect(await screen.findByText('Statewide science answer.')).toBeInTheDocument();
-    expect(ask).toHaveBeenLastCalledWith('What about science?', [], expect.anything(), false);
+    expect(ask).toHaveBeenLastCalledWith('What about science?', [], expect.anything(), false, expect.any(Function));
   }, 15000);
 
   it('asks the question it was opened with', async () => {
@@ -252,32 +253,49 @@ describe('Ask page', () => {
     expect(screen.queryByRole('heading', { name: 'Sources Outside This Site' })).not.toBeInTheDocument();
   });
 
+  it('shows the answer as it is written, then the whole answer with its links', async () => {
+    let finish: (value: AskAnswer) => void = () => {};
+    ask.mockImplementation((_question, _history, _signal, _deep, onPartial) => {
+      onPartial?.(['Concord spent $24,351']);
+      return new Promise(resolve => { finish = resolve; });
+    });
+    renderAt();
+    await typeAndAsk('How much does Concord spend per student?');
+    expect(await screen.findByText('Concord spent $24,351')).toBeInTheDocument();
+    expect(screen.getByText('Writing the answer. Charts and links come next.')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'How much does Concord spend per student?' })).toHaveAttribute('aria-busy', 'true');
+    await act(async () => finish(answer()));
+    expect(await screen.findByText('Check the Numbers on These Pages')).toBeInTheDocument();
+    expect(screen.queryByText('Writing the answer. Charts and links come next.')).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'How much does Concord spend per student?' })).toHaveAttribute('aria-busy', 'false');
+  });
+
   it('asks with Deep Think when it is switched on, and says so', async () => {
     ask.mockResolvedValue(answer());
     renderAt();
     expect(screen.getByRole('button', { name: 'About Deep Think' })).toHaveAccessibleDescription(/takes more time to reason/);
     await userEvent.click(screen.getByRole('checkbox', { name: 'Deep Think' }));
     await typeAndAsk('How does New Hampshire compare with Massachusetts on NAEP math?');
-    await waitFor(() => expect(ask).toHaveBeenLastCalledWith('How does New Hampshire compare with Massachusetts on NAEP math?', [], expect.anything(), true));
+    await waitFor(() => expect(ask).toHaveBeenLastCalledWith('How does New Hampshire compare with Massachusetts on NAEP math?', [], expect.anything(), true, expect.any(Function)));
     expect(await screen.findByText('You asked, with Deep Think')).toBeInTheDocument();
     // Off again, the next question is asked the usual way
     await userEvent.click(screen.getByRole('checkbox', { name: 'Deep Think' }));
     await fillAndAsk('How much does Concord spend per student?');
-    await waitFor(() => expect(ask).toHaveBeenLastCalledWith('How much does Concord spend per student?', expect.anything(), expect.anything(), false));
+    await waitFor(() => expect(ask).toHaveBeenLastCalledWith('How much does Concord spend per student?', expect.anything(), expect.anything(), false, expect.any(Function)));
   });
 
   it('asks an example question in one tap', async () => {
     ask.mockResolvedValue(answer());
     renderAt();
     await userEvent.click(screen.getByRole('button', { name: 'How much does Concord spend per student?' }));
-    await waitFor(() => expect(ask).toHaveBeenCalledWith('How much does Concord spend per student?', [], expect.anything(), false));
+    await waitFor(() => expect(ask).toHaveBeenCalledWith('How much does Concord spend per student?', [], expect.anything(), false, expect.any(Function)));
     expect(await screen.findByRole('heading', { name: 'How much does Concord spend per student?' })).toBeInTheDocument();
   });
 });
 
 describe('Follow-up context', () => {
   const turn = (n: number, overrides: Partial<AskTurn> = {}): AskTurn => ({
-    id: String(n), question: `Question ${n}?`, context: [], deep: false, status: 'succeeded', response: answer({ answer: [`Answer ${n}.`] }), error: null, ...overrides,
+    id: String(n), question: `Question ${n}?`, context: [], deep: false, status: 'succeeded', partial: [], response: answer({ answer: [`Answer ${n}.`] }), error: null, ...overrides,
   });
 
   it('keeps the last ten answered questions, skipping declined and failed ones', () => {
@@ -314,7 +332,7 @@ describe('Home page', () => {
     renderAt('/');
     await userEvent.click(screen.getByRole('checkbox', { name: 'Deep Think' }));
     await typeAndAsk('How does New Hampshire compare with Massachusetts on NAEP math?');
-    await waitFor(() => expect(ask).toHaveBeenCalledWith('How does New Hampshire compare with Massachusetts on NAEP math?', [], expect.anything(), true), { timeout: 5000 });
+    await waitFor(() => expect(ask).toHaveBeenCalledWith('How does New Hampshire compare with Massachusetts on NAEP math?', [], expect.anything(), true, expect.any(Function)), { timeout: 5000 });
     expect(await screen.findByText('You asked, with Deep Think', {}, { timeout: 5000 })).toBeInTheDocument();
     // The switch stays on for the Ask page's next question
     expect(screen.getByRole('checkbox', { name: 'Deep Think' })).toBeChecked();
@@ -341,6 +359,6 @@ describe('Home page', () => {
     expect(screen.queryByText('What is the average class size in Claremont?')).not.toBeInTheDocument();
     expect(screen.queryByText('Earlier answer.')).not.toBeInTheDocument();
     // Asked on its own, not as a follow-up
-    expect(ask).toHaveBeenLastCalledWith('How much does Concord spend per student?', [], expect.anything(), false);
+    expect(ask).toHaveBeenLastCalledWith('How much does Concord spend per student?', [], expect.anything(), false, expect.any(Function));
   });
 });

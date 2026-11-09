@@ -10,7 +10,7 @@ import { RootState } from '@/store/store';
 import { askQuestion, AskTurn, clearTurns, contextFrom, removeTurn, selectAsk, setDraft } from '@/store/slices/askSlice';
 import { ASK_MAX_LENGTH, AskEarlierTurn } from '@/services/api/endpoints/ask';
 import { LOOK_UP_HASH } from '@/features/search/placeOptions';
-import AskAnswerView from './AskAnswerView';
+import AskAnswerView, { AnswerInProgress } from './AskAnswerView';
 import AskForm from './AskForm';
 import { AI_NOTE, DECLINED_MESSAGE, DEEP_LOADING_TEXT, ERRORS, EXAMPLE_QUESTIONS, LOADING_TEXT, readyMessage } from './askCopy';
 import { ASK_PATH, askState, contextIn, deepIn, questionIn } from './askRoute';
@@ -191,6 +191,7 @@ const AskPage: React.FC = () => {
           key={turn.id}
           component="section"
           aria-labelledby={`question-${turn.id}`}
+          aria-busy={turn.status === 'loading'}
           ref={(element: HTMLElement | null) => { if (element) sections.current.set(turn.id, element); else sections.current.delete(turn.id); }}
           sx={{ scrollMarginTop: '72px' }}
         >
@@ -206,7 +207,10 @@ const AskPage: React.FC = () => {
             </Typography>
           </Box>
 
-          {turn.status === 'loading' && <Working deep={turn.deep} onCancel={() => cancel(turn)} onStillWorking={() => announce('Still working.')} />}
+          {/* Its text shows as it's written */}
+          {turn.status === 'loading' && (turn.partial.length > 0
+            ? <AnswerInProgress paragraphs={turn.partial} onCancel={() => cancel(turn)} />
+            : <Working deep={turn.deep} onCancel={() => cancel(turn)} onStillWorking={() => announce('Still working.')} />)}
 
           {turn.status === 'failed' && turn.error && (
             <Alert severity={ERRORS[turn.error].severity} role="none" action={<Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>{errorActions(turn)}</Box>}

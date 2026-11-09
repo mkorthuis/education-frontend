@@ -1,4 +1,4 @@
-import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createAction, createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { RootState } from '@/store/store';
 import { AskAnswer, askApi, AskEarlierTurn } from '@/services/api/endpoints/ask';
@@ -19,6 +19,8 @@ export interface AskTurn {
   /** Asked with Deep Think, which a retry keeps */
   deep: boolean;
   status: 'loading' | 'succeeded' | 'failed';
+  /** The answer's paragraphs written so far, while it's loading */
+  partial: string[];
   response: AskAnswer | null;
   error: AskErrorKind | null;
 }
@@ -63,11 +65,14 @@ const errorKind = (error: unknown): AskErrorKind => {
   return 'server';
 };
 
+/** More of a question's answer, written so far */
+export const showPartial = createAction<{ id: string; paragraphs: string[] }>('ask/showPartial');
+
 export const askQuestion = createAsyncThunk<AskAnswer, AskRequest, { rejectValue: AskErrorKind }>(
   'ask/askQuestion',
-  async ({ question, context, deep = false }, { signal, rejectWithValue }) => {
+  async ({ question, context, deep = false }, { signal, rejectWithValue, dispatch, requestId }) => {
     try {
-      const answer = await askApi.ask(question, context, signal, deep);
+      const answer = await askApi.ask(question, context, signal, deep, paragraphs => dispatch(showPartial({ id: requestId, paragraphs })));
       // An answer with no text is no answer
       if (!answer || !Array.isArray(answer.answer) || answer.answer.length === 0) return rejectWithValue('server');
       return answer;
@@ -101,15 +106,20 @@ const askSlice = createSlice({
     builder
       .addCase(askQuestion.pending, (state, action) => {
         const { question, context, deep = false } = action.meta.arg;
-        state.turns.push({ id: action.meta.requestId, question, context, deep, status: 'loading', response: null, error: null });
+        state.turns.push({ id: action.meta.requestId, question, context, deep, status: 'loading', partial: [], response: null, error: null });
         state.turns = state.turns.slice(-MAX_TURNS);
         // The question moves into the thread; the field is ready for the next one
         state.draft = '';
+      })
+      .addCase(showPartial, (state, action) => {
+        const turn = state.turns.find(item => item.id === action.payload.id);
+        if (turn?.status === 'loading') turn.partial = action.payload.paragraphs;
       })
       .addCase(askQuestion.fulfilled, (state, action) => {
         const turn = state.turns.find(item => item.id === action.meta.requestId);
         if (!turn) return;
         turn.status = 'succeeded';
+        turn.partial = [];
         turn.response = action.payload;
       })
       .addCase(askQuestion.rejected, (state, action) => {
@@ -122,6 +132,7 @@ const askSlice = createSlice({
           return;
         }
         turn.status = 'failed';
+        turn.partial = [];
         turn.error = action.payload ?? 'server';
       });
   },

@@ -1,3 +1,4 @@
+import axios, { AxiosError } from 'axios';
 import axiosInstance from '../config/axios';
 import { BASE_API_URL } from '../config/constants';
 
@@ -67,17 +68,78 @@ export interface AskEarlierTurn {
   answer: string[];
 }
 
+/**
+ * Reads the answer as it arrives: lines of JSON, {"partial": [paragraphs so far]} while it's being
+ * written, then the answer, or {"detail"} if it failed. Spaces between lines keep the connection open.
+ * A saved answer, or one from a server that doesn't stream, is just the answer, which reads the same.
+ */
+export const readAnswer = async (
+  body: ReadableStream<Uint8Array> | string,
+  onPartial: (paragraphs: string[]) => void,
+  signal?: AbortSignal,
+): Promise<AskAnswer> => {
+  let answer: AskAnswer | null = null;
+  // Shows the newest paragraphs among the lines; returns whatever's after the last whole line
+  const readLines = (text: string): string => {
+    const lines = text.split('\n');
+    const rest = lines.pop() ?? '';
+    let partial: string[] | null = null;
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const value = JSON.parse(line);
+      if (Array.isArray(value?.partial)) partial = value.partial;
+      else answer = value;
+    }
+    if (partial) onPartial(partial);
+    return rest;
+  };
+
+  if (typeof body === 'string') {
+    readLines(`${body}\n`);
+    return answer as unknown as AskAnswer;
+  }
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let rest = '';
+  for (;;) {
+    let chunk: ReadableStreamReadResult<Uint8Array>;
+    try {
+      chunk = await reader.read();
+    } catch (error) {
+      // Canceled or timed out (axios's own errors, or the browser's abort when it doesn't pass them on),
+      // or the connection dropped
+      if (axios.isAxiosError(error) || axios.isCancel(error)) throw error;
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw signal?.aborted ? error : new AxiosError('The answer took too long', AxiosError.ETIMEDOUT);
+      }
+      throw new AxiosError('The connection was lost', AxiosError.ERR_NETWORK);
+    }
+    if (chunk.done) break;
+    rest = readLines(rest + decoder.decode(chunk.value, { stream: true }));
+  }
+  readLines(`${rest}${decoder.decode()}\n`);
+  return answer as unknown as AskAnswer;
+};
+
 export const askApi = {
   /**
    * `history` is the page's earlier questions, oldest first, so "What about science?" knows what came
-   * before. `deep` is Deep Think: Claude thinks longer, for complex questions.
+   * before. `deep` is Deep Think: Claude thinks longer, for complex questions. `onPartial` is given the
+   * answer's paragraphs as they're written.
    */
-  ask: async (question: string, history: AskEarlierTurn[], signal?: AbortSignal, deep = false): Promise<AskAnswer> => {
+  ask: async (
+    question: string,
+    history: AskEarlierTurn[],
+    signal?: AbortSignal,
+    deep = false,
+    onPartial: (paragraphs: string[]) => void = () => {},
+  ): Promise<AskAnswer> => {
+    // Fetch, which can hand over the answer as it arrives; the timeout runs until the last of it
     const response = await axiosInstance.post(
       `${BASE_API_URL}ask`,
-      { question, history, ...(deep && { deep: true }) },
-      { timeout: deep ? ASK_DEEP_TIMEOUT_MS : ASK_TIMEOUT_MS, skipCache: true, signal },
+      { question, history, stream: true, ...(deep && { deep: true }) },
+      { timeout: deep ? ASK_DEEP_TIMEOUT_MS : ASK_TIMEOUT_MS, skipCache: true, signal, adapter: 'fetch', responseType: 'stream' },
     );
-    return response.data;
+    return readAnswer(response.data, onPartial, signal);
   },
 };
