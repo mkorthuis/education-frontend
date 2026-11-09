@@ -2,6 +2,7 @@ import { Box, Container, useTheme, useMediaQuery } from "@mui/material";
 import { Outlet, useLocation } from "react-router-dom";
 import Footer from "./Footer/index";
 import { isGeneralPath, isHomePath } from "@/routes/pageRegistry";
+import BackToDistrict from "./BackToDistrict";
 
 interface MainLayoutProps {
   children?: React.ReactNode;
@@ -46,6 +47,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           py: 3,
         }}
       >
+        {/* School pages: a link back to the school's district */}
+        <BackToDistrict />
         {children || <Outlet />}
       </Container>
       

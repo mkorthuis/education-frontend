@@ -89,6 +89,13 @@ const TILE_TREND_YEARS = 10;
 export const tileChange = (series: YearValue[]): Change | null =>
   changeFrom(series, TILE_SINCE_YEAR) ?? changeSince(series, TILE_TREND_YEARS);
 
+/** Sums a value by year: a district's towns' enrollment, or a school's grades */
+export const totalsByYear = <T extends { year: number }>(rows: T[], value: (row: T) => number | null | undefined): YearValue[] => {
+  const totals = new Map<number, number>();
+  rows.forEach(row => totals.set(row.year, (totals.get(row.year) ?? 0) + (value(row) ?? 0)));
+  return [...totals].map(([year, total]) => ({ year, value: total })).sort((a, b) => a.year - b.year);
+};
+
 /** A tile's trend line, from the same year its change is measured from. */
 export const tileTrend = (series: YearValue[]): YearValue[] => {
   const from = tileChange(series)?.from.year;
@@ -305,6 +312,29 @@ export const proficiencyBySubject = (
     );
   });
   return mergeSeries(seriesByKey);
+};
+
+export interface SubjectFigures {
+  /** Shares proficient, with a withheld one drawn at 10% or 90% */
+  drawn: YearValue[];
+  /** Only the shares the state reported exactly, for the change over time */
+  exact: YearValue[];
+  /** Years the state reported only that the share was under 10% or over 90% */
+  bounds: Map<number, ProficiencyBound>;
+}
+
+/** One subject's shares proficient for all students in all grades, as a key-figure tile needs them. */
+export const subjectFigures = (rows: NamedAssessmentRow[], key: 'math' | 'reading' | 'science'): SubjectFigures => {
+  const subjectId = SUBJECTS.find(subject => subject.key === key)!.id;
+  return {
+    drawn: toSeries(proficiencyBySubject(rows, ALL_STUDENTS_SUBGROUP_ID, null, true), row => row[key]),
+    exact: toSeries(proficiencyBySubject(rows), row => row[key]),
+    bounds: new Map(
+      rows
+        .filter(row => row.grade_id === null && row.assessment_subgroup_id === ALL_STUDENTS_SUBGROUP_ID && row.assessment_subject_id === subjectId && row.bound)
+        .map(row => [row.year, row.bound as ProficiencyBound])
+    ),
+  };
 };
 
 /** The most recent year with any proficiency figure, or null. */

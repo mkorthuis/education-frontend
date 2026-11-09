@@ -1,9 +1,8 @@
 import React from 'react';
-import { Alert, Box, CircularProgress, GlobalStyles, Skeleton, Typography, useMediaQuery, useTheme } from '@mui/material';
-import { MetricTile, NavCard, NavCardGrid, SectionHeading, TileGroup, visuallyHidden } from '@/components/ds';
-import SectionTitle from '@/components/ui/SectionTitle';
+import { Alert, Box, CircularProgress, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { MetricTile, TileGroup } from '@/components/ds';
 import LoadErrorAlert from '@/components/ui/LoadErrorAlert';
-import { PAGE_REGISTRY, PageEntry } from '@/routes/pageRegistry';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import { useAppSelector } from '@/store/hooks';
 import {
   selectCurrentDistrict,
@@ -13,8 +12,6 @@ import {
   selectLocationError,
 } from '@/store/slices/locationSlice';
 import { RootState } from '@/store/store';
-import { radius } from '@/theme/tokens';
-import { formatGradesDisplay } from '@/utils/formatting';
 import {
   Change,
   describeChange,
@@ -24,27 +21,31 @@ import {
   latestPoint,
   tileChange,
   tileTrend,
-  valueIn,
-  YearValue,
 } from '@/features/state/utils/stateMetrics';
 import { capitalize, formatThousands, realPercentChange, shortYear, tileDelta } from '@/features/state/utils/phrases';
-import { DistrictKeyFigures, SubjectFigures, useDistrictKeyFigures } from '../hooks/useDistrictKeyFigures';
+import {
+  comparison,
+  isPageAvailable,
+  KeyFiguresLoading,
+  noteLines,
+  OverviewGrid,
+  OverviewSection,
+  OverviewTitle,
+  PageCards,
+  pagePath,
+  PHONE_SPACING,
+  plansUnknownNote,
+  SchoolCards,
+  subjectTile,
+} from '@/features/entity/overview/OverviewParts';
+import { DistrictKeyFigures, useDistrictKeyFigures } from '../hooks/useDistrictKeyFigures';
 import { districtFacts, districtPhoneTitle, districtTitle, DISTRICT_PAGE_DESCRIPTIONS } from '../utils/labels';
 
 // A district's overview, on the pattern of the statewide overview: its name and what it is, cards to
 // its pages and its schools, and key figures with the state's beside them.
 
 const DISTRICT_PAGES = PAGE_REGISTRY.district;
-
-// Phones: tighter than the shared components' spacing, so more of the page fits on a screen
-const PHONE_SPACING = {
-  heading: { mt: { xs: 0.5, sm: 2 }, mb: { xs: 1.5, sm: 2 } },
-  section: { mb: { xs: 2.5, sm: 4 } },
-};
-
-// From this share of graduates with unknown plans (6% statewide in 2025), the college tile says so:
-// the share planning college counts them among all graduates
-const PLANS_UNKNOWN_NOTE = 10;
+const GROUPS = ['Students and Spending', 'Results'];
 
 // Whether the district's own location data is loading. Not every location request: the overview's
 // test scores load the grade list, which would otherwise swap the page for a spinner mid-load.
@@ -57,65 +58,14 @@ type District = NonNullable<ReturnType<typeof selectCurrentDistrict>>;
 type School = ReturnType<typeof selectCurrentSchools>[number];
 type Town = ReturnType<typeof selectCurrentTowns>[number];
 
-/** A page's address for this district, without its optional parts: /district/111/academic */
-const pagePath = (page: PageEntry, districtId: number) =>
-  page.urlPatterns[0].replace(':id', String(districtId)).replace(/(\/:[^/]+\?)+$/, '');
-
-const pageKey = (page: PageEntry) => page.id.split('.')[1];
-
-/** The state's figure for the district's year, for a tile's grey note */
-const statewide = (series: YearValue[], year: number, format: (value: number) => string) => {
-  const value = valueIn(series, year);
-  return value === null ? undefined : `Statewide ${format(value)}`;
-};
-
-/** A tile's note, one fact a line: "Statewide $22,699", "Up 31% after inflation" */
-const noteLines = (...lines: (string | undefined)[]) => {
-  const kept = lines.filter((line): line is string => Boolean(line));
-  return kept.length ? kept : undefined;
-};
-
 /** A dollar tile's note: the state's figure and, as on the statewide tiles, the change after inflation */
 const dollarNote = (state: string | undefined, change: Change | null) =>
   noteLines(state, change ? `${capitalize(describeChange(realPercentChange(change)))} after inflation` : undefined);
 
-/** Lowest grade first, so the schools run from elementary to high school */
-const firstGrade = (school: School) => Math.min(...(school.grades ?? []).map(grade => grade.id), Number.MAX_SAFE_INTEGER);
-
-const subjectTile = (label: string, subject: SubjectFigures, stateSeries: YearValue[], to: string) => {
-  const latest = latestPoint(subject.drawn);
-  if (!latest) return null;
-  // Where the state reports only "<10%" or ">90%", the tile says so and shows no change
-  const bound = subject.bounds.get(latest.year);
-  return (
-    <MetricTile
-      key={label}
-      label={label}
-      value={bound ?? formatPercent(latest.value)}
-      period={shortYear(latest.year)}
-      delta={bound ? undefined : tileDelta(tileChange(subject.exact), { unit: 'points', higherIsBetter: true })}
-      detail={statewide(stateSeries, latest.year, value => formatPercent(value))}
-      trend={subject.drawn}
-      to={to}
-      linkLabel="test scores"
-    />
-  );
-};
-
-/** Grey tiles where the figures will be, so the page doesn't jump when they arrive */
-const KeyFiguresLoading: React.FC = () => (
-  <Box aria-busy="true">
-    <Box component="span" sx={visuallyHidden}>Loading key figures</Box>
-    {['Students and Spending', 'Results'].map(group => (
-      <TileGroup key={group} title={group} sx={PHONE_SPACING.section}>
-        {[0, 1, 2, 3].map(tile => <Skeleton key={tile} variant="rounded" animation="wave" sx={{ height: { xs: 112, sm: 160 }, borderRadius: radius.card }} />)}
-      </TileGroup>
-    ))}
-  </Box>
-);
-
 const KeyFigures: React.FC<{ figures: DistrictKeyFigures; districtId: number; towns: Town[] }> = ({ figures, districtId, towns }) => {
   const to = (key: keyof typeof DISTRICT_PAGES) => pagePath(DISTRICT_PAGES[key], districtId);
+  const statewide = (series: typeof figures.state.perPupil, year: number, format: (value: number) => string) =>
+    comparison('Statewide', series, year, format);
   const latest = {
     students: latestPoint(figures.students),
     perPupil: latestPoint(figures.perPupil),
@@ -132,8 +82,7 @@ const KeyFigures: React.FC<{ figures: DistrictKeyFigures; districtId: number; to
     graduation: tileChange(figures.graduation),
     college: tileChange(figures.college),
   };
-  const plansUnknown = latest.college ? valueIn(figures.plansUnknown, latest.college.year) : null;
-  const unknownNote = plansUnknown !== null && plansUnknown >= PLANS_UNKNOWN_NOTE ? `Plans unknown for ${formatPercent(plansUnknown)}` : undefined;
+  const unknownPlans = latest.college ? plansUnknownNote(figures.plansUnknown, latest.college.year) : undefined;
   const livingIn = towns.length === 1 ? `living in ${towns[0].name}` : `living in its ${towns.length} towns`;
 
   // Each tile only when the district has the figure
@@ -203,8 +152,8 @@ const KeyFigures: React.FC<{ figures: DistrictKeyFigures; districtId: number; to
   ].filter(Boolean);
 
   const results = [
-    subjectTile('Proficient in Math', figures.math, figures.state.math, to('academic')),
-    subjectTile('Proficient in Reading', figures.reading, figures.state.reading, to('academic')),
+    subjectTile('Proficient in Math', figures.math, [{ label: 'Statewide', series: figures.state.math }], to('academic')),
+    subjectTile('Proficient in Reading', figures.reading, [{ label: 'Statewide', series: figures.state.reading }], to('academic')),
     latest.graduation && (
       <MetricTile
         key="graduation"
@@ -228,8 +177,8 @@ const KeyFigures: React.FC<{ figures: DistrictKeyFigures; districtId: number; to
         value={formatPercent(latest.college.value)}
         period={shortYear(latest.college.year)}
         delta={tileDelta(changes.college, { unit: 'points', higherIsBetter: true })}
-        detail={noteLines(statewide(figures.state.college, latest.college.year, value => formatPercent(value)), unknownNote)}
-        shortDetail={unknownNote ? `${formatPercent(plansUnknown)} unknown` : undefined}
+        detail={noteLines(statewide(figures.state.college, latest.college.year, value => formatPercent(value)), unknownPlans?.full)}
+        shortDetail={unknownPlans?.short}
         trend={tileTrend(figures.college)}
         to={to('outcomes')}
         linkLabel="graduates' plans"
@@ -242,8 +191,8 @@ const KeyFigures: React.FC<{ figures: DistrictKeyFigures; districtId: number; to
   }
   return (
     <>
-      {studentsAndSpending.length > 0 && <TileGroup title="Students and Spending" sx={PHONE_SPACING.section}>{studentsAndSpending}</TileGroup>}
-      {results.length > 0 && <TileGroup title="Results" sx={PHONE_SPACING.section}>{results}</TileGroup>}
+      {studentsAndSpending.length > 0 && <TileGroup title={GROUPS[0]} sx={PHONE_SPACING.section}>{studentsAndSpending}</TileGroup>}
+      {results.length > 0 && <TileGroup title={GROUPS[1]} sx={PHONE_SPACING.section}>{results}</TileGroup>}
     </>
   );
 };
@@ -257,89 +206,44 @@ const DistrictOverview: React.FC<{ district: District; towns: Town[]; schools: S
   const isPhone = useMediaQuery(theme.breakpoints.down('sm'));
   const facts = districtFacts({ sauId, towns, grades: district.grades, schoolCount: schools.length, phone: isPhone });
 
-  // The district's pages, as its tabs show them: a page it has no data for (no schools, or no high
-  // school) is greyed out, with the tab's reason as its tooltip
+  // The registry's rules for the district's pages look at its schools
   const withSchools = { ...district, schools };
   const pages = Object.values(DISTRICT_PAGES).filter(page => page.id !== DISTRICT_PAGES.overview.id);
-  const isAvailable = (page: PageEntry) => (typeof page.enabled === 'function' ? page.enabled(withSchools) : page.enabled);
-  const reasonFor = (page: PageEntry) => (typeof page.tooltip === 'function' ? page.tooltip(withSchools) : page.tooltip) || undefined;
-  // In place of a greyed card's description, so the reason shows without hovering (phones can't)
-  const unavailableLine = hasSchools ? 'Not available: no grade 12' : 'Not available: runs no schools';
-  const hasGraduation = isAvailable(DISTRICT_PAGES.outcomes);
+  const hasGraduation = isPageAvailable(DISTRICT_PAGES.outcomes, withSchools);
 
   const { status, retry, figures } = useDistrictKeyFigures(district.id, { hasSchools, hasGraduation });
 
   return (
     <>
-      {/* Keeps keyboard focus and in-page jumps clear of the fixed header and section tabs */}
-      <GlobalStyles styles={{ html: { scrollPaddingTop: 128 } }} />
-      <SectionTitle
-        displayName={isPhone ? districtPhoneTitle(district.name, sauId) : title}
-        entityName=""
-        component="h1"
-        showEntityOnPhone={false}
-        // The towns line sits right under the title, on phones too
-        sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' }, mb: 0.5 }}
-      />
-      {facts.length > 0 && (
-        <Typography variant="body1" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, mb: { xs: 2, sm: 3 } }}>{facts.join(' · ')}</Typography>
-      )}
-
-      {/* Wide screens: the page links on the left and the schools on the right, then the key figures
-          across the page. Phones and tablets stack them in the same order. */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: hasSchools ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)' },
-          columnGap: 4,
-          alignItems: 'start',
-        }}
-      >
-        <Box component="section" aria-labelledby="pages-heading" sx={{ minWidth: 0 }}>
-          <SectionHeading sx={PHONE_SPACING.heading} id="pages-heading">Explore District Data</SectionHeading>
+      <OverviewTitle title={isPhone ? districtPhoneTitle(district.name, sauId) : title} facts={facts.length > 0 ? facts.join(' · ') : undefined} />
+      <OverviewGrid twoColumns={hasSchools}>
+        <OverviewSection id="pages-heading" title="Explore District Data">
           {/* Two across beside the schools; four across when there are no schools beside them */}
-          <NavCardGrid label={`${title} pages`} wideColumns={hasSchools ? 2 : 4} sx={PHONE_SPACING.section}>
-            {pages.map(page => {
-              const available = isAvailable(page);
-              return (
-                <NavCard
-                  key={page.id}
-                  title={page.displayName}
-                  description={available ? DISTRICT_PAGE_DESCRIPTIONS[pageKey(page)] : unavailableLine}
-                  to={pagePath(page, district.id)}
-                  disabled={!available}
-                  disabledReason={available ? undefined : reasonFor(page)}
-                />
-              );
-            })}
-          </NavCardGrid>
-        </Box>
+          <PageCards
+            pages={pages}
+            place={withSchools}
+            id={district.id}
+            descriptions={DISTRICT_PAGE_DESCRIPTIONS}
+            unavailableLine={hasSchools ? 'Not available: no grade 12' : 'Not available: runs no schools'}
+            label={`${title} pages`}
+            wideColumns={hasSchools ? 2 : 4}
+          />
+        </OverviewSection>
 
         {hasSchools && (
-          <Box component="section" aria-labelledby="schools-heading" sx={{ minWidth: 0 }}>
-            <SectionHeading sx={PHONE_SPACING.heading} id="schools-heading">Schools</SectionHeading>
-            {/* Cards the height of the page links beside them: the name at the left (wrapping if long),
-                its grades at the right; youngest grades first */}
-            <NavCardGrid label={`Schools in ${title}`} wideColumns={2} sx={PHONE_SPACING.section}>
-              {[...schools]
-                .sort((a, b) => firstGrade(a) - firstGrade(b) || a.name.localeCompare(b.name))
-                .map(school => {
-                  const grades = formatGradesDisplay(school);
-                  return <NavCard key={school.id} inline title={school.name} description={grades || undefined} to={`/school/${school.id}`} />;
-                })}
-            </NavCardGrid>
-          </Box>
+          <OverviewSection id="schools-heading" title="Schools">
+            <SchoolCards schools={schools} label={`Schools in ${title}`} />
+          </OverviewSection>
         )}
 
         {/* Each tile: the figure and its year, the change since 2014-15 (green where the change is good,
             red where it's bad), a trend line, and the state's figure for the same year */}
-        <Box component="section" aria-labelledby="key-figures-heading" sx={{ gridColumn: '1 / -1', minWidth: 0 }}>
-          <SectionHeading sx={PHONE_SPACING.heading} id="key-figures-heading">Key District Figures</SectionHeading>
-          {status === 'loading' && <KeyFiguresLoading />}
+        <OverviewSection id="key-figures-heading" title="Key District Figures" wide>
+          {status === 'loading' && <KeyFiguresLoading groups={GROUPS} />}
           {status === 'failed' && <LoadErrorAlert message="This district's key figures could not be loaded." onRetry={retry} />}
           {status === 'ready' && <KeyFigures figures={figures} districtId={district.id} towns={towns} />}
-        </Box>
-      </Box>
+        </OverviewSection>
+      </OverviewGrid>
     </>
   );
 };

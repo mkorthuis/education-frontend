@@ -19,6 +19,8 @@ export interface Grade {
 export interface School {
   id: number;
   name: string;
+  district_id?: number;
+  town_id?: number;
   grades?: Grade[];
   enrollment?: Record<string, number>;
   address1?: string | null;

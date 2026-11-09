@@ -13,8 +13,11 @@ const tileGrid = (half: boolean) => ({
   ...(half && { gridRow: { lg: 'span 2' }, gridTemplateRows: { lg: 'subgrid' } }),
 });
 
-/** A labeled group of key-figure tiles ("SCHOOLS") under a section heading such as "Key Statewide Figures". */
-const TileGroup: React.FC<{ title: string; half?: boolean; sx?: SxProps<Theme>; children: React.ReactNode }> = ({ title, half = false, sx, children }) => (
+/**
+ * A group of key-figure tiles under a section heading such as "Key Statewide Figures", labeled
+ * ("SCHOOLS") unless it's the section's only group.
+ */
+const TileGroup: React.FC<{ title?: string; half?: boolean; sx?: SxProps<Theme>; children: React.ReactNode }> = ({ title, half = false, sx, children }) => (
   <Box
     component="section"
     // Groups are set apart by space and their label, not outlines: the tiles are the only boxes
@@ -28,7 +31,7 @@ const TileGroup: React.FC<{ title: string; half?: boolean; sx?: SxProps<Theme>; 
       ...(Array.isArray(sx) ? sx : [sx]),
     ]}
   >
-    <GroupLabel>{title}</GroupLabel>
+    {title && <GroupLabel>{title}</GroupLabel>}
     <Box sx={tileGrid(half)}>{children}</Box>
   </Box>
 );

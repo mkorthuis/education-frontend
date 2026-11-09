@@ -13,14 +13,14 @@ import {
   ALL_STUDENTS_SUBGROUP_ID,
   efaTotals,
   graduationRates,
-  NamedAssessmentRow,
   normalizeAssessmentRows,
   postGraduationShares,
   proficiencyBySubject,
-  ProficiencyBound,
   StoredAssessmentRow,
-  SUBJECTS,
+  SubjectFigures,
+  subjectFigures,
   toSeries,
+  totalsByYear,
   YearValue,
 } from '@/features/state/utils/stateMetrics';
 
@@ -30,15 +30,6 @@ import {
 
 const ALL_STUDENTS = { assessment_subgroup_id: ALL_STUDENTS_SUBGROUP_ID };
 const STATE_PARAMS = {};
-
-export interface SubjectFigures {
-  /** Shares proficient, with a withheld one drawn at 10% or 90% */
-  drawn: YearValue[];
-  /** Only the shares the state reported exactly, for the change over time */
-  exact: YearValue[];
-  /** Years the state reported only that the share was under 10% or over 90% */
-  bounds: Map<number, ProficiencyBound>;
-}
 
 export interface DistrictKeyFigures {
   /** Public school students living in the district's towns (October 1) */
@@ -61,26 +52,6 @@ export interface DistrictKeyFigures {
     college: YearValue[];
   };
 }
-
-const subjectFigures = (rows: NamedAssessmentRow[], key: 'math' | 'reading'): SubjectFigures => {
-  const subjectId = SUBJECTS.find(subject => subject.key === key)!.id;
-  return {
-    drawn: toSeries(proficiencyBySubject(rows, ALL_STUDENTS_SUBGROUP_ID, null, true), row => row[key]),
-    exact: toSeries(proficiencyBySubject(rows), row => row[key]),
-    bounds: new Map(
-      rows
-        .filter(row => row.grade_id === null && row.assessment_subgroup_id === ALL_STUDENTS_SUBGROUP_ID && row.assessment_subject_id === subjectId && row.bound)
-        .map(row => [row.year, row.bound as ProficiencyBound])
-    ),
-  };
-};
-
-/** Sums a value by year: the district's towns' enrollment, say */
-const totalsByYear = <T extends { year: number }>(rows: T[], value: (row: T) => number | null | undefined): YearValue[] => {
-  const totals = new Map<number, number>();
-  rows.forEach(row => totals.set(row.year, (totals.get(row.year) ?? 0) + (value(row) ?? 0)));
-  return [...totals].map(([year, total]) => ({ year, value: total })).sort((a, b) => a.year - b.year);
-};
 
 export const useDistrictKeyFigures = (
   districtId: number,
