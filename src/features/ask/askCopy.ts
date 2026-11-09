@@ -16,8 +16,8 @@ export const AI_NOTE = "Answers written by AI from site's data. Validate with li
 export const LOADING_TEXT = "Looking up the answer in this site's data. This usually takes 5 to 15 seconds.";
 
 export const ERRORS: Record<AskErrorKind, { message: string; severity: 'info' | 'error'; action: 'retry' | 'edit' | 'browse' }> = {
-  limit: { message: "We've reached today's limit on questions. Please try again tomorrow. You can still look up any town, district or school, or see statewide data.", severity: 'info', action: 'browse' },
-  unavailable: { message: "Asking questions isn't available right now. You can still look up any town, district or school, or see statewide data.", severity: 'info', action: 'browse' },
+  limit: { message: "We've reached today's limit on questions. Please try again tomorrow. You can still look up any district or school, or see statewide data.", severity: 'info', action: 'browse' },
+  unavailable: { message: "Asking questions isn't available right now. You can still look up any district or school, or see statewide data.", severity: 'info', action: 'browse' },
   tooLong: { message: `Questions can be up to ${ASK_MAX_LENGTH} characters. Please shorten your question.`, severity: 'info', action: 'edit' },
   network: { message: "We couldn't connect. Check your internet connection, then try again.", severity: 'error', action: 'retry' },
   timeout: { message: 'This is taking too long. Please try again in a minute.', severity: 'error', action: 'retry' },

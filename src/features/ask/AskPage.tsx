@@ -243,7 +243,7 @@ const AskPage: React.FC = () => {
 
         <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>{AI_NOTE}</Typography>
         <Typography variant="body2" sx={{ mt: 1 }}>
-          Prefer to browse? <Link component={RouterLink} to={`/${LOOK_UP_HASH}`}>Look up a town, district or school</Link> or see <Link component={RouterLink} to="/state">statewide data</Link>.
+          Prefer to browse? <Link component={RouterLink} to={`/${LOOK_UP_HASH}`}>Look up a district or school</Link> or see <Link component={RouterLink} to="/state">statewide data</Link>.
         </Typography>
         {hasTurns && (
           <Button onClick={startOver} sx={{ mt: 2, textTransform: 'none' }}>Clear All Questions</Button>

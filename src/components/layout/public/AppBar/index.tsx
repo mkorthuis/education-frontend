@@ -1,56 +1,26 @@
-import { 
-  AppBar as MuiAppBar, 
-  Toolbar, 
-  Typography, 
-  Container, 
-  useMediaQuery, 
-  IconButton, 
-  Box, 
-  Autocomplete, 
-  TextField, 
-  InputAdornment,
-  Popper
-} from '@mui/material';
+import { Box, Container, IconButton, Toolbar, Typography, useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { useLocation, matchPath, useNavigate, Link } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import SearchIcon from '@mui/icons-material/Search';
 import MenuIcon from '@mui/icons-material/Menu';
 import { useRef, useState } from 'react';
 import MainMenu from '../Navigation/MainMenu';
 import SecondaryNav from './SecondaryNav';
 import { isGeneralPath, isHomePath } from '@/routes/pageRegistry';
-
-// Define District interface locally
-interface District {
-  id: number;
-  name: string;
-  grades?: { id: number; name: string }[];
-}
-
-interface AppBarProps {
-  districts: District[];
-  loading: boolean;
-  selectedDistrict: District | null;
-  onDistrictChange: (event: React.SyntheticEvent, district: District | null) => void;
-}
+import PlaceSearch from '@/features/search/PlaceSearch';
 
 /**
- * Main application bar with navigation and search functionality
+ * Main application bar with navigation and search functionality. The search is the home page's,
+ * finding districts and schools and opening their pages; the home page has its own, so the bar
+ * leaves it out there.
  */
-const AppBar: React.FC<AppBarProps> = ({ 
-  districts, 
-  loading, 
-  selectedDistrict, 
-  onDistrictChange 
-}) => {
+const AppBar: React.FC = () => {
   const theme = useTheme();
   const isMediumOrLarger = useMediaQuery(theme.breakpoints.up('md'));
   const location = useLocation();
-  const navigate = useNavigate();
   
   const [mainMenuOpen, setMainMenuOpen] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   const isHomePage = isHomePath(location.pathname);
@@ -62,36 +32,12 @@ const AppBar: React.FC<AppBarProps> = ({
     setShowMobileSearch(!showMobileSearch);
   };
 
-  const handleMobileDistrictChange = (event: React.SyntheticEvent, district: District | null) => {
-    onDistrictChange(event, district);
-    if (district) {
-      setShowMobileSearch(false);
-    }
-  };
-
-  const handleDesktopDistrictChange = (event: React.SyntheticEvent, district: District | null) => {
-    onDistrictChange(event, district);
-  };
-
-  const handleSearchFocus = () => {
-    setIsSearchFocused(true);
-  };
-
-  const handleSearchBlur = () => {
-    setIsSearchFocused(false);
-  };
-
   const toggleMainMenu = () => {
     setMainMenuOpen(!mainMenuOpen);
   };
   
   // Check if SecondaryNav should be displayed (only on medium screens and up, and not on general pages)
   const showSecondaryNav = isMediumOrLarger && !isHomePage && !isGeneralPage;
-
-  // Custom Popper for mobile search
-  const CustomPopper = function (props: any) {
-    return <Popper {...props} placement="bottom-start" style={{ width: '100%' }} />;
-  };
 
   return (
     <>
@@ -152,46 +98,18 @@ const AppBar: React.FC<AppBarProps> = ({
             
             {/* Desktop Search (medium+ screens) */}
             {!isHomePage && isMediumOrLarger && (
-              <Box sx={{ width: '300px' }}>
-                <Autocomplete
-                  id="top-district-search"
-                  options={districts}
-                  getOptionLabel={(option) => option.name}
-                  value={isSearchFocused ? null : selectedDistrict}
-                  onChange={handleDesktopDistrictChange}
-                  loading={loading}
-                  size="small"
-                  onFocus={handleSearchFocus}
-                  onBlur={handleSearchBlur}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      placeholder="Search districts..."
-                      variant="outlined"
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          backgroundColor: 'white'
-                        }
-                      }}
-                      InputProps={{
-                        ...params.InputProps,
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <SearchIcon sx={{ color: 'black' }} />
-                          </InputAdornment>
-                        )
-                      }}
-                    />
-                  )}
-                />
+              <Box sx={{ width: 320 }}>
+                <PlaceSearch id="header-place-search" compact />
               </Box>
             )}
             
-            {/* Mobile Search Icon */}
+            {/* Mobile Search Icon: opens the search bar under the app bar */}
             {!isHomePage && !isMediumOrLarger && (
               <IconButton
                 color="inherit"
-                aria-label="search"
+                aria-label={showMobileSearch ? 'Close search' : 'Search for a district or school'}
+                aria-expanded={showMobileSearch}
+                aria-controls="mobile-search-bar"
                 onClick={toggleMobileSearch}
                 sx={{ ml: 1, mr: -1, color: 'white' }}
               >
@@ -205,9 +123,9 @@ const AppBar: React.FC<AppBarProps> = ({
       {/* Secondary Navigation */}
       {showSecondaryNav && <SecondaryNav />}
       
-      {/* Mobile Search Bar */}
+      {/* Mobile Search Bar: ready to type when it opens, and closed once a place is picked */}
       {!isHomePage && !isMediumOrLarger && showMobileSearch && (
-        <Box className="mui-fixed" sx={{ 
+        <Box id="mobile-search-bar" className="mui-fixed" sx={{ 
           width: '100%', 
           padding: '8px 16px', 
           backgroundColor: theme.palette.primary.main,
@@ -216,31 +134,7 @@ const AppBar: React.FC<AppBarProps> = ({
           top: '56px',
           zIndex: theme.zIndex.appBar - 1,
         }}>
-          <Autocomplete
-            id="mobile-district-search"
-            options={districts}
-            getOptionLabel={(option) => option.name}
-            value={isSearchFocused ? null : selectedDistrict}
-            onChange={handleMobileDistrictChange}
-            loading={loading}
-            PopperComponent={CustomPopper}
-            onFocus={handleSearchFocus}
-            onBlur={handleSearchBlur}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                placeholder="Search districts..."
-                variant="outlined"
-                fullWidth
-                size="small"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: 'white'
-                  }
-                }}
-              />
-            )}
-          />
+          <PlaceSearch id="mobile-place-search" compact autoFocus onSelect={() => setShowMobileSearch(false)} />
         </Box>
       )}
 

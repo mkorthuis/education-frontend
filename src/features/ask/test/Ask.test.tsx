@@ -285,9 +285,9 @@ describe('Home page', () => {
 
   it('offers both ways in: look up a place, or ask a question', () => {
     renderAt('/');
-    expect(screen.getByRole('heading', { name: 'Look Up a Town, District or School' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Look Up a District or School' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Or Try Asking a Question' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Town, district or school')).toBeInTheDocument();
+    expect(screen.getByLabelText('District or school')).toBeInTheDocument();
     // Phones get plain links and wider screens a list; jsdom applies neither breakpoint, so both are here
     screen.getAllByRole('link', { name: /All Districts/ }).forEach(link => expect(link).toHaveAttribute('href', '/districts'));
   });

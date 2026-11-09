@@ -97,7 +97,7 @@ export default function Home() {
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, columnGap: 3, rowGap: 2, mb: 5 }}>
         <WayIn
           id="look-up-heading"
-          title="Look Up a Town, District or School"
+          title="Look Up a District or School"
           intro="See enrollment, test scores, graduation, spending, teachers and safety for any public school district or school."
           field={<PlaceSearch id="place-search" inputRef={searchRef} />}
         >

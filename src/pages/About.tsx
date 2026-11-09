@@ -21,7 +21,7 @@ const About: React.FC = () => {
         </Typography>
 
         <Typography variant="body1">
-          You can look up any town, district or school, explore statewide data, or ask a question in your own words.
+          You can look up any district or school, explore statewide data, or ask a question in your own words.
         </Typography>
 
         <SectionTitle displayName="The Story Behind NHFacts.com" sx={{ mt: 5 }} />
