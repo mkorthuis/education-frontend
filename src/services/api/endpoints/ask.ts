@@ -35,6 +35,8 @@ export interface AskSource {
   site: string;
   /** When the fact was checked against this page (YYYY-MM-DD) */
   as_of?: string | null;
+  /** What in the answer this source supports, one line per fact, written by AI with the answer */
+  reasons?: string[];
 }
 
 export interface AskAnswer {

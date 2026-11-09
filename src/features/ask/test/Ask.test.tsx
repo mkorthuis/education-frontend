@@ -223,7 +223,7 @@ describe('Ask page', () => {
       answer: ['Parents must be told within 48 hours of a bullying report.'],
       references: [],
       sources: [
-        { label: 'RSA 193-F:4, II(i)', url: 'https://gc.nh.gov/rsa/html/XV/193-F/193-F-4.htm', site: 'gc.nh.gov', as_of: '2026-11-08' },
+        { label: 'RSA 193-F:4, II(i)', url: 'https://gc.nh.gov/rsa/html/XV/193-F/193-F-4.htm', site: 'gc.nh.gov', as_of: '2026-11-08', reasons: ['The 48-hour deadline to tell both families', 'The 5-school-day investigation start'] },
         { label: 'Parent Information Center', url: 'https://picnh.org/about-us/', site: 'picnh.org', as_of: null },
       ],
     }));
@@ -235,6 +235,10 @@ describe('Ask page', () => {
     expect(law).toHaveAttribute('target', '_blank');
     expect(law).toHaveAttribute('rel', 'noopener noreferrer');
     expect(screen.getByText('gc.nh.gov · checked Nov 8, 2026')).toBeInTheDocument();
+    // Each link says what in the answer it supports, when the answer gave a reason
+    expect(within(law).getByText('The 48-hour deadline to tell both families')).toBeInTheDocument();
+    expect(within(law).getByText('The 5-school-day investigation start')).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: /opens in a new tab/ })).toHaveLength(2);
     expect(screen.getByText('picnh.org')).toBeInTheDocument();
   });
 

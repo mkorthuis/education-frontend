@@ -85,7 +85,7 @@ const CHECKED = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric
 const OutsideSources: React.FC<{ sources: AskSource[] }> = ({ sources }) => (
   <Box>
     <Typography component="h3" sx={{ ...type.chartTitle, m: 0 }}>Sources Outside This Site</Typography>
-    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>The laws, studies and organizations this answer draws on.</Typography>
+    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>The laws, studies and organizations this answer draws on, and what each one supports.</Typography>
     <List disablePadding sx={{ border: 1, borderColor: 'divider', borderRadius: 2, overflow: 'hidden' }}>
       {sources.map((source, index) => (
         <ListItemButton
@@ -101,6 +101,10 @@ const OutsideSources: React.FC<{ sources: AskSource[] }> = ({ sources }) => (
             <Box component="span" sx={{ display: 'block', color: 'primary.dark', textDecoration: 'underline', overflowWrap: 'anywhere' }}>
               {source.label}
             </Box>
+            {(source.reasons ?? []).map(reason => (
+              // Plain text only: the reasons are written by AI
+              <Box key={reason} component="span" sx={{ display: 'block', typography: 'body2', color: 'text.primary', mt: 0.25 }}>{reason}</Box>
+            ))}
             <Box component="span" sx={{ display: 'block', typography: 'body2', color: 'text.secondary' }}>
               {source.site}{source.as_of ? ` · checked ${CHECKED.format(new Date(`${source.as_of}T00:00:00`))}` : ''}
             </Box>
