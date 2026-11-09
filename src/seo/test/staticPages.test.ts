@@ -1,5 +1,8 @@
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
-import { notFoundPage, pageTitle, paramRewrites, renderPage, SiteIndex, sitemap, staticPages, structuredData } from '../staticPages';
+import type { TileGroupModel, TileModel } from '@/features/entity/overview/tileModels';
+import {
+  districtFigureScope, notFoundPage, pageTitle, paramRewrites, renderPage, SiteIndex, sitemap, staticPages, structuredData, tileText,
+} from '../staticPages';
 
 const grades = (...names: string[]) => names.map(name => ({ name }));
 
@@ -121,6 +124,48 @@ describe('rendering a page', () => {
 
   it('refuses a template it can’t fill', () => {
     expect(() => renderPage('<html><body><div id="app"></div></body></html>', notFoundPage())).toThrow(/root/);
+  });
+});
+
+describe('key figures', () => {
+  beforeEach(() => {
+    vi.stubEnv('VITE_GRADUATION_GRADE', 'Grade 12');
+  });
+
+  const tile = (key: string, page: string, extra: Partial<TileModel> = {}): TileModel =>
+    ({ key, page, label: key, value: '1', period: '24/25', linkLabel: key, ...extra });
+  const groups: TileGroupModel[] = [
+    { title: 'Students and Spending', tiles: [tile('Students', 'enrollment'), tile('Cost per Student', 'financials')] },
+    { title: 'Results', tiles: [tile('Proficient in Math', 'academic'), tile('Four-Year Graduation Rate', 'outcomes')] },
+  ];
+  const pages = () => staticPages(INDEX, { districts: new Map([[8, groups]]) });
+  const page = (path: string) => pages().find(p => p.path === path)!;
+
+  it('shows all of a district’s tiles on its overview, and each topic page its own', () => {
+    expect(page('/district/8').figures).toEqual(groups);
+    expect(page('/district/8/financials').figures).toEqual([{ title: 'Students and Spending', tiles: [groups[0].tiles[1]] }]);
+    expect(page('/district/8/academic').figures).toEqual([{ title: 'Results', tiles: [groups[1].tiles[0]] }]);
+    expect(page('/district/8/contact').figures).toEqual([]);
+    expect(page('/district/2').figures).toEqual([]);
+  });
+
+  it('writes each tile as a sentence, under its group', () => {
+    expect(tileText(tile('Cost per Student', 'financials', {
+      value: '$24,351',
+      delta: { direction: 'up', tone: 'bad', amount: '78%', since: '14/15', spoken: 'Up 78% since 2014-15' },
+      detail: ['Statewide $22,699', 'Up 31% after inflation'],
+    }))).toBe('Cost per Student: $24,351 (24/25). Up 78% since 2014-15. Statewide $22,699. Up 31% after inflation.');
+    expect(tileText(tile('Students', 'enrollment', { value: '3,701', detail: 'Public school students living in Concord' })))
+      .toBe('Students: 3,701 (24/25). Public school students living in Concord.');
+    const html = renderPage(TEMPLATE, page('/district/8/financials'));
+    expect(html).toContain('<h2>Students and Spending</h2><ul><li>Cost per Student: 1 (24/25).</li></ul>');
+  });
+
+  it('loads test results only for districts that run schools, and graduation only where there’s a graduation page', () => {
+    expect(districtFigureScope(INDEX)).toEqual([
+      { id: 8, hasSchools: true, hasGraduation: true },
+      { id: 2, hasSchools: false, hasGraduation: false },
+    ]);
   });
 });
 

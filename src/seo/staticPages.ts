@@ -1,3 +1,4 @@
+import type { TileGroupModel, TileModel } from '@/features/entity/overview/tileModels';
 import { districtTitle, listNames } from '@/features/district/utils/labels';
 import { PAGE_REGISTRY, PageEntry } from '@/routes/pageRegistry';
 
@@ -130,6 +131,8 @@ export interface StaticPage {
   sections: { heading: string; links: PageLink[] }[];
   /** Home to this page, e.g. Home › All Districts › Concord School District › Financials */
   breadcrumbs: PageLink[];
+  /** The key figures the page's tiles show, as on the overview: all of them there, a topic page's own on it */
+  figures: TileGroupModel[];
   /** Whether search engines should index it */
   index: boolean;
 }
@@ -143,7 +146,31 @@ const isEnabled = (page: PageEntry, entity: unknown): boolean =>
 
 const byName = <T extends { name: string }>(a: T, b: T): number => a.name.localeCompare(b.name);
 
-export const staticPages = (index: SiteIndex): StaticPage[] => {
+/** Key figures written into the pages, by district id (from districtTileGroups) */
+export interface PageFigures {
+  districts?: Map<number, TileGroupModel[]>;
+}
+
+/** A topic page's own tiles from the overview's: the financials page's spending, the academics page's test results */
+const figuresFor = (groups: TileGroupModel[], key: string): TileGroupModel[] =>
+  key === 'overview'
+    ? groups
+    : groups.map(group => ({ ...group, tiles: group.tiles.filter(tile => tile.page === key) })).filter(group => group.tiles.length > 0);
+
+/**
+ * What a district's overview loads, as the app decides it: test results and salaries for a district
+ * that runs schools, graduation for one with a graduation page
+ */
+export const districtFigureScope = (index: SiteIndex): { id: number; hasSchools: boolean; hasGraduation: boolean }[] => {
+  const publicIds = new Set(index.districts.map(district => district.id));
+  const schools = index.schools.filter(school => publicIds.has(school.district_id));
+  return index.districts.map(district => {
+    const own = schools.filter(school => school.district_id === district.id);
+    return { id: district.id, hasSchools: own.length > 0, hasGraduation: isEnabled(PAGE_REGISTRY.district.outcomes, { ...district, schools: own }) };
+  });
+};
+
+export const staticPages = (index: SiteIndex, figures: PageFigures = {}): StaticPage[] => {
   const townName = new Map(index.towns.map(town => [town.id, town.name]));
   const districts = [...index.districts].sort(byName);
   const districtById = new Map(districts.map(district => [district.id, district]));
@@ -175,6 +202,7 @@ export const staticPages = (index: SiteIndex): StaticPage[] => {
       description: GENERAL_DESCRIPTIONS[key] ?? `${page.displayName}, ${SITE_NAME}.`,
       sections,
       breadcrumbs: page === general.home ? [home] : [home, crumb(page)],
+      figures: [],
       index: true,
     });
   }
@@ -193,6 +221,7 @@ export const staticPages = (index: SiteIndex): StaticPage[] => {
         { heading: 'On this site', links: mainLinks },
       ],
       breadcrumbs: overview ? [home, statewide] : [home, statewide, crumb(page)],
+      figures: [],
       index: true,
     });
   }
@@ -223,6 +252,7 @@ export const staticPages = (index: SiteIndex): StaticPage[] => {
         description: key === 'overview' ? overview : `${SHOWS[key] ?? page.displayName} for ${name}${where}, ${SOURCE}.`,
         sections,
         breadcrumbs: key === 'overview' ? trail : [...trail, crumb(page, district.id)],
+        figures: figuresFor(figures.districts?.get(district.id) ?? [], key),
         index: true,
       });
     }
@@ -252,6 +282,7 @@ export const staticPages = (index: SiteIndex): StaticPage[] => {
           : `${SCHOOL_SHOWS[key] ?? page.displayName} for ${name}${inDistrict}, ${SOURCE}.`,
         sections,
         breadcrumbs: key === 'overview' ? trail : [...trail, crumb(page, school.id)],
+        figures: [],
         index: true,
       });
     }
@@ -259,7 +290,7 @@ export const staticPages = (index: SiteIndex): StaticPage[] => {
 
   // Signed-in pages: the app alone, kept out of search results
   for (const page of Object.values(PAGE_REGISTRY.admin)) {
-    pages.push({ path: page.urlPatterns[0], title: pageTitle(page), heading: page.displayName, description: '', sections: [], breadcrumbs: [], index: false });
+    pages.push({ path: page.urlPatterns[0], title: pageTitle(page), heading: page.displayName, description: '', sections: [], breadcrumbs: [], figures: [], index: false });
   }
 
   return pages;
@@ -273,6 +304,7 @@ export const notFoundPage = (): StaticPage => ({
   description: "We couldn't find that page.",
   sections: [{ heading: 'On this site', links: [PAGE_REGISTRY.general.home, PAGE_REGISTRY.general.districts, PAGE_REGISTRY.general.schools].map(page => ({ href: page.urlPatterns[0], text: page.displayName })) }],
   breadcrumbs: [],
+  figures: [],
   index: false,
 });
 
@@ -340,12 +372,24 @@ const HIDE_WITH_SCRIPTS = [
   '<style>.scripts-run .static-page{display:none}</style>',
 ];
 
+/** A tile as a sentence: "Cost per Student: $24,412 (24/25). Up 52% since 2014-15. Statewide $22,699." */
+export const tileText = (tile: TileModel): string => {
+  const details = typeof tile.detail === 'string' ? [tile.detail] : tile.detail ?? [];
+  return [`${tile.label}: ${tile.value} (${tile.period})`, tile.delta?.spoken, ...details]
+    .filter(Boolean)
+    .map(part => part!.replace(/\.$/, ''))
+    .join('. ') + '.';
+};
+
+const figuresHtml = (groups: TileGroupModel[]): string =>
+  groups.map(group => `<h2>${escaped(group.title)}</h2><ul>${group.tiles.map(tile => `<li>${escaped(tileText(tile))}</li>`).join('')}</ul>`).join('');
+
 const bodyHtml = (page: StaticPage): string => {
   if (!page.index && !page.sections.length) return '';
   const sections = page.sections.map(section =>
     `<h2>${escaped(section.heading)}</h2><ul>${section.links.map(link => `<li><a href="${escaped(link.href)}">${escaped(link.text)}</a></li>`).join('')}</ul>`
   ).join('');
-  return `<div class="static-page" style="${BODY_STYLE}"><p><a href="/">${SITE_NAME}</a></p><h1>${escaped(page.heading)}</h1><p>${escaped(page.description)}</p>${sections ? `<nav>${sections}</nav>` : ''}</div>`;
+  return `<div class="static-page" style="${BODY_STYLE}"><p><a href="/">${SITE_NAME}</a></p><h1>${escaped(page.heading)}</h1><p>${escaped(page.description)}</p>${figuresHtml(page.figures)}${sections ? `<nav>${sections}</nav>` : ''}</div>`;
 };
 
 /** sitemap.xml: every page search engines should index */
