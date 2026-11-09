@@ -11,7 +11,7 @@ import AskForm from '@/features/ask/AskForm';
 import { AI_NOTE, EXAMPLE_QUESTIONS } from '@/features/ask/askCopy';
 import { ASK_PATH, askState } from '@/features/ask/askRoute';
 import QuestionButtons from '@/features/ask/QuestionButtons';
-import DeepThinkToggle from '@/features/ask/DeepThinkToggle';
+import MoreTimeToggle from '@/features/ask/MoreTimeToggle';
 import { STATE_PAGE_DESCRIPTIONS } from '@/features/state/utils/labels';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { clearTurns, selectAsk } from '@/store/slices/askSlice';
@@ -66,12 +66,12 @@ const WayIn: React.FC<WayInProps> = ({ id, title, intro, field, children }) => (
 export default function Home() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  // The Deep Think switch is shared with the Ask page
-  const { deepThink } = useAppSelector(selectAsk);
+  // The Take More Time switch is shared with the Ask page
+  const { moreTime } = useAppSelector(selectAsk);
   // A question from here starts a new discussion: the earlier questions are cleared, not continued
   const askFresh = (question: string) => {
     dispatch(clearTurns());
-    navigate(ASK_PATH, askState(question, [], deepThink));
+    navigate(ASK_PATH, askState(question, [], moreTime));
   };
   const location = useLocation();
   const searchRef = useRef<HTMLInputElement>(null);
@@ -136,7 +136,7 @@ export default function Home() {
           id="ask-heading"
           title="Or Try Asking a Question"
           intro="In your own words. Answers come from this site with charts and links to source data."
-          field={<AskForm id="home-question" label="Your question" onAsk={askFresh} fieldRef={questionRef} hint={false} controls={<DeepThinkToggle />} />}
+          field={<AskForm id="home-question" label="Your question" onAsk={askFresh} fieldRef={questionRef} hint={false} controls={<MoreTimeToggle />} />}
         >
           <QuestionButtons label="Example questions" questions={EXAMPLE_QUESTIONS.slice(0, HOME_EXAMPLES)} onAsk={askFresh} />
           <Typography variant="body2" color="text.secondary">{AI_NOTE}</Typography>

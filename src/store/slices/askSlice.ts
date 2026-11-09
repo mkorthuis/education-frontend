@@ -16,7 +16,7 @@ export interface AskTurn {
   question: string;
   /** The earlier questions it was asked after, sent again if it's retried */
   context: AskEarlierTurn[];
-  /** Asked with Deep Think, which a retry keeps */
+  /** Asked taking more time, which a retry keeps */
   deep: boolean;
   status: 'loading' | 'succeeded' | 'failed';
   /** The answer's paragraphs written so far, while it's loading */
@@ -29,8 +29,8 @@ export interface AskState {
   /** What's in the question field, sent or not; the home page and the Ask page share it */
   draft: string;
   turns: AskTurn[];
-  /** Whether the next question is asked with Deep Think */
-  deepThink: boolean;
+  /** Whether the next question is asked taking more time */
+  moreTime: boolean;
 }
 
 // The page keeps the latest questions; older ones drop off the top
@@ -46,14 +46,14 @@ export const contextFrom = (turns: AskTurn[]): AskEarlierTurn[] =>
     .slice(-MAX_CONTEXT)
     .map(turn => ({ question: turn.question, answer: turn.response!.answer }));
 
-/** A question, the earlier ones it follows, and whether it's asked with Deep Think */
+/** A question, the earlier ones it follows, and whether it's asked taking more time */
 export interface AskRequest {
   question: string;
   context: AskEarlierTurn[];
   deep?: boolean;
 }
 
-const initialState: AskState = { draft: '', turns: [], deepThink: false };
+const initialState: AskState = { draft: '', turns: [], moreTime: false };
 
 const errorKind = (error: unknown): AskErrorKind => {
   if (!axios.isAxiosError(error)) return 'server';
@@ -93,8 +93,8 @@ const askSlice = createSlice({
     removeTurn: (state, action: PayloadAction<string>) => {
       state.turns = state.turns.filter(turn => turn.id !== action.payload);
     },
-    setDeepThink: (state, action: PayloadAction<boolean>) => {
-      state.deepThink = action.payload;
+    setMoreTime: (state, action: PayloadAction<boolean>) => {
+      state.moreTime = action.payload;
     },
     /** Start over: no questions, an empty field */
     clearTurns: (state) => {
@@ -138,6 +138,6 @@ const askSlice = createSlice({
   },
 });
 
-export const { setDraft, setDeepThink, removeTurn, clearTurns } = askSlice.actions;
+export const { setDraft, setMoreTime, removeTurn, clearTurns } = askSlice.actions;
 export const selectAsk = (state: RootState) => state.ask;
 export default askSlice.reducer;

@@ -18,7 +18,7 @@ interface AskFormProps {
   /** The tip under the field, or false for none; the checks' messages show there either way */
   hint?: string | false;
   fieldRef?: React.RefObject<HTMLTextAreaElement>;
-  /** Beside the Ask button, such as the Deep Think switch */
+  /** Beside the Ask button, such as the Take More Time switch */
   controls?: React.ReactNode;
 }
 

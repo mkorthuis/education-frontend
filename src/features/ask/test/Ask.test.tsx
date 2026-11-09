@@ -6,7 +6,7 @@ import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AxiosError, AxiosHeaders } from 'axios';
 import { store } from '@/store/store';
-import { askQuestion, AskTurn, clearTurns, contextFrom, setDeepThink, setDraft } from '@/store/slices/askSlice';
+import { askQuestion, AskTurn, clearTurns, contextFrom, setMoreTime, setDraft } from '@/store/slices/askSlice';
 import { AskAnswer, askApi } from '@/services/api/endpoints/ask';
 import Home from '@/pages/Home';
 import AskPage from '../AskPage';
@@ -74,7 +74,7 @@ describe('Ask page', () => {
     ask.mockReset();
     store.dispatch(clearTurns());
     store.dispatch(setDraft(''));
-    store.dispatch(setDeepThink(false));
+    store.dispatch(setMoreTime(false));
   });
 
   it('asks nothing for an empty question and says why', async () => {
@@ -270,16 +270,16 @@ describe('Ask page', () => {
     expect(screen.getByRole('region', { name: 'How much does Concord spend per student?' })).toHaveAttribute('aria-busy', 'false');
   });
 
-  it('asks with Deep Think when it is switched on, and says so', async () => {
+  it('asks taking more time when it is switched on, and says so', async () => {
     ask.mockResolvedValue(answer());
     renderAt();
-    expect(screen.getByRole('button', { name: 'About Deep Think' })).toHaveAccessibleDescription(/takes more time to reason/);
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Deep Think' }));
+    expect(screen.getByRole('button', { name: 'About Take More Time' })).toHaveAccessibleDescription(/takes more time to reason/);
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Take More Time' }));
     await typeAndAsk('How does New Hampshire compare with Massachusetts on NAEP math?');
     await waitFor(() => expect(ask).toHaveBeenLastCalledWith('How does New Hampshire compare with Massachusetts on NAEP math?', [], expect.anything(), true, expect.any(Function)));
-    expect(await screen.findByText('You asked, with Deep Think')).toBeInTheDocument();
+    expect(await screen.findByText('You asked, taking more time')).toBeInTheDocument();
     // Off again, the next question is asked the usual way
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Deep Think' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Take More Time' }));
     await fillAndAsk('How much does Concord spend per student?');
     await waitFor(() => expect(ask).toHaveBeenLastCalledWith('How much does Concord spend per student?', expect.anything(), expect.anything(), false, expect.any(Function)));
   });
@@ -310,12 +310,15 @@ describe('Follow-up context', () => {
   });
 });
 
+// Typing on the home page, then opening the Ask page, can take over the default 5 seconds while the whole suite runs
+const PAGE_CHANGE_MS = 15000;
+
 describe('Home page', () => {
   beforeEach(() => {
     ask.mockReset();
     store.dispatch(clearTurns());
     store.dispatch(setDraft(''));
-    store.dispatch(setDeepThink(false));
+    store.dispatch(setMoreTime(false));
   });
 
   it('offers both ways in: look up a place, or ask a question', () => {
@@ -327,16 +330,16 @@ describe('Home page', () => {
     screen.getAllByRole('link', { name: /All Districts/ }).forEach(link => expect(link).toHaveAttribute('href', '/districts'));
   });
 
-  it('asks from the home page with Deep Think when it is switched on', async () => {
+  it('asks from the home page taking more time when it is switched on', async () => {
     ask.mockResolvedValue(answer());
     renderAt('/');
-    await userEvent.click(screen.getByRole('checkbox', { name: 'Deep Think' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Take More Time' }));
     await typeAndAsk('How does New Hampshire compare with Massachusetts on NAEP math?');
     await waitFor(() => expect(ask).toHaveBeenCalledWith('How does New Hampshire compare with Massachusetts on NAEP math?', [], expect.anything(), true, expect.any(Function)), { timeout: 5000 });
-    expect(await screen.findByText('You asked, with Deep Think', {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(await screen.findByText('You asked, taking more time', {}, { timeout: 5000 })).toBeInTheDocument();
     // The switch stays on for the Ask page's next question
-    expect(screen.getByRole('checkbox', { name: 'Deep Think' })).toBeChecked();
-  });
+    expect(screen.getByRole('checkbox', { name: 'Take More Time' })).toBeChecked();
+  }, PAGE_CHANGE_MS);
 
   it('opens the Ask page with the question and its answer', async () => {
     ask.mockResolvedValue(answer());
@@ -346,7 +349,7 @@ describe('Home page', () => {
     expect(await screen.findByRole('heading', { name: 'Ask About New Hampshire Schools' }, { timeout: 5000 })).toBeInTheDocument();
     expect(await screen.findByText(/Concord spent \$24,351 per student/, {}, { timeout: 5000 })).toBeInTheDocument();
     expect(ask).toHaveBeenCalledTimes(1);
-  });
+  }, PAGE_CHANGE_MS);
 
   it('starts a new discussion, clearing the questions asked before', async () => {
     ask.mockResolvedValue(answer({ answer: ['Earlier answer.'] }));
@@ -360,5 +363,5 @@ describe('Home page', () => {
     expect(screen.queryByText('Earlier answer.')).not.toBeInTheDocument();
     // Asked on its own, not as a follow-up
     expect(ask).toHaveBeenLastCalledWith('How much does Concord spend per student?', [], expect.anything(), false, expect.any(Function));
-  });
+  }, PAGE_CHANGE_MS);
 });

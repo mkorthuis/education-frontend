@@ -59,7 +59,7 @@ export interface AskAnswer {
 export const ASK_MAX_LENGTH = 500;
 /** Answers usually take 5 to 15 seconds; the visitor gets an error after this long */
 export const ASK_TIMEOUT_MS = 45000;
-/** Deep Think thinks longer: the server allows it 90 seconds */
+/** Taking more time, Claude thinks longer: the server allows it 90 seconds */
 export const ASK_DEEP_TIMEOUT_MS = 100000;
 
 /** An earlier question on the Ask page and its answer, which a follow-up may refer to */
@@ -124,7 +124,7 @@ export const readAnswer = async (
 export const askApi = {
   /**
    * `history` is the page's earlier questions, oldest first, so "What about science?" knows what came
-   * before. `deep` is Deep Think: Claude thinks longer, for complex questions. `onPartial` is given the
+   * before. `deep` is Take More Time: Claude thinks longer, for complex questions. `onPartial` is given the
    * answer's paragraphs as they're written.
    */
   ask: async (

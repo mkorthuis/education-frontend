@@ -12,9 +12,9 @@ import { ASK_MAX_LENGTH, AskEarlierTurn } from '@/services/api/endpoints/ask';
 import { LOOK_UP_HASH } from '@/features/search/placeOptions';
 import AskAnswerView, { AnswerInProgress } from './AskAnswerView';
 import AskForm from './AskForm';
-import { AI_NOTE, DECLINED_MESSAGE, DEEP_LOADING_TEXT, ERRORS, EXAMPLE_QUESTIONS, LOADING_TEXT, readyMessage } from './askCopy';
+import { AI_NOTE, DECLINED_MESSAGE, MORE_TIME_LOADING_TEXT, ERRORS, EXAMPLE_QUESTIONS, LOADING_TEXT, readyMessage } from './askCopy';
 import { ASK_PATH, askState, contextIn, deepIn, questionIn } from './askRoute';
-import DeepThinkToggle from './DeepThinkToggle';
+import MoreTimeToggle from './MoreTimeToggle';
 import QuestionButtons from './QuestionButtons';
 
 // The Ask page: the visitor's questions and their answers, oldest first, with the question field
@@ -41,7 +41,7 @@ const Working: React.FC<{ deep: boolean; onCancel: () => void; onStillWorking: (
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
         {reduceMotion ? <HourglassEmptyOutlinedIcon aria-hidden fontSize="small" color="action" /> : <CircularProgress size={20} aria-hidden />}
-        <Typography variant="body1">{stillWorking ? 'Still working. Thanks for waiting.' : deep ? DEEP_LOADING_TEXT : LOADING_TEXT}</Typography>
+        <Typography variant="body1">{stillWorking ? 'Still working. Thanks for waiting.' : deep ? MORE_TIME_LOADING_TEXT : LOADING_TEXT}</Typography>
       </Box>
       <Box aria-hidden>
         {['100%', '92%', '60%'].map(width => <Skeleton key={width} variant="text" width={width} animation={reduceMotion ? false : 'pulse'} />)}
@@ -57,7 +57,7 @@ const AskPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const question = questionIn(location.state);
-  const { turns, deepThink } = useAppSelector(selectAsk);
+  const { turns, moreTime } = useAppSelector(selectAsk);
   const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const [announcement, setAnnouncement] = useState('');
   const fieldRef = useRef<HTMLTextAreaElement>(null);
@@ -90,7 +90,7 @@ const AskPage: React.FC = () => {
   const ask = (text: string, context: AskEarlierTurn[], deep: boolean) => {
     const request = dispatch(askQuestion({ question: text, context, deep }));
     requests.current.set(request.requestId, request);
-    announce(deep ? DEEP_LOADING_TEXT : 'Looking up the answer. This usually takes 5 to 15 seconds.');
+    announce(deep ? MORE_TIME_LOADING_TEXT : 'Looking up the answer. This usually takes 5 to 15 seconds.');
     window.requestAnimationFrame(() => showTurn(request.requestId, true));
   };
 
@@ -132,8 +132,8 @@ const AskPage: React.FC = () => {
     });
   }, [turns]);
 
-  /** Each question gets its own history entry, which asks it after the questions answered on the page, with Deep Think if it's on */
-  const submit = (text: string) => navigate(ASK_PATH, askState(text, contextFrom(turns), deepThink));
+  /** Each question gets its own history entry, which asks it after the questions answered on the page, taking more time if that's switched on */
+  const submit = (text: string) => navigate(ASK_PATH, askState(text, contextFrom(turns), moreTime));
 
   const retry = (turn: AskTurn) => {
     dispatch(removeTurn(turn.id));
@@ -196,7 +196,7 @@ const AskPage: React.FC = () => {
           sx={{ scrollMarginTop: '72px' }}
         >
           <Box sx={{ borderLeft: '3px solid', borderColor: 'grey.300', pl: 1.5, mb: 3 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>{turn.deep ? 'You asked, with Deep Think' : 'You asked'}</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>{turn.deep ? 'You asked, taking more time' : 'You asked'}</Typography>
             <Typography
               id={`question-${turn.id}`}
               component="h2"
@@ -246,7 +246,7 @@ const AskPage: React.FC = () => {
           fieldRef={fieldRef}
           disabled={loading}
           hint={hasTurns ? false : undefined}
-          controls={<DeepThinkToggle />}
+          controls={<MoreTimeToggle />}
         />
 
         {!hasTurns && (

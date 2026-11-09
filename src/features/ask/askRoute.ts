@@ -12,7 +12,7 @@ export const ASK_PATH = '/ask';
  */
 export const askState = (question: string, context: AskEarlierTurn[] = [], deep = false) => ({ state: { question, context, deep } });
 
-/** Whether a history entry's question is asked with Deep Think */
+/** Whether a history entry's question is asked taking more time */
 export const deepIn = (state: unknown): boolean => (state as { deep?: unknown } | null)?.deep === true;
 
 /** The earlier questions a history entry's question follows */
