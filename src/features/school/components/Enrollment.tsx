@@ -21,6 +21,9 @@ import { EnrollmentProjectionSnapshot } from '@/utils/enrollmentProjection';
 import SectionTitle from '@/components/ui/SectionTitle';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import { aggregateStatus } from '@/store/utils/loadingState';
+import { downloadWorkbook } from '@/features/state/utils/excel';
+import { entityFileName } from '@/features/entity/excel';
+import { schoolEnrollmentWorkbook } from '@/features/entity/workbooks/enrollmentWorkbook';
 
 /**
  * Represents the School Enrollment page/feature.
@@ -76,6 +79,18 @@ const Enrollment: React.FC = () => {
   // a failed request shows the page's empty states
   const isLoading = schoolLoading || (!!school && aggregateStatus([schoolEnrollmentLoading]) === 'loading');
 
+  // Everything on the page as one workbook, once the school's enrollment has loaded
+  const downloadReady = !!school && aggregateStatus([schoolEnrollmentLoading]) === 'ready';
+  const downloadExcel = () => {
+    if (!school) return;
+    return downloadWorkbook(entityFileName('school', school.name, 'enrollment'), schoolEnrollmentWorkbook({
+      name: school.name,
+      displayName: PAGE_REGISTRY.school.enrollment.displayName,
+      gradeIds: (school.grades ?? []).map(grade => grade.id),
+      enrollment: schoolEnrollmentData,
+    }));
+  };
+
   // Show loading state
   if (isLoading) {
     return (
@@ -90,6 +105,8 @@ const Enrollment: React.FC = () => {
       <SectionTitle 
         displayName={PAGE_REGISTRY.school.enrollment.displayName}
         schoolName={school?.name}
+        onDownload={downloadExcel}
+        downloadReady={downloadReady}
       />
 
       {/* Two columns on desktop, one column on mobile using flexbox */}

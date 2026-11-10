@@ -25,14 +25,13 @@ import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectLatestStateExpenditureDetails, 
   selectExpenditureEntryTypes,
-  selectTotalExpendituresByYear,
   selectFinancialReports,
   selectLatestStateADM,
   fetchStateADM
 } from '@/store/slices/financeSlice';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { formatCompactNumber } from '@/utils/formatting';
-import { SCHOOL_LEVEL_SUPER_CATEGORY_IDS } from '@/features/district/utils/financialDataProcessing';
+import { costBreakdown, CostCategory } from '@/features/district/utils/costBreakdown';
 
 // Define types for Redux data
 interface ExpenditureItem {
@@ -45,49 +44,10 @@ interface FinancialReport {
   expenditure_details: ExpenditureItem[];
 }
 
-// Interface for the table data structure
-interface CostCategory {
-  name: string;
-  isSubcategory?: boolean;
-  district: number; // Represents percentage
-  state: number; // Represents percentage
-  parent?: string; // Parent category name for subcategories
-}
-
 interface CostBreakdownTableProps {
   data?: CostCategory[];
   districtName?: string;
 }
-
-// Category total structure for data accumulation
-interface CategoryTotals {
-  instruction: { 
-    total: number; 
-    regular: number; 
-    special: number; 
-    vocational: number; 
-    otherPrograms: number;
-  };
-  supportServices: { 
-    total: number; 
-    student: number; 
-    building: number; 
-    administration: number; 
-    transportation: number; 
-    instructionalStaff: number; 
-    other: number; 
-    foodService: number;
-  };
-  other: { 
-    total: number; 
-    facilities: number; 
-    debtService: number; 
-    miscellaneous: number;
-  };
-}
-
-// Add a new type to handle different data processing modes
-type DataProcessingMode = 'percentage' | 'admCost';
 
 // Define a type for the view mode selection
 type ViewMode = 'percentage' | 'perPupil';
@@ -160,315 +120,20 @@ const CostBreakdownTable: React.FC<CostBreakdownTableProps> = ({ data, districtN
   const stateExpenditureDetails = useAppSelector(selectLatestStateExpenditureDetails);
   const entryTypes = useAppSelector(selectExpenditureEntryTypes);
   const districtFinancialReports = useAppSelector(selectFinancialReports);
-  const districtExpenditureTotal = useAppSelector(state => 
-    selectTotalExpendituresByYear(state, FISCAL_YEAR)
-  );
   const stateADM = useAppSelector(selectLatestStateADM);
   
-  // Helper function to process an expenditure item and update the appropriate category
-  const processExpenditureItem = (
-    categoryName: string, 
-    entryTypeName: string, 
-    percentage: number, 
-    totals: CategoryTotals
-  ): void => {
-    if (categoryName === 'Instruction') {
-      totals.instruction.total += percentage;
-      
-      if (entryTypeName === 'Regular Programs') {
-        totals.instruction.regular += percentage;
-      } else if (entryTypeName === 'Special Programs') {
-        totals.instruction.special += percentage;
-      } else if (entryTypeName === 'Vocational Programs') {
-        totals.instruction.vocational += percentage;
-      } else if (entryTypeName === 'Other Instructional Programs') {
-        totals.instruction.otherPrograms += percentage;
-      } else {
-        // Any other instruction-related programs
-        totals.instruction.otherPrograms += percentage;
-      }
-    } else if (categoryName === 'Support Services') {
-      totals.supportServices.total += percentage;
-      
-      if (entryTypeName === 'Student') {
-        totals.supportServices.student += percentage;
-      } else if (entryTypeName === 'Operation/Maintenance of Plant') {
-        totals.supportServices.building += percentage;
-      } else if (
-        entryTypeName === 'General Administration' || 
-        entryTypeName === 'School Administration' ||
-        entryTypeName === 'Business' || 
-        entryTypeName === 'Central'
-      ) {
-        totals.supportServices.administration += percentage;
-      } else if (entryTypeName === 'Student Transportation') {
-        totals.supportServices.transportation += percentage;
-      } else if (entryTypeName === 'Instructional Staff') {
-        totals.supportServices.instructionalStaff += percentage;
-      } else {
-        // Any other support service
-        totals.supportServices.other += percentage;
-      }
-    } else if (categoryName === 'Operations') {
-      if (
-        entryTypeName === 'Elementary' || 
-        entryTypeName === 'Middle/Junior High' || 
-        entryTypeName === 'High'
-      ) {
-        totals.supportServices.total += percentage;
-        totals.supportServices.foodService += percentage;
-      } else {
-        totals.other.total += percentage;
-        totals.other.miscellaneous += percentage;
-      }
-    } else {
-      totals.other.total += percentage;
-      
-      if (entryTypeName === 'Facilities Acquisition & Construction') {
-        totals.other.facilities += percentage;
-      } else if (categoryName === 'Debt Service') {
-        totals.other.debtService += percentage;
-      } else {
-        totals.other.miscellaneous += percentage;
-      }
-    }
+  // Shares of spending, and cost per student, beside the state's
+  const breakdownInput = {
+    stateItems: stateExpenditureDetails,
+    entryTypes,
+    districtReport: districtFinancialReports[FISCAL_YEAR],
+    stateADM,
   };
-  
-  // Process the data to create our cost categories - unified function for both percentage and ADM cost
-  const processData = (mode: DataProcessingMode): CostCategory[] => {
-    // Create category accumulators
-    const categoryTotals = {
-      district: {
-        instruction: { total: 0, regular: 0, special: 0, vocational: 0, otherPrograms: 0 },
-        supportServices: { 
-          total: 0, student: 0, building: 0, administration: 0, 
-          transportation: 0, instructionalStaff: 0, other: 0, foodService: 0
-        },
-        other: { total: 0, facilities: 0, debtService: 0, miscellaneous: 0 }
-      },
-      state: {
-        instruction: { total: 0, regular: 0, special: 0, vocational: 0, otherPrograms: 0 },
-        supportServices: { 
-          total: 0, student: 0, building: 0, administration: 0, 
-          transportation: 0, instructionalStaff: 0, other: 0, foodService: 0
-        },
-        other: { total: 0, facilities: 0, debtService: 0, miscellaneous: 0 }
-      }
-    };
-    
-    // Calculate state total for percentage calculations
-    const stateItems = Array.isArray(stateExpenditureDetails) ? stateExpenditureDetails : [];
-    const stateTotal = stateItems.reduce((sum: number, item: any) => sum + (item.value || 0), 0);
-    
-    // Find district expenditure report for the current fiscal year
-    const districtExpenditures = districtFinancialReports[parseInt(FISCAL_YEAR)]?.expenditures;
-    const districtADM = districtFinancialReports[parseInt(FISCAL_YEAR)]?.adm;
-    
-    // Process state data
-    stateItems.forEach((item: any) => {
-      if (!item.entry_type_id) return;
-      
-      // Find the entry type by ID
-      const entryType = Array.isArray(entryTypes) 
-        ? entryTypes.find(type => type.id === item.entry_type_id)
-        : entryTypes[item.entry_type_id]; // Fallback if entryTypes is an object
-      
-      if (!entryType) return; // Skip if entry type not found
-      
-      const categoryName = entryType?.category?.name || '';
-      const entryTypeName = entryType?.name || '';
-      const value = item.value || 0;
-      
-      let valueToProcess: number;
-      if (mode === 'percentage') {
-        valueToProcess = (value / stateTotal) * 100;
-      } else { // admCost mode
-        // Use stateADM data when available for per pupil costs
-        const totalStateADM = stateADM?.total || 1; // Prevent division by zero
-        valueToProcess = value / totalStateADM;
-      }
-      
-      processExpenditureItem(categoryName, entryTypeName, valueToProcess, categoryTotals.state);
-    });
-    
-    // Process district data
-    if (districtExpenditures && districtExpenditures.length > 0) {
-      districtExpenditures.forEach((item: any) => {
-        if (!item.entry_type.id) return;
-        
-        const entryType = item.entry_type;
-        const categoryName = entryType?.category?.name || '';
-        const entryTypeName = entryType?.name || '';
-        const value = item.value || 0;
-        const superCategoryId = entryType?.category?.super_category?.id;
-        
-        // Skip specific categories based on ADM values when in admCost mode
-        if (mode === 'admCost') {
-          // Check for elementary school expenses
-          if (SCHOOL_LEVEL_SUPER_CATEGORY_IDS.ELEMENTARY.includes(superCategoryId) && districtADM?.elementary === 0) {
-            console.log('Skipping elementary school expense', item);
-            return; // Skip this expense
-          }
-          
-          // Check for middle school expenses
-          if (SCHOOL_LEVEL_SUPER_CATEGORY_IDS.MIDDLE.includes(superCategoryId) && districtADM?.middle === 0) {
-            console.log('Skipping middle school expense', item);
-            return; // Skip this expense
-          }
-          
-          // Check for high school expenses
-          if (SCHOOL_LEVEL_SUPER_CATEGORY_IDS.HIGH.includes(superCategoryId) && districtADM?.high === 0) {
-            console.log('Skipping high school expense', item);
-            return; // Skip this expense
-          }
-          //console.log('Processing expense', item);
-        }
-        
-        let valueToProcess: number;
-        if (mode === 'percentage') {
-          valueToProcess = (value / districtExpenditureTotal) * 100;
-        } else { // admCost mode
-          valueToProcess = value / (districtADM?.total || 1); // Prevent division by zero
-        }
-        
-        processExpenditureItem(categoryName, entryTypeName, valueToProcess, categoryTotals.district);
-      });
-    } else {
-      // If no district data, use state data as placeholder
-      categoryTotals.district = { ...categoryTotals.state };
-    }
-    
-    // Transform processed data into the format needed for rendering
-    return [
-      // Instruction category
-      { 
-        name: 'Instruction', 
-        district: categoryTotals.district.instruction.total, 
-        state: categoryTotals.state.instruction.total 
-      },
-      { 
-        name: 'Regular', 
-        isSubcategory: true, 
-        district: categoryTotals.district.instruction.regular, 
-        state: categoryTotals.state.instruction.regular, 
-        parent: 'Instruction' 
-      },
-      { 
-        name: 'Special Ed.', 
-        isSubcategory: true, 
-        district: categoryTotals.district.instruction.special, 
-        state: categoryTotals.state.instruction.special, 
-        parent: 'Instruction' 
-      },
-      { 
-        name: 'Vocational', 
-        isSubcategory: true, 
-        district: categoryTotals.district.instruction.vocational, 
-        state: categoryTotals.state.instruction.vocational, 
-        parent: 'Instruction' 
-      },
-      { 
-        name: 'Other Programs', 
-        isSubcategory: true, 
-        district: categoryTotals.district.instruction.otherPrograms, 
-        state: categoryTotals.state.instruction.otherPrograms, 
-        parent: 'Instruction' 
-      },
-      
-      // Support Services category
-      { 
-        name: 'Support Services', 
-        district: categoryTotals.district.supportServices.total, 
-        state: categoryTotals.state.supportServices.total 
-      },
-      { 
-        name: 'Student', 
-        isSubcategory: true, 
-        district: categoryTotals.district.supportServices.student, 
-        state: categoryTotals.state.supportServices.student, 
-        parent: 'Support Services' 
-      },
-      { 
-        name: 'Instructional Staff', 
-        isSubcategory: true, 
-        district: categoryTotals.district.supportServices.instructionalStaff, 
-        state: categoryTotals.state.supportServices.instructionalStaff, 
-        parent: 'Support Services' 
-      },
-      { 
-        name: 'Facilities Mgmt', 
-        isSubcategory: true, 
-        district: categoryTotals.district.supportServices.building, 
-        state: categoryTotals.state.supportServices.building, 
-        parent: 'Support Services' 
-      },
-      { 
-        name: 'Administration', 
-        isSubcategory: true, 
-        district: categoryTotals.district.supportServices.administration, 
-        state: categoryTotals.state.supportServices.administration, 
-        parent: 'Support Services' 
-      },
-      { 
-        name: 'Transportation', 
-        isSubcategory: true, 
-        district: categoryTotals.district.supportServices.transportation, 
-        state: categoryTotals.state.supportServices.transportation, 
-        parent: 'Support Services' 
-      },
-      { 
-        name: 'Food Service', 
-        isSubcategory: true, 
-        district: categoryTotals.district.supportServices.foodService, 
-        state: categoryTotals.state.supportServices.foodService, 
-        parent: 'Support Services' 
-      },
-      { 
-        name: 'Other', 
-        isSubcategory: true, 
-        district: categoryTotals.district.supportServices.other, 
-        state: categoryTotals.state.supportServices.other, 
-        parent: 'Support Services' 
-      },
-      
-      // Other category
-      { 
-        name: 'Other', 
-        district: categoryTotals.district.other.total, 
-        state: categoryTotals.state.other.total 
-      },
-      { 
-        name: 'New Facilities', 
-        isSubcategory: true, 
-        district: categoryTotals.district.other.facilities, 
-        state: categoryTotals.state.other.facilities, 
-        parent: 'Other' 
-      },
-      { 
-        name: 'Debt Service', 
-        isSubcategory: true, 
-        district: categoryTotals.district.other.debtService, 
-        state: categoryTotals.state.other.debtService, 
-        parent: 'Other' 
-      },
-      { 
-        name: 'Miscellaneous', 
-        isSubcategory: true, 
-        district: categoryTotals.district.other.miscellaneous, 
-        state: categoryTotals.state.other.miscellaneous, 
-        parent: 'Other' 
-      },
-    ];
-  };
+  const processedData = useMemo((): CostCategory[] => costBreakdown('percentage', breakdownInput),
+    [stateExpenditureDetails, entryTypes, districtFinancialReports]);
 
-  // Use the unified function to create the data
-  const processedData = useMemo((): CostCategory[] => {
-    return processData('percentage');
-  }, [stateExpenditureDetails, entryTypes, districtFinancialReports, districtExpenditureTotal]);
-
-  const admProcessedData = useMemo((): CostCategory[] => {
-    return processData('admCost');
-  }, [stateExpenditureDetails, entryTypes, districtFinancialReports, stateADM]);
+  const admProcessedData = useMemo((): CostCategory[] => costBreakdown('admCost', breakdownInput),
+    [stateExpenditureDetails, entryTypes, districtFinancialReports, stateADM]);
   
   // Without entry types nothing can be categorized; without state details the State column is unknown
   const hasEntryTypes = entryTypes.length > 0;

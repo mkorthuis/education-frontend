@@ -11,6 +11,9 @@ import * as safetySlice from '@/store/slices/safetySlice';
 import { EARLIEST_YEAR } from '@/utils/safetyCalculations';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import { aggregateStatus } from '@/store/utils/loadingState';
+import { downloadWorkbook } from '@/features/state/utils/excel';
+import { entityFileName } from '@/features/entity/excel';
+import { safetyWorkbook } from '@/features/entity/workbooks/safetyWorkbook';
 
 // The district Safety page's data: fetches (including the 2 school-level requests
 // by district_id), loading gate and notices. Its notices list schools with missing
@@ -249,13 +252,56 @@ export function useDistrictSafetyPage() {
     );
   };
 
+  // Everything on the page as one workbook: every category and year, with New Hampshire's rates
+  // beside the district's, and each school's serious incidents
+  const displayName = PAGE_REGISTRY.district.safety.displayName;
+  const downloadExcel = () => {
+    if (!district) return;
+    const schoolNames = new Map(schools.map(school => [school.id, school.name]));
+    return downloadWorkbook(entityFileName('district', district.name, 'safety'), safetyWorkbook({
+      kind: 'district',
+      name: district.name,
+      displayName,
+      entity: {
+        truancy: districtTruancyData,
+        bullying: districtBullyingData,
+        bullyingClassification: districtBullyingClassificationData,
+        bullyingImpact: districtBullyingImpactData,
+        harassment: districtHarassmentData,
+        restraint: districtRestraintData,
+        seclusion: districtSeclusionData,
+        disciplineCount: districtDisciplineCountData,
+        disciplineIncident: districtDisciplineIncidentData,
+        enrollment: districtEnrollmentData,
+      },
+      state: {
+        truancy: stateTruancyData,
+        bullying: stateBullyingData,
+        harassment: stateHarassmentData,
+        restraint: stateRestraintData,
+        seclusion: stateSeclusionData,
+        disciplineCount: stateDisciplineCountData,
+        disciplineIncident: stateDisciplineIncidentData,
+        enrollment: stateEnrollmentData,
+      },
+      serious: schoolSafetyData.map(row => ({
+        school: schoolNames.get(row.school_id) ?? `School (ID: ${row.school_id})`,
+        year: row.year,
+        type: row.safety_type.name,
+        count: row.count,
+      })),
+    }));
+  };
+
   return {
     // The whitespace after the title is a text node the page has always rendered.
     title: (
       <>
         <SectionTitle 
-          displayName={PAGE_REGISTRY.district.safety.displayName}
+          displayName={displayName}
           districtName={district?.name}
+          onDownload={downloadExcel}
+          downloadReady={!isLoading && !hasLoadError && !!district}
         />{'      '}
       </>
     ),

@@ -29,6 +29,9 @@ import TeacherSalaryBand from './staff/TeacherSalaryBand';
 import TeacherAverageSalaryChart from './staff/TeacherAverageSalaryChart';
 import AverageClassSizeChart from './staff/AverageClassSizeChart';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
+import { downloadWorkbook } from '@/features/state/utils/excel';
+import { entityFileName } from '@/features/entity/excel';
+import { staffWorkbook } from '../workbooks/staffWorkbook';
 
 const Staff: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -190,6 +193,29 @@ const Staff: React.FC = () => {
     stateTeacherSalaryBandData, districtClassSizeData, stateClassSizeData
   ]);
 
+  const displayName = PAGE_REGISTRY.district.staff.displayName;
+  // Everything on the page as one workbook, with New Hampshire's figures beside the district's
+  const downloadExcel = () => {
+    if (!district) return;
+    return downloadWorkbook(entityFileName('district', district.name, 'staff'), staffWorkbook({
+      name: district.name,
+      displayName,
+      staffTypes,
+      teacherEducationTypes,
+      salaryBandTypes: teacherSalaryBandTypes,
+      staff: districtStaffData,
+      stateStaff: stateStaffData,
+      teacherEducation: districtTeacherEducationData,
+      stateTeacherEducation: stateTeacherEducationData,
+      salary: districtTeacherAverageSalaryData,
+      stateSalary: stateTeacherAverageSalaryData,
+      salaryBands: districtTeacherSalaryBandData,
+      stateSalaryBands: stateTeacherSalaryBandData,
+      classSize: districtClassSizeData,
+      stateClassSize: stateClassSizeData,
+    }));
+  };
+
   if (hasLoadError) {
     return (
       <>
@@ -213,8 +239,10 @@ const Staff: React.FC = () => {
   return (
     <>
       <SectionTitle 
-        displayName={PAGE_REGISTRY.district.staff.displayName}
+        displayName={displayName}
         districtName={district?.name}
+        onDownload={downloadExcel}
+        downloadReady={!!district}
       />
       
       <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 3 }}>

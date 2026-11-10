@@ -3,6 +3,7 @@ import { Box, Typography, CircularProgress, Grid, Paper, Table, TableBody, Table
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { 
   selectCurrentDistrict,
+  selectCurrentTowns,
   selectLocationLoading
 } from '@/store/slices/locationSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
@@ -30,6 +31,9 @@ import EfaDetailsTable from './efa/EfaDetailsTable';
 import EfaTrendChart from './efa/EfaTrendChart';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import { aggregateStatus } from '@/store/utils/loadingState';
+import { downloadWorkbook } from '@/features/state/utils/excel';
+import { entityFileName } from '@/features/entity/excel';
+import { efaWorkbook } from '../workbooks/efaWorkbook';
 
 
 const EducationFreedomAccount: React.FC = () => {
@@ -40,6 +44,7 @@ const EducationFreedomAccount: React.FC = () => {
   // District data
   const district = useAppSelector(selectCurrentDistrict);
   const districtId = district?.id;
+  const towns = useAppSelector(selectCurrentTowns);
   const districtLoading = useAppSelector(selectLocationLoading);
 
   // EFA data
@@ -120,13 +125,31 @@ const EducationFreedomAccount: React.FC = () => {
 
   // Loading until every request has finished (a request not dispatched yet counts as loading);
   // a failed request shows the page's empty states
-  const isLoading = districtLoading || (!!district && aggregateStatus([
-                   efaLoading,
-                   stateEfaLoading,
-                   entryTypesLoading,
-                   townEnrollmentLoading,
-                   stateTownEnrollmentLoading
-                 ]) === 'loading');
+  const loadStatus = aggregateStatus([
+    efaLoading,
+    stateEfaLoading,
+    entryTypesLoading,
+    townEnrollmentLoading,
+    stateTownEnrollmentLoading
+  ]);
+  const isLoading = districtLoading || (!!district && loadStatus === 'loading');
+
+  const displayName = PAGE_REGISTRY.district.efa.displayName;
+  // Everything on the page as one workbook, every year and aid category, with New Hampshire's
+  // grants and enrollment beside the district's
+  const downloadExcel = () => {
+    if (!district) return;
+    return downloadWorkbook(entityFileName('district', district.name, 'education-freedom-accounts'), efaWorkbook({
+      name: district.name,
+      displayName,
+      towns,
+      entries: efaData,
+      stateEntries: stateEfaData,
+      entryTypes,
+      townEnrollment: townEnrollmentData,
+      stateTownEnrollment: stateTownEnrollmentData,
+    }));
+  };
 
   if (isLoading) {
     return (
@@ -142,8 +165,10 @@ const EducationFreedomAccount: React.FC = () => {
       marginRight: 'auto' // Ensures left justification
     }}>
       <SectionTitle 
-        displayName={PAGE_REGISTRY.district.efa.displayName}
+        displayName={displayName}
         districtName={district?.name}
+        onDownload={downloadExcel}
+        downloadReady={!!district && loadStatus === 'ready'}
       />
       
       <EfaDetailsTable />

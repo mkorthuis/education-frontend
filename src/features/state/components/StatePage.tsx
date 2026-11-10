@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import { Box, Button, CircularProgress, Divider, GlobalStyles, Typography } from '@mui/material';
-import DownloadIcon from '@mui/icons-material/Download';
+import React from 'react';
+import { Box, CircularProgress, GlobalStyles, Typography } from '@mui/material';
 import SectionTitle from '@/components/ui/SectionTitle';
 import LoadErrorAlert from '@/components/ui/LoadErrorAlert';
 import { PageLoadStatus } from '@/store/utils/loadingState';
@@ -42,44 +41,21 @@ const StatePage: React.FC<StatePageProps> = ({
   onDownload,
   children,
 }) => {
-  const [downloading, setDownloading] = useState(false);
-  const download = async () => {
-    if (!onDownload) return;
-    setDownloading(true);
-    try {
-      await onDownload();
-    } finally {
-      setDownloading(false);
-    }
-  };
   const loaded = status !== 'failed' && status !== 'loading';
   const besideIntro = keyFiguresBesideIntro && Boolean(intro) && loaded;
   return (
     <>
       {/* Keeps keyboard focus and in-page jumps clear of the fixed header and section tabs */}
       <GlobalStyles styles={{ html: { scrollPaddingTop: 128 } }} />
-      {onDownload ? (
-        <>
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', columnGap: 2 }}>
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <SectionTitle displayName={displayName} entityName={entityName} component="h1" showEntityOnPhone={false} withDivider={false} sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
-            </Box>
-            {/* No download on phones, as with the charts' CSV links */}
-            <Button
-              variant="outlined"
-              startIcon={<DownloadIcon />}
-              onClick={download}
-              disabled={downloading || status !== 'ready'}
-              sx={{ display: { xs: 'none', sm: 'inline-flex' }, flexShrink: 0, mt: 1.25, textTransform: 'none' }}
-            >
-              Download Excel
-            </Button>
-          </Box>
-          <Divider sx={{ display: { xs: 'none', sm: 'block' }, mb: 2 }} />
-        </>
-      ) : (
-        <SectionTitle displayName={displayName} entityName={entityName} component="h1" showEntityOnPhone={false} sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }} />
-      )}
+      <SectionTitle
+        displayName={displayName}
+        entityName={entityName}
+        component="h1"
+        showEntityOnPhone={false}
+        sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' } }}
+        onDownload={onDownload}
+        downloadReady={status === 'ready'}
+      />
       <Box
         sx={besideIntro
           ? {

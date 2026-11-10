@@ -7,7 +7,7 @@ import {
   selectLocationLoading,
   fetchDistrictById
 } from '@/store/slices/locationSlice';
-import SectionTitle from '@/components/ui/SectionTitle';
+import SectionTitle, { DownloadExcelButton } from '@/components/ui/SectionTitle';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 
 import {
@@ -32,6 +32,11 @@ import {
   selectAdjustForInflation,
   toggleInflationAdjustment
 } from '@/store/slices/financeSlice';
+import { LoadingState } from '@/store/utils/loadingState';
+import { FISCAL_YEAR } from '@/utils/environment';
+import { downloadWorkbook } from '@/features/state/utils/excel';
+import { entityFileName } from '@/features/entity/excel';
+import { financialsWorkbook } from '../workbooks/financialsWorkbook';
 
 // Import tab components
 import OverallTab from './financial/OverallTab';
@@ -58,7 +63,9 @@ const FinancialsTitle: React.FC<{
   displayName: string;
   districtName: string;
   adjustForInflation: boolean;
-}> = ({ displayName, districtName, adjustForInflation }) => {
+  onDownload: () => Promise<void> | void;
+  downloadReady: boolean;
+}> = ({ displayName, districtName, adjustForInflation, onDownload, downloadReady }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
@@ -69,6 +76,8 @@ const FinancialsTitle: React.FC<{
         displayName={displayName}
         districtName={districtName}
         withDivider={false}
+        onDownload={onDownload}
+        downloadReady={downloadReady}
       />
     );
   }
@@ -104,11 +113,13 @@ const FinancialsTitle: React.FC<{
   } else {
     // On desktop, append "In Current Dollars" to the title in red
     return (
-      <Box>
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', columnGap: 2 }}>
         <Typography 
           variant="h5" 
           gutterBottom 
           sx={{ 
+            flex: 1,
+            minWidth: 0,
             fontWeight: 500,
             mt: 1,
             mb: 0.5,
@@ -125,6 +136,7 @@ const FinancialsTitle: React.FC<{
             &nbsp;In Current Dollars
           </Box>
         </Typography>
+        <DownloadExcelButton onDownload={onDownload} ready={downloadReady} />
       </Box>
     );
   }
@@ -286,6 +298,29 @@ const Financials: React.FC = () => {
 
   // Loading and data availability states
   const isLoading = districtLoading || financeLoading;
+
+  // Everything on the page's four tabs as one workbook, once all of it has loaded for this district
+  const finance = useAppSelector(state => state.finance);
+  const downloadReady = !!district && !isLoading && !financeError
+    && finance.processedReportDistrictId === district.id
+    && Object.values(finance.loadingStates).every(status => status === LoadingState.SUCCEEDED);
+  const downloadExcel = () => {
+    if (!district) return;
+    return downloadWorkbook(entityFileName('district', district.name, 'financials'), financialsWorkbook({
+      name: district.name,
+      displayName: PAGE_REGISTRY.district.financials.displayName,
+      breakdownYear: parseInt(FISCAL_YEAR),
+      reports: finance.processedReports,
+      perPupil: finance.perPupilExpenditureAllData,
+      statePerPupil: finance.statePerPupilExpenditureAllData,
+      stateRollups: finance.stateExpenditureRollupData,
+      stateRevenue: finance.stateRevenueAllData,
+      stateExpenditure: finance.stateExpenditureAllData,
+      stateADM: finance.stateADMData,
+      revenueEntryTypes: finance.revenueEntryTypes,
+      expenditureEntryTypes: finance.expenditureEntryTypes,
+    }));
+  };
   
   // Render tab content based on selected tab
   const renderTabContent = () => {
@@ -321,13 +356,19 @@ const Financials: React.FC = () => {
           <Box sx={{ 
             display: 'flex', 
             alignItems: isMobile ? 'flex-start' : 'center', 
-            justifyContent: 'space-between' 
+            justifyContent: 'space-between',
+            columnGap: { sm: 2 }
           }}>
-            <FinancialsTitle
-              displayName={PAGE_REGISTRY.district.financials.displayName}
-              districtName={district.name}
-              adjustForInflation={adjustForInflation}
-            />
+            {/* The title takes the row's free space, so Download Excel sits beside the inflation button */}
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <FinancialsTitle
+                displayName={PAGE_REGISTRY.district.financials.displayName}
+                districtName={district.name}
+                adjustForInflation={adjustForInflation}
+                onDownload={downloadExcel}
+                downloadReady={downloadReady}
+              />
+            </Box>
             
             {/* Inflation adjustment button */}
             <ToggleButtonGroup

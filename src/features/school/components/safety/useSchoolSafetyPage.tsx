@@ -10,6 +10,9 @@ import * as safetySlice from '@/store/slices/safetySlice';
 import { EARLIEST_YEAR } from '@/utils/safetyCalculations';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import { aggregateStatus } from '@/store/utils/loadingState';
+import { downloadWorkbook } from '@/features/state/utils/excel';
+import { entityFileName } from '@/features/entity/excel';
+import { safetyWorkbook } from '@/features/entity/workbooks/safetyWorkbook';
 
 // The school Safety page's data: fetches, loading gate and notices. Its notices
 // differ from the district page's (see useDistrictSafetyPage).
@@ -254,11 +257,48 @@ export function useSchoolSafetyPage() {
     );
   };
 
+  // Everything on the page as one workbook: every category and year, with New Hampshire's rates
+  // beside the school's
+  const displayName = PAGE_REGISTRY.school.safety.displayName;
+  const downloadExcel = () => {
+    if (!school) return;
+    return downloadWorkbook(entityFileName('school', school.name, 'safety'), safetyWorkbook({
+      kind: 'school',
+      name: school.name,
+      displayName,
+      entity: {
+        truancy: schoolTruancyData,
+        bullying: schoolBullyingData,
+        bullyingClassification: schoolBullyingClassificationData,
+        bullyingImpact: schoolBullyingImpactData,
+        harassment: schoolHarassmentData,
+        restraint: schoolRestraintData,
+        seclusion: schoolSeclusionData,
+        disciplineCount: schoolDisciplineCountData,
+        disciplineIncident: schoolDisciplineIncidentData,
+        enrollment: schoolEnrollmentData,
+      },
+      state: {
+        truancy: stateTruancyData,
+        bullying: stateBullyingData,
+        harassment: stateHarassmentData,
+        restraint: stateRestraintData,
+        seclusion: stateSeclusionData,
+        disciplineCount: stateDisciplineCountData,
+        disciplineIncident: stateDisciplineIncidentData,
+        enrollment: stateEnrollmentData,
+      },
+      serious: schoolSafetyData.map(row => ({ year: row.year, type: row.safety_type.name, count: row.count })),
+    }));
+  };
+
   return {
     title: (
       <SectionTitle 
-        displayName={PAGE_REGISTRY.school.safety.displayName}
+        displayName={displayName}
         schoolName={school?.name}
+        onDownload={downloadExcel}
+        downloadReady={!isLoading && !hasLoadError && !!school}
       />
     ),
     isLoading,

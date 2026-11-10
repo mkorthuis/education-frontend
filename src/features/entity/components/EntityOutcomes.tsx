@@ -13,6 +13,9 @@ import EntityWhatIsNextChart from './outcome/EntityWhatIsNextChart';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import { EntityKind, SELECT_CURRENT_ENTITY } from '@/features/entity/entity';
 import { OUTCOME } from '@/features/entity/bindings/outcome';
+import { downloadWorkbook } from '@/features/state/utils/excel';
+import { entityFileName } from '../excel';
+import { outcomesWorkbook } from '../workbooks/outcomesWorkbook';
 
 const EntityOutcomes: React.FC<{ kind: EntityKind }> = ({ kind }) => {
   const dispatch = useAppDispatch();
@@ -123,12 +126,31 @@ const EntityOutcomes: React.FC<{ kind: EntityKind }> = ({ kind }) => {
     postGraduationTypes
   ]);
 
+  const displayName = PAGE_REGISTRY[kind].outcomes.displayName;
+  // Everything on the page as one workbook, with New Hampshire's figures beside the entity's
+  const downloadExcel = () => {
+    if (!entity) return;
+    return downloadWorkbook(entityFileName(kind, entity.name, 'graduation'), outcomesWorkbook({
+      kind,
+      name: entity.name,
+      displayName,
+      cohorts: entityGraduationCohortData,
+      stateCohorts: stateGraduationCohortData,
+      postGraduation: entityPostGraduationData,
+      statePostGraduation: statePostGraduationData,
+      earlyExit: entityEarlyExitData,
+      stateEarlyExit: stateEarlyExitData,
+    }));
+  };
+
   return (
     <>
       <SectionTitle
-        displayName={PAGE_REGISTRY[kind].outcomes.displayName}
+        displayName={displayName}
         schoolName={kind === 'school' ? entity?.name : undefined}
         districtName={kind === 'district' ? entity?.name : undefined}
+        onDownload={downloadExcel}
+        downloadReady={!isLoading && !hasLoadError && !!entity}
       />
 
       <Box sx={{ mt: 3 }}>

@@ -31,6 +31,9 @@ import { EnrollmentProjectionSnapshot } from '@/utils/enrollmentProjection';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import { aggregateStatus } from '@/store/utils/loadingState';
 import SectionTitle from '@/components/ui/SectionTitle';
+import { downloadWorkbook } from '@/features/state/utils/excel';
+import { entityFileName } from '@/features/entity/excel';
+import { districtEnrollmentWorkbook } from '@/features/entity/workbooks/enrollmentWorkbook';
 
 /**
  * Represents the District Enrollment page/feature.
@@ -128,6 +131,19 @@ const Enrollment: React.FC = () => {
                     measurementsLoading
                   ]) === 'loading');
 
+  // Everything on the page as one workbook, once the district's own data has loaded
+  const downloadReady = !!district && aggregateStatus([townEnrollmentLoading, measurementsLoading]) === 'ready';
+  const downloadExcel = () => {
+    if (!district) return;
+    return downloadWorkbook(entityFileName('district', district.name, 'enrollment'), districtEnrollmentWorkbook({
+      name: district.name,
+      displayName: PAGE_REGISTRY.district.enrollment.displayName,
+      towns,
+      townEnrollment: townEnrollmentData,
+      measurements,
+    }));
+  };
+
   // Show loading state
   if (isLoading) {
     return (
@@ -143,6 +159,8 @@ const Enrollment: React.FC = () => {
       <SectionTitle 
         displayName={PAGE_REGISTRY.district.enrollment.displayName}
         districtName={district?.name}
+        onDownload={downloadExcel}
+        downloadReady={downloadReady}
       />
 
       <Typography variant="body2" sx={{ mt: 2, mb: 2 }}>

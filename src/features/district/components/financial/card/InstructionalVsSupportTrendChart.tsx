@@ -5,7 +5,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { useAppSelector } from '@/store/hooks';
 import { selectFinancialReports, selectAdjustForInflation } from '@/store/slices/financeSlice';
 import { formatCompactNumber } from '@/utils/formatting';
-import { formatFiscalYear } from '../../../utils/financialDataProcessing';
+import { formatFiscalYear, instructionAndSupport } from '../../../utils/financialDataProcessing';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { calculateInflationAdjustedAmount } from '@/utils/calculations';
 
@@ -49,36 +49,8 @@ const InstructionalVsSupportTrendChart: React.FC<InstructionalVsSupportTrendChar
     return yearsToProcess
       .filter(year => financialReports[year]) // Only include years that have data
       .map(year => {
-        const report = financialReports[year];
-        
-        // Initialize sums for instructional and support services
-        let instructionalTotal = 0;
-        let supportTotal = 0;
-        
-        // Process all expenditures to categorize and sum them
-        report.expenditures.forEach(expenditure => {
-          // Get the subcategory name, defaulting to "Uncategorized" if not found
-          const subCategory = expenditure.entry_type.category?.name || "Uncategorized";
-          
-          // Special handling for Food Service Operations, which should be counted as Support Services
-          // as seen in the financialDataProcessing.ts file
-          const rawCategory = expenditure.entry_type.category?.super_category?.name || "Uncategorized";
-          const name = expenditure.entry_type.name;
-          
-          let isSupport = false;
-          
-          // Check if it's a Food Service Operation (should be Support Services)
-          if (rawCategory === "Food Service Operations") {
-            isSupport = true;
-          }
-          
-          // Sum values by subcategory
-          if (subCategory === "Instruction") {
-            instructionalTotal += expenditure.value;
-          } else if (subCategory === "Support Services" || isSupport) {
-            supportTotal += expenditure.value;
-          }
-        });
+        // Instruction, and support services with food service
+        let { instruction: instructionalTotal, support: supportTotal } = instructionAndSupport(financialReports[year]);
         
         // Apply inflation adjustment if needed
         const yearInt = parseInt(year);

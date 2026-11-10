@@ -95,6 +95,61 @@ export const createComparisonYearItemsMap = <T extends Expenditure | Revenue | B
 };
 
 /**
+ * The category, sub category and name an expenditure is listed under in the expenditure table:
+ * categories normalized across funds, and food service under each school level's support services
+ */
+export const expenditureLine = (expenditure: Expenditure): { category: string; subCategory: string; name: string } => {
+  let subCategory = expenditure.entry_type.category?.name || "Uncategorized";
+  
+  // Get the raw category and normalize it
+  const rawCategory = expenditure.entry_type.category?.super_category?.name || "Uncategorized";
+  let category = normalizeExpenditureCategory(rawCategory);
+  let name = expenditure.entry_type.name;
+  
+  // Special handling for Food Service Operations
+  if (rawCategory === "Food Service Operations") {
+    // Check for high school food service
+    if (name.includes("High")) {
+      category = "High School Expenditures";
+      name = "Food Service Operations";
+      subCategory = "Support Services";
+    } 
+    // Check for middle/junior high food service
+    else if (name.includes("Middle") || name.includes("Junior")) {
+      category = "Middle/Junior High Expenditures";
+      name = "Food Service Operations";
+      subCategory = "Support Services";
+    }
+    // Check for elementary food service
+    else if (name.includes("Elementary")) {
+      category = "Elementary Expenditures";
+      name = "Food Service Operations";
+      subCategory = "Support Services";
+    }
+  }
+  return { category, subCategory, name };
+};
+
+/**
+ * A year's spending on instruction and on support services, as the trend chart on the Overall tab
+ * counts them: food service counts as support services
+ */
+export const instructionAndSupport = (report: ProcessedReport): { instruction: number; support: number } => {
+  let instruction = 0;
+  let support = 0;
+  report.expenditures.forEach(expenditure => {
+    const subCategory = expenditure.entry_type.category?.name || "Uncategorized";
+    const rawCategory = expenditure.entry_type.category?.super_category?.name || "Uncategorized";
+    if (subCategory === "Instruction") {
+      instruction += expenditure.value;
+    } else if (subCategory === "Support Services" || rawCategory === "Food Service Operations") {
+      support += expenditure.value;
+    }
+  });
+  return { instruction, support };
+};
+
+/**
  * Processes expenditure data to prepare for comparison display
  * 
  * @param processedReport - Current year's processed financial report
@@ -126,34 +181,7 @@ export const prepareDetailedExpenditureComparisonData = (
 
   // Process and group current year expenditures
   processedReport.expenditures.forEach(expenditure => {
-    let subCategory = expenditure.entry_type.category?.name || "Uncategorized";
-    
-    // Get the raw category and normalize it
-    let rawCategory = expenditure.entry_type.category?.super_category?.name || "Uncategorized";
-    let category = normalizeExpenditureCategory(rawCategory);
-    let name = expenditure.entry_type.name;
-    
-    // Special handling for Food Service Operations
-    if (rawCategory === "Food Service Operations") {
-      // Check for high school food service
-      if (name.includes("High")) {
-        category = "High School Expenditures";
-        name = "Food Service Operations";
-        subCategory = "Support Services";
-      } 
-      // Check for middle/junior high food service
-      else if (name.includes("Middle") || name.includes("Junior")) {
-        category = "Middle/Junior High Expenditures";
-        name = "Food Service Operations";
-        subCategory = "Support Services";
-      }
-      // Check for elementary food service
-      else if (name.includes("Elementary")) {
-        category = "Elementary Expenditures";
-        name = "Food Service Operations";
-        subCategory = "Support Services";
-      }
-    }
+    const { category, subCategory, name } = expenditureLine(expenditure);
     
     // Create a unique key for this combination
     const groupKey = `${category}|${subCategory}|${name}`;
@@ -220,7 +248,7 @@ export const prepareDetailedExpenditureComparisonData = (
  * @param comparisonItems - Array of financial comparison items
  * @returns Sorted array with appropriate category/subcategory markers
  */
-const sortExpenditureComparisonItems = (
+export const sortExpenditureComparisonItems = (
   comparisonItems: FinancialComparisonItem[]
 ): FinancialComparisonItem[] => {
   // Sort the rows by category, sub category, and then by current value (descending)
@@ -378,7 +406,7 @@ export const prepareDetailedRevenueComparisonData = (
  * @param comparisonItems - Array of financial comparison items
  * @returns Sorted array with appropriate category/subcategory markers
  */
-const sortRevenueComparisonItems = (
+export const sortRevenueComparisonItems = (
   comparisonItems: FinancialComparisonItem[]
 ): FinancialComparisonItem[] => {
   // Sort the rows by category, sub category, and then by current value (descending)

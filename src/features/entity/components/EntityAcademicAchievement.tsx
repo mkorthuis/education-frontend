@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useStore } from 'react-redux';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
+import type { RootState } from '@/store/store';
 import { selectAnyLocationLoading } from '@/store/slices/locationSlice';
 import {
   setSelectedSubjectId,
@@ -11,6 +13,7 @@ import {
   selectCurrentAssessmentStateData,
   AssessmentDataQueryKey,
   selectAssessmentStateLoadingStatus,
+  selectAssessmentStateData,
   resetFailedAssessmentLoad
 } from '@/store/slices/assessmentSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
@@ -18,11 +21,18 @@ import LoadErrorAlert from '@/components/ui/LoadErrorAlert';
 import EntityMeasurementCard from './academic/EntityMeasurementCard';
 import EntityAcademicSubjectDetails from './academic/EntityAcademicSubjectDetails';
 import AcademicDefaultView from '@/components/ui/academic/AcademicDefaultView';
-import { filterAssessmentResults, ALL_GRADES_ID } from '@/features/district/utils/assessmentDataProcessing';
+import { filterAssessmentResults, ALL_GRADES_ID, ALL_STUDENTS_SUBGROUP_ID } from '@/features/district/utils/assessmentDataProcessing';
 import { LoadingState } from '@/store/slices/safetySlice';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import { EntityKind, SELECT_CURRENT_ENTITY } from '@/features/entity/entity';
 import { ASSESSMENT, EntityAssessmentData, EntityAssessmentParams, dispatchEntityAssessmentFetch } from '@/features/entity/bindings/assessment';
+import { downloadWorkbook } from '@/features/state/utils/excel';
+import { ASSESSMENT_YEAR } from '@/utils/environment';
+import { entityFileName } from '../excel';
+import { academicsWorkbook } from '../workbooks/academicsWorkbook';
+
+// Every New Hampshire result, as the page loads them
+const ALL_STATE_RESULTS = {};
 
 const EntityAcademicAchievement: React.FC<{ kind: EntityKind }> = ({ kind }) => {
   const { subjectName } = useParams<{ subjectName?: string }>();
@@ -109,6 +119,33 @@ const EntityAcademicAchievement: React.FC<{ kind: EntityKind }> = ({ kind }) => 
   const hasLoadError = !entityLoading && !!entityId && (entityAssessmentLoading === LoadingState.FAILED || stateAssessmentLoading === LoadingState.FAILED);
 
   // Reset only the failed requests to IDLE so the fetch effect above requests them again
+  const store = useStore<RootState>();
+  const displayName = PAGE_REGISTRY[kind].academic.displayName;
+  // Everything on the page as one workbook. Each subject's results for every district or school,
+  // which its rank is among, load now unless a subject's details already loaded them.
+  const downloadExcel = async () => {
+    if (!entity) return;
+    const subjectIds = [...new Set(entityAssessmentData.map(row => row.assessment_subject?.id))].filter((id): id is number => typeof id === 'number');
+    const peerParams: EntityAssessmentParams[] = subjectIds.map(subjectId => ({
+      year: ASSESSMENT_YEAR,
+      assessment_subgroup_id: ALL_STUDENTS_SUBGROUP_ID,
+      assessment_subject_id: subjectId,
+      grade_id: ALL_GRADES_ID
+    }));
+    await Promise.all(peerParams.map(params => dispatchEntityAssessmentFetch(dispatch, kind, params)));
+    const state = store.getState();
+    return downloadWorkbook(entityFileName(kind, entity.name, 'academics'), academicsWorkbook({
+      kind,
+      id: entity.id,
+      name: entity.name,
+      displayName,
+      year: parseInt(ASSESSMENT_YEAR),
+      results: entityAssessmentData,
+      stateResults: selectAssessmentStateData(state, ALL_STATE_RESULTS),
+      peers: peerParams.flatMap((params): EntityAssessmentData[] => assessment.selectData(state, params)),
+    }));
+  };
+
   const handleRetry = () => {
     dispatch(resetFailedAssessmentLoad({ category: assessment.resetCategory, params: initialQueryParams }));
     dispatch(resetFailedAssessmentLoad({ category: 'state', params: {} }));
@@ -141,9 +178,11 @@ const EntityAcademicAchievement: React.FC<{ kind: EntityKind }> = ({ kind }) => 
   return (
     <>
       <SectionTitle 
-        displayName={PAGE_REGISTRY[kind].academic.displayName}
+        displayName={displayName}
         schoolName={kind === 'school' ? entity?.name : undefined}
         districtName={kind === 'district' ? entity?.name : undefined}
+        onDownload={downloadExcel}
+        downloadReady={!isLoading && !hasLoadError && !!entity}
       />
       {hasLoadError ? (
         <LoadErrorAlert message="Assessment data could not be loaded." onRetry={handleRetry} />
