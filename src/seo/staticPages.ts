@@ -133,6 +133,8 @@ export interface StaticPage {
   breadcrumbs: PageLink[];
   /** The key figures the page's tiles show, as on the overview: all of them there, a topic page's own on it */
   figures: TileGroupModel[];
+  /** A heading over the figures' groups ("Key Statewide Figures"); without one, each group's title is a heading */
+  figuresHeading?: string;
   /** Whether search engines should index it */
   index: boolean;
 }
@@ -146,17 +148,23 @@ const isEnabled = (page: PageEntry, entity: unknown): boolean =>
 
 const byName = <T extends { name: string }>(a: T, b: T): number => a.name.localeCompare(b.name);
 
-/** Key figures written into the pages, by district id (from districtTileGroups) and school id (schoolTileGroups) */
+/**
+ * Key figures written into the pages: by district id (from districtTileGroups), by school id
+ * (schoolTileGroups), and the state's (stateTileGroups) for the statewide pages and the home page
+ */
 export interface PageFigures {
   districts?: Map<number, TileGroupModel[]>;
   schools?: Map<number, TileGroupModel[]>;
+  state?: TileGroupModel[];
 }
+
+const STATE_FIGURES_HEADING = 'Key Statewide Figures';
 
 /** A topic page's own tiles from the overview's: the financials page's spending, the academics page's test results */
 const figuresFor = (groups: TileGroupModel[], key: string): TileGroupModel[] =>
-  key === 'overview'
-    ? groups
-    : groups.map(group => ({ ...group, tiles: group.tiles.filter(tile => tile.page === key) })).filter(group => group.tiles.length > 0);
+  groups
+    .map(group => (key === 'overview' ? group : { ...group, tiles: group.tiles.filter(tile => tile.page === key) }))
+    .filter(group => group.tiles.length > 0);
 
 /**
  * What a district's overview loads, as the app decides it: test results and salaries for a district
@@ -224,7 +232,8 @@ export const staticPages = (index: SiteIndex, figures: PageFigures = {}): Static
       description: GENERAL_DESCRIPTIONS[key] ?? `${page.displayName}, ${SITE_NAME}.`,
       sections,
       breadcrumbs: page === general.home ? [home] : [home, crumb(page)],
-      figures: [],
+      // The home page sums up the state, as the statewide overview does
+      ...(page === general.home ? { figures: figuresFor(figures.state ?? [], 'overview'), figuresHeading: STATE_FIGURES_HEADING } : { figures: [] }),
       index: true,
     });
   }
@@ -243,7 +252,8 @@ export const staticPages = (index: SiteIndex, figures: PageFigures = {}): Static
         { heading: 'On this site', links: mainLinks },
       ],
       breadcrumbs: overview ? [home, statewide] : [home, statewide, crumb(page)],
-      figures: [],
+      figures: figuresFor(figures.state ?? [], pageKey(page)),
+      figuresHeading: STATE_FIGURES_HEADING,
       index: true,
     });
   }
@@ -403,16 +413,23 @@ export const tileText = (tile: TileModel): string => {
     .join('. ') + '.';
 };
 
-// An overview with one untitled group (a school's) gets a plain heading
-const figuresHtml = (groups: TileGroupModel[]): string =>
-  groups.map(group => `<h2>${escaped(group.title ?? 'Key Figures')}</h2><ul>${group.tiles.map(tile => `<li>${escaped(tileText(tile))}</li>`).join('')}</ul>`).join('');
+// Each group under its title, or under one heading for them all; an overview with one untitled group
+// (a school's) gets a plain heading
+const figuresHtml = ({ figures, figuresHeading }: StaticPage): string => {
+  if (!figures.length) return '';
+  const level = figuresHeading ? 'h3' : 'h2';
+  const groups = figures.map(group =>
+    `<${level}>${escaped(group.title ?? 'Key Figures')}</${level}><ul>${group.tiles.map(tile => `<li>${escaped(tileText(tile))}</li>`).join('')}</ul>`
+  ).join('');
+  return figuresHeading ? `<h2>${escaped(figuresHeading)}</h2>${groups}` : groups;
+};
 
 const bodyHtml = (page: StaticPage): string => {
   if (!page.index && !page.sections.length) return '';
   const sections = page.sections.map(section =>
     `<h2>${escaped(section.heading)}</h2><ul>${section.links.map(link => `<li><a href="${escaped(link.href)}">${escaped(link.text)}</a></li>`).join('')}</ul>`
   ).join('');
-  return `<div class="static-page" style="${BODY_STYLE}"><p><a href="/">${SITE_NAME}</a></p><h1>${escaped(page.heading)}</h1><p>${escaped(page.description)}</p>${figuresHtml(page.figures)}${sections ? `<nav>${sections}</nav>` : ''}</div>`;
+  return `<div class="static-page" style="${BODY_STYLE}"><p><a href="/">${SITE_NAME}</a></p><h1>${escaped(page.heading)}</h1><p>${escaped(page.description)}</p>${figuresHtml(page)}${sections ? `<nav>${sections}</nav>` : ''}</div>`;
 };
 
 /** sitemap.xml: every page search engines should index */

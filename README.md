@@ -62,9 +62,10 @@ After `vite build`, `scripts/prerender.ts` writes an HTML page for every address
 district and school page, the statewide and general pages) with its own title, description, share
 tags and links, so search engines and link previews see more than an empty page. A district's or
 school's pages also carry its key figures, the same as its overview's tiles (all of them on the
-overview, a topic page's own on that page), from the same calculation. It reads the district, school
-and town lists and each district's and school's figures from the production API (about 2,600
-requests, six at a time), so the build needs the API to be up. It also writes `dist/serve.json`, which serves those pages and answers any
+overview, a topic page's own on that page), from the same calculation; the statewide pages and the
+home page carry the statewide overview's. It reads the district, school and town lists and the
+figures of each district, each school and the state from the production API (about 2,600 requests,
+six at a time), so the build needs the API to be up. It also writes `dist/serve.json`, which serves those pages and answers any
 other address with a 404.
 To check it locally: `npm run build && npm start`.
 

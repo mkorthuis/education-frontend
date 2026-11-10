@@ -177,6 +177,26 @@ describe('key figures', () => {
     expect(renderPage(TEMPLATE, at('/school/81'))).toContain('<h2>Key Figures</h2><ul><li>Students: 1 (24/25).</li>');
   });
 
+  it('puts the state’s tiles on the statewide pages and the home page, under one heading', () => {
+    const stateGroups: TileGroupModel[] = [
+      { title: 'Schools', tiles: [tile('Students', 'enrollment'), tile('School Districts', 'districts')] },
+      { title: 'Financials', tiles: [tile('Cost per Student', 'financials')] },
+      { title: 'Results', tiles: [] },
+    ];
+    const statePages = staticPages(INDEX, { state: stateGroups });
+    const at = (path: string) => statePages.find(p => p.path === path)!;
+    // Empty groups are left out; each statewide topic page gets its own tiles
+    expect(at('/state').figures).toEqual(stateGroups.slice(0, 2));
+    expect(at('/').figures).toEqual(stateGroups.slice(0, 2));
+    expect(at('/state/financials').figures).toEqual([stateGroups[1]]);
+    expect(at('/state/safety').figures).toEqual([]);
+    expect(at('/about').figures).toEqual([]);
+    expect(renderPage(TEMPLATE, at('/state/financials'))).toContain(
+      '<h2>Key Statewide Figures</h2><h3>Financials</h3><ul><li>Cost per Student: 1 (24/25).</li></ul>'
+    );
+    expect(renderPage(TEMPLATE, at('/state/safety'))).not.toContain('Key Statewide Figures');
+  });
+
   it('compares a school with its district only where the district’s figures aren’t just the school’s', () => {
     expect(schoolFigureScope(INDEX)).toEqual([
       // Concord High is the district's one high school: its test scores are compared, its graduation isn't

@@ -3,15 +3,17 @@
  * dist/sitemap.xml, and dist/serve.json with the rewrites that serve them (see src/seo/staticPages.ts).
  *
  * Run with `vite-node --mode production scripts/prerender.ts`, so it reads the production API: the
- * district, school and town lists, and each district's and school's key figures (about 2,600
- * requests, a few at a time). If the lists can't be read, or more than a tenth of the districts' or
- * schools' figures can't, the build fails and Heroku keeps the release that's running. A place whose
- * figures can't be read gets its pages without them.
+ * district, school and town lists, and the key figures of each district, each school and the state
+ * (about 2,600 requests, a few at a time). If the lists or the state's figures can't be read, or more
+ * than a tenth of the districts' or schools' figures can't, the build fails and Heroku keeps the
+ * release that's running. A district or school whose figures can't be read gets its pages without them.
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { DistrictFigureRows, districtKeyFigures, districtTileGroups } from '@/features/district/utils/keyFigures';
 import { SchoolFigureRows, schoolKeyFigures, schoolTileGroups } from '@/features/school/utils/keyFigures';
+import { StateFigureRows, stateKeyFigures, stateTileGroups } from '@/features/state/utils/keyFigures';
+import { normalizeAssessmentRows, StoredAssessmentRow } from '@/features/state/utils/stateMetrics';
 import type { TileGroupModel } from '@/features/entity/overview/tileModels';
 import { districtFigureScope, notFoundPage, paramRewrites, renderPage, schoolFigureScope, SiteIndex, sitemap, staticPages } from '@/seo/staticPages';
 
@@ -52,6 +54,28 @@ const inTurn = async <T>(tasks: (() => Promise<T>)[]): Promise<T[]> => {
     }
   }));
   return results;
+};
+
+/** The statewide overview's tiles, by the same requests and calculation as the app's overview */
+const stateFigures = async (): Promise<TileGroupModel[]> => {
+  const [enrollmentByType, perPupil, rollups, staff, salary, assessments, cohorts, plans, efaEntries, efaEntryTypes, schoolCounts] = await Promise.all([
+    getJson<StateFigureRows['enrollmentByType']>(`${API}/enrollment/type/state`),
+    getJson<StateFigureRows['perPupil']>(`${API}/finance/per-pupil/state`),
+    getJson<StateFigureRows['rollups']>(`${API}/finance/state-expenditure-rollup`),
+    getJson<StateFigureRows['staff']>(`${API}/staff/state/staff`),
+    getJson<StateFigureRows['salary']>(`${API}/staff/state/teacher-average-salary`),
+    // Every student group, as the overview requests them
+    getJson<StoredAssessmentRow[]>(`${API}/assessment/state`),
+    getJson<StateFigureRows['cohorts']>(`${API}/outcome/outcome/graduation-cohort/state`),
+    getJson<StateFigureRows['plans']>(`${API}/outcome/outcome/post-graduation/state`),
+    getJson<StateFigureRows['efaEntries']>(`${API}/education-freedom-account/state-entry`),
+    getJson<StateFigureRows['efaEntryTypes']>(`${API}/education-freedom-account/entry-type`),
+    getJson<StateFigureRows['schoolCounts']>(`${API}/enrollment/school-counts/state`),
+  ]);
+  return stateTileGroups(stateKeyFigures({
+    enrollmentByType, perPupil, rollups, staff, salary, assessments: normalizeAssessmentRows(assessments),
+    cohorts, plans, efaEntries, efaEntryTypes, schoolCounts,
+  }));
 };
 
 /** Fails the build when more than a tenth of the places' figures couldn't be read */
@@ -158,8 +182,8 @@ const main = async () => {
   const index = { districts, schools, towns };
   const started = Date.now();
   const districtResults = await districtFigures(index);
-  const figures = { districts: districtResults.figures, schools: await schoolFigures(index, districtResults.rows) };
-  console.log(`Read key figures for ${figures.districts.size} districts and ${figures.schools.size} schools in ${Math.round((Date.now() - started) / 1000)} s`);
+  const figures = { districts: districtResults.figures, schools: await schoolFigures(index, districtResults.rows), state: await stateFigures() };
+  console.log(`Read key figures for the state, ${figures.districts.size} districts and ${figures.schools.size} schools in ${Math.round((Date.now() - started) / 1000)} s`);
 
   const template = await readFile(path.join(DIST, 'index.html'), 'utf8');
   const pages = staticPages(index, figures);
