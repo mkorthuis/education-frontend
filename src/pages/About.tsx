@@ -104,7 +104,7 @@ const About: React.FC = () => {
         </Typography>
 
         <Typography variant="body1">
-          AI can make mistakes, so check the numbers on the linked pages before relying on them, and please don't include personal details in your questions. The site can answer a limited number of questions each day.
+          AI can make mistakes, so check the numbers on the linked pages before relying on them.
         </Typography>
 
         <SectionTitle displayName="Our Commitment to Accuracy and Transparency" sx={{ mt: 5 }} />
