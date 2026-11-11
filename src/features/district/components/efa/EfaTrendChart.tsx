@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from 'react';
-import { Box } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
 import {
   selectEfaEntries,
@@ -21,7 +20,7 @@ import {
   formatSchoolYear,
   totalsByYear
 } from '@/features/state/utils/stateMetrics';
-import { enrolledByYear, ratesByYear, rateSeries } from '@/features/entity/trends';
+import { enrolledByYear, ratesByYear, RATE_SERIES } from '@/features/entity/trends';
 
 type GrantsAs = 'count' | 'percentage';
 
@@ -30,6 +29,9 @@ const GRANTS_AS: { value: GrantsAs; label: string }[] = [
   { value: 'count', label: '# of Grants' },
   { value: 'percentage', label: 'Percentage' },
 ];
+
+// The state's line only beside percentages
+const DISTRICT_ONLY = RATE_SERIES.district.slice(0, 1);
 
 /** EFA grants by year: students with a grant, or their share of public school enrollment beside the state's */
 const EfaTrendChart: React.FC = () => {
@@ -68,31 +70,29 @@ const EfaTrendChart: React.FC = () => {
   }, [entries, stateEntries, entryTypes, townEnrollment, stateTownEnrollment]);
 
   return (
-    <Box sx={{ mt: 3 }}>
-      <TrendChart
-        title="EFA Grants By Year"
-        subtitle={grantsAs === 'count' ? 'Number of Students' : 'Percentage of Public School Enrollment'}
-        shortSubtitle={grantsAs === 'count' ? '# of Students' : '% of Public School Enrollment'}
-        control={<ChartSelect value={grantsAs} options={GRANTS_AS} onChange={setGrantsAs} label="Show EFA grants as" />}
-        // The state's line only beside percentages
-        series={grantsAs === 'count' ? rateSeries('district').slice(0, 1) : rateSeries('district')}
-        emptyMessage="No EFA grant data available"
-        {...(grantsAs === 'count'
-          ? {
-            data: chart.counts,
-            format: formatCount,
-            axisFormat: (value: number) => formatCompact(value),
-          }
-          : {
-            data: chart.shares,
-            format: (value: number) => formatPercent(value, 1),
-            axisFormat: (value: number) => formatPercent(value, Number.isInteger(value) ? 0 : 1),
-            note: chart.missing.length
-              ? `${chart.missing.map(formatSchoolYear).join(', ')} isn't shown: the state hasn't published that year's enrollment yet.`
-              : undefined,
-          })}
-      />
-    </Box>
+    <TrendChart
+      sx={{ mt: 3 }}
+      title="EFA Grants By Year"
+      subtitle={grantsAs === 'count' ? 'Number of Students' : 'Percentage of Public School Enrollment'}
+      shortSubtitle={grantsAs === 'count' ? '# of Students' : '% of Public School Enrollment'}
+      control={<ChartSelect value={grantsAs} options={GRANTS_AS} onChange={setGrantsAs} label="Show EFA grants as" />}
+      series={grantsAs === 'count' ? DISTRICT_ONLY : RATE_SERIES.district}
+      emptyMessage="No EFA grant data available"
+      {...(grantsAs === 'count'
+        ? {
+          data: chart.counts,
+          format: formatCount,
+          axisFormat: (value: number) => formatCompact(value),
+        }
+        : {
+          data: chart.shares,
+          format: (value: number) => formatPercent(value, 1),
+          axisFormat: (value: number) => formatPercent(value, Number.isInteger(value) ? 0 : 1),
+          note: chart.missing.length
+            ? `${chart.missing.map(formatSchoolYear).join(', ')} isn't shown: the state hasn't published that year's enrollment yet.`
+            : undefined,
+        })}
+    />
   );
 };
 

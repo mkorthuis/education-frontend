@@ -1,11 +1,10 @@
 import React, { useMemo } from 'react';
-import { Box } from '@mui/material';
-import { useAppSelector } from '@/store/hooks';
 import TrendChart from '@/features/state/components/TrendChart';
-import { REMOTE_BAND, totalsByYear } from '@/features/state/utils/stateMetrics';
-import { EntityKind, useCurrentEntity } from '@/features/entity/entity';
-import { SAFETY, STATE_SAFETY, IdFallback, safetyParams } from '@/features/entity/bindings/safety';
-import { enrolledByYear, formatPer100, formatPer100Axis, ratesByYear, rateSeries } from '@/features/entity/trends';
+import { REMOTE_BAND } from '@/features/state/utils/stateMetrics';
+import { EntityKind } from '@/features/entity/entity';
+import { IdFallback } from '@/features/entity/bindings/safety';
+import { formatPer100, formatPer100Axis, RATE_SERIES } from '@/features/entity/trends';
+import { useSafetyRates } from './useSafetyRates';
 
 const ID_FALLBACK: Record<EntityKind, IdFallback> = { school: 'zero', district: 'zero' };
 
@@ -18,32 +17,20 @@ interface EntityRestraintTrendChartProps {
 
 /** Restraints, or seclusions, reported per 100 students */
 const EntityRestraintTrendChart: React.FC<EntityRestraintTrendChartProps> = ({ kind, measure }) => {
-  const entityParams = safetyParams(useCurrentEntity(kind), ID_FALLBACK[kind]);
-
-  const entityReports = useAppSelector(state => SAFETY[kind].data[measure](state, entityParams));
-  const stateReports = useAppSelector(state => STATE_SAFETY.data[measure](state, {}));
-  const entityEnrollment = useAppSelector(state => SAFETY[kind].data.enrollment(state, entityParams));
-  const stateEnrollment = useAppSelector(state => STATE_SAFETY.data.enrollment(state, {}));
-
-  const rows = useMemo(() => ratesByYear(
-    totalsByYear<{ year: number; generated: number }>(entityReports, row => row.generated),
-    totalsByYear<{ year: number; generated: number }>(stateReports, row => row.generated),
-    enrolledByYear(entityEnrollment),
-    enrolledByYear(stateEnrollment)
-  ), [entityReports, stateReports, entityEnrollment, stateEnrollment]);
+  const rates = useSafetyRates(kind, measure, ID_FALLBACK[kind]);
+  const rows = useMemo(() => rates(row => row.generated), [rates]);
 
   return (
-    <Box sx={{ mt: 3 }}>
-      <TrendChart
-        title={TITLES[measure]}
-        subtitle="Per 100 Students"
-        data={rows}
-        series={rateSeries(kind)}
-        format={formatPer100}
-        axisFormat={formatPer100Axis}
-        bands={REMOTE_BAND}
-      />
-    </Box>
+    <TrendChart
+      sx={{ mt: 3 }}
+      title={TITLES[measure]}
+      subtitle="Per 100 Students"
+      data={rows}
+      series={RATE_SERIES[kind]}
+      format={formatPer100}
+      axisFormat={formatPer100Axis}
+      bands={REMOTE_BAND}
+    />
   );
 };
 

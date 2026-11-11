@@ -136,7 +136,7 @@ const Enrollment: React.FC = () => {
                 projectedEnrollment={enrollmentSummaryData.projectedClassSizes}
                 endYear={enrollmentSummaryData.endYear}
                 futureYear={enrollmentSummaryData.futureYear}
-                grades={school?.grades?.map(grade => grade.id) ?? []}
+                grades={school?.grades ?? []}
               />
             )}
           </Box>

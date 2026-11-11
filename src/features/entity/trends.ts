@@ -21,11 +21,11 @@ export const ratesByYear = (entity: YearValue[], state: YearValue[], entityEnrol
 /** The district's or school's line alone, for a comparison drawn beside one of its parts */
 export const entityOnly = (rows: YearRow[]): YearRow[] => rows.map(({ year, entity }) => ({ year, entity }));
 
-/** The lines ratesByYear's rows draw */
-export const rateSeries = (kind: EntityKind): TrendSeries[] => [
-  { key: 'entity', name: ENTITY_LABEL[kind] },
-  { key: 'state', name: 'State Average' },
-];
+/** The lines ratesByYear's rows draw, the same arrays on every render */
+export const RATE_SERIES: Record<EntityKind, TrendSeries[]> = {
+  district: [{ key: 'entity', name: ENTITY_LABEL.district }, { key: 'state', name: 'State Average' }],
+  school: [{ key: 'entity', name: ENTITY_LABEL.school }, { key: 'state', name: 'State Average' }],
+};
 
 export const formatPer100 = (value: number) => value.toFixed(2);
 // "0.5", not "0.50", on the axis

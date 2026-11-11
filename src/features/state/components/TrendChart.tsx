@@ -1,5 +1,5 @@
 import React, { useId, useMemo, useRef, useState } from 'react';
-import { Box, Button, ToggleButton, ToggleButtonGroup, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Button, SxProps, Theme, ToggleButton, ToggleButtonGroup, Typography, useMediaQuery, useTheme } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import {
   Area,
@@ -131,6 +131,8 @@ interface TrendChartProps {
   yearHeader?: string;
   /** Order the legend by each line's latest value, for lists with no natural order (plans, sources) */
   legendByValue?: boolean;
+  /** Styles for the chart's figure, e.g. space above it */
+  sx?: SxProps<Theme>;
 }
 
 const compareKey = (key: string) => `compare__${key}`;
@@ -207,11 +209,13 @@ const EndLabels = (props: any) => {
 /**
  * The same value for as long as its contents are the same. Recharts restarts its animation, morphing
  * from the old lines, whenever it gets a new data array, and pages build their arrays on every render.
+ * The contents are compared only when the value itself is new.
  */
 const useStableByContent = <T,>(value: T): T => {
-  const ref = useRef<{ key: string; value: T }>();
+  const ref = useRef<{ key: string; value: T; latest: T }>();
+  if (ref.current?.latest === value) return ref.current.value;
   const key = JSON.stringify(value);
-  if (!ref.current || ref.current.key !== key) ref.current = { key, value };
+  ref.current = !ref.current || ref.current.key !== key ? { key, value, latest: value } : { ...ref.current, latest: value };
   return ref.current.value;
 };
 
@@ -250,6 +254,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
   yearLabel = formatSchoolYear,
   yearHeader = 'School year',
   legendByValue = false,
+  sx,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -395,7 +400,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
   ) : null;
 
   return (
-    <Box component="figure" aria-labelledby={titleId} aria-describedby={summaryId} sx={{ m: 0, minWidth: 0 }}>
+    <Box component="figure" aria-labelledby={titleId} aria-describedby={summaryId} sx={[{ m: 0, minWidth: 0 }, ...(Array.isArray(sx) ? sx : [sx])]}>
       <ChartHeader
         titleId={titleId}
         title={title}

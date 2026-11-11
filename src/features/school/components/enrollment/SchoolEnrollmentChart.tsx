@@ -7,6 +7,8 @@ export interface SchoolEnrollmentChartProps {
   enrollmentData: SchoolEnrollmentData[];
 }
 
+const SERIES = [{ key: 'students', name: 'Students' }];
+
 /** The school's students each year, across its grades */
 const SchoolEnrollmentChart: React.FC<SchoolEnrollmentChartProps> = ({ enrollmentData }) => {
   const rows = useMemo(() => mergeSeries({ students: totalsByYear(enrollmentData, row => row.enrollment) }), [enrollmentData]);
@@ -16,7 +18,7 @@ const SchoolEnrollmentChart: React.FC<SchoolEnrollmentChartProps> = ({ enrollmen
       title="Current Students"
       subtitle="# of Students"
       data={rows}
-      series={[{ key: 'students', name: 'Students' }]}
+      series={SERIES}
       format={formatCount}
       axisFormat={value => formatCompact(value)}
       axis="fit"

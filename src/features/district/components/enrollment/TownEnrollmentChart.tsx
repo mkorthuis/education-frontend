@@ -12,6 +12,8 @@ export interface TownEnrollmentChartProps {
 
 const ALL_TOWNS = 'all';
 
+const SERIES = [{ key: 'students', name: 'Students' }];
+
 /** Students living in the district's towns each year, in all of them or one */
 const TownEnrollmentChart: React.FC<TownEnrollmentChartProps> = ({ enrollmentData, towns }) => {
   const [town, setTown] = useState<number | string>(ALL_TOWNS);
@@ -31,7 +33,7 @@ const TownEnrollmentChart: React.FC<TownEnrollmentChartProps> = ({ enrollmentDat
       subtitle="# of Students"
       control={towns.length > 1 ? <ChartSelect value={town} options={options} onChange={setTown} label="Town" /> : undefined}
       data={rows}
-      series={[{ key: 'students', name: 'Students' }]}
+      series={SERIES}
       format={formatCount}
       axisFormat={value => formatCompact(value)}
       axis="fit"

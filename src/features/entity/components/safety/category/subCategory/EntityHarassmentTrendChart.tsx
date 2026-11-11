@@ -1,17 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { Box } from '@mui/material';
-import { useAppSelector } from '@/store/hooks';
-import {
-  selectStateHarassmentData,
-  selectStateEnrollmentData
-} from '@/store/slices/safetySlice';
 import { BaseHarassmentData } from '@/store/slices/safety/types';
 import TrendChart from '@/features/state/components/TrendChart';
 import ChartSelect from '@/features/state/components/ChartSelect';
-import { REMOTE_BAND, totalsByYear } from '@/features/state/utils/stateMetrics';
-import { EntityKind, useCurrentEntity } from '@/features/entity/entity';
-import { SAFETY, IdFallback, safetyParams } from '@/features/entity/bindings/safety';
-import { enrolledByYear, formatPer100, formatPer100Axis, ratesByYear, rateSeries } from '@/features/entity/trends';
+import { REMOTE_BAND } from '@/features/state/utils/stateMetrics';
+import { EntityKind } from '@/features/entity/entity';
+import { IdFallback } from '@/features/entity/bindings/safety';
+import { formatPer100, formatPer100Axis, RATE_SERIES } from '@/features/entity/trends';
+import { useSafetyRates } from './useSafetyRates';
 
 const ID_FALLBACK: Record<EntityKind, IdFallback> = { school: 'zero', district: 'none' };
 
@@ -24,36 +19,25 @@ const VIEWS: { value: HarassmentView; label: string; title: string; count: (row:
 ];
 
 const EntityHarassmentTrendChart: React.FC<{ kind: EntityKind }> = ({ kind }) => {
-  const entityParams = safetyParams(useCurrentEntity(kind), ID_FALLBACK[kind]);
   const [view, setView] = useState<HarassmentView>('incidents');
-
-  const entityHarassment = useAppSelector(state => SAFETY[kind].data.harassment(state, entityParams));
-  const stateHarassment = useAppSelector(state => selectStateHarassmentData(state, {}));
-  const entityEnrollment = useAppSelector(state => SAFETY[kind].data.enrollment(state, entityParams));
-  const stateEnrollment = useAppSelector(state => selectStateEnrollmentData(state, {}));
+  const rates = useSafetyRates(kind, 'harassment', ID_FALLBACK[kind]);
 
   const picked = VIEWS.find(option => option.value === view)!;
   // Incidents, or students, per 100 students across every classification of harassment
-  const rows = useMemo(() => ratesByYear(
-    totalsByYear(entityHarassment, picked.count),
-    totalsByYear(stateHarassment, picked.count),
-    enrolledByYear(entityEnrollment),
-    enrolledByYear(stateEnrollment)
-  ), [picked, entityHarassment, stateHarassment, entityEnrollment, stateEnrollment]);
+  const rows = useMemo(() => rates(picked.count), [rates, picked]);
 
   return (
-    <Box sx={{ mt: 3 }}>
-      <TrendChart
-        title={picked.title}
-        subtitle="Per 100 Students"
-        control={<ChartSelect value={view} options={VIEWS} onChange={setView} label="Harassment to show" />}
-        data={rows}
-        series={rateSeries(kind)}
-        format={formatPer100}
-        axisFormat={formatPer100Axis}
-        bands={REMOTE_BAND}
-      />
-    </Box>
+    <TrendChart
+      sx={{ mt: 3 }}
+      title={picked.title}
+      subtitle="Per 100 Students"
+      control={<ChartSelect value={view} options={VIEWS} onChange={setView} label="Harassment to show" />}
+      data={rows}
+      series={RATE_SERIES[kind]}
+      format={formatPer100}
+      axisFormat={formatPer100Axis}
+      bands={REMOTE_BAND}
+    />
   );
 };
 

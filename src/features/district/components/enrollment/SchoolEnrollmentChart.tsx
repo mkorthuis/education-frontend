@@ -41,19 +41,31 @@ const SchoolEnrollmentChart: React.FC<SchoolEnrollmentChartProps> = ({ measureme
   }, [measurements]);
 
   // The groups with any students to show
-  const types = ENROLLMENT_MEASUREMENT_TYPE_ORDER.filter(type => byType.get(type)!.some(point => point.value > 0));
+  const types = useMemo(
+    () => ENROLLMENT_MEASUREMENT_TYPE_ORDER.filter(type => byType.get(type)!.some(point => point.value > 0)),
+    [byType]
+  );
   const type = types.includes(picked) ? picked : types[0] ?? TOTAL_ENROLLMENT;
-  const name = (option: EnrollmentMeasurementType) => (isMobile ? PHONE_NAMES : ENROLLMENT_MEASUREMENT_TYPE_NAMES)[option];
+  const options = useMemo(
+    () => types.map(option => ({ value: option, label: (isMobile ? PHONE_NAMES : ENROLLMENT_MEASUREMENT_TYPE_NAMES)[option] })),
+    [types, isMobile]
+  );
+  // The group's students, with all students beside a group
+  const chart = useMemo(() => ({
+    rows: mergeSeries({ students: byType.get(type)! }),
+    series: [{ key: 'students', name: ENROLLMENT_MEASUREMENT_TYPE_NAMES[type] }],
+    compare: type === TOTAL_ENROLLMENT ? undefined : { data: mergeSeries({ students: byType.get(TOTAL_ENROLLMENT)! }), label: 'Total Enrollment' },
+  }), [byType, type]);
 
   return (
     <TrendChart
       // The picker names the group, as on the State Enrollment page
       title="District School Enrollment"
       subtitle="# of Students"
-      control={<ChartSelect value={type} options={types.map(option => ({ value: option, label: name(option) }))} onChange={setPicked} label="Students to show" />}
-      data={mergeSeries({ students: byType.get(type)! })}
-      series={[{ key: 'students', name: ENROLLMENT_MEASUREMENT_TYPE_NAMES[type] }]}
-      compare={type === TOTAL_ENROLLMENT ? undefined : { data: mergeSeries({ students: byType.get(TOTAL_ENROLLMENT)! }), label: 'Total Enrollment' }}
+      control={<ChartSelect value={type} options={options} onChange={setPicked} label="Students to show" />}
+      data={chart.rows}
+      series={chart.series}
+      compare={chart.compare}
       format={formatCount}
       axisFormat={value => formatCompact(value)}
       axis="fit"
