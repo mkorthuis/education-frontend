@@ -3,6 +3,7 @@ import { Typography, Divider, Box, Button, SxProps, Theme, useMediaQuery, useThe
 import DownloadIcon from '@mui/icons-material/Download';
 
 interface SectionTitleProps {
+  // Shown at the end of the title (on phones, on a line under the place's name), e.g. a note on what the page's figures are
   children?: React.ReactNode;
   sx?: SxProps<Theme>;
   withDivider?: boolean;
@@ -24,7 +25,7 @@ interface SectionTitleProps {
 }
 
 /** Saves the page's data as one Excel file; hidden on phones, where a spreadsheet is little use */
-export const DownloadExcelButton: React.FC<{ onDownload: () => Promise<void> | void; ready?: boolean }> = ({ onDownload, ready = true }) => {
+const DownloadExcelButton: React.FC<{ onDownload: () => Promise<void> | void; ready?: boolean }> = ({ onDownload, ready = true }) => {
   const [downloading, setDownloading] = useState(false);
   const download = async () => {
     setDownloading(true);
@@ -91,6 +92,7 @@ const SectionTitle: React.FC<SectionTitleProps> = ({
           </Box>
         </>
       )}
+      {(!isMobile || !showEntityOnPhone) && children}
     </Typography>
   );
 
@@ -114,6 +116,7 @@ const SectionTitle: React.FC<SectionTitleProps> = ({
           }}
         >
           {districtName || schoolName || entityName}
+          {children && <Box component="span" sx={{ display: 'block' }}>{children}</Box>}
         </Typography>
       )}
     </Box>
