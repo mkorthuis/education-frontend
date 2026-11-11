@@ -151,11 +151,13 @@ export const STATE_API_FIXTURES: Record<string, unknown> = {
     { year: 2027, entry_type_id: 3, value: 1000 },
   ],
   'safety/school-safety-type': [{ id: 4, name: 'Arsons' }],
-  'safety/bullying-type': [{ id: 1, name: 'Bullying (of any kind)' }],
+  'safety/bullying-type': [{ id: 1, name: 'Bullying (of any kind)' }, { id: 2, name: 'Cyber-bullying' }],
   'safety/state/truancy': [{ id: 2, year: 2016, count: 15809 }, { id: 1, year: 2025, count: 30546 }],
   'safety/state/bullying': [
     { id: 2, year: 2016, reported: 1938, investigated_actual: 880, bullying_type: { id: 1, name: 'Bullying (of any kind)' } },
     { id: 1, year: 2025, reported: 1626, investigated_actual: 684, bullying_type: { id: 1, name: 'Bullying (of any kind)' } },
+    { id: 4, year: 2016, reported: 388, investigated_actual: 196, bullying_type: { id: 2, name: 'Cyber-bullying' } },
+    { id: 3, year: 2025, reported: 214, investigated_actual: 132, bullying_type: { id: 2, name: 'Cyber-bullying' } },
   ],
   'safety/state/safety': [
     { id: 2, year: 2016, count: 4, safety_type: { id: 4, name: 'Arsons' } },

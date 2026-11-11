@@ -445,6 +445,9 @@ describe('State pages', () => {
       + 'Truancy has about doubled since 2015-16: 18\\.8% of students \\(30,546\\) missed 10 or more half-days without an excuse in 2024-25, up from 9\\.1%\\. '
       + 'Bullying reports and restraints are down, but seclusions are up 36%\\.$'
     )), undefined, TIMEOUT)).toBeInTheDocument();
+    // Bullying of any kind and cyber-bullying added together: 1,626 and 214 reports in 2024-25
+    expect(screen.getAllByText('1,840').length).toBeGreaterThan(0);
+    expect(screen.queryByText('1,626')).not.toBeInTheDocument();
     // Phones get a short truancy title and subtitle
     expect(screen.getByText('% Students Truant')).toBeInTheDocument();
     expect(screen.getByText('10+ Half Days Unexcused')).toBeInTheDocument();

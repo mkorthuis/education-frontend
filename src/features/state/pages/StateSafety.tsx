@@ -22,6 +22,7 @@ import {
   REMOTE_BAND,
   shareOfEnrollment,
   toSeries,
+  totalsByYear,
   valueIn,
   YearRow,
   YearValue,
@@ -54,12 +55,12 @@ const StateSafety: React.FC = () => {
   }, [truancy, enrolled]);
 
   // Counts with a rate per 1,000 students alongside
+  // Bullying of any kind and cyber-bullying added together, as on the district and school pages
   const bullyingRows = useMemo(() => {
-    const anyKind = bullying.filter(row => row.bullying_type.name === 'Bullying (of any kind)');
-    const reported = toSeries(anyKind, row => row.reported);
+    const reported = totalsByYear(bullying, row => row.reported);
     return mergeSeries({
       reported,
-      confirmed: toSeries(anyKind, row => row.investigated_actual),
+      confirmed: totalsByYear(bullying, row => row.investigated_actual),
       reportedPer1000: per1000(reported, enrolled),
     });
   }, [bullying, enrolled]);
@@ -210,7 +211,7 @@ const StateSafety: React.FC = () => {
       },
       {
         name: 'Bullying Reports',
-        subtitle: 'Bullying of any kind',
+        subtitle: 'All types: bullying of any kind and cyber-bullying, added together',
         columns: [
           { header: 'School Year', width: 12 },
           { header: 'Reported', format: COUNT },
@@ -261,6 +262,7 @@ const StateSafety: React.FC = () => {
         'Source: NH Department of Education, School Safety Data Collection and truancy reports, which schools file at the end of each school year.',
         'Truant students had 10 or more half-days of unexcused absence; the share is of enrollment. Truancy counts only unexcused absences, not chronic absenteeism.',
         'Rates per 1,000 students use the enrollment the state reports with its safety data.',
+        'Schools report bullying of any kind and cyber-bullying in separate columns; the bullying counts add the two together, as the district and school pages do.',
         'State law allows restraint and seclusion only when a student\'s behavior poses a substantial and imminent risk of serious bodily harm.',
         'Many schools were remote or hybrid in 2020-21, so that year\'s counts are low.',
         'Serious incidents are firearms incidents (handguns, rifles or shotguns, more than one type, possession or sale, and other) and other serious incidents (first-degree assault, arson, aggravated sexual assault and robbery).',
@@ -301,7 +303,7 @@ const StateSafety: React.FC = () => {
         <ChartRow>
           <TrendChart
             title="Bullying Reports"
-            subtitle="Bullying of Any Kind"
+            subtitle="All Types, Including Cyber-Bullying"
             data={bullyingRows}
             series={[{ key: 'reported', name: 'Reported' }, { key: 'confirmed', name: 'Confirmed By Investigation', shortName: 'Confirmed' }]}
             tableSeries={[{ key: 'reportedPer1000', name: 'Reported per 1,000 Students', format: value => value.toFixed(1), hideOnPhone: true }]}
