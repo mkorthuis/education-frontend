@@ -44,9 +44,6 @@ export const ENTITY_COLORS = {
 // dark enough for 4.5:1 on white, and gray has no hue to confuse with the categorical colors
 export const CONTEXT_COLOR = '#767676';
 
-// Dots on every point up to this many years; longer series get a dot on the last point only
-const MAX_DOTS = 12;
-const MAX_MOBILE_DOTS = 8;
 // Direct labels at the end of each line need room on the right
 const DIRECT_LABEL_MIN_WIDTH = 560;
 const DIRECT_LABEL_GAP = 14;
@@ -313,14 +310,6 @@ const TrendChart: React.FC<TrendChartProps> = ({
     ? Math.min(150, Math.max(...colored.map(entry => (entry.shortName ?? entry.name).length)) * LABEL_CHAR_WIDTH + 16)
     : 16;
   const height = isMobile ? 280 : width >= 900 ? 400 : 340;
-  const allDots = data.length <= (isMobile ? MAX_MOBILE_DOTS : MAX_DOTS);
-
-  const lastYearOf = (key: string) => {
-    for (let index = data.length - 1; index >= 0; index -= 1) {
-      if (typeof data[index][key] === 'number') return data[index].year;
-    }
-    return null;
-  };
 
   // Legend in series order (grades, school levels and subjects have a natural order; stacked
   // columns from the bottom up), or for unordered lists in the order the lines end, highest first,
@@ -373,18 +362,8 @@ const TrendChart: React.FC<TrendChartProps> = ({
     );
   };
 
-  // Every point when the series is short; otherwise only the series' last point
-  const dotFor = (color: string, key: string) => {
-    if (allDots) return { r: 4, strokeWidth: 2, stroke: theme.palette.background.paper, fill: color };
-    const last = lastYearOf(key);
-    const EndDot = (props: any) => {
-      const { cx, cy, payload, index } = props;
-      return payload?.year === last && typeof cy === 'number'
-        ? <circle key={`${key}-${index}`} cx={cx} cy={cy} r={4} fill={color} stroke={theme.palette.background.paper} strokeWidth={2} />
-        : <g key={`${key}-${index}`} />;
-    };
-    return EndDot;
-  };
+  // A hollow circle on every point, as on the district and school charts (solid, even on a dashed line)
+  const dotFor = (color: string) => ({ r: 4, strokeWidth: 2, stroke: color, fill: theme.palette.background.paper, strokeDasharray: 'none' });
 
   const axisTick = { fontSize: 12, fill: theme.palette.text.secondary };
 
@@ -591,7 +570,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
                         strokeDasharray={entry.dashed ? '6 4' : undefined}
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        dot={dotFor(entry.color, entry.key)}
+                        dot={dotFor(entry.color)}
                         activeDot={{ r: 6, strokeWidth: 2, stroke: theme.palette.background.paper }}
                         connectNulls={connectGaps}
                         isAnimationActive={animate}
