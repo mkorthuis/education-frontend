@@ -31,11 +31,11 @@ export const OverviewTitle: React.FC<{ title: string; facts?: React.ReactNode }>
     <SectionTitle
       displayName={title}
       entityName=""
-      component="h1"
+      pageTitle
       showEntityOnPhone={false}
       // The facts line sits right under the title, on phones too; without one (a school on a phone),
       // the title keeps the facts line's space below it
-      sx={{ fontSize: { xs: '1.5rem', sm: '1.75rem' }, mb: facts ? 0.5 : { xs: 2, sm: 0.5 } }}
+      sx={{ mb: facts ? 0.5 : { xs: 2, sm: 0.5 } }}
     />
     {facts && <Typography variant="body1" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, mb: { xs: 2, sm: 3 } }}>{facts}</Typography>}
   </>

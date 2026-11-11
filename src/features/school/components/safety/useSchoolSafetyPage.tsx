@@ -294,7 +294,8 @@ export function useSchoolSafetyPage() {
 
   return {
     title: (
-      <SectionTitle 
+      <SectionTitle
+        pageTitle
         displayName={displayName}
         schoolName={school?.name}
         onDownload={downloadExcel}

@@ -297,7 +297,8 @@ export function useDistrictSafetyPage() {
     // The whitespace after the title is a text node the page has always rendered.
     title: (
       <>
-        <SectionTitle 
+        <SectionTitle
+          pageTitle
           displayName={displayName}
           districtName={district?.name}
           onDownload={downloadExcel}

@@ -219,7 +219,8 @@ const Staff: React.FC = () => {
   if (hasLoadError) {
     return (
       <>
-        <SectionTitle 
+        <SectionTitle
+          pageTitle
           displayName={PAGE_REGISTRY.district.staff.displayName}
           districtName={district?.name}
         />
@@ -238,7 +239,8 @@ const Staff: React.FC = () => {
 
   return (
     <>
-      <SectionTitle 
+      <SectionTitle
+        pageTitle
         displayName={displayName}
         districtName={district?.name}
         onDownload={downloadExcel}

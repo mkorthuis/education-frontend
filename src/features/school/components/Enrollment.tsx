@@ -102,7 +102,8 @@ const Enrollment: React.FC = () => {
 
   return (
     <Box>
-      <SectionTitle 
+      <SectionTitle
+        pageTitle
         displayName={PAGE_REGISTRY.school.enrollment.displayName}
         schoolName={school?.name}
         onDownload={downloadExcel}

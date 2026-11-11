@@ -160,20 +160,23 @@ const EducationFreedomAccount: React.FC = () => {
   }
 
   return (
-    <Box sx={{ 
-      width: isLargeScreen ? '60%' : '100%',
-      marginRight: 'auto' // Ensures left justification
-    }}>
-      <SectionTitle 
+    <>
+      {/* The title runs the page's width, as on the other pages; the table and chart keep to 60% */}
+      <SectionTitle
+        pageTitle
         displayName={displayName}
         districtName={district?.name}
         onDownload={downloadExcel}
         downloadReady={!!district && loadStatus === 'ready'}
       />
-      
-      <EfaDetailsTable />
-      <EfaTrendChart />
-    </Box>
+      <Box sx={{
+        width: isLargeScreen ? '60%' : '100%',
+        marginRight: 'auto' // Ensures left justification
+      }}>
+        <EfaDetailsTable />
+        <EfaTrendChart />
+      </Box>
+    </>
   );
 };
 

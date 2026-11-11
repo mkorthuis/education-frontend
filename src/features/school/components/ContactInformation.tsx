@@ -81,7 +81,8 @@ const ContactInformation: React.FC = () => {
 
   return (
     <>
-      <SectionTitle 
+      <SectionTitle
+        pageTitle
         displayName={PAGE_REGISTRY.school.contact.displayName}
         schoolName={school?.name}
       />

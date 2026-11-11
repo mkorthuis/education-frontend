@@ -58,7 +58,8 @@ const ContactInformation: React.FC = () => {
     <>
         {sau && (
           <>
-            <SectionTitle 
+            <SectionTitle
+              pageTitle
               displayName={PAGE_REGISTRY.district?.contactInformation?.displayName || "Contact Information"}
               districtName={district?.name}
             />

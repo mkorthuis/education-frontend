@@ -146,6 +146,7 @@ const EntityOutcomes: React.FC<{ kind: EntityKind }> = ({ kind }) => {
   return (
     <>
       <SectionTitle
+        pageTitle
         displayName={displayName}
         schoolName={kind === 'school' ? entity?.name : undefined}
         districtName={kind === 'district' ? entity?.name : undefined}

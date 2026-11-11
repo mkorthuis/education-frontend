@@ -177,7 +177,8 @@ const EntityAcademicAchievement: React.FC<{ kind: EntityKind }> = ({ kind }) => 
 
   return (
     <>
-      <SectionTitle 
+      <SectionTitle
+        pageTitle
         displayName={displayName}
         schoolName={kind === 'school' ? entity?.name : undefined}
         districtName={kind === 'district' ? entity?.name : undefined}
