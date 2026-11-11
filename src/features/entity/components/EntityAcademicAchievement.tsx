@@ -10,7 +10,7 @@ import {
   selectSelectedSubjectId,
   selectSelectedSubject,
   fetchAssessmentStateData,
-  selectCurrentAssessmentStateData,
+  setCurrentStateDataKey,
   AssessmentDataQueryKey,
   selectAssessmentStateLoadingStatus,
   selectAssessmentStateData,
@@ -28,11 +28,13 @@ import { EntityKind, SELECT_CURRENT_ENTITY } from '@/features/entity/entity';
 import { ASSESSMENT, EntityAssessmentData, EntityAssessmentParams, dispatchEntityAssessmentFetch } from '@/features/entity/bindings/assessment';
 import { downloadWorkbook } from '@/features/state/utils/excel';
 import { ASSESSMENT_YEAR } from '@/utils/environment';
+import { createOptionsKey } from '@/store/utils/cacheKey';
 import { entityFileName } from '../excel';
 import { academicsWorkbook } from '../workbooks/academicsWorkbook';
 
 // Every New Hampshire result, as the page loads them
 const ALL_STATE_RESULTS = {};
+const ALL_STATE_RESULTS_KEY = createOptionsKey(ALL_STATE_RESULTS);
 
 const EntityAcademicAchievement: React.FC<{ kind: EntityKind }> = ({ kind }) => {
   const { subjectName } = useParams<{ subjectName?: string }>();
@@ -51,10 +53,13 @@ const EntityAcademicAchievement: React.FC<{ kind: EntityKind }> = ({ kind }) => 
   
   // Use parameterized loading selector
   const entityAssessmentLoading = useAppSelector(state => assessment.selectLoading(state, initialQueryParams));
-  const stateAssessmentLoading = useAppSelector(state => selectAssessmentStateLoadingStatus(state, {}));
+  const stateAssessmentLoading = useAppSelector(state => selectAssessmentStateLoadingStatus(state, ALL_STATE_RESULTS));
+  // The page's parts read the state's "current" results (selectCurrentAssessmentStateData), which are
+  // whichever the last state request loaded: after the overview, its all-students results. The page
+  // loads every result and makes them current again.
+  const currentStateKey = useAppSelector(state => state.assessment.currentStateKey);
   
   const entityAssessmentData = useAppSelector(state => assessment.selectData(state, initialQueryParams));
-  const stateAssessmentData = useAppSelector(selectCurrentAssessmentStateData);
 
   const selectedSubjectId = useAppSelector(selectSelectedSubjectId);
   const selectedSubject = useAppSelector(selectSelectedSubject);
@@ -81,9 +86,11 @@ const EntityAcademicAchievement: React.FC<{ kind: EntityKind }> = ({ kind }) => 
   // Fetch assessment data when the entity is available
   useEffect(() => {
     if (entityId) {
-      // Fetch state assessment data if not already loaded
-      if (stateAssessmentLoading === LoadingState.IDLE && stateAssessmentData.length === 0) {
-        dispatch(fetchAssessmentStateData({}));
+      // Every state result, if not already loaded, and current once they are
+      if (stateAssessmentLoading === LoadingState.IDLE) {
+        dispatch(fetchAssessmentStateData(ALL_STATE_RESULTS));
+      } else if (stateAssessmentLoading === LoadingState.SUCCEEDED && currentStateKey !== ALL_STATE_RESULTS_KEY) {
+        dispatch(setCurrentStateDataKey(ALL_STATE_RESULTS_KEY));
       }
 
       // Fetch entity assessment data if not already loaded
@@ -109,11 +116,12 @@ const EntityAcademicAchievement: React.FC<{ kind: EntityKind }> = ({ kind }) => 
     kind === 'district' ? entity : undefined,
     entityAssessmentLoading, 
     entityAssessmentData.length, stateAssessmentLoading,
-    stateAssessmentData.length, initialQueryParams
+    currentStateKey, initialQueryParams
   ]);
 
   // Show loading when any data is still loading
-  const isLoading = entityLoading || entityAssessmentLoading !== LoadingState.SUCCEEDED || stateAssessmentLoading !== LoadingState.SUCCEEDED;
+  const isLoading = entityLoading || entityAssessmentLoading !== LoadingState.SUCCEEDED
+    || stateAssessmentLoading !== LoadingState.SUCCEEDED || currentStateKey !== ALL_STATE_RESULTS_KEY;
 
   // Show an error with a retry instead of loading forever when an assessment request failed
   const hasLoadError = !entityLoading && !!entityId && (entityAssessmentLoading === LoadingState.FAILED || stateAssessmentLoading === LoadingState.FAILED);

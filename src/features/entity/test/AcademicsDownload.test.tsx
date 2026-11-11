@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { screen, waitFor } from '@testing-library/react';
 // The harness first: it loads the store, which the pages' modules expect to exist
 import { answerFrom, downloadExcel, renderEntityPage, row, sheet } from './entityPages';
+import { store } from '@/store/store';
+import { clearStateData, fetchAssessmentStateData } from '@/store/slices/assessmentSlice';
 import DistrictAcademics from '@/features/district/components/AcademicAchievement';
 import SchoolAcademics from '@/features/school/components/AcademicAchievement';
 
@@ -136,5 +139,23 @@ describe('Academic Performance download', () => {
     expect(all.columns.map(column => column.header)).toEqual(['School', 'District', 'Math', 'Reading', 'Science']);
     expect(row(all, 'Concord High School').slice(0, 3)).toEqual(['Concord High School', 'Concord', 0.435]);
     expect(sheet(sheets, 'Notes').subtitle).toBe('Academic Performance for Concord High School');
+  });
+});
+
+describe('Academic Performance after the overview', () => {
+  // The overview loads only the state's all-students results, which then became the "current" state
+  // results; the page found them, never asked for the rest, and waited for those forever
+  it.each([
+    ['district', <DistrictAcademics key="district" />],
+    ['school', <SchoolAcademics key="school" />],
+  ] as const)('loads on a %s page after the overview', async (kind, page) => {
+    store.dispatch(clearStateData());
+    await store.dispatch(fetchAssessmentStateData({ assessment_subgroup_id: ALL_STUDENTS }));
+    await renderEntityPage(kind, page);
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Download Excel' })).toBeEnabled(), { timeout: 3000 });
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    // Every state result is current again, for the subject details' state figures
+    expect(store.getState().assessment.currentStateKey).toBe('_default');
   });
 });
