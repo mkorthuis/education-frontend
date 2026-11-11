@@ -1,6 +1,6 @@
 // What the district and school charts share, beside the State pages' metric helpers
 import { TrendSeries } from '@/features/state/components/TrendChart';
-import { shareOfEnrollment, totalsByYear, YearRow, YearValue } from '@/features/state/utils/stateMetrics';
+import { mergeSeries, shareOfEnrollment, totalsByYear, YearRow, YearValue } from '@/features/state/utils/stateMetrics';
 import { EntityKind, ENTITY_LABEL } from './entity';
 
 /** Students enrolled each year */
@@ -16,6 +16,12 @@ export const ratesByYear = (entity: YearValue[], state: YearValue[], entityEnrol
   const entityRates = new Map(shareOfEnrollment(entity, entityEnrolled).map(point => [point.year, point.value]));
   const stateRates = new Map(shareOfEnrollment(state, stateEnrolled).map(point => [point.year, point.value]));
   return entity.map(({ year }) => ({ year, entity: entityRates.get(year) ?? null, state: stateRates.get(year) ?? null }));
+};
+
+/** A district's or school's values and the state's ("entity" and "state") in the years the district or school has */
+export const besideState = (entity: YearValue[], state: YearValue[]): YearRow[] => {
+  const years = new Set(entity.map(point => point.year));
+  return mergeSeries({ entity, state: state.filter(point => years.has(point.year)) });
 };
 
 /** The district's or school's line alone, for a comparison drawn beside one of its parts */

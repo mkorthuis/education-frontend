@@ -64,15 +64,6 @@ export const formatPercentage = (
   return 'N/A';
 };
 
-// Chart color constants
-export const CHART_COLORS = {
-  CURRENT_ENTITY: '#1976d2', // Blue for current entity
-  STATE_AVERAGE: '#4CAF50', // Green for state average
-  OTHER_ENTITIES: '#9e9e9e', // Grey for other entities
-  SUBGROUP: '#1976d2', // Primary blue for subgroup
-  ALL_STUDENTS: '#9e9e9e', // Grey for all students when subgroup is selected
-};
-
 // Proficiency level definitions
 export const PROFICIENCY_LEVELS = [
   { 

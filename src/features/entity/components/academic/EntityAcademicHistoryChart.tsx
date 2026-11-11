@@ -25,7 +25,7 @@ import {
 import { plainLabel, STUDENT_GROUP_LABELS } from '@/features/state/utils/labels';
 import { EntityKind } from '@/features/entity/entity';
 import { ASSESSMENT } from '@/features/entity/bindings/assessment';
-import { entityOnly, RATE_SERIES } from '@/features/entity/trends';
+import { besideState, RATE_SERIES } from '@/features/entity/trends';
 
 // Results by student group start with the current test
 const GROUPS_FROM_YEAR = 2018;
@@ -53,12 +53,7 @@ const EntityAcademicHistoryChart: React.FC<{ kind: EntityKind }> = ({ kind }) =>
     const shares = (rows: NamedAssessmentRow[], group: number) =>
       toSeries(proficiencyBySubject(rows, group, grade, true), row => row[subject.key])
         .filter(point => !isGroup || point.year >= GROUPS_FROM_YEAR);
-    const entity = shares(entityRows, subgroupId);
-    const years = new Set(entity.map(point => point.year));
-    const rows = withEmptyYears(mergeSeries({
-      entity,
-      state: shares(stateRows, subgroupId).filter(point => years.has(point.year)),
-    }), [NO_TEST_YEAR], ['entity', 'state']);
+    const rows = withEmptyYears(besideState(shares(entityRows, subgroupId), shares(stateRows, subgroupId)), [NO_TEST_YEAR], ['entity', 'state']);
     // "<10%" or ">90%" in the tooltip where that's all the state reports
     const boundsOf = (key: string, results: NamedAssessmentRow[]) => results
       .filter(row => row.bound && row.assessment_subject_id === subject.id && row.assessment_subgroup_id === subgroupId && row.grade_id === grade)
@@ -72,7 +67,7 @@ const EntityAcademicHistoryChart: React.FC<{ kind: EntityKind }> = ({ kind }) =>
         entityRows.find(row => row.grade_id === grade && row.grade_name)?.grade_name ?? 'All Grades'}`,
       // All students in the same grade, dashed beside a group
       overall: isGroup
-        ? { data: entityOnly(mergeSeries({ entity: shares(entityRows, ALL_STUDENTS_SUBGROUP_ID).filter(point => years.has(point.year)) })), label: 'All Students' }
+        ? { data: mergeSeries({ entity: shares(entityRows, ALL_STUDENTS_SUBGROUP_ID) }), label: 'All Students' }
         : undefined,
       estimated: rows.some(row => row.year < GROUPS_FROM_YEAR),
     };

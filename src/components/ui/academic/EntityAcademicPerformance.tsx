@@ -1,24 +1,9 @@
-import React from 'react';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  Cell,
-  ReferenceLine,
-  Label,
-  Legend
-} from 'recharts';
-import { Typography, Box } from '@mui/material';
-import { 
-  getEntityLabel, 
-  getEntityPlural, 
-  EntityType,
-  CHART_COLORS 
-} from './utils/academicUtils';
+import { useId } from 'react';
+import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Box, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { SERIES_COLORS } from '@/features/state/components/TrendChart';
+import { ChartHeader, visuallyHidden } from '@/features/state/components/chartText';
+import { getEntityLabel, getEntityPlural, EntityType } from './utils/academicUtils';
 
 // Interface for processed chart data
 interface ChartDataPoint {
@@ -36,20 +21,22 @@ export interface EntityAcademicPerformanceProps {
   hasData: boolean;
 }
 
-// Custom X-axis tick formatter to show ticks only at 10% intervals
-const formatXAxisTick = (value: number) => {
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  
-  if (value % 10 === 0) {
-    // For the value 100, don't add the percentage sign on mobile
-    if (value === 100 && isMobile) {
-      return '100';
-    }
-    return `${value}%`;
-  }
-  return '';
+// The same colors as the District (or School) and State Average lines in the chart beside it
+const ENTITY_COLOR = SERIES_COLORS[0];
+const STATE_COLOR = SERIES_COLORS[1];
+
+const BarsTooltip = ({ active, payload, plural }: any) => {
+  if (!active || !payload?.length) return null;
+  const { percentage, count } = payload[0].payload as ChartDataPoint;
+  return (
+    <Box sx={{ backgroundColor: 'background.paper', p: 1.5, border: 1, borderColor: 'divider', borderRadius: 1, boxShadow: 1 }}>
+      <Typography variant="subtitle2" gutterBottom>{percentage}% Proficient</Typography>
+      <Typography variant="body2">{count} {count === 1 ? plural.slice(0, -1) : plural}</Typography>
+    </Box>
+  );
 };
 
+/** How many districts (or schools) reached each percent proficient, with this one marked, in the State pages' chart style */
 function EntityAcademicPerformance({
   chartData,
   entityType,
@@ -58,117 +45,77 @@ function EntityAcademicPerformance({
   total,
   hasData
 }: EntityAcademicPerformanceProps) {
-  // Get entity labels
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const titleId = useId();
+  const summaryId = useId();
   const entityLabel = getEntityLabel(entityType);
   const entityPlural = getEntityPlural(entityType);
-  
-  // Custom Legend Component
-  const renderLegend = () => {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', fontSize: '12px', marginTop: '5px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', marginRight: '20px' }}>
-          <div style={{ 
-            width: '12px', 
-            height: '12px', 
-            backgroundColor: CHART_COLORS.CURRENT_ENTITY, 
-            marginRight: '5px' 
-          }}></div>
-          <span>Your {entityLabel}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <div style={{ 
-            width: '12px', 
-            height: '12px', 
-            backgroundColor: CHART_COLORS.OTHER_ENTITIES, 
-            marginRight: '5px' 
-          }}></div>
-          <span>Other {entityPlural}</span>
-        </div>
-      </div>
-    );
-  };
+  const othersColor = theme.palette.grey[400];
+  const own = chartData.find(entry => entry.isCurrentEntity);
+  const axisTick = { fontSize: 12, fill: theme.palette.text.secondary };
+
+  const legend = [
+    { label: `This ${entityLabel}`, swatch: <Box sx={{ width: 10, height: 10, borderRadius: 0.5, backgroundColor: ENTITY_COLOR }} /> },
+    { label: `Other ${entityPlural}`, swatch: <Box sx={{ width: 10, height: 10, borderRadius: 0.5, backgroundColor: othersColor }} /> },
+    ...(stateAverage !== null
+      ? [{ label: `State Average: ${stateAverage}%`, swatch: <Box sx={{ width: 16, height: 0, borderTop: '3px dashed', borderColor: STATE_COLOR }} /> }]
+      : []),
+  ];
 
   return (
-    <>
-      <Typography variant="h6" sx={{ textAlign: "center", width: "100%" }}>
-        % Students Proficient For Each {entityLabel}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, textAlign: "center", width: "100%" }}>
-        Your {entityType} is <span style={{ color: CHART_COLORS.CURRENT_ENTITY, fontWeight: 'bold' }}>blue</span>
-        {rank !== null && total > 0 ? `. Ranked #${rank} out of ${total} ${entityPlural.toLowerCase()}` : ''}.
-      </Typography>
-      
-      <Box sx={{ width: '100%', height: 350 }}>
+    <Box component="figure" aria-labelledby={titleId} aria-describedby={summaryId} sx={{ m: 0, minWidth: 0 }}>
+      <ChartHeader
+        titleId={titleId}
+        title={`% Students Proficient For Each ${entityLabel}`}
+        subtitle={rank !== null && total > 0 ? `Ranked #${rank} of ${total} ${entityPlural.toLowerCase()}` : `Number of ${entityPlural}`}
+      />
+      <Box component="p" id={summaryId} sx={visuallyHidden}>
+        {`Bar chart of how many ${entityPlural.toLowerCase()} reached each percent proficient.`}
+        {own ? ` This ${entityType}: ${own.percentage}%${rank !== null ? `, ranked #${rank} of ${total}` : ''}.` : ''}
+        {stateAverage !== null ? ` State average: ${stateAverage}%.` : ''}
+      </Box>
+      <Box component="ul" aria-hidden sx={{ display: 'flex', flexWrap: 'wrap', columnGap: 2, rowGap: 0.5, listStyle: 'none', p: 0, m: 0, mb: 1 }}>
+        {legend.map(item => (
+          <Box component="li" key={item.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+            {item.swatch}
+            <Typography variant="body2" color="text.primary">{item.label}</Typography>
+          </Box>
+        ))}
+      </Box>
+      <Box aria-hidden sx={{ width: '100%', height: isMobile ? 280 : 340 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={chartData}
-            margin={{
-              top: 5, 
-              right: 5,
-              left: 5,
-              bottom: 15,
-            }}
-            barCategoryGap={0}
-            barGap={0}
-          >
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis 
-              dataKey="percentage" 
-              domain={[0, 100]}
-              tickFormatter={formatXAxisTick}
-              ticks={[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]}
-              tick={{ fontSize: 10 }}
-              height={20}
+          <BarChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 4 }} barCategoryGap={0} barGap={0}>
+            <CartesianGrid stroke={theme.palette.grey[200]} vertical={false} />
+            <XAxis
+              dataKey="percentage"
+              ticks={isMobile ? [0, 20, 40, 60, 80, 100] : [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]}
+              interval={0}
+              tickFormatter={value => `${value}%`}
+              tick={axisTick}
+              axisLine={{ stroke: theme.palette.grey[300] }}
+              tickLine={false}
             />
-            <YAxis 
-              allowDecimals={false}
-              tick={{ fontSize: 10 }}
-              width={25}
-            />
-            <Tooltip 
-              formatter={(value) => [value, entityPlural]}
-              labelFormatter={(percentage) => `Proficiency: ${percentage}%`}
-            />
+            <YAxis allowDecimals={false} tick={axisTick} axisLine={false} tickLine={false} width={32} />
+            <Tooltip content={<BarsTooltip plural={entityPlural} />} cursor={{ fill: theme.palette.grey[100] }} />
             {stateAverage !== null && (
-              <ReferenceLine 
-                x={stateAverage} 
-                stroke={CHART_COLORS.STATE_AVERAGE} 
-                strokeWidth={2}
-                strokeDasharray="5 5"
-                isFront={true}
-              >
-                <Label
-                  value={`State Average: ${stateAverage}%`}
-                  position="top"
-                  fill={CHART_COLORS.STATE_AVERAGE}
-                  fontSize={12}
-                  fontWeight={600}
-                  offset={0}
-                  dx={65}
-                  dy={20}
-                />
-              </ReferenceLine>
+              <ReferenceLine x={stateAverage} stroke={STATE_COLOR} strokeWidth={2} strokeDasharray="6 4" isFront />
             )}
             <Bar dataKey="count" name={entityPlural} minPointSize={1}>
-              {chartData.map((entry, index) => (
-                <Cell 
-                  key={`cell-${index}`} 
-                  fill={entry.isCurrentEntity ? CHART_COLORS.CURRENT_ENTITY : CHART_COLORS.OTHER_ENTITIES} 
-                />
+              {chartData.map(entry => (
+                <Cell key={entry.percentage} fill={entry.isCurrentEntity ? ENTITY_COLOR : othersColor} />
               ))}
             </Bar>
-            <Legend content={renderLegend} />
           </BarChart>
         </ResponsiveContainer>
       </Box>
-      
       {!hasData && (
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, textAlign: 'center' }}>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
           No data available. Please select filters to view {entityType} data.
         </Typography>
       )}
-    </>
+    </Box>
   );
 }
 
-export default EntityAcademicPerformance; 
+export default EntityAcademicPerformance;
