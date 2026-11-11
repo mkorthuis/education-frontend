@@ -7,10 +7,10 @@ import {
 } from '@/store/slices/safetySlice';
 import { BaseTruancyData } from '@/store/slices/safety/types';
 import TrendChart from '@/features/state/components/TrendChart';
-import { formatPercent, REMOTE_BAND } from '@/features/state/utils/stateMetrics';
+import { formatPercent, REMOTE_BAND, totalsByYear } from '@/features/state/utils/stateMetrics';
 import { EntityKind, useCurrentEntity } from '@/features/entity/entity';
 import { SAFETY, IdFallback, safetyParams } from '@/features/entity/bindings/safety';
-import { countsByYear, rateSeries, ratesByYear } from './safetyTrends';
+import { enrolledByYear, ratesByYear, rateSeries } from '@/features/entity/trends';
 
 const ID_FALLBACK: Record<EntityKind, IdFallback> = { school: 'none', district: 'none' };
 
@@ -29,11 +29,10 @@ const EntityTruancyHistoryChart: React.FC<{ kind: EntityKind }> = ({ kind }) => 
     const latest = Math.max(0, ...entityTruancy.map(row => row.year), ...stateTruancy.map(row => row.year));
     const recent = entityTruancy.filter(row => row.year > latest - YEARS_SHOWN);
     return ratesByYear(
-      countsByYear<BaseTruancyData>(recent, row => row.count),
-      countsByYear(stateTruancy, row => row.count),
-      entityEnrollment,
-      stateEnrollment,
-      1
+      totalsByYear<BaseTruancyData>(recent, row => row.count),
+      totalsByYear(stateTruancy, row => row.count),
+      enrolledByYear(entityEnrollment),
+      enrolledByYear(stateEnrollment)
     );
   }, [entityTruancy, stateTruancy, entityEnrollment, stateEnrollment]);
 

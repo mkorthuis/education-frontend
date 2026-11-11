@@ -26,7 +26,7 @@ import TownEnrollmentChart from './enrollment/TownEnrollmentChart';
 import SchoolEnrollmentDetails from './enrollment/SchoolEnrollmentDetails';
 import SchoolEnrollmentChart from './enrollment/SchoolEnrollmentChart';
 import EnrollmentSummary from './enrollment/EnrollmentSummary';
-import EnrollmentSummaryChart from './enrollment/EnrollmentSummaryChart';
+import EnrollmentProjectionChart from '@/components/ui/enrollment/EnrollmentProjectionChart';
 import { EnrollmentProjectionSnapshot } from '@/utils/enrollmentProjection';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import { aggregateStatus } from '@/store/utils/loadingState';
@@ -165,12 +165,7 @@ const Enrollment: React.FC = () => {
         }}
       >
         <Box sx={{ flex: { md: 1 }, width: '100%' }}>
-          <TownEnrollmentChart 
-            districtId={district?.id} 
-            enrollmentData={townEnrollmentData}
-            stateEnrollmentData={stateTownEnrollmentData}
-            towns={towns}
-          />
+          <TownEnrollmentChart enrollmentData={townEnrollmentData} towns={towns} />
         </Box>
         <Box sx={{ flex: { md: 1 }, width: '100%' }}>
           <TownEnrollmentDetails 
@@ -202,7 +197,7 @@ const Enrollment: React.FC = () => {
         </Box>
         <Box sx={{ flex: { md: 1 }, width: '100%' }}>
           {enrollmentData && (
-            <EnrollmentSummaryChart 
+            <EnrollmentProjectionChart
               currentEnrollment={enrollmentData.currentClassSizes}
               projectedEnrollment={enrollmentData.projectedClassSizes}
               endYear={enrollmentData.endYear}

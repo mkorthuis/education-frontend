@@ -8,10 +8,10 @@ import {
 import { BaseHarassmentData } from '@/store/slices/safety/types';
 import TrendChart from '@/features/state/components/TrendChart';
 import ChartSelect from '@/features/state/components/ChartSelect';
-import { REMOTE_BAND } from '@/features/state/utils/stateMetrics';
+import { REMOTE_BAND, totalsByYear } from '@/features/state/utils/stateMetrics';
 import { EntityKind, useCurrentEntity } from '@/features/entity/entity';
 import { SAFETY, IdFallback, safetyParams } from '@/features/entity/bindings/safety';
-import { countsByYear, formatPer100, formatPer100Axis, rateSeries, ratesByYear } from './safetyTrends';
+import { enrolledByYear, formatPer100, formatPer100Axis, ratesByYear, rateSeries } from '@/features/entity/trends';
 
 const ID_FALLBACK: Record<EntityKind, IdFallback> = { school: 'zero', district: 'none' };
 
@@ -35,10 +35,10 @@ const EntityHarassmentTrendChart: React.FC<{ kind: EntityKind }> = ({ kind }) =>
   const picked = VIEWS.find(option => option.value === view)!;
   // Incidents, or students, per 100 students across every classification of harassment
   const rows = useMemo(() => ratesByYear(
-    countsByYear(entityHarassment, picked.count),
-    countsByYear(stateHarassment, picked.count),
-    entityEnrollment,
-    stateEnrollment
+    totalsByYear(entityHarassment, picked.count),
+    totalsByYear(stateHarassment, picked.count),
+    enrolledByYear(entityEnrollment),
+    enrolledByYear(stateEnrollment)
   ), [picked, entityHarassment, stateHarassment, entityEnrollment, stateEnrollment]);
 
   return (

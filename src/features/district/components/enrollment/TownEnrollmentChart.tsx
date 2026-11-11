@@ -1,76 +1,43 @@
-import React from 'react';
-import { TownEnrollmentData, StateTownEnrollmentData } from '@/services/api/endpoints/enrollments';
+import React, { useMemo, useState } from 'react';
+import { TownEnrollmentData } from '@/services/api/endpoints/enrollments';
 import { Town } from '@/store/slices/locationSlice';
-import SharedSchoolEnrollmentChart from '@/components/ui/enrollment/SharedSchoolEnrollmentChart';
+import TrendChart from '@/features/state/components/TrendChart';
+import ChartSelect from '@/features/state/components/ChartSelect';
+import { formatCompact, formatCount, mergeSeries, REMOTE_BAND, totalsByYear } from '@/features/state/utils/stateMetrics';
 
 export interface TownEnrollmentChartProps {
-  districtId?: number;
   enrollmentData: TownEnrollmentData[];
-  stateEnrollmentData: StateTownEnrollmentData[];
   towns: Town[];
 }
 
-const ALL_TOWNS_ID = 'all';
+const ALL_TOWNS = 'all';
 
-const TownEnrollmentChart: React.FC<TownEnrollmentChartProps> = ({
-  districtId,
-  enrollmentData = [],
-  stateEnrollmentData = [],
-  towns = []
-}) => {
-  const [selectedTownId, setSelectedTownId] = React.useState<number | string>(ALL_TOWNS_ID);
+/** Students living in the district's towns each year, in all of them or one */
+const TownEnrollmentChart: React.FC<TownEnrollmentChartProps> = ({ enrollmentData, towns }) => {
+  const [town, setTown] = useState<number | string>(ALL_TOWNS);
 
-  // Process data for the chart
-  const chartData = React.useMemo(() => {
-    if (!enrollmentData.length) return [];
-    
-    // Filter data for selected town if one is selected
-    const filteredData = selectedTownId !== ALL_TOWNS_ID
-      ? enrollmentData.filter(item => item.town_id === selectedTownId)
-      : enrollmentData;
-    
-    // Get available years
-    const years = [...new Set(filteredData.map(item => item.year))].sort();
-    
-    // Create data points for each year
-    return years.map(year => {
-      // Filter data for the current year
-      const yearData = filteredData.filter(item => item.year === year);
-      
-      // Calculate total enrollment for this year (sum across all grades)
-      const totalEnrollment = yearData.reduce((sum, item) => sum + (item.enrollment || 0), 0);
-      
-      return {
-        year: year.toString(),
-        formattedYear: year.toString(),
-        value: totalEnrollment,
-        name: "Total Students"
-      };
-    }).sort((a, b) => parseInt(a.year) - parseInt(b.year));
-  }, [enrollmentData, selectedTownId]);
-
-  // Prepare select options from towns
-  const selectOptions = React.useMemo(() => [
-    { id: ALL_TOWNS_ID, name: "All Towns" },
-    ...towns.map(town => ({
-      id: town.id,
-      name: town.name
-    }))
+  const options = useMemo(() => [
+    { value: ALL_TOWNS, label: 'All Towns' },
+    ...towns.map(entry => ({ value: entry.id, label: entry.name })),
   ], [towns]);
 
+  const rows = useMemo(() => mergeSeries({
+    students: totalsByYear(enrollmentData, row => (town === ALL_TOWNS || row.town_id === town ? row.enrollment : 0)),
+  }), [enrollmentData, town]);
+
   return (
-    <SharedSchoolEnrollmentChart
+    <TrendChart
       title="Current Students"
-      data={chartData}
-      valueKey="value"
-      valueName="Total Students"
-      showSelector={towns.length > 1}
-      selectorLabel="Select Town"
-      selectOptions={selectOptions}
-      selectedValue={selectedTownId}
-      onSelectChange={setSelectedTownId}
+      subtitle="# of Students"
+      control={towns.length > 1 ? <ChartSelect value={town} options={options} onChange={setTown} label="Town" /> : undefined}
+      data={rows}
+      series={[{ key: 'students', name: 'Students' }]}
+      format={formatCount}
+      axisFormat={value => formatCompact(value)}
+      axis="fit"
+      bands={REMOTE_BAND}
     />
   );
 };
 
-export default TownEnrollmentChart; 
+export default TownEnrollmentChart;

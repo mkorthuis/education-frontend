@@ -1,48 +1,28 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { SchoolEnrollmentData } from '@/services/api/endpoints/enrollments';
-import SharedSchoolEnrollmentChart from '@/components/ui/enrollment/SharedSchoolEnrollmentChart';
+import TrendChart from '@/features/state/components/TrendChart';
+import { formatCompact, formatCount, mergeSeries, REMOTE_BAND, totalsByYear } from '@/features/state/utils/stateMetrics';
 
 export interface SchoolEnrollmentChartProps {
-  schoolId?: number;
-  enrollmentData?: SchoolEnrollmentData[];
+  enrollmentData: SchoolEnrollmentData[];
 }
 
-const SchoolEnrollmentChart: React.FC<SchoolEnrollmentChartProps> = ({
-  schoolId,
-  enrollmentData = []
-}) => {
-  // Process data for the chart
-  const chartData = React.useMemo(() => {
-    if (!enrollmentData.length) return [];
-    
-    // Get available years
-    const years = [...new Set(enrollmentData.map(item => item.year))].sort();
-    
-    // Create data points for each year
-    return years.map(year => {
-      // Filter data for the current year
-      const yearData = enrollmentData.filter(item => item.year === year);
-      
-      // Calculate total enrollment for this year (sum across all grades)
-      const totalEnrollment = yearData.reduce((sum, item) => sum + (item.enrollment || 0), 0);
-      
-      return {
-        year: year.toString(),
-        formattedYear: year.toString(),
-        value: totalEnrollment,
-        name: "Total Students"
-      };
-    }).sort((a, b) => parseInt(a.year) - parseInt(b.year));
-  }, [enrollmentData]);
+/** The school's students each year, across its grades */
+const SchoolEnrollmentChart: React.FC<SchoolEnrollmentChartProps> = ({ enrollmentData }) => {
+  const rows = useMemo(() => mergeSeries({ students: totalsByYear(enrollmentData, row => row.enrollment) }), [enrollmentData]);
 
   return (
-    <SharedSchoolEnrollmentChart
+    <TrendChart
       title="Current Students"
-      data={chartData}
-      valueKey="value"
-      valueName="Total Students"
+      subtitle="# of Students"
+      data={rows}
+      series={[{ key: 'students', name: 'Students' }]}
+      format={formatCount}
+      axisFormat={value => formatCompact(value)}
+      axis="fit"
+      bands={REMOTE_BAND}
     />
   );
 };
 
-export default SchoolEnrollmentChart; 
+export default SchoolEnrollmentChart;

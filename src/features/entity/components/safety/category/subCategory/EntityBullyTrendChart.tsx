@@ -8,10 +8,10 @@ import {
 } from '@/store/slices/safetySlice';
 import TrendChart from '@/features/state/components/TrendChart';
 import ChartSelect from '@/features/state/components/ChartSelect';
-import { REMOTE_BAND } from '@/features/state/utils/stateMetrics';
+import { REMOTE_BAND, totalsByYear } from '@/features/state/utils/stateMetrics';
 import { EntityKind, useCurrentEntity } from '@/features/entity/entity';
 import { SAFETY, IdFallback, safetyParams } from '@/features/entity/bindings/safety';
-import { countsByYear, entityOnly, formatPer100, formatPer100Axis, rateSeries, ratesByYear } from './safetyTrends';
+import { enrolledByYear, entityOnly, formatPer100, formatPer100Axis, ratesByYear, rateSeries } from '@/features/entity/trends';
 
 const ID_FALLBACK: Record<EntityKind, IdFallback> = { school: 'zero', district: 'none' };
 
@@ -41,14 +41,12 @@ const EntityBullyTrendChart: React.FC<{ kind: EntityKind }> = ({ kind }) => {
 
   // Incidents confirmed by investigation per 100 students: all types, or one with all beside it
   const chart = useMemo(() => {
+    const entityEnrolled = enrolledByYear(entityEnrollment);
+    const stateEnrolled = enrolledByYear(stateEnrollment);
     const rates = (type: string) => {
-      const counted = (row: { bullying_type: { id: number } }) => type === ALL_TYPES || String(row.bullying_type.id) === type;
-      return ratesByYear(
-        countsByYear(entityBullying, row => row.investigated_actual, counted),
-        countsByYear(stateBullying, row => row.investigated_actual, counted),
-        entityEnrollment,
-        stateEnrollment
-      );
+      const count = (row: { investigated_actual: number; bullying_type: { id: number } }) =>
+        (type === ALL_TYPES || String(row.bullying_type.id) === type ? row.investigated_actual : 0);
+      return ratesByYear(totalsByYear(entityBullying, count), totalsByYear(stateBullying, count), entityEnrolled, stateEnrolled);
     };
     const all = rates(ALL_TYPES);
     return picked === ALL_TYPES ? { rows: all } : { rows: rates(picked), overall: { data: entityOnly(all), label: 'All Types' } };

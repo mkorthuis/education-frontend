@@ -12,10 +12,10 @@ import {
 } from '@/utils/safetyCalculations';
 import TrendChart from '@/features/state/components/TrendChart';
 import ChartSelect from '@/features/state/components/ChartSelect';
-import { REMOTE_BAND } from '@/features/state/utils/stateMetrics';
+import { REMOTE_BAND, totalsByYear } from '@/features/state/utils/stateMetrics';
 import { EntityKind, useCurrentEntity } from '@/features/entity/entity';
 import { SAFETY, IdFallback, safetyParams } from '@/features/entity/bindings/safety';
-import { countsByYear, entityOnly, formatPer100, formatPer100Axis, rateSeries, ratesByYear } from './safetyTrends';
+import { enrolledByYear, entityOnly, formatPer100, formatPer100Axis, ratesByYear, rateSeries } from '@/features/entity/trends';
 
 const ID_FALLBACK: Record<EntityKind, IdFallback> = { school: 'zero', district: 'none' };
 
@@ -43,14 +43,11 @@ const EntitySuspensionTrendChart: React.FC<{ kind: EntityKind }> = ({ kind }) =>
     const inSchool = typeId(IN_SCHOOL_SUSPENSION_TYPE);
     const outOfSchool = typeId(OUT_OF_SCHOOL_SUSPENSION_TYPE);
     if (inSchool === undefined || outOfSchool === undefined) return { rows: [] };
+    const entityEnrolled = enrolledByYear(entityEnrollment);
+    const stateEnrolled = enrolledByYear(stateEnrollment);
     const rates = (ids: number[]) => {
-      const counted = (row: { count_type: { id: number } }) => ids.includes(row.count_type.id);
-      return ratesByYear(
-        countsByYear(entityCounts, row => row.count, counted),
-        countsByYear(stateCounts, row => row.count, counted),
-        entityEnrollment,
-        stateEnrollment
-      );
+      const count = (row: { count: number; count_type: { id: number } }) => (ids.includes(row.count_type.id) ? row.count : 0);
+      return ratesByYear(totalsByYear(entityCounts, count), totalsByYear(stateCounts, count), entityEnrolled, stateEnrolled);
     };
     const all = rates([inSchool, outOfSchool]);
     return view === 'overall'

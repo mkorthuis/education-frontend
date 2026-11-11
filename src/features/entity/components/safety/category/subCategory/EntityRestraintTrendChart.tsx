@@ -2,10 +2,10 @@ import React, { useMemo } from 'react';
 import { Box } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
 import TrendChart from '@/features/state/components/TrendChart';
-import { REMOTE_BAND } from '@/features/state/utils/stateMetrics';
+import { REMOTE_BAND, totalsByYear } from '@/features/state/utils/stateMetrics';
 import { EntityKind, useCurrentEntity } from '@/features/entity/entity';
 import { SAFETY, STATE_SAFETY, IdFallback, safetyParams } from '@/features/entity/bindings/safety';
-import { countsByYear, formatPer100, formatPer100Axis, rateSeries, ratesByYear } from './safetyTrends';
+import { enrolledByYear, formatPer100, formatPer100Axis, ratesByYear, rateSeries } from '@/features/entity/trends';
 
 const ID_FALLBACK: Record<EntityKind, IdFallback> = { school: 'zero', district: 'zero' };
 
@@ -26,10 +26,10 @@ const EntityRestraintTrendChart: React.FC<EntityRestraintTrendChartProps> = ({ k
   const stateEnrollment = useAppSelector(state => STATE_SAFETY.data.enrollment(state, {}));
 
   const rows = useMemo(() => ratesByYear(
-    countsByYear<{ year: number; generated: number }>(entityReports, row => row.generated),
-    countsByYear<{ year: number; generated: number }>(stateReports, row => row.generated),
-    entityEnrollment,
-    stateEnrollment
+    totalsByYear<{ year: number; generated: number }>(entityReports, row => row.generated),
+    totalsByYear<{ year: number; generated: number }>(stateReports, row => row.generated),
+    enrolledByYear(entityEnrollment),
+    enrolledByYear(stateEnrollment)
   ), [entityReports, stateReports, entityEnrollment, stateEnrollment]);
 
   return (

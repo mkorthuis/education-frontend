@@ -16,7 +16,7 @@ import {
 import SchoolEnrollmentChart from './enrollment/SchoolEnrollmentChart';
 import SchoolEnrollmentDetails from './enrollment/SchoolEnrollmentDetails';
 import SchoolEnrollmentSummary from './enrollment/SchoolEnrollmentSummary';
-import SchoolEnrollmentSummaryChart from './enrollment/SchoolEnrollmentSummaryChart';
+import EnrollmentProjectionChart from '@/components/ui/enrollment/EnrollmentProjectionChart';
 import { EnrollmentProjectionSnapshot } from '@/utils/enrollmentProjection';
 import SectionTitle from '@/components/ui/SectionTitle';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
@@ -101,10 +101,7 @@ const Enrollment: React.FC = () => {
         }}
       >
         <Box sx={{ flex: { md: 1 }, width: '100%' }}>
-          <SchoolEnrollmentChart 
-            schoolId={schoolId || 0} 
-            enrollmentData={schoolEnrollmentData}
-          />
+          <SchoolEnrollmentChart enrollmentData={schoolEnrollmentData} />
         </Box>
         <Box sx={{ flex: { md: 1 }, width: '100%' }}>
           <SchoolEnrollmentDetails 
@@ -134,11 +131,12 @@ const Enrollment: React.FC = () => {
           </Box>
           <Box sx={{ flex: { md: 1 }, width: '100%' }}>
             {enrollmentSummaryData && (
-              <SchoolEnrollmentSummaryChart
+              <EnrollmentProjectionChart
                 currentEnrollment={enrollmentSummaryData.currentClassSizes}
                 projectedEnrollment={enrollmentSummaryData.projectedClassSizes}
                 endYear={enrollmentSummaryData.endYear}
                 futureYear={enrollmentSummaryData.futureYear}
+                grades={school?.grades?.map(grade => grade.id) ?? []}
               />
             )}
           </Box>
