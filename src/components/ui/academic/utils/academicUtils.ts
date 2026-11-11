@@ -64,21 +64,6 @@ export const formatPercentage = (
   return 'N/A';
 };
 
-/**
- * Process exception values for charts
- */
-export const processExceptionValue = (
-  percentage: number | null,
-  exception: string | null
-): number | null => {
-  if (percentage !== null) return percentage;
-  
-  if (exception === 'SCORE_UNDER_10') return 10;
-  if (exception === 'SCORE_OVER_90') return 90;
-  
-  return null;
-};
-
 // Chart color constants
 export const CHART_COLORS = {
   CURRENT_ENTITY: '#1976d2', // Blue for current entity

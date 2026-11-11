@@ -335,7 +335,13 @@ const TrendChart: React.FC<TrendChartProps> = ({
     };
     return [...colored].sort((a, b) => last(b.key) - last(a.key));
   }, [colored, data, kind, legendByValue]);
-  const visibleMarkers = markers.filter(marker => years.includes(marker.year));
+  const visibleMarkers = markers.filter(marker => years.includes(marker.year)).sort((a, b) => a.year - b.year);
+  // Marker labels need room before the next marker; without it the lines stay and the note names the years
+  const yearWidth = (width - (isMobile ? 48 : 60) - labelRoom - 4) / Math.max(years.length, 1);
+  const markerLabels = !isMobile && visibleMarkers.every((marker, index) => {
+    const next = visibleMarkers[index + 1];
+    return !next || (years.indexOf(next.year) - years.indexOf(marker.year)) * yearWidth > marker.label.length * LABEL_CHAR_WIDTH + 8;
+  });
 
   // One sentence a screen reader can use in place of the chart
   const summary = useMemo(() => {
@@ -535,7 +541,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
                         x={yearLabel(marker.year)}
                         stroke={theme.palette.grey[400]}
                         strokeDasharray="4 3"
-                        label={isMobile ? undefined : { value: marker.label, position: 'insideTopLeft', fontSize: 12, fill: theme.palette.text.secondary }}
+                        label={markerLabels ? { value: marker.label, position: 'insideTopLeft', fontSize: 12, fill: theme.palette.text.secondary } : undefined}
                       />
                     ))}
                     {colored.filter(entry => entry.fill).map(entry => (
