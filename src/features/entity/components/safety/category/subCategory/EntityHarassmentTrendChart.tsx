@@ -1,47 +1,52 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { useAppSelector } from '@/store/hooks';
 import {
   selectStateHarassmentData,
-  selectHarassmentClassification,
   selectStateEnrollmentData
 } from '@/store/slices/safetySlice';
-import SharedHarassmentTrendChart from '@/components/ui/safety/HarassmentTrendChart';
+import { BaseHarassmentData } from '@/store/slices/safety/types';
+import ChartSelect from '@/features/state/components/ChartSelect';
 import { EntityKind, useCurrentEntity } from '@/features/entity/entity';
 import { SAFETY, IdFallback, safetyParams } from '@/features/entity/bindings/safety';
+import SafetyTrendChart from './SafetyTrendChart';
+import { countsByYear, ratesByYear } from './safetyTrends';
 
 const ID_FALLBACK: Record<EntityKind, IdFallback> = { school: 'zero', district: 'none' };
 
-interface EntityHarassmentTrendChartProps {
-  kind: EntityKind;
-  className?: string;
-}
+type HarassmentView = 'incidents' | 'students-impacted' | 'students-disciplined';
 
-const EntityHarassmentTrendChart: React.FC<EntityHarassmentTrendChartProps> = ({ kind, className }) => {
-  // Get the data from the store
+const VIEWS: { value: HarassmentView; label: string; title: string; count: (row: BaseHarassmentData) => number }[] = [
+  { value: 'incidents', label: 'Incidents', title: 'Harassment Incidents By Year', count: row => row.incident_count },
+  { value: 'students-impacted', label: 'Students Impacted', title: 'Students Impacted By Year', count: row => row.student_impact_count },
+  { value: 'students-disciplined', label: 'Students Disciplined', title: 'Students Disciplined By Year', count: row => row.student_engaged_count },
+];
+
+const EntityHarassmentTrendChart: React.FC<{ kind: EntityKind }> = ({ kind }) => {
   const entity = useCurrentEntity(kind);
   const entityParams = safetyParams(entity, ID_FALLBACK[kind]);
-  const stateParams = {};
+  const [view, setView] = useState<HarassmentView>('incidents');
 
-  const entityHarassmentData = useAppSelector(state =>
-    SAFETY[kind].data.harassment(state, entityParams));
-  const stateHarassmentData = useAppSelector(state =>
-    selectStateHarassmentData(state, stateParams));
-  const harassmentClassifications = useAppSelector(selectHarassmentClassification);
-  const entityEnrollmentData = useAppSelector(state =>
-    SAFETY[kind].data.enrollment(state, entityParams));
-  const stateEnrollmentData = useAppSelector(state =>
-    selectStateEnrollmentData(state, stateParams));
+  const entityHarassment = useAppSelector(state => SAFETY[kind].data.harassment(state, entityParams));
+  const stateHarassment = useAppSelector(state => selectStateHarassmentData(state, {}));
+  const entityEnrollment = useAppSelector(state => SAFETY[kind].data.enrollment(state, entityParams));
+  const stateEnrollment = useAppSelector(state => selectStateEnrollmentData(state, {}));
+
+  const picked = VIEWS.find(option => option.value === view)!;
+  // Incidents, or students, per 100 students, across every classification of harassment
+  const rows = useMemo(() => ratesByYear(
+    entityHarassment.map(row => row.year),
+    countsByYear(entityHarassment, picked.count),
+    countsByYear(stateHarassment, picked.count),
+    entityEnrollment,
+    stateEnrollment
+  ), [picked, entityHarassment, stateHarassment, entityEnrollment, stateEnrollment]);
 
   return (
-    <SharedHarassmentTrendChart
-      className={className}
-      entityData={entityHarassmentData}
-      stateData={stateHarassmentData}
-      harassmentClassifications={harassmentClassifications}
-      entityEnrollmentData={entityEnrollmentData}
-      stateEnrollmentData={stateEnrollmentData}
-      entityName={entity.name}
-      isDistrict={kind === 'district'}
+    <SafetyTrendChart
+      kind={kind}
+      title={picked.title}
+      control={<ChartSelect value={view} options={VIEWS} onChange={setView} label="Harassment to show" />}
+      rows={rows}
     />
   );
 };

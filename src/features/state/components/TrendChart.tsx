@@ -112,7 +112,7 @@ interface TrendChartProps {
   /** Columns shown only in the table view and CSV */
   tableSeries?: TrendSeries[];
   /** A comparison drawn as gray dashed lines and shown in the tooltip and table, e.g. all students
-   * when a student group is chosen */
+   * when a student group is chosen; only the series it has values for are compared */
   compare?: { data: YearRow[]; label: string };
   note?: React.ReactNode;
   /** Let the note run the chart's full width instead of a reading width */
@@ -268,12 +268,17 @@ const TrendChart: React.FC<TrendChartProps> = ({
   const breakKey = breaks.join(',');
 
   const compareByYear = useMemo(() => (compare ? new Map(compare.data.map(row => [row.year, row])) : null), [compare]);
+  // The series the comparison has values for, e.g. a district's line but not the state's beside it
+  const compared = useMemo(
+    () => (compare ? colored.filter(entry => compare.data.some(row => typeof row[entry.key] === 'number')) : []),
+    [compare, colored]
+  );
 
   const chartData = useMemo(() => data.map(row => {
     const chartRow: Record<string, number | string | null> = { ...row, label: yearLabel(row.year) };
-    if (compareByYear) colored.forEach(entry => { chartRow[compareKey(entry.key)] = compareByYear.get(row.year)?.[entry.key] ?? null; });
+    if (compareByYear) compared.forEach(entry => { chartRow[compareKey(entry.key)] = compareByYear.get(row.year)?.[entry.key] ?? null; });
     return chartRow;
-  }), [data, yearLabel, compareByYear, colored]);
+  }), [data, yearLabel, compareByYear, compared]);
   const stableChartData = useStableByContent(chartData);
 
   const yAxis = useMemo(() => {
@@ -349,7 +354,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
   const handleDownload = () => {
     if (!csvName) return;
     const unit = csvUnit ? ` (${csvUnit})` : '';
-    const comparisonHeaders = compare ? colored.map(entry => `${entry.name}, ${compare.label}${unit}`) : [];
+    const comparisonHeaders = compare ? compared.map(entry => `${entry.name}, ${compare.label}${unit}`) : [];
     downloadCsv(
       csvName,
       [yearHeader, 'End year', ...tableColumns.map(entry => `${entry.name}${unit}`), ...comparisonHeaders],
@@ -357,7 +362,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
         yearLabel(row.year),
         row.year,
         ...tableColumns.map(entry => roundForCsv(row[entry.key])),
-        ...(compare ? colored.map(entry => roundForCsv(compareByYear?.get(row.year)?.[entry.key])) : []),
+        ...(compare ? compared.map(entry => roundForCsv(compareByYear?.get(row.year)?.[entry.key])) : []),
       ])
     );
   };
@@ -444,7 +449,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
               format: (row: YearRow) => (row[entry.key] === null || row[entry.key] === undefined ? '—' : (entry.format ?? format)(row[entry.key] as number)),
               hideOnPhone: entry.hideOnPhone,
             })),
-            ...(compare ? colored.map(entry => ({
+            ...(compare ? compared.map(entry => ({
               key: `compare-${entry.key}`,
               label: `${entry.name}, ${compare.label.toLowerCase()}`,
               align: 'right' as const,
@@ -543,7 +548,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
                         isAnimationActive={animate}
                       />
                     ))}
-                    {compare && colored.map(entry => (
+                    {compare && compared.map(entry => (
                       <Line
                         key={compareKey(entry.key)}
                         type="linear"
