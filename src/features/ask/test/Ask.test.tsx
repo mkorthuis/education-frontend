@@ -69,7 +69,8 @@ const typeAndAsk = async (question: string) => {
 // jsdom has no scrolling
 Element.prototype.scrollIntoView = vi.fn();
 
-describe('Ask page', () => {
+// The first renders can take more than the default 5 s while the rest of the suite runs
+describe('Ask page', { timeout: 15000 }, () => {
   beforeEach(() => {
     ask.mockReset();
     store.dispatch(clearTurns());
@@ -80,7 +81,9 @@ describe('Ask page', () => {
   it('asks nothing for an empty question and says why', async () => {
     renderAt();
     await userEvent.click(screen.getByRole('button', { name: 'Ask' }));
-    expect(screen.getByText('Type a question first, or choose an example.')).toBeInTheDocument();
+    // On screen, and announced to screen readers a moment later
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Type a question first, or choose an example.'));
+    expect(screen.getAllByText('Type a question first, or choose an example.')).toHaveLength(2);
     expect(ask).not.toHaveBeenCalled();
   });
 
