@@ -1,35 +1,50 @@
 import React, { useMemo } from 'react';
+import { Box } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
-import {
-  selectStateRestraintData,
-  selectStateEnrollmentData
-} from '@/store/slices/safetySlice';
+import TrendChart from '@/features/state/components/TrendChart';
+import { REMOTE_BAND } from '@/features/state/utils/stateMetrics';
 import { EntityKind, useCurrentEntity } from '@/features/entity/entity';
-import { SAFETY, IdFallback, safetyParams } from '@/features/entity/bindings/safety';
-import SafetyTrendChart from './SafetyTrendChart';
-import { countsByYear, ratesByYear } from './safetyTrends';
+import { SAFETY, STATE_SAFETY, IdFallback, safetyParams } from '@/features/entity/bindings/safety';
+import { countsByYear, formatPer100, formatPer100Axis, rateSeries, ratesByYear } from './safetyTrends';
 
 const ID_FALLBACK: Record<EntityKind, IdFallback> = { school: 'zero', district: 'zero' };
 
-const EntityRestraintTrendChart: React.FC<{ kind: EntityKind }> = ({ kind }) => {
-  const entity = useCurrentEntity(kind);
-  const entityParams = safetyParams(entity, ID_FALLBACK[kind]);
+const TITLES = { restraint: 'Restraint Reports By Year', seclusion: 'Seclusion Reports By Year' };
 
-  const entityRestraintData = useAppSelector(state => SAFETY[kind].data.restraint(state, entityParams));
-  const stateRestraintData = useAppSelector(state => selectStateRestraintData(state, {}));
+interface EntityRestraintTrendChartProps {
+  kind: EntityKind;
+  measure: 'restraint' | 'seclusion';
+}
+
+/** Restraints, or seclusions, reported per 100 students */
+const EntityRestraintTrendChart: React.FC<EntityRestraintTrendChartProps> = ({ kind, measure }) => {
+  const entityParams = safetyParams(useCurrentEntity(kind), ID_FALLBACK[kind]);
+
+  const entityReports = useAppSelector(state => SAFETY[kind].data[measure](state, entityParams));
+  const stateReports = useAppSelector(state => STATE_SAFETY.data[measure](state, {}));
   const entityEnrollment = useAppSelector(state => SAFETY[kind].data.enrollment(state, entityParams));
-  const stateEnrollment = useAppSelector(state => selectStateEnrollmentData(state, {}));
+  const stateEnrollment = useAppSelector(state => STATE_SAFETY.data.enrollment(state, {}));
 
-  // Restraints reported per 100 students
   const rows = useMemo(() => ratesByYear(
-    entityRestraintData.map(row => row.year),
-    countsByYear(entityRestraintData, row => row.generated),
-    countsByYear(stateRestraintData, row => row.generated),
+    countsByYear<{ year: number; generated: number }>(entityReports, row => row.generated),
+    countsByYear<{ year: number; generated: number }>(stateReports, row => row.generated),
     entityEnrollment,
     stateEnrollment
-  ), [entityRestraintData, stateRestraintData, entityEnrollment, stateEnrollment]);
+  ), [entityReports, stateReports, entityEnrollment, stateEnrollment]);
 
-  return <SafetyTrendChart kind={kind} title="Restraint Reports By Year" rows={rows} />;
+  return (
+    <Box sx={{ mt: 3 }}>
+      <TrendChart
+        title={TITLES[measure]}
+        subtitle="Per 100 Students"
+        data={rows}
+        series={rateSeries(kind)}
+        format={formatPer100}
+        axisFormat={formatPer100Axis}
+        bands={REMOTE_BAND}
+      />
+    </Box>
+  );
 };
 
 export default EntityRestraintTrendChart;

@@ -367,7 +367,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
     );
   };
 
-  // A hollow circle on every point, as on the district and school charts (solid, even on a dashed line)
+  // A hollow circle on every point, solid even on a dashed line
   const dotFor = (color: string) => ({ r: 4, strokeWidth: 2, stroke: color, fill: theme.palette.background.paper, strokeDasharray: 'none' });
 
   const axisTick = { fontSize: 12, fill: theme.palette.text.secondary };

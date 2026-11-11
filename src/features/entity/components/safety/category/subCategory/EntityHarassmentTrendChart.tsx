@@ -1,15 +1,17 @@
 import React, { useMemo, useState } from 'react';
+import { Box } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
 import {
   selectStateHarassmentData,
   selectStateEnrollmentData
 } from '@/store/slices/safetySlice';
 import { BaseHarassmentData } from '@/store/slices/safety/types';
+import TrendChart from '@/features/state/components/TrendChart';
 import ChartSelect from '@/features/state/components/ChartSelect';
+import { REMOTE_BAND } from '@/features/state/utils/stateMetrics';
 import { EntityKind, useCurrentEntity } from '@/features/entity/entity';
 import { SAFETY, IdFallback, safetyParams } from '@/features/entity/bindings/safety';
-import SafetyTrendChart from './SafetyTrendChart';
-import { countsByYear, ratesByYear } from './safetyTrends';
+import { countsByYear, formatPer100, formatPer100Axis, rateSeries, ratesByYear } from './safetyTrends';
 
 const ID_FALLBACK: Record<EntityKind, IdFallback> = { school: 'zero', district: 'none' };
 
@@ -22,8 +24,7 @@ const VIEWS: { value: HarassmentView; label: string; title: string; count: (row:
 ];
 
 const EntityHarassmentTrendChart: React.FC<{ kind: EntityKind }> = ({ kind }) => {
-  const entity = useCurrentEntity(kind);
-  const entityParams = safetyParams(entity, ID_FALLBACK[kind]);
+  const entityParams = safetyParams(useCurrentEntity(kind), ID_FALLBACK[kind]);
   const [view, setView] = useState<HarassmentView>('incidents');
 
   const entityHarassment = useAppSelector(state => SAFETY[kind].data.harassment(state, entityParams));
@@ -32,9 +33,8 @@ const EntityHarassmentTrendChart: React.FC<{ kind: EntityKind }> = ({ kind }) =>
   const stateEnrollment = useAppSelector(state => selectStateEnrollmentData(state, {}));
 
   const picked = VIEWS.find(option => option.value === view)!;
-  // Incidents, or students, per 100 students, across every classification of harassment
+  // Incidents, or students, per 100 students across every classification of harassment
   const rows = useMemo(() => ratesByYear(
-    entityHarassment.map(row => row.year),
     countsByYear(entityHarassment, picked.count),
     countsByYear(stateHarassment, picked.count),
     entityEnrollment,
@@ -42,12 +42,18 @@ const EntityHarassmentTrendChart: React.FC<{ kind: EntityKind }> = ({ kind }) =>
   ), [picked, entityHarassment, stateHarassment, entityEnrollment, stateEnrollment]);
 
   return (
-    <SafetyTrendChart
-      kind={kind}
-      title={picked.title}
-      control={<ChartSelect value={view} options={VIEWS} onChange={setView} label="Harassment to show" />}
-      rows={rows}
-    />
+    <Box sx={{ mt: 3 }}>
+      <TrendChart
+        title={picked.title}
+        subtitle="Per 100 Students"
+        control={<ChartSelect value={view} options={VIEWS} onChange={setView} label="Harassment to show" />}
+        data={rows}
+        series={rateSeries(kind)}
+        format={formatPer100}
+        axisFormat={formatPer100Axis}
+        bands={REMOTE_BAND}
+      />
+    </Box>
   );
 };
 

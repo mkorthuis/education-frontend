@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Box } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
 import {
   selectStateDisciplineCountData,
@@ -9,11 +10,12 @@ import {
   IN_SCHOOL_SUSPENSION_TYPE,
   OUT_OF_SCHOOL_SUSPENSION_TYPE
 } from '@/utils/safetyCalculations';
+import TrendChart from '@/features/state/components/TrendChart';
 import ChartSelect from '@/features/state/components/ChartSelect';
+import { REMOTE_BAND } from '@/features/state/utils/stateMetrics';
 import { EntityKind, useCurrentEntity } from '@/features/entity/entity';
 import { SAFETY, IdFallback, safetyParams } from '@/features/entity/bindings/safety';
-import SafetyTrendChart from './SafetyTrendChart';
-import { countsByYear, entityOnly, ratesByYear } from './safetyTrends';
+import { countsByYear, entityOnly, formatPer100, formatPer100Axis, rateSeries, ratesByYear } from './safetyTrends';
 
 const ID_FALLBACK: Record<EntityKind, IdFallback> = { school: 'zero', district: 'none' };
 
@@ -26,8 +28,7 @@ const VIEWS: { value: SuspensionView; label: string; title: string }[] = [
 ];
 
 const EntitySuspensionTrendChart: React.FC<{ kind: EntityKind }> = ({ kind }) => {
-  const entity = useCurrentEntity(kind);
-  const entityParams = safetyParams(entity, ID_FALLBACK[kind]);
+  const entityParams = safetyParams(useCurrentEntity(kind), ID_FALLBACK[kind]);
   const [view, setView] = useState<SuspensionView>('overall');
 
   const entityCounts = useAppSelector(state => SAFETY[kind].data.disciplineCount(state, entityParams));
@@ -36,39 +37,41 @@ const EntitySuspensionTrendChart: React.FC<{ kind: EntityKind }> = ({ kind }) =>
   const entityEnrollment = useAppSelector(state => SAFETY[kind].data.enrollment(state, entityParams));
   const stateEnrollment = useAppSelector(state => selectStateEnrollmentData(state, {}));
 
-  // Suspensions per 100 students, of the type picked and, beside one type, of both
+  // Suspensions per 100 students: both kinds, or one with both beside it
   const chart = useMemo(() => {
-    const inSchool = countTypes.find(type => type.name.includes(IN_SCHOOL_SUSPENSION_TYPE));
-    const outOfSchool = countTypes.find(type => type.name.includes(OUT_OF_SCHOOL_SUSPENSION_TYPE));
-    if (!inSchool || !outOfSchool) return { rows: [] };
-    const typeIds = (picked: SuspensionView) =>
-      picked === 'in-school' ? [inSchool.id] : picked === 'out-of-school' ? [outOfSchool.id] : [inSchool.id, outOfSchool.id];
-    const years = entityCounts.map(row => row.year);
-    const rates = (picked: SuspensionView) => {
-      const ids = typeIds(picked);
+    const typeId = (name: string) => countTypes.find(type => type.name.includes(name))?.id;
+    const inSchool = typeId(IN_SCHOOL_SUSPENSION_TYPE);
+    const outOfSchool = typeId(OUT_OF_SCHOOL_SUSPENSION_TYPE);
+    if (inSchool === undefined || outOfSchool === undefined) return { rows: [] };
+    const rates = (ids: number[]) => {
       const counted = (row: { count_type: { id: number } }) => ids.includes(row.count_type.id);
       return ratesByYear(
-        years,
         countsByYear(entityCounts, row => row.count, counted),
         countsByYear(stateCounts, row => row.count, counted),
         entityEnrollment,
         stateEnrollment
       );
     };
-    return {
-      rows: rates(view),
-      overall: view === 'overall' ? undefined : { data: entityOnly(rates('overall')), label: 'All Suspensions' },
-    };
+    const all = rates([inSchool, outOfSchool]);
+    return view === 'overall'
+      ? { rows: all }
+      : { rows: rates([view === 'in-school' ? inSchool : outOfSchool]), overall: { data: entityOnly(all), label: 'All Suspensions' } };
   }, [view, entityCounts, stateCounts, countTypes, entityEnrollment, stateEnrollment]);
 
   return (
-    <SafetyTrendChart
-      kind={kind}
-      title={VIEWS.find(option => option.value === view)!.title}
-      control={<ChartSelect value={view} options={VIEWS} onChange={setView} label="Suspensions to show" />}
-      rows={chart.rows}
-      overall={chart.overall}
-    />
+    <Box sx={{ mt: 3 }}>
+      <TrendChart
+        title={VIEWS.find(option => option.value === view)!.title}
+        subtitle="Per 100 Students"
+        control={<ChartSelect value={view} options={VIEWS} onChange={setView} label="Suspensions to show" />}
+        data={chart.rows}
+        series={rateSeries(kind)}
+        format={formatPer100}
+        axisFormat={formatPer100Axis}
+        compare={chart.overall}
+        bands={REMOTE_BAND}
+      />
+    </Box>
   );
 };
 

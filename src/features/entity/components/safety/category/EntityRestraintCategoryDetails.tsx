@@ -2,7 +2,6 @@ import React from 'react';
 import { Box, Divider, Typography, useMediaQuery, useTheme, Card } from '@mui/material';
 import DefaultCategoryDetails from '@/components/ui/safety/DefaultCategoryDetails';
 import EntityRestraintTrendChart from './subCategory/EntityRestraintTrendChart';
-import EntitySeclusionTrendChart from './subCategory/EntitySeclusionTrendChart';
 import {
   selectStateEnrollmentData,
   selectStateRestraintData,
@@ -172,7 +171,7 @@ const EntityRestraintCategoryDetails: React.FC<{ kind: EntityKind }> = ({ kind }
           <Divider sx={dividerStyles} />
           <DataSummary type="Restraint" data={restraintData} entityName={entity.name} />
           <Divider sx={dividerStyles} />
-          <EntityRestraintTrendChart kind={kind} />
+          <EntityRestraintTrendChart kind={kind} measure="restraint" />
         </Card>
 
         {/* Seclusion Section */}
@@ -183,7 +182,7 @@ const EntityRestraintCategoryDetails: React.FC<{ kind: EntityKind }> = ({ kind }
           <Divider sx={dividerStyles} />
           <DataSummary type="Seclusion" data={seclusionData} entityName={entity.name} />
           <Divider sx={dividerStyles} />
-          <EntitySeclusionTrendChart kind={kind} />
+          <EntityRestraintTrendChart kind={kind} measure="seclusion" />
         </Card>
       </Box>
     </DefaultCategoryDetails>
