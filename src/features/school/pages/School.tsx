@@ -27,9 +27,11 @@ import {
   PHONE_SPACING,
   SchoolCards,
 } from '@/features/entity/overview/OverviewParts';
+import { useHostDistricts } from '../hooks/useHostDistricts';
 import { SchoolKeyFigures, useSchoolKeyFigures } from '../hooks/useSchoolKeyFigures';
+import { isOnlineSchool } from '../utils/hostDistricts';
 import { schoolTileGroups } from '../utils/keyFigures';
-import { CHARTER_LAW_URL, CHARTER_SCHOOL_LABEL, SCHOOL_PAGE_DESCRIPTIONS } from '../utils/labels';
+import { CHARTER_LAW_URL, CHARTER_SCHOOL_LABEL, newSchoolNotice, noDataYet, SCHOOL_PAGE_DESCRIPTIONS } from '../utils/labels';
 
 // A school's overview, on the pattern of the district overview: its name, its district and grades,
 // cards to its pages and to the district's other schools, and key figures with the district's and
@@ -50,6 +52,7 @@ const selectSchoolLoading = (state: RootState) => {
 
 type School = NonNullable<ReturnType<typeof selectCurrentSchool>>;
 type District = ReturnType<typeof selectCurrentDistrict>;
+type Host = NonNullable<District>;
 type Town = ReturnType<typeof selectCurrentTowns>[number];
 
 interface KeyFiguresProps {
@@ -78,17 +81,45 @@ const KeyFigures: React.FC<KeyFiguresProps> = ({ figures, schoolId, compareDistr
 };
 
 /**
+ * Where a charter school is, with links to the school districts serving its town (see
+ * hostDistricts): the town is the link when its one district is named for it ("Located in Conway"),
+ * and otherwise the districts are named ("Located in Peterborough (Contoocook Valley School
+ * District)"). Phones show one district as the back link above the title instead. An online school
+ * says so.
+ */
+const charterLocation = (school: School, town: string | undefined, hosts: Host[], phone: boolean): React.ReactNode => {
+  if (isOnlineSchool(school)) return town ? `Online school, based in ${town}` : 'Online school';
+  if (!town) return undefined;
+  if (hosts.length === 0 || (phone && hosts.length === 1)) return `Located in ${town}`;
+  if (hosts.length === 1 && hosts[0].name === town) {
+    return <>Located in <Link component={RouterLink} to={`/district/${hosts[0].id}`} aria-label={districtTitle(town)}>{town}</Link></>;
+  }
+  return (
+    <>
+      Located in {town} (
+      {hosts.map((host, index) => (
+        <React.Fragment key={host.id}>
+          {index > 0 && ' and '}
+          <Link component={RouterLink} to={`/district/${host.id}`}>{districtTitle(host.name)}</Link>
+        </React.Fragment>
+      ))}
+      )
+    </>
+  );
+};
+
+/**
  * The line under the title: the town the school is in, and from tablets up its district (a link to
  * it), grades and type. Phones show the town alone; the district is the back link above the title.
- * A charter school has no district: phones too say it's a charter school. Nothing when there's
- * nothing to show.
+ * A charter school has no district: it links the districts serving its town instead, and phones too
+ * say it's a charter school. Nothing when there's nothing to show.
  */
-const schoolFacts = (school: School, district: District, towns: Town[], phone: boolean): React.ReactNode => {
+const schoolFacts = (school: School, district: District, towns: Town[], hosts: Host[], phone: boolean): React.ReactNode => {
   const town = schoolTown(school, towns);
   const grades = formatGradesDisplay(school);
   const charter = isCharterSchool(school);
   const facts: React.ReactNode[] = [
-    town && `Located in ${town}`,
+    charter ? charterLocation(school, town, hosts, phone) : town && `Located in ${town}`,
     charter && CHARTER_SCHOOL_LABEL,
     !phone && !charter && district && <Link component={RouterLink} to={`/district/${district.id}`}>{districtTitle(district.name)}</Link>,
     !phone && grades && `Grades ${grades}`,
@@ -123,8 +154,10 @@ const SchoolOverview: React.FC<SchoolOverviewProps> = ({ school, district, schoo
   const isPhone = useMediaQuery(theme.breakpoints.down('sm'));
   const otherSchools = schools.filter(other => other.id !== school.id);
   const hasOthers = otherSchools.length > 0;
-  // A charter school's "district" is its own board, which may run other schools under the charter
+  // A charter school's "district" is its own board, which may run other schools under the charter;
+  // the districts serving its town are linked instead
   const charter = isCharterSchool(school);
+  const hosts = useHostDistricts(school);
 
   const pages = Object.values(SCHOOL_PAGES).filter(page => page.id !== SCHOOL_PAGES.overview.id);
   const hasGraduation = isPageAvailable(SCHOOL_PAGES.outcomes, school);
@@ -137,7 +170,7 @@ const SchoolOverview: React.FC<SchoolOverviewProps> = ({ school, district, schoo
 
   return (
     <>
-      <OverviewTitle title={school.name} facts={schoolFacts(school, district, towns, isPhone)} />
+      <OverviewTitle title={school.name} facts={schoolFacts(school, district, towns, hosts, isPhone)} notice={newSchoolNotice(school)} />
       <OverviewGrid twoColumns={hasOthers}>
         <OverviewSection id="pages-heading" title="Explore School Data">
           {/* Two across beside the other schools; four across when there are none beside them */}
@@ -146,7 +179,11 @@ const SchoolOverview: React.FC<SchoolOverviewProps> = ({ school, district, schoo
             place={school}
             id={school.id}
             descriptions={SCHOOL_PAGE_DESCRIPTIONS}
-            unavailableLine="Not available: no grade 12"
+            // A page greyed out for want of data keeps its line; otherwise it's greyed out for want of a grade 12
+            unavailableLine={page => {
+              const key = page.id.split('.')[1];
+              return noDataYet(school, key) ? SCHOOL_PAGE_DESCRIPTIONS[key] : 'Not available: no grade 12';
+            }}
             label={`${school.name} pages`}
             wideColumns={hasOthers ? 2 : 4}
           />

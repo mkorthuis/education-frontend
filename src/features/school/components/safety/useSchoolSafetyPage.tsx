@@ -6,6 +6,7 @@ import {
   selectLocationLoading
 } from '@/store/slices/locationSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
+import { newSchoolNotice } from '@/features/school/utils/labels';
 import * as safetySlice from '@/store/slices/safetySlice';
 import { EARLIEST_YEAR } from '@/utils/safetyCalculations';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
@@ -300,6 +301,7 @@ export function useSchoolSafetyPage() {
         schoolName={school?.name}
         onDownload={downloadExcel}
         downloadReady={!isLoading && !hasLoadError && !!school}
+        notice={newSchoolNotice(school)}
       />
     ),
     isLoading,

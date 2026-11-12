@@ -1,4 +1,5 @@
 import { lazy } from 'react';
+import { noDataYet, noDataYetReason } from '@/features/school/utils/labels';
 
 // Define the types for the page registry
 export type PageEntry = {
@@ -436,7 +437,9 @@ export const PAGE_REGISTRY: PageRegistry = {
         school: ['basic'],
         district: ['basic']
       },
-      enabled: true,
+      // Greyed out for a new school the state hasn't reported on yet (as are its safety and enrollment)
+      enabled: (school) => !noDataYet(school, 'academic'),
+      tooltip: (school) => noDataYetReason(school, 'academic') ?? '',
     },
     outcomes: {
       id: 'school.outcomes',
@@ -455,7 +458,7 @@ export const PAGE_REGISTRY: PageRegistry = {
       enabled: (school) => {
         const hasGraduationGrade = school && school.grades && 
           school.grades.some((grade: any) => grade.name === import.meta.env.VITE_GRADUATION_GRADE);
-        return hasGraduationGrade;
+        return hasGraduationGrade && !noDataYet(school, 'outcomes');
       },
       tooltip: (school) => {
         const hasGraduationGrade = school && school.grades && 
@@ -464,7 +467,7 @@ export const PAGE_REGISTRY: PageRegistry = {
         if (!hasGraduationGrade) {
           return `This school does not educate ${import.meta.env.VITE_GRADUATION_GRADE} students.`;
         }
-        return '';
+        return noDataYetReason(school, 'outcomes') ?? '';
       },
     },
     safety: {
@@ -482,7 +485,8 @@ export const PAGE_REGISTRY: PageRegistry = {
         school: ['basic'],
         district: ['basic']
       },
-      enabled: true,
+      enabled: (school) => !noDataYet(school, 'safety'),
+      tooltip: (school) => noDataYetReason(school, 'safety') ?? '',
     },
     enrollment: {
       id: 'school.enrollment',
@@ -499,7 +503,8 @@ export const PAGE_REGISTRY: PageRegistry = {
         school: ['basic'],
         district: ['basic']
       },
-      enabled: true,
+      enabled: (school) => !noDataYet(school, 'enrollment'),
+      tooltip: (school) => noDataYetReason(school, 'enrollment') ?? '',
     },
     contact: {
       id: 'school.contact',

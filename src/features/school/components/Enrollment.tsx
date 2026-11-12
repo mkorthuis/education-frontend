@@ -19,6 +19,7 @@ import SchoolEnrollmentSummary from './enrollment/SchoolEnrollmentSummary';
 import EnrollmentProjectionChart from '@/components/ui/enrollment/EnrollmentProjectionChart';
 import { EnrollmentProjectionSnapshot } from '@/utils/enrollmentProjection';
 import SectionTitle from '@/components/ui/SectionTitle';
+import { newSchoolNotice } from '../utils/labels';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import { aggregateStatus } from '@/store/utils/loadingState';
 import { downloadWorkbook } from '@/features/state/utils/excel';
@@ -100,6 +101,16 @@ const Enrollment: React.FC = () => {
     );
   }
 
+  // No counts: one line, rather than empty charts and a table of projected zeros
+  if (schoolEnrollmentData.length === 0) {
+    return (
+      <Box>
+        <SectionTitle pageTitle displayName={PAGE_REGISTRY.school.enrollment.displayName} schoolName={school?.name} notice={newSchoolNotice(school)} />
+        <Typography variant="body1">The state hasn&apos;t reported enrollment for this school.</Typography>
+      </Box>
+    );
+  }
+
   return (
     <Box>
       <SectionTitle
@@ -108,6 +119,7 @@ const Enrollment: React.FC = () => {
         schoolName={school?.name}
         onDownload={downloadExcel}
         downloadReady={downloadReady}
+        notice={newSchoolNotice(school)}
       />
 
       {/* Two columns on desktop, one column on mobile using flexbox */}

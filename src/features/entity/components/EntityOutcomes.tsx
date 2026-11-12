@@ -3,6 +3,8 @@ import { Box, CircularProgress, Divider } from '@mui/material';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { selectLocationLoading } from '@/store/slices/locationSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
+import { newSchoolNotice } from '@/features/school/utils/labels';
+import type { School } from '@/store/slices/locationSlice';
 import LoadErrorAlert from '@/components/ui/LoadErrorAlert';
 import { aggregateStatus, retryFailedLoads } from '@/store/utils/loadingState';
 import * as outcomeSlice from '@/store/slices/outcomeSlice';
@@ -152,6 +154,8 @@ const EntityOutcomes: React.FC<{ kind: EntityKind }> = ({ kind }) => {
         districtName={kind === 'district' ? entity?.name : undefined}
         onDownload={downloadExcel}
         downloadReady={!isLoading && !hasLoadError && !!entity}
+        // A new school's pages say its data is still minimal
+        notice={kind === 'school' ? newSchoolNotice(entity as School | null) : undefined}
       />
 
       <Box sx={{ mt: 3 }}>

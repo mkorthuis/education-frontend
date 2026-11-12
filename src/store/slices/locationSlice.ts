@@ -15,6 +15,8 @@ export interface District {
   id: number;
   name: string;
   kind?: LocationKind;
+  /** The ids of the towns it serves, in the district list */
+  towns?: number[];
   grades?: Grade[];
 }
 
@@ -42,6 +44,10 @@ export interface School {
   principal_last_name?: string | null;
   kind?: LocationKind;
   school_type?: { id: number; name: string; code?: string | null };
+  /** When the state's record of it starts ("2026-09-01"): when it opened, or was reorganized or renumbered */
+  open_date?: string | null;
+  /** The topics it opened too recently to have figures in yet: enrollment, test_scores, graduation, safety */
+  not_yet_reported?: string[];
 }
 
 /** A public charter school: run by its own board, not a school district */

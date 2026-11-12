@@ -17,6 +17,8 @@ import {
   resetFailedAssessmentLoad
 } from '@/store/slices/assessmentSlice';
 import SectionTitle from '@/components/ui/SectionTitle';
+import { newSchoolNotice } from '@/features/school/utils/labels';
+import type { School } from '@/store/slices/locationSlice';
 import LoadErrorAlert from '@/components/ui/LoadErrorAlert';
 import EntityMeasurementCard from './academic/EntityMeasurementCard';
 import EntityAcademicSubjectDetails from './academic/EntityAcademicSubjectDetails';
@@ -192,6 +194,8 @@ const EntityAcademicAchievement: React.FC<{ kind: EntityKind }> = ({ kind }) => 
         districtName={kind === 'district' ? entity?.name : undefined}
         onDownload={downloadExcel}
         downloadReady={!isLoading && !hasLoadError && !!entity}
+        // A new school's pages say its data is still minimal
+        notice={kind === 'school' ? newSchoolNotice(entity as School | null) : undefined}
       />
       {hasLoadError ? (
         <LoadErrorAlert message="Assessment data could not be loaded." onRetry={handleRetry} />

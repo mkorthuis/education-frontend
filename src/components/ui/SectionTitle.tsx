@@ -22,6 +22,8 @@ interface SectionTitleProps {
   onDownload?: () => Promise<void> | void;
   // The button waits for the page's data
   downloadReady?: boolean;
+  // A line in grey italics under the title, e.g. that a new school has little data yet
+  notice?: string;
 }
 
 /** Saves the page's data as one Excel file; hidden on phones, where a spreadsheet is little use */
@@ -64,7 +66,8 @@ const SectionTitle: React.FC<SectionTitleProps> = ({
   pageTitle = false,
   showEntityOnPhone = true,
   onDownload,
-  downloadReady = true
+  downloadReady = true,
+  notice
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -117,6 +120,11 @@ const SectionTitle: React.FC<SectionTitleProps> = ({
         >
           {districtName || schoolName || entityName}
           {children && <Box component="span" sx={{ display: 'block' }}>{children}</Box>}
+        </Typography>
+      )}
+      {notice && (
+        <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, fontStyle: 'italic', mb: 2 }}>
+          {notice}
         </Typography>
       )}
     </Box>

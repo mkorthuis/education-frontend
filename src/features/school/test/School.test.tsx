@@ -7,6 +7,7 @@ import { fetchData } from '@/services/api/utils/apiUtils';
 import { fetchAllSchoolData, fetchDistrictById } from '@/store/slices/locationSlice';
 import { fixtureFor } from '@/features/state/test/stateApiFixtures';
 import School from '../pages/School';
+import SchoolEnrollment from '../components/Enrollment';
 import BackToDistrict from '@/components/layout/public/BackToDistrict';
 
 vi.mock('@/services/api/utils/apiUtils', async (importOriginal) => {
@@ -44,6 +45,16 @@ const CONCORD_HIGH = { id: 20, name: 'Concord High School', district_id: 111, to
 const ABBOT_DOWNING = { id: 21, name: 'Abbot-Downing School', district_id: 111, grades: PK5 };
 // A town that isn't one of the district's: the school's city stands in, in title case
 const JACKSON_GRAMMAR = { id: 30, name: 'Jackson Grammar School', district_id: 271, town_id: 999, city: 'JACKSON', grades: K6 };
+// A charter school: its "district" is its own board, which serves no town; Conway's district serves its town
+const CONWAY = { id: 113, name: 'Conway', sau_id: 9, is_public: true, kind: 'district', towns: [113], grades: [...K6, ...HIGH] };
+const ROBERT_FROST_BOARD = { id: 750, name: 'Robert Frost Charter School', sau_id: 450, is_public: false, kind: 'charter', towns: [], grades: HIGH };
+const ROBERT_FROST = { id: 40, name: 'Robert Frost Charter School (H)', district_id: 750, town_id: 113, city: 'CONWAY', grades: HIGH, kind: 'charter' };
+// A charter school that opened after the latest figures the state has published
+const NEW_BOARD = { id: 751, name: 'Breakthrough Academy', sau_id: 451, is_public: false, kind: 'charter', towns: [], grades: HIGH };
+const NEW_CHARTER = {
+  id: 41, name: 'Breakthrough Academy (H)', district_id: 751, town_id: 113, city: 'CONWAY', grades: HIGH, kind: 'charter',
+  open_date: '2026-09-01', not_yet_reported: ['enrollment', 'test_scores', 'graduation', 'safety'],
+};
 
 // Responses by path under /api/v1/ and the school or district asked about; anything else is statewide
 const FIXTURES: Record<string, unknown> = {
@@ -60,6 +71,26 @@ const FIXTURES: Record<string, unknown> = {
   'location/town?district_id=271': [{ id: 271, name: 'Jackson' }],
   'location/sau?district_id=111': [{ id: 8, name: 'Concord SAU Office' }],
   'location/sau?district_id=271': [{ id: 9, name: 'SAU 9 Office' }],
+  'location/school/40': ROBERT_FROST,
+  'location/district?school_id=40': [ROBERT_FROST_BOARD],
+  'location/school?district_id=750': [ROBERT_FROST],
+  'location/town?district_id=750': [],
+  'location/sau?district_id=750': [{ id: 450, name: 'Robert Frost Charter School' }],
+  'location/school/41': NEW_CHARTER,
+  'location/district?school_id=41': [NEW_BOARD],
+  'location/school?district_id=751': [NEW_CHARTER],
+  'location/town?district_id=751': [],
+  'location/sau?district_id=751': [{ id: 451, name: 'Breakthrough Academy' }],
+  'enrollment/school/41': [],
+  'assessment/school?school_id=41': [],
+  'outcome/outcome/graduation-cohort/school?school_id=41': [],
+  'outcome/outcome/post-graduation/school?school_id=41': [],
+  // The public districts, with the towns they serve
+  'location/district': [CONCORD, JACKSON, CONWAY],
+  'enrollment/school/40': enrollment(40, { 2016: 40, 2025: 52 }),
+  'assessment/school?school_id=40': [result({ school_id: 40, district_id: 750 }, 2026, 1, 27)],
+  'outcome/outcome/graduation-cohort/school?school_id=40': [{ school_id: 40, year: 2025, cohort_size: 12, graduate: 9, earned_hiset: 0, dropped_out: 1 }],
+  'outcome/outcome/post-graduation/school?school_id=40': [],
   'enrollment/school/20': enrollment(20, { 2016: 1700, 2025: 1394 }),
   'enrollment/school/21': enrollment(21, { 2016: 434, 2025: 343 }),
   'enrollment/school/30': enrollment(30, { 2016: 37, 2025: 37 }),
@@ -171,6 +202,57 @@ describe('School overview', () => {
     expect(linkTo('Proficient in Math')).toHaveTextContent('Statewide 44%');
     expect(linkTo('Proficient in Math')).not.toHaveTextContent('District');
   });
+
+  it('shows a charter school with the district serving its town, never its own board as a district', async () => {
+    await renderSchool(40);
+    // The town is the link to its district, which is named for it
+    const conway = await screen.findByText('Conway', { selector: 'a' }, TIMEOUT);
+    expect(conway).toHaveAttribute('href', '/district/113');
+    expect(conway).toHaveAttribute('aria-label', 'Conway School District');
+    expect(conway.parentElement).toHaveTextContent('Located in Conway · Public charter school · Grades 9-12');
+    expect(screen.queryByText(/Robert Frost Charter School School District/)).not.toBeInTheDocument();
+    expect(screen.queryByText('District-Wide Data')).not.toBeInTheDocument();
+    expect(screen.getByText('About Charter Schools')).toBeInTheDocument();
+    // Compared with the state alone (a request for its board's test scores would fail)
+    expect(await screen.findByText('27%', {}, TIMEOUT)).toBeInTheDocument();
+    expect(linkTo('Proficient in Math')).toHaveTextContent('Statewide 44%');
+    expect(linkTo('Proficient in Math')).not.toHaveTextContent('District');
+  });
+});
+
+describe('A school that opened after the latest figures', () => {
+  it('says under its facts when it opened and that state data is minimal, and greys out the pages with no data, keeping their lines', async () => {
+    await renderSchool(41);
+    expect(screen.getByText('School Opened on September 1, 2026. State data currently minimal.')).toHaveStyle({ fontStyle: 'italic' });
+    const pages = nav('Breakthrough Academy (H) pages')!;
+    const greyed = (title: string) => within(pages).getByText(title).closest('[aria-disabled="true"]') as HTMLElement;
+    expect(within(greyed('Academic Performance')).getByText('Test scores by subject and grade')).toBeInTheDocument();
+    expect(within(greyed('Graduation / College')).getByText("Graduation and graduates' plans")).toBeInTheDocument();
+    expect(within(greyed('Safety')).getByText('Bullying, truancy and incidents')).toBeInTheDocument();
+    expect(within(greyed('Enrollment')).getByText('Students by year and grade')).toBeInTheDocument();
+    expect(within(greyed('Enrollment')).getByText('School Opened on September 1, 2026. No state data yet.')).toBeInTheDocument();
+    expect(within(pages).getByText('Contact Information').closest('[aria-disabled="true"]')).toBeNull();
+  });
+
+  it('says nothing of the kind for a school the state has reported on', async () => {
+    await renderSchool(40);
+    expect(screen.queryByText(/State data currently minimal/)).not.toBeInTheDocument();
+  });
+
+  it('says in one line that there\'s no enrollment, rather than showing empty charts and projected zeros', async () => {
+    await store.dispatch(fetchAllSchoolData(41));
+    render(
+      <Provider store={store}>
+        <MemoryRouter initialEntries={['/school/41/enrollment']}>
+          <SchoolEnrollment />
+        </MemoryRouter>
+      </Provider>
+    );
+    expect(await screen.findByText('The state hasn\'t reported enrollment for this school.', {}, TIMEOUT)).toBeInTheDocument();
+    expect(screen.queryByText('Enrollment Projections')).not.toBeInTheDocument();
+    // The page says why, as the overview does
+    expect(screen.getByText('School Opened on September 1, 2026. State data currently minimal.')).toBeInTheDocument();
+  });
 });
 
 describe('Back to the district', () => {
@@ -182,6 +264,13 @@ describe('Back to the district', () => {
         </MemoryRouter>
       </Provider>
     );
+
+  it('links a charter school to the district serving its town', async () => {
+    await store.dispatch(fetchAllSchoolData(40));
+    renderAt('/school/40/academic');
+    const back = await screen.findByRole('link', { name: 'Back to Conway School District' }, TIMEOUT);
+    expect(back).toHaveAttribute('href', '/district/113');
+  });
 
   it('links every school page back to the school\'s district', async () => {
     await store.dispatch(fetchAllSchoolData(20));

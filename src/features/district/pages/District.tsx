@@ -1,6 +1,5 @@
 import React from 'react';
-import { Link as RouterLink } from 'react-router-dom';
-import { Alert, Box, CircularProgress, Link, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { Alert, Box, CircularProgress, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { GroupLabel, MetricTile, TileGroup } from '@/components/ds';
 import LoadErrorAlert from '@/components/ui/LoadErrorAlert';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
@@ -65,7 +64,7 @@ const KeyFigures: React.FC<{ figures: DistrictKeyFigures; districtId: number; to
 
 /**
  * The public charter schools in the district's towns, after its own schools: not the district's, so
- * under their own label, saying whose they are, with a link to every charter school.
+ * under their own label, saying whose they are.
  */
 const CharterSchools: React.FC<{ schools: School[]; towns: Town[] }> = ({ schools, towns }) => {
   const places = listNames(towns.filter(town => schools.some(school => school.town_id === town.id)).map(town => town.name));
@@ -73,8 +72,7 @@ const CharterSchools: React.FC<{ schools: School[]; towns: Town[] }> = ({ school
     <>
       <GroupLabel>Public Charter Schools in {places}</GroupLabel>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-        Free public schools run by their own boards, not by the district. Any New Hampshire student can apply.{' '}
-        <Link component={RouterLink} to="/schools?type=charter">All charter schools</Link>
+        Free public schools run by their own boards, not by the district. Any New Hampshire student can apply.
       </Typography>
       <SchoolCards schools={schools} label={`Public charter schools in ${places}`} />
     </>

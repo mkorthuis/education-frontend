@@ -23,8 +23,11 @@ export const PHONE_SPACING = {
 
 // ---------------------------------------------------------------- Layout
 
-/** The page title, and under it a line of facts ("SAU 8 · Serves Concord"), in 14px on phones */
-export const OverviewTitle: React.FC<{ title: string; facts?: React.ReactNode }> = ({ title, facts }) => (
+/**
+ * The page title, and under it a line of facts ("SAU 8 · Serves Concord"), in 14px on phones, and
+ * below that any notice about the place ("School Opened on ..."), in grey italics
+ */
+export const OverviewTitle: React.FC<{ title: string; facts?: React.ReactNode; notice?: string }> = ({ title, facts, notice }) => (
   <>
     {/* Keeps keyboard focus and in-page jumps clear of the fixed header and section tabs */}
     <GlobalStyles styles={{ html: { scrollPaddingTop: 128 } }} />
@@ -37,7 +40,8 @@ export const OverviewTitle: React.FC<{ title: string; facts?: React.ReactNode }>
       // the title keeps the facts line's space below it
       sx={{ mb: facts ? 0.5 : { xs: 2, sm: 0.5 } }}
     />
-    {facts && <Typography variant="body1" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, mb: { xs: 2, sm: 3 } }}>{facts}</Typography>}
+    {facts && <Typography variant="body1" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, mb: notice ? 0.5 : { xs: 2, sm: 3 } }}>{facts}</Typography>}
+    {notice && <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, fontStyle: 'italic', mb: { xs: 2, sm: 3 } }}>{notice}</Typography>}
   </>
 );
 
@@ -84,8 +88,8 @@ interface PageCardsProps {
   id: number;
   /** A line on each page, by its key in the registry ("academic") */
   descriptions: Record<string, string>;
-  /** In place of a greyed-out card's description, so the reason shows without hovering (phones can't) */
-  unavailableLine: string;
+  /** In place of a greyed-out card's description, so the reason shows without hovering (phones can't); or each page's own */
+  unavailableLine: string | ((page: PageEntry) => string);
   label: string;
   wideColumns: 2 | 4;
 }
@@ -103,7 +107,7 @@ export const PageCards: React.FC<PageCardsProps> = ({ pages, place, id, descript
         <NavCard
           key={page.id}
           title={page.displayName}
-          description={available ? descriptions[page.id.split('.')[1]] : unavailableLine}
+          description={available ? descriptions[page.id.split('.')[1]] : typeof unavailableLine === 'function' ? unavailableLine(page) : unavailableLine}
           to={pagePath(page, id)}
           disabled={!available}
           disabledReason={available ? undefined : reason || undefined}

@@ -105,6 +105,9 @@ export interface SiteSchool {
   grades: { name: string }[];
   /** 'charter' for a public charter school, which belongs to no district */
   kind?: string | null;
+  /** A new school's topics with no data yet, whose pages it doesn't have */
+  open_date?: string | null;
+  not_yet_reported?: string[];
 }
 
 export interface SiteTown {

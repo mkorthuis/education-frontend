@@ -87,6 +87,15 @@ describe('static pages', () => {
     expect(page('/schools')?.sections[0].links).toHaveLength(3);
   });
 
+  it('leaves out the pages a new school has no data for', () => {
+    const newSchool = {
+      id: 91, name: 'New Charter School', district_id: 751, town_id: 1, grades: grades('Grade 9', 'Grade 12'), kind: 'charter',
+      open_date: '2026-09-01', not_yet_reported: ['enrollment', 'test_scores', 'graduation', 'safety'],
+    };
+    const paths = staticPages({ ...INDEX, schools: [...INDEX.schools, newSchool] }).map(p => p.path).filter(path => path.startsWith('/school/91'));
+    expect(paths).toEqual(['/school/91', '/school/91/contact']);
+  });
+
   it('writes a charter school as a school of no district, listed after the district schools in its town', () => {
     expect(page('/school/90')?.description).toBe(
       'Test results, graduation, safety and enrollment for Concord Charter Academy, Concord (public charter school), from New Hampshire Department of Education data.'
