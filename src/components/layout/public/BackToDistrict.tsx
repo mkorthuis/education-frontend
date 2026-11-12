@@ -2,7 +2,7 @@ import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { Link } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import { useAppSelector } from '@/store/hooks';
-import { selectCurrentDistrict, selectCurrentSchool } from '@/store/slices/locationSlice';
+import { isCharterSchool, selectCurrentDistrict, selectCurrentSchool } from '@/store/slices/locationSlice';
 import { extractIdsFromUrl } from '@/routes/pageRegistry';
 import { districtTitle } from '@/features/district/utils/labels';
 
@@ -10,14 +10,14 @@ import { districtTitle } from '@/features/district/utils/labels';
  * On phones, on every school page, a link back to the school's district above the page: "‹ Concord
  * School District" (wider screens have the section tabs, and the overview links the district in
  * the line under its title). Shown once the school and its own district are loaded, never a
- * district left over from an earlier page.
+ * district left over from an earlier page. A charter school has no district to go back to.
  */
 const BackToDistrict = () => {
   const { pathname } = useLocation();
   const { schoolId } = extractIdsFromUrl(pathname);
   const school = useAppSelector(selectCurrentSchool);
   const district = useAppSelector(selectCurrentDistrict);
-  if (schoolId === undefined || !school || school.id !== schoolId || !district || school.district_id !== district.id) return null;
+  if (schoolId === undefined || !school || school.id !== schoolId || !district || school.district_id !== district.id || isCharterSchool(school)) return null;
   const name = districtTitle(district.name);
   return (
     <Link

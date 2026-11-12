@@ -36,8 +36,10 @@ export const assessmentsApi = {
     getAssessmentStateData: (options: BaseAssessmentOptions = {}, forceRefresh = false) => 
         fetchData(buildAssessmentUrl('state', options), forceRefresh),
     
+    // School districts only: a charter school's board has district rows too, but isn't a district,
+    // so it stays out of the districts' ranks and charts
     getAssessmentDistrictData: (options: DistrictAssessmentOptions = {}, forceRefresh = false) => 
-        fetchData(buildAssessmentUrl('district', options), forceRefresh),
+        fetchData(buildAssessmentUrl('district', { ...options, district_kind: 'district' }), forceRefresh),
     
     getAssessmentSchoolData: (options: SchoolAssessmentOptions = {}, forceRefresh = false) => 
         fetchData(buildAssessmentUrl('school', options), forceRefresh),

@@ -2,12 +2,19 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { RootState } from '@/store/store';
 import { locationApi } from '@/services/api/endpoints/locations';
 import { handleApiError } from '@/store/utils/apiError';
-import { updateDistrictPages, updateSchoolPages } from './pageSlice';
+import { setDistrict, updateDistrictPages, updateSchoolPages } from './pageSlice';
+
+/**
+ * Who runs a district's schools: a school district (an academy and the like count too), a charter
+ * school's own board, or a private school's operator. A school's kind is its district's.
+ */
+export type LocationKind = 'district' | 'charter' | 'private';
 
 // Define types for the slice state
 export interface District {
   id: number;
   name: string;
+  kind?: LocationKind;
   grades?: Grade[];
 }
 
@@ -33,8 +40,12 @@ export interface School {
   webpage?: string | null;
   principal_first_name?: string | null;
   principal_last_name?: string | null;
-  school_type?: { id: number; name: string };
+  kind?: LocationKind;
+  school_type?: { id: number; name: string; code?: string | null };
 }
+
+/** A public charter school: run by its own board, not a school district */
+export const isCharterSchool = (school: Pick<School, 'kind'> | null | undefined): boolean => school?.kind === 'charter';
 
 export interface Town {
   id: number;
@@ -228,8 +239,13 @@ export const fetchAllSchoolData = createAsyncThunk(
         dispatch(fetchSauByDistrictId(district.id))
       ]);
       
-      // Update the district pages after loading all district data
-      dispatch(updateDistrictPages());
+      // Update the district pages after loading all district data. A charter school's board isn't a
+      // district: the menu lists no district pages beside a charter school's
+      if (district.kind === 'charter') {
+        dispatch(setDistrict({ id: null, name: '', availablePages: [] }));
+      } else {
+        dispatch(updateDistrictPages());
+      }
     }
 
     // After all data is loaded, update the school pages

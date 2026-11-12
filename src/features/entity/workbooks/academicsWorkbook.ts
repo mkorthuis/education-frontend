@@ -214,7 +214,7 @@ export const academicsWorkbook = (data: AcademicsData): ExcelSheet[] => {
       'The state changed tests in 2014-15 and 2017-18, so scores before and after a change aren\'t directly comparable. No tests were given in spring 2020.',
       'Where the state reports only that a share is under 10% or over 90%, the sheets show "<10%" or ">90%". A blank cell, or a group, grade or year left out, means there\'s no result: too few students to report, or the test wasn\'t given in that grade or year.',
       `Columns starting "NH" are New Hampshire's figures for the same student group, grade and year. The change on the Key Figures sheet is in percentage points since ${formatSchoolYear(EARLIEST_YEAR)}, as the page's subject cards show it.`,
-      `Ranks are among the ${noun.toLowerCase()}s with a result for all students in all tested grades in ${yearText}, highest first, with shares rounded to whole percents (a tie shares a rank, and a share under 10% or over 90% counts as 9% or 91%). The All ${noun}s sheet lists them.`,
+      `Ranks are among the ${noun.toLowerCase()}s with a result for all students in all tested grades in ${yearText}, highest first, with shares rounded to whole percents (a tie shares a rank, and a share under 10% or over 90% counts as 9% or 91%). ${data.kind === 'district' ? 'Charter schools, which belong to no district, aren\'t ranked with the districts.' : 'Public charter schools are ranked with the districts\' schools.'} The All ${noun}s sheet lists them.`,
     ]),
   ];
 };

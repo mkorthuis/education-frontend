@@ -16,6 +16,10 @@ export const locationApi = {
     // The schools in the state's current list
     getSchools: (forceRefresh = false) => 
         fetchData(buildLocationUrl('school'), forceRefresh),
+
+    // The public charter schools in the state's current list
+    getCharterSchools: (forceRefresh = false) =>
+        fetchData(buildLocationUrl('school', { kind: 'charter' }), forceRefresh),
     
     // Every town, with the districts that serve it
     getTowns: (forceRefresh = false) =>

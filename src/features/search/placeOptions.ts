@@ -1,7 +1,8 @@
-// One search over the places the site has pages for: public school districts and public schools.
-// A district named for its town is found by the town's name; a school is also found by its town.
+// One search over the places the site has pages for: public school districts and public schools,
+// public charter schools among them. A district named for its town is found by the town's name; a
+// school is also found by its town.
 
-export type PlaceKind = 'district' | 'school';
+export type PlaceKind = 'district' | 'school' | 'charter';
 
 export interface PlaceOption {
   key: string;
@@ -14,14 +15,14 @@ export interface PlaceOption {
 
 interface GradeRow { id: number; name: string }
 export interface DistrictRow { id: number; name: string; grades?: GradeRow[] }
-export interface SchoolRow { id: number; name: string; district_id?: number | null; city?: string | null; grades?: GradeRow[] }
+export interface SchoolRow { id: number; name: string; district_id?: number | null; city?: string | null; grades?: GradeRow[]; kind?: string | null }
 
 // The home page address that focuses the search, for "Look Up a Place" links elsewhere
 export const LOOK_UP_HASH = '#look-up';
 
 // What each result is, shown beside its name
-export const PLACE_KINDS: Record<PlaceKind, string> = { district: 'District', school: 'School' };
-const KIND_ORDER: Record<PlaceKind, number> = { district: 0, school: 1 };
+export const PLACE_KINDS: Record<PlaceKind, string> = { district: 'District', school: 'School', charter: 'Charter School' };
+const KIND_ORDER: Record<PlaceKind, number> = { district: 0, school: 1, charter: 2 };
 export const MAX_RESULTS = 15;
 
 /** "Grades 9 to 12", "Preschool to Grade 8", "Kindergarten" */
@@ -39,7 +40,7 @@ export const gradeSpan = (grades?: GradeRow[] | null): string => {
 const townName = (city?: string | null) =>
   !city ? '' : city === city.toUpperCase() ? city.toLowerCase().replace(/\b\w/g, letter => letter.toUpperCase()) : city;
 
-/** Every place the search can find. Schools count only with a public district. */
+/** Every place the search can find. Schools count with a public district, or as charter schools. */
 export const buildPlaceOptions = (districts: DistrictRow[], schools: SchoolRow[]): PlaceOption[] => {
   const byId = new Map(districts.map(district => [district.id, district]));
   const options: PlaceOption[] = districts.map(district => ({
@@ -50,10 +51,11 @@ export const buildPlaceOptions = (districts: DistrictRow[], schools: SchoolRow[]
     path: `/district/${district.id}`,
   }));
   schools.forEach(school => {
-    if (school.district_id == null || !byId.has(school.district_id)) return;
+    const charter = school.kind === 'charter';
+    if (!charter && (school.district_id == null || !byId.has(school.district_id))) return;
     options.push({
       key: `school-${school.id}`,
-      kind: 'school',
+      kind: charter ? 'charter' : 'school',
       name: school.name,
       detail: [townName(school.city), gradeSpan(school.grades)].filter(Boolean).join(' · '),
       path: `/school/${school.id}`,
@@ -72,13 +74,14 @@ const matchScore = (option: PlaceOption, query: string): number | null => {
   if (name.split(/[\s-]+/).some(word => word.startsWith(query))) return 2;
   if (name.includes(query)) return 3;
   // A school also matches on its town, so "Hampton" finds Marston School
-  if (option.kind === 'school' && normalize(option.detail).startsWith(query)) return 4;
+  if (option.kind !== 'district' && normalize(option.detail).startsWith(query)) return 4;
   return null;
 };
 
 /**
  * The best matches for what's typed, best first. Among equal matches districts come before schools,
- * so "Hampton" lists the Hampton district, then Hampton Falls, then the schools in Hampton.
+ * and district schools before charter schools, so "Hampton" lists the Hampton district, then Hampton
+ * Falls, then the schools in Hampton.
  */
 export const searchPlaces = (options: PlaceOption[], text: string, limit = MAX_RESULTS): PlaceOption[] => {
   const query = normalize(text);

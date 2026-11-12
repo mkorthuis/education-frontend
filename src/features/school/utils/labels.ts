@@ -8,3 +8,9 @@ export const SCHOOL_PAGE_DESCRIPTIONS: Record<string, string> = {
   enrollment: 'Students by year and grade',
   contact: 'Principal, address and phone',
 };
+
+/** What a public charter school is, in the line under its name */
+export const CHARTER_SCHOOL_LABEL = 'Public charter school';
+
+/** New Hampshire's charter school law, RSA 194-B, on the General Court's site */
+export const CHARTER_LAW_URL = 'https://gc.nh.gov/rsa/html/XV/194-B/194-B-mrg.htm';

@@ -1,11 +1,12 @@
 import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { Alert, Box, CircularProgress, Link, Typography, useMediaQuery, useTheme } from '@mui/material';
-import { GroupLabel, MetricTile, NavCard, NavCardGrid, TileGroup } from '@/components/ds';
+import { GroupLabel, MetricTile, NavCard, NavCardGrid, Note, TileGroup } from '@/components/ds';
 import LoadErrorAlert from '@/components/ui/LoadErrorAlert';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import { useAppSelector } from '@/store/hooks';
 import {
+  isCharterSchool,
   selectCurrentDistrict,
   selectCurrentSchool,
   selectCurrentSchools,
@@ -28,11 +29,12 @@ import {
 } from '@/features/entity/overview/OverviewParts';
 import { SchoolKeyFigures, useSchoolKeyFigures } from '../hooks/useSchoolKeyFigures';
 import { schoolTileGroups } from '../utils/keyFigures';
-import { SCHOOL_PAGE_DESCRIPTIONS } from '../utils/labels';
+import { CHARTER_LAW_URL, CHARTER_SCHOOL_LABEL, SCHOOL_PAGE_DESCRIPTIONS } from '../utils/labels';
 
 // A school's overview, on the pattern of the district overview: its name, its district and grades,
 // cards to its pages and to the district's other schools, and key figures with the district's and
-// the state's beside them.
+// the state's beside them. A public charter school belongs to no district: it says what a charter
+// school is instead, and compares its figures with the state's only.
 
 const SCHOOL_PAGES = PAGE_REGISTRY.school;
 // The district's pages with data reported for the whole district, not each school
@@ -78,20 +80,36 @@ const KeyFigures: React.FC<KeyFiguresProps> = ({ figures, schoolId, compareDistr
 /**
  * The line under the title: the town the school is in, and from tablets up its district (a link to
  * it), grades and type. Phones show the town alone; the district is the back link above the title.
- * Nothing when there's nothing to show.
+ * A charter school has no district: phones too say it's a charter school. Nothing when there's
+ * nothing to show.
  */
 const schoolFacts = (school: School, district: District, towns: Town[], phone: boolean): React.ReactNode => {
   const town = schoolTown(school, towns);
   const grades = formatGradesDisplay(school);
+  const charter = isCharterSchool(school);
   const facts: React.ReactNode[] = [
     town && `Located in ${town}`,
-    !phone && district && <Link component={RouterLink} to={`/district/${district.id}`}>{districtTitle(district.name)}</Link>,
+    charter && CHARTER_SCHOOL_LABEL,
+    !phone && !charter && district && <Link component={RouterLink} to={`/district/${district.id}`}>{districtTitle(district.name)}</Link>,
     !phone && grades && `Grades ${grades}`,
-    !phone && school.school_type?.name,
+    !phone && !charter && school.school_type?.name,
   ].filter(Boolean);
   if (facts.length === 0) return undefined;
   return facts.map((fact, index) => <React.Fragment key={index}>{index > 0 && ' · '}{fact}</React.Fragment>);
 };
+
+/** What a charter school is and who can go, from the state's charter school law */
+const CharterSchoolNote: React.FC = () => (
+  <Box sx={PHONE_SPACING.section}>
+    <Note title="About Charter Schools">
+      Charter schools are free public schools run by their own boards, not by a school district. Any New Hampshire
+      student can apply. Students who live in the district where the school is located get first preference, and a
+      lottery decides when more students apply than there are seats. A student&apos;s home district stays responsible
+      for special education.{' '}
+      <Link href={CHARTER_LAW_URL} target="_blank" rel="noopener noreferrer">The state&apos;s charter school law (RSA 194-B)</Link>
+    </Note>
+  </Box>
+);
 
 interface SchoolOverviewProps {
   school: School;
@@ -105,14 +123,17 @@ const SchoolOverview: React.FC<SchoolOverviewProps> = ({ school, district, schoo
   const isPhone = useMediaQuery(theme.breakpoints.down('sm'));
   const otherSchools = schools.filter(other => other.id !== school.id);
   const hasOthers = otherSchools.length > 0;
+  // A charter school's "district" is its own board, which may run other schools under the charter
+  const charter = isCharterSchool(school);
 
   const pages = Object.values(SCHOOL_PAGES).filter(page => page.id !== SCHOOL_PAGES.overview.id);
   const hasGraduation = isPageAvailable(SCHOOL_PAGES.outcomes, school);
   // The district's figures are compared only where they aren't just this school's: its test scores
-  // when it has other schools, its graduation when it has another high school
-  const compareDistrict = hasOthers;
-  const compareDistrictGraduation = otherSchools.some(other => isPageAvailable(SCHOOL_PAGES.outcomes, other));
-  const { status, retry, figures } = useSchoolKeyFigures(school.id, district?.id ?? null, { hasGraduation, compareDistrict, compareDistrictGraduation });
+  // when it has other schools, its graduation when it has another high school. A charter school's
+  // are compared with the state's alone.
+  const compareDistrict = !charter && hasOthers;
+  const compareDistrictGraduation = !charter && otherSchools.some(other => isPageAvailable(SCHOOL_PAGES.outcomes, other));
+  const { status, retry, figures } = useSchoolKeyFigures(school.id, charter ? null : district?.id ?? null, { hasGraduation, compareDistrict, compareDistrictGraduation });
 
   return (
     <>
@@ -129,9 +150,10 @@ const SchoolOverview: React.FC<SchoolOverviewProps> = ({ school, district, schoo
             label={`${school.name} pages`}
             wideColumns={hasOthers ? 2 : 4}
           />
+          {charter && <CharterSchoolNote />}
           {/* Spending, staffing and EFAs are reported for the whole district: cards to the district's
               pages for them, under their own label */}
-          {district && (
+          {district && !charter && (
             <>
               <GroupLabel>District-Wide Data</GroupLabel>
               <NavCardGrid label={`${districtTitle(district.name)} data for the whole district`} wideColumns={hasOthers ? 2 : 4} sx={PHONE_SPACING.section}>
@@ -145,8 +167,8 @@ const SchoolOverview: React.FC<SchoolOverviewProps> = ({ school, district, schoo
         </OverviewSection>
 
         {hasOthers && district && (
-          <OverviewSection id="schools-heading" title="Other Schools in the District">
-            <SchoolCards schools={otherSchools} label={`Other schools in ${districtTitle(district.name)}`} />
+          <OverviewSection id="schools-heading" title={charter ? 'Other Schools Under This Charter' : 'Other Schools in the District'}>
+            <SchoolCards schools={otherSchools} label={charter ? `Other schools under ${district.name}'s charter` : `Other schools in ${districtTitle(district.name)}`} />
           </OverviewSection>
         )}
 

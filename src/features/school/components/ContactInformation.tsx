@@ -3,6 +3,7 @@ import { Box, Typography, Divider, CircularProgress, Link as MuiLink } from '@mu
 import { useAppSelector } from '@/store/hooks';
 import { sortStaffByTypeAndName } from '@/utils/formatting';
 import { 
+  isCharterSchool,
   selectCurrentSchool, 
   selectSchoolLoading, 
   selectLocationError,
@@ -103,9 +104,10 @@ const ContactInformation: React.FC = () => {
               'Coming Soon'
             )}
         </Typography>
-        <Divider sx={{ my: 2 }} />
-        {sau && (
+        {/* A charter school has no SAU: the state lists only its name, which the school's own details above cover */}
+        {sau && !isCharterSchool(school) && (
         <>
+          <Divider sx={{ my: 2 }} />
           <Typography variant="h5" gutterBottom>
             Administration
           </Typography>

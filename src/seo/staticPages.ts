@@ -65,7 +65,7 @@ const GENERAL_DESCRIPTIONS: Record<string, string> = {
   home: `Facts about New Hampshire's public schools: enrollment, test results, graduation, spending, staff and safety for every district and school, ${SOURCE}. Or ask a question in your own words.`,
   about: 'Who runs NH Education Facts, why it was started, what data it covers and how it keeps the data accurate and fact-based.',
   districts: "All of New Hampshire's public school districts, with each one's enrollment, test results, graduation, spending, staff and safety.",
-  schools: "All of New Hampshire's public schools, with each one's enrollment, test results, graduation and safety.",
+  schools: "All of New Hampshire's public schools, public charter schools among them, with each one's enrollment, test results, graduation and safety.",
   ask: "Ask a question about New Hampshire's public schools in your own words. Answers use this site's data, with charts and links to the sources.",
   datasources: 'Where every figure on NH Education Facts comes from: New Hampshire Department of Education reports and federal sources.',
   privacy: 'How NH Education Facts collects and uses information about visitors.',
@@ -103,6 +103,8 @@ export interface SiteSchool {
   district_id: number;
   town_id: number;
   grades: { name: string }[];
+  /** 'charter' for a public charter school, which belongs to no district */
+  kind?: string | null;
 }
 
 export interface SiteTown {
@@ -179,20 +181,30 @@ export const districtFigureScope = (index: SiteIndex): { id: number; hasSchools:
   });
 };
 
+/** A public charter school: run by its own board, not a school district */
+const isCharter = (school: SiteSchool): boolean => school.kind === 'charter';
+
+/** The schools the site has pages for: schools in a public school district, and public charter schools */
+const publicSchools = (index: SiteIndex): SiteSchool[] => {
+  const publicIds = new Set(index.districts.map(district => district.id));
+  return index.schools.filter(school => publicIds.has(school.district_id) || isCharter(school));
+};
+
 /**
  * What a school's overview loads and compares, as the app decides it: graduation for a school with
  * a graduation page; its district's test scores when the district has other schools, and its
- * district's graduation when the district has another high school
+ * district's graduation when the district has another high school. A charter school has no district
+ * (districtId null) and compares with the state's figures alone.
  */
 export const schoolFigureScope = (index: SiteIndex) => {
-  const publicIds = new Set(index.districts.map(district => district.id));
-  const schools = index.schools.filter(school => publicIds.has(school.district_id));
+  const schools = publicSchools(index);
   const hasGraduation = (school: SiteSchool) => isEnabled(PAGE_REGISTRY.school.outcomes, school);
   return schools.map(school => {
-    const others = schools.filter(other => other.district_id === school.district_id && other.id !== school.id);
+    const charter = isCharter(school);
+    const others = charter ? [] : schools.filter(other => other.district_id === school.district_id && other.id !== school.id);
     return {
       id: school.id,
-      districtId: school.district_id,
+      districtId: charter ? null : school.district_id,
       hasGraduation: hasGraduation(school),
       compareDistrict: others.length > 0,
       compareDistrictGraduation: others.some(hasGraduation),
@@ -204,11 +216,12 @@ export const staticPages = (index: SiteIndex, figures: PageFigures = {}): Static
   const townName = new Map(index.towns.map(town => [town.id, town.name]));
   const districts = [...index.districts].sort(byName);
   const districtById = new Map(districts.map(district => [district.id, district]));
-  // Public schools only, like the schools page: schools in a public school district
-  const schools = index.schools
-    .filter(school => districtById.has(school.district_id))
+  // Public schools only, like the schools page: schools in a public school district, and charter schools
+  const schools = publicSchools(index)
     .sort((a, b) => byName(a, b) || (townName.get(a.town_id) ?? '').localeCompare(townName.get(b.town_id) ?? ''));
   const schoolsOf = (districtId: number) => schools.filter(school => school.district_id === districtId);
+  // The charter schools in a district's towns, which its overview lists after its own schools
+  const chartersIn = (towns: number[]) => schools.filter(school => isCharter(school) && towns.includes(school.town_id));
 
   const districtLink = (district: SiteDistrict): PageLink => ({ href: basePath(PAGE_REGISTRY.district.overview.urlPatterns[0], district.id), text: districtTitle(district.name) });
   const schoolLink = (school: SiteSchool): PageLink => ({ href: basePath(PAGE_REGISTRY.school.overview.urlPatterns[0], school.id), text: schoolName(school, townName.get(school.town_id)) });
@@ -266,9 +279,12 @@ export const staticPages = (index: SiteIndex, figures: PageFigures = {}): Static
     const where = !towns.length || (towns.length === 1 && towns[0] === district.name) ? '' : ` (${listNames(towns)})`;
     const enabled = Object.values(PAGE_REGISTRY.district).filter(page => isEnabled(page, entity));
     const topics = enabled.map(page => TOPICS[pageKey(page)]).filter(Boolean);
+    const charters = chartersIn(district.towns);
+    const charterTowns = listNames(district.towns.filter(town => charters.some(school => school.town_id === town)).map(town => townName.get(town) ?? ''));
     const sections = [
       { heading: name, links: enabled.map(page => pageLink(page, district.id)) },
       ...(ownSchools.length ? [{ heading: 'Schools', links: ownSchools.map(schoolLink) }] : []),
+      ...(charters.length ? [{ heading: `Public Charter Schools in ${charterTowns}`, links: charters.map(schoolLink) }] : []),
       { heading: 'On this site', links: mainLinks },
     ];
     for (const page of enabled) {
@@ -296,7 +312,8 @@ export const staticPages = (index: SiteIndex, figures: PageFigures = {}): Static
     const name = schoolName(school, town);
     const enabled = Object.values(PAGE_REGISTRY.school).filter(page => isEnabled(page, school));
     const topics = enabled.map(page => TOPICS[pageKey(page)]).filter(Boolean);
-    const inDistrict = district ? ` (${districtTitle(district.name)})` : '';
+    // A charter school's own board isn't a district: it's described as what it is
+    const inDistrict = district ? ` (${districtTitle(district.name)})` : isCharter(school) ? ' (public charter school)' : '';
     const sections = [
       { heading: name, links: enabled.map(page => pageLink(page, school.id)) },
       ...(district ? [{ heading: 'District', links: [districtLink(district)] }] : []),

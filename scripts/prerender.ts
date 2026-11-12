@@ -128,11 +128,14 @@ const districtFigures = async (index: SiteIndex) => {
     }
   }));
   checkFailures(failed.length, index.districts.length, 'districts');
-  return { figures, rows };
+  return { figures, rows, state };
 };
 
-/** Each school's overview tiles, by the same requests and calculation as the app's overview */
-const schoolFigures = async (index: SiteIndex, districtRows: Map<number, DistrictFigureRows>) => {
+/**
+ * Each school's overview tiles, by the same requests and calculation as the app's overview. A
+ * charter school has no district, so its tiles compare with the state's rows alone.
+ */
+const schoolFigures = async (index: SiteIndex, districtRows: Map<number, DistrictFigureRows>, state: DistrictFigureRows['state']) => {
   const allStudents = 'assessment_subgroup_id=1';
   const none = Promise.resolve([]);
   const missing = { emptyIfMissing: true };
@@ -141,9 +144,9 @@ const schoolFigures = async (index: SiteIndex, districtRows: Map<number, Distric
   const scope = schoolFigureScope(index);
   await inTurn(scope.map(({ id, districtId, hasGraduation, compareDistrict, compareDistrictGraduation }) => async () => {
     const school = `school_id=${id}`;
-    const district = districtRows.get(districtId);
+    const district = districtId === null ? undefined : districtRows.get(districtId);
     try {
-      if (!district) throw new Error(`no figures for district ${districtId}`);
+      if (districtId !== null && !district) throw new Error(`no figures for district ${districtId}`);
       const [enrollment, tests, cohorts, plans] = await Promise.all([
         getJson<SchoolFigureRows['enrollment']>(`${API}/enrollment/school/${id}`, missing),
         getJson<SchoolFigureRows['tests']>(`${API}/assessment/school?${school}&${allStudents}`, missing),
@@ -157,11 +160,11 @@ const schoolFigures = async (index: SiteIndex, districtRows: Map<number, Distric
         cohorts,
         plans,
         district: {
-          tests: compareDistrict ? district.assessments : [],
-          cohorts: hasGraduation && compareDistrictGraduation ? district.cohorts : [],
-          plans: hasGraduation && compareDistrictGraduation ? district.plans : [],
+          tests: compareDistrict && district ? district.assessments : [],
+          cohorts: hasGraduation && compareDistrictGraduation && district ? district.cohorts : [],
+          plans: hasGraduation && compareDistrictGraduation && district ? district.plans : [],
         },
-        state: { tests: district.state.assessments, cohorts: hasGraduation ? district.state.cohorts : [], plans: hasGraduation ? district.state.plans : [] },
+        state: { tests: state.assessments, cohorts: hasGraduation ? state.cohorts : [], plans: hasGraduation ? state.plans : [] },
       };
       figures.set(id, schoolTileGroups(schoolKeyFigures(rows), { compareDistrict, compareDistrictGraduation }));
     } catch (error) {
@@ -182,7 +185,7 @@ const main = async () => {
   const index = { districts, schools, towns };
   const started = Date.now();
   const districtResults = await districtFigures(index);
-  const figures = { districts: districtResults.figures, schools: await schoolFigures(index, districtResults.rows), state: await stateFigures() };
+  const figures = { districts: districtResults.figures, schools: await schoolFigures(index, districtResults.rows, districtResults.state), state: await stateFigures() };
   console.log(`Read key figures for the state, ${figures.districts.size} districts and ${figures.schools.size} schools in ${Math.round((Date.now() - started) / 1000)} s`);
 
   const template = await readFile(path.join(DIST, 'index.html'), 'utf8');

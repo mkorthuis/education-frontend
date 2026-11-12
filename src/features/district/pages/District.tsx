@@ -1,6 +1,7 @@
 import React from 'react';
-import { Alert, Box, CircularProgress, Typography, useMediaQuery, useTheme } from '@mui/material';
-import { MetricTile, TileGroup } from '@/components/ds';
+import { Link as RouterLink } from 'react-router-dom';
+import { Alert, Box, CircularProgress, Link, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { GroupLabel, MetricTile, TileGroup } from '@/components/ds';
 import LoadErrorAlert from '@/components/ui/LoadErrorAlert';
 import { PAGE_REGISTRY } from '@/routes/pageRegistry';
 import { useAppSelector } from '@/store/hooks';
@@ -23,12 +24,14 @@ import {
   PHONE_SPACING,
   SchoolCards,
 } from '@/features/entity/overview/OverviewParts';
+import { useCharterSchoolsIn } from '../hooks/useCharterSchoolsIn';
 import { DistrictKeyFigures, useDistrictKeyFigures } from '../hooks/useDistrictKeyFigures';
 import { DISTRICT_TILE_GROUPS, districtTileGroups } from '../utils/keyFigures';
-import { districtFacts, districtPhoneTitle, districtTitle, DISTRICT_PAGE_DESCRIPTIONS } from '../utils/labels';
+import { districtFacts, districtPhoneTitle, districtTitle, DISTRICT_PAGE_DESCRIPTIONS, listNames } from '../utils/labels';
 
 // A district's overview, on the pattern of the statewide overview: its name and what it is, cards to
-// its pages and its schools, and key figures with the state's beside them.
+// its pages and its schools (and any public charter schools in its towns), and key figures with the
+// state's beside them.
 
 const DISTRICT_PAGES = PAGE_REGISTRY.district;
 const GROUPS = DISTRICT_TILE_GROUPS;
@@ -60,9 +63,30 @@ const KeyFigures: React.FC<{ figures: DistrictKeyFigures; districtId: number; to
   );
 };
 
+/**
+ * The public charter schools in the district's towns, after its own schools: not the district's, so
+ * under their own label, saying whose they are, with a link to every charter school.
+ */
+const CharterSchools: React.FC<{ schools: School[]; towns: Town[] }> = ({ schools, towns }) => {
+  const places = listNames(towns.filter(town => schools.some(school => school.town_id === town.id)).map(town => town.name));
+  return (
+    <>
+      <GroupLabel>Public Charter Schools in {places}</GroupLabel>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+        Free public schools run by their own boards, not by the district. Any New Hampshire student can apply.{' '}
+        <Link component={RouterLink} to="/schools?type=charter">All charter schools</Link>
+      </Typography>
+      <SchoolCards schools={schools} label={`Public charter schools in ${places}`} />
+    </>
+  );
+};
+
 const DistrictOverview: React.FC<{ district: District; towns: Town[]; schools: School[]; sauId: number }> = ({ district, towns, schools, sauId }) => {
   const title = districtTitle(district.name);
   const hasSchools = schools.length > 0;
+  const charters = useCharterSchoolsIn(towns);
+  // The schools column: the district's schools, the charter schools in its towns, or both
+  const showSchools = hasSchools || charters.length > 0;
   // Phones: "Concord (SAU 8)" over the towns served; wider screens: "Concord School District" over
   // the SAU, towns, grades and schools
   const theme = useTheme();
@@ -79,7 +103,7 @@ const DistrictOverview: React.FC<{ district: District; towns: Town[]; schools: S
   return (
     <>
       <OverviewTitle title={isPhone ? districtPhoneTitle(district.name, sauId) : title} facts={facts.length > 0 ? facts.join(' · ') : undefined} />
-      <OverviewGrid twoColumns={hasSchools}>
+      <OverviewGrid twoColumns={showSchools}>
         <OverviewSection id="pages-heading" title="Explore District Data">
           {/* Two across beside the schools; four across when there are no schools beside them */}
           <PageCards
@@ -89,13 +113,14 @@ const DistrictOverview: React.FC<{ district: District; towns: Town[]; schools: S
             descriptions={DISTRICT_PAGE_DESCRIPTIONS}
             unavailableLine={hasSchools ? 'Not available: no grade 12' : 'Not available: runs no schools'}
             label={`${title} pages`}
-            wideColumns={hasSchools ? 2 : 4}
+            wideColumns={showSchools ? 2 : 4}
           />
         </OverviewSection>
 
-        {hasSchools && (
+        {showSchools && (
           <OverviewSection id="schools-heading" title="Schools">
-            <SchoolCards schools={schools} label={`Schools in ${title}`} />
+            {hasSchools && <SchoolCards schools={schools} label={`Schools in ${title}`} />}
+            {charters.length > 0 && <CharterSchools schools={charters} towns={towns} />}
           </OverviewSection>
         )}
 

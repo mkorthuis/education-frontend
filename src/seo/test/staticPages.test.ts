@@ -15,7 +15,9 @@ const INDEX: SiteIndex = {
     { id: 80, name: 'Concord High School', district_id: 8, town_id: 1, grades: grades('Grade 9', 'Grade 12') },
     { id: 81, name: 'Abbot-Downing School', district_id: 8, town_id: 1, grades: grades('Kindergarten', 'Grade 5') },
     // Private: its district isn't a public one
-    { id: 99, name: "St. Paul's School", district_id: 500, town_id: 1, grades: grades('Grade 9', 'Grade 12') },
+    { id: 99, name: "St. Paul's School", district_id: 500, town_id: 1, grades: grades('Grade 9', 'Grade 12'), kind: 'private' },
+    // A charter school: its own board isn't a public district either, but it's a public school
+    { id: 90, name: 'Concord Charter Academy', district_id: 750, town_id: 1, grades: grades('Grade 6', 'Grade 12'), kind: 'charter' },
   ],
   towns: [
     { id: 1, name: 'Concord' },
@@ -43,8 +45,9 @@ describe('static pages', () => {
     expect(paths).toContain('/district/2');
     expect(paths).not.toContain('/district/2/academic');
     expect(paths).not.toContain('/school/81/outcomes');
-    // Private schools aren't on the site
+    // Private schools aren't on the site; charter schools are
     expect(paths.some(path => path.startsWith('/school/99'))).toBe(false);
+    expect(paths).toEqual(expect.arrayContaining(['/school/90', '/school/90/academic', '/school/90/outcomes']));
     expect(new Set(paths).size).toBe(paths.length);
   });
 
@@ -81,7 +84,19 @@ describe('static pages', () => {
     ] });
     expect(page('/school/80')?.sections[1].links).toEqual([{ href: '/district/8', text: 'Concord School District' }]);
     expect(page('/districts')?.sections[0].links.map(link => link.href)).toEqual(['/district/8', '/district/2']);
-    expect(page('/schools')?.sections[0].links).toHaveLength(2);
+    expect(page('/schools')?.sections[0].links).toHaveLength(3);
+  });
+
+  it('writes a charter school as a school of no district, listed after the district schools in its town', () => {
+    expect(page('/school/90')?.description).toBe(
+      'Test results, graduation, safety and enrollment for Concord Charter Academy, Concord (public charter school), from New Hampshire Department of Education data.'
+    );
+    expect(page('/school/90')?.breadcrumbs.map(link => link.href)).toEqual(['/', '/schools', '/school/90']);
+    expect(page('/school/90')?.sections.map(section => section.heading)).toEqual(['Concord Charter Academy, Concord', 'On this site']);
+    expect(page('/district/8')?.sections[2]).toEqual({
+      heading: 'Public Charter Schools in Concord', links: [{ href: '/school/90', text: 'Concord Charter Academy, Concord' }],
+    });
+    expect(page('/district/2')?.sections.map(section => section.heading)).not.toContain('Public Charter Schools in Concord');
   });
 
   it('keeps signed-in pages out of search results', () => {
@@ -202,6 +217,8 @@ describe('key figures', () => {
       // Concord High is the district's one high school: its test scores are compared, its graduation isn't
       { id: 80, districtId: 8, hasGraduation: true, compareDistrict: true, compareDistrictGraduation: false },
       { id: 81, districtId: 8, hasGraduation: false, compareDistrict: true, compareDistrictGraduation: true },
+      // A charter school has no district to compare with
+      { id: 90, districtId: null, hasGraduation: true, compareDistrict: false, compareDistrictGraduation: false },
     ]);
   });
 });

@@ -215,7 +215,7 @@ const DataSources: React.FC = () => {
           description="Name of each school, Contact information include the principal, their type, and grade level."
           originalSource="https://my.doe.nh.gov/myNHDOE/Help/PublicReports.aspx?ReportName=SchoolListCSV"
           originalSourceText="NH DOE School List (XLS)"
-          additionalSourceInfo="Schools no longer on the state's list keep their history but are not listed"
+          additionalSourceInfo="Schools no longer on the state's list keep their history but are not listed. Public charter schools are listed with the public schools; each is run by its own board, so it belongs to no district. Private schools on the list are not shown"
           loadedFrom="https://github.com/mkorthuis/education-backend/raw/refs/heads/main/backend/app/alembic/assets/2026-school-list.xls"
           loadedFromText="2026 School List (XLS)"
         />

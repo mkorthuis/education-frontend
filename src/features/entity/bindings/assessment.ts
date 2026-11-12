@@ -18,7 +18,8 @@ export const ASSESSMENT = {
     idField: 'school_id',
     nameField: 'school_name',
     rankInfo: getSchoolRankInfo,
-    rankNoun: 'schools',
+    // Charter schools take the same tests, and rank with the districts' schools
+    rankNoun: 'public schools, including charter schools',
     // Year that filters the subject card list; differs from the district page.
     cardListYear: FISCAL_YEAR
   },
@@ -33,6 +34,7 @@ export const ASSESSMENT = {
     idField: 'district_id',
     nameField: 'district_name',
     rankInfo: getDistrictRankInfo,
+    // School districts only: the API leaves out charter schools' boards
     rankNoun: 'districts',
     cardListYear: ASSESSMENT_YEAR
   }
