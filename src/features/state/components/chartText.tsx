@@ -18,7 +18,8 @@ export const keepYearsTogether = (text: string | undefined): React.ReactNode => 
 };
 
 interface ChartHeaderProps {
-  title: string;
+  /** Words, or words with a part set apart (State Aid by Year "In Current Dollars") */
+  title: React.ReactNode;
   /** A shorter title for phones; phones show the title when left out */
   shortTitle?: string;
   subtitle?: string;

@@ -65,6 +65,16 @@ const getCpiForYear = (year: number): number => {
   return CPI_BY_YEAR[nearestYear];
 };
 
+/**
+ * An amount in a later year's dollars, for an estimate: past the table's last year, that year's inflation
+ * carries on, so an estimate two years out isn't flat. Unrounded, as an estimate's starting point.
+ */
+export const projectInflation = (amount: number, fromYear: number, toYear: number): number => {
+  const yearly = CPI_BY_YEAR[LAST_CPI_YEAR] / CPI_BY_YEAR[LAST_CPI_YEAR - 1];
+  const cpi = (year: number) => (year <= LAST_CPI_YEAR ? getCpiForYear(year) : CPI_BY_YEAR[LAST_CPI_YEAR] * yearly ** (year - LAST_CPI_YEAR));
+  return amount * (cpi(toYear) / cpi(fromYear));
+};
+
 export const calculateInflationAdjustedAmount = (
   amount: number,
   fromYear: number,

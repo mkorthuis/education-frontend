@@ -121,6 +121,11 @@ export interface FinancialComparisonTableProps {
    * Whether to adjust comparison year values for inflation
    */
   adjustForInflation?: boolean;
+
+  /**
+   * Something to show under a line's name, e.g. a link to how the line is calculated
+   */
+  itemNote?: (item: FinancialComparisonItem) => React.ReactNode;
 }
 
 interface CategorySummary {
@@ -156,7 +161,8 @@ const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> = ({
   onComparisonYearChange,
   valueType,
   totalRowLabel,
-  adjustForInflation = false
+  adjustForInflation = false,
+  itemNote
 }) => {
   // Access all financial reports from Redux
   const financialReports = useAppSelector(selectFinancialReports);
@@ -827,7 +833,10 @@ const FinancialComparisonTable: React.FC<FinancialComparisonTableProps> = ({
                                                     <TableRow key={`${row.category}-${row.subCategory}-${row.name}`}>
                                                       <TableCell width={isMobile ? "20px" : "30px"} padding={isMobile ? "none" : "normal"}></TableCell>
                                                       <TableCell width={isMobile ? "50%" : "35%"}>
-                                                        <Box sx={{ pl: isMobile ? 2 : 4 }}>{row.name}</Box>
+                                                        <Box sx={{ pl: isMobile ? 2 : 4 }}>
+                                                          {row.name}
+                                                          {itemNote?.(row)}
+                                                        </Box>
                                                       </TableCell>
                                                       <TableCell align="right" width={isMobile ? "25%" : "15%"}>
                                                         {formatValue(row.currentValue)}

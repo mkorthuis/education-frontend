@@ -53,5 +53,20 @@ export const financeApi = {
         fetchData(buildFinanceUrl('state-expenditure', options), forceRefresh),
 
     getStateADM: (options: BaseFinanceOptions = {}, forceRefresh = false) =>
-        fetchData(buildFinanceUrl('state-adm', options), forceRefresh)
+        fetchData(buildFinanceUrl('state-adm', options), forceRefresh),
+
+    // Adequacy aid: a district's state aid each year, with each member town's calculation
+    getDistrictAdequacyAid: (districtId: number, forceRefresh = false) =>
+        fetchData(buildFinanceUrl(`adequacy-aid/district/${districtId}/calculation`), forceRefresh),
+
+    // A year's rates and steps, and the names and units of the parts its calculation uses
+    getAdequacyAidFormula: (year: number, forceRefresh = false) =>
+        fetchData(buildFinanceUrl('adequacy-aid/formula', { year }), forceRefresh),
+
+    // Special education aid: each year's threshold, proration and bands, and a district's costs and aid
+    getSpecialEducationAidYears: (forceRefresh = false) =>
+        fetchData(buildFinanceUrl('special-education-aid/years'), forceRefresh),
+
+    getDistrictSpecialEducationAid: (districtId: number, forceRefresh = false) =>
+        fetchData(buildFinanceUrl('special-education-aid/district', { district_id: districtId }), forceRefresh)
 };  

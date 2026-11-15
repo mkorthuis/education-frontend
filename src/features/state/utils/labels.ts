@@ -5,7 +5,7 @@
 export const plainLabel = (labels: Record<string, string>, name: string): string => labels[name] ?? name;
 
 // Short words left lowercase in Title Case, except as the first word
-const MINOR_WORDS = new Set(['a', 'an', 'and', 'as', 'at', 'by', 'for', 'in', 'of', 'on', 'or', 'the', 'to', 'with']);
+const MINOR_WORDS = new Set(['a', 'an', 'and', 'as', 'at', 'by', 'for', 'in', 'of', 'on', 'or', 'per', 'the', 'to', 'with']);
 
 /** "Extra: low-income (free or reduced-price meals)" as "Extra: Low-Income (Free or Reduced-Price Meals)"; acronyms stay as they are. */
 export const titleCase = (text: string): string =>

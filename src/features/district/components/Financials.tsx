@@ -37,11 +37,13 @@ import { FISCAL_YEAR } from '@/utils/environment';
 import { downloadWorkbook } from '@/features/state/utils/excel';
 import { entityFileName } from '@/features/entity/excel';
 import { financialsWorkbook } from '../workbooks/financialsWorkbook';
+import { useDistrictStateAid } from '../hooks/useDistrictStateAid';
 
 // Import tab components
 import OverallTab from './financial/OverallTab';
 import ExpendituresTab from './financial/ExpendituresTab';
 import RevenuesTab from './financial/RevenuesTab';
+import StateAidTab from './financial/StateAidTab';
 import BalanceSheetTab from './financial/BalanceSheetTab';
 
 
@@ -50,7 +52,10 @@ const TABS = [
   { value: 0, label: 'Overall', mobileLabel: 'Summary', path: 'overall' },
   { value: 1, label: 'Expenditures', mobileLabel: 'Spend', path: 'expenditures' },
   { value: 2, label: 'Revenues', mobileLabel: 'Income', path: 'revenues' },
-  { value: 3, label: 'Balance Sheet', mobileLabel: 'Capital', path: 'balance-sheet' }
+  { value: 3, label: 'Balance Sheet', mobileLabel: 'Capital', path: 'balance-sheet' },
+  // In italics: how the state's aid is calculated, beside the district's own reports. Not a tab on phones,
+  // where the Revenues tab links to it
+  { value: 4, label: 'State Aid', path: 'state-aid', italic: true, desktopOnly: true }
 ];
 
 // Tab value for the URL's `:tab?` segment (Overall when missing or unknown)
@@ -192,17 +197,17 @@ const Financials: React.FC = () => {
     loading: financeLoading, 
     error: financeError
   } = useDistrictFinancialData(districtId);
+  // The state's adequacy aid and how it's calculated, for the State Aid tab (not the download)
+  const stateAid = useDistrictStateAid(districtId);
   
+  const visibleTabs = TABS.filter(tab => !(isMobile && tab.desktopOnly));
+  const tabPath = (tabName: string) => PAGE_REGISTRY.district.financials.urlPatterns[0].replace(':id', id || '').replace(':tab?', tabName);
+
   // Tab change handler
   const handleMainTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setMainTabValue(newValue);
     const selectedTab = TABS.find(t => t.value === newValue);
-    if (selectedTab) {
-      const path = PAGE_REGISTRY.district.financials.urlPatterns[0]
-        .replace(':id', id || '')
-        .replace(':tab?', selectedTab.path);
-      navigate(path);
-    }
+    if (selectedTab) navigate(tabPath(selectedTab.path));
   };
 
   // Handler for inflation adjustment toggle
@@ -213,7 +218,8 @@ const Financials: React.FC = () => {
   // Loading and data availability states
   const isLoading = districtLoading || financeLoading;
 
-  // Everything on the page's four tabs as one workbook, once all of it has loaded for this district
+  // The page's four report tabs as one workbook, once all of it has loaded for this district. The State Aid
+  // tab isn't in it; its state revenue is, in the Revenues tab's lines
   const finance = useAppSelector(state => state.finance);
   const downloadReady = !!district && !isLoading && !financeError
     && finance.processedReportDistrictId === district.id
@@ -245,8 +251,10 @@ const Financials: React.FC = () => {
         return ( <ExpendituresTab districtId={districtIdString} />);
       case 2: 
         return ( <RevenuesTab districtId={districtIdString} /> );
-      case 3: 
+      case 3:
         return ( <BalanceSheetTab districtId={districtIdString} /> );
+      case 4:
+        return ( <StateAidTab districtName={district?.name ?? ''} aid={stateAid} /> );
       default:
         return null;
     }
@@ -273,8 +281,8 @@ const Financials: React.FC = () => {
       onDownload={downloadExcel}
       downloadReady={downloadReady}
     >
-      {/* Inflation-adjusted figures are in today's dollars */}
-      {adjustForInflation && <Box component="span" sx={{ color: 'error.main' }}> In Current Dollars</Box>}
+      {/* Inflation-adjusted figures are in today's dollars; on State Aid, only its chart of the years is, and it says so */}
+      {adjustForInflation && TABS[mainTabValue]?.path !== 'state-aid' && <Box component="span" sx={{ color: 'error.main' }}> In Current Dollars</Box>}
     </SectionTitle>
   );
   const inflationToggle = (
@@ -329,16 +337,18 @@ const Financials: React.FC = () => {
             mb: isMobile ? 2 : 3
           }}>
             <Tabs
-              value={mainTabValue}
+              // On phones, State Aid has no tab, so none is chosen; any of them goes back
+              value={visibleTabs.some(tab => tab.value === mainTabValue) ? mainTabValue : false}
               onChange={handleMainTabChange}
               variant={isMobile ? "scrollable" : "standard"}
               scrollButtons={isMobile ? "auto" : false}
             >
-              {TABS.map(tab => (
+              {visibleTabs.map(tab => (
                 <Tab
                   key={tab.value}
+                  value={tab.value}
                   label={isMobile ? tab.mobileLabel : tab.label}
-                  sx={isMobile ? { px: 0 } : undefined}
+                  sx={{ ...(isMobile && { px: 0 }), ...(tab.italic && { fontStyle: 'italic' }) }}
                 />
               ))}
             </Tabs>
