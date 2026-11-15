@@ -7,7 +7,7 @@ import { BASE_API_URL } from '../config/constants';
 export interface AskChart {
   title: string;
   kind: 'line' | 'bar';
-  /** percent, dollars, count or number */
+  /** percent, dollars, count, number, or rate (a tax rate: dollars per $1,000 of property value) */
   unit: string;
   /** What the points are, e.g. "School year", "Class" or "Student group" */
   x_label: string;
@@ -21,7 +21,7 @@ export interface AskTable {
   title: string;
   unit: string;
   columns: string[];
-  /** Each column's unit (percent, dollars, count or number); the first, the label column, is null */
+  /** Each column's unit (percent, dollars, count, number or rate); the first, the label column, is null */
   units: (string | null)[];
   rows: (number | string | null)[][];
   note?: string | null;

@@ -6,9 +6,14 @@ import { formatCompact, formatCompactDollars, formatCount, formatDollars, YearRo
 /** "87.5%", "44%": one decimal only when the value isn't whole */
 const percent = (value: number) => `${Number.isInteger(value) ? value : value.toFixed(1)}%`;
 
+/** A tax rate, dollars per $1,000 of property value: "$11.54", always to the cent; "$12.5" on an axis */
+const rate = (value: number, cents = true) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: 2 }).format(value);
+
 /** A value as the tooltip and table show it */
 export const formatValue = (unit: string | null | undefined, value: number, compactDollars = false): string => {
   if (unit === 'percent') return percent(value);
+  if (unit === 'rate') return rate(value);
   if (unit === 'dollars') return compactDollars || Math.abs(value) >= 1e6 ? formatCompactDollars(value) : formatDollars(value);
   if (unit === 'count') return formatCount(value);
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
@@ -17,6 +22,7 @@ export const formatValue = (unit: string | null | undefined, value: number, comp
 /** A value as an axis tick shows it */
 export const formatAxis = (unit: string | null | undefined, value: number): string => {
   if (unit === 'percent') return `${Math.round(value)}%`;
+  if (unit === 'rate') return rate(value, false);
   if (unit === 'dollars') return formatCompactDollars(value);
   if (unit === 'count') return formatCompact(value);
   return String(value);
@@ -28,10 +34,12 @@ export const formatCell = (unit: string | null | undefined, value: number | stri
   return typeof value === 'number' ? formatValue(unit, value) : value;
 };
 
-/** The end year of a school year ("2024-25" -> 2025) or a class ("Class of 2025" -> 2025), else null */
+/** The end year of a school year ("2024-25" -> 2025), a class ("Class of 2025" -> 2025) or a plain year (a tax year, "2025"), else null */
 export const yearOf = (label: string): number | null => {
   const schoolYear = /^(\d{4})-(\d{2})$/.exec(label.trim());
   if (schoolYear) return Number(schoolYear[1]) + 1;
+  const plainYear = /^(\d{4})$/.exec(label.trim());
+  if (plainYear) return Number(plainYear[1]);
   const classYear = /^Class of (\d{4})$/i.exec(label.trim());
   return classYear ? Number(classYear[1]) : null;
 };

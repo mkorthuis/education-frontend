@@ -193,6 +193,28 @@ describe('Ask page', { timeout: 15000 }, () => {
     expect(within(screen.getByText('Class of 2024').closest('tr')!).getByText('<10%')).toBeInTheDocument();
   });
 
+  it('charts tax years as years and shows tax rates to the cent', async () => {
+    ask.mockResolvedValue(answer({
+      charts: [
+        { title: 'Total Tax Rate, Conway', kind: 'line', unit: 'rate', x_label: 'Tax year', series: ['Total'],
+          points: [{ label: '2024', values: [11.32] }, { label: '2025', values: [11.5] }] },
+      ],
+      tables: [{
+        title: 'Tax Rates, Conway', unit: 'rate', columns: ['Tax year', 'Local school', 'School share of the total'],
+        units: [null, 'rate', 'percent'], rows: [['2025', 7.12, 71.3], ['2023', -2.58, null]],
+      }],
+    }));
+    renderAt();
+    await typeAndAsk('Tax rate?');
+
+    const line = (await screen.findByText('Total Tax Rate, Conway')).closest('figure')!;
+    expect(within(line).getByText(/^Line chart\./)).toHaveTextContent('Total: $11.32 in 2024 and $11.50 in 2025');
+    const row = screen.getByText('$7.12').closest('tr')!;
+    expect(within(row).getByText('2025')).toBeInTheDocument();
+    expect(within(row).getByText('71.3%')).toBeInTheDocument();
+    expect(within(screen.getByText('-$2.58').closest('tr')!).getByText('2023')).toBeInTheDocument();
+  });
+
   it('says when the daily limit is reached and offers the place search instead', async () => {
     ask.mockRejectedValue(httpError(429));
     renderAt();
