@@ -15,9 +15,12 @@ import { calculateInflationAdjustedAmount } from '@/utils/calculations';
 import { entityTitle, nh } from '@/features/entity/excel';
 import { costBreakdown } from '../utils/costBreakdown';
 import {
+  balanceSheetLine,
   expenditureLine,
   instructionAndSupport,
-  normalizeRevenueCategory,
+  Line,
+  revenueLine,
+  sortBalanceComparisonItems,
   sortExpenditureComparisonItems,
   sortRevenueComparisonItems,
 } from '../utils/financialDataProcessing';
@@ -60,16 +63,7 @@ const total = (items: { value: number }[]) => items.reduce((sum, item) => sum + 
 const share = (value: number | null | undefined, whole: number): ExcelValue => (typeof value === 'number' && whole > 0 ? value / whole : null);
 const sortedYears = (years: Iterable<number>) => [...new Set(years)].sort((a, b) => a - b);
 
-interface Line {
-  category: string;
-  subCategory: string;
-  name: string;
-}
 const lineKey = (line: Line) => `${line.category}|${line.subCategory}|${line.name}`;
-
-// Balance sheet lines as the Balance Sheet tab sorts them: by category and type, then the largest first
-const sortBalanceLines = (items: FinancialComparisonItem[]) => [...items].sort((a, b) =>
-  a.category.localeCompare(b.category) || a.subCategory.localeCompare(b.subCategory) || b.currentValue - a.currentValue);
 
 /**
  * Each line's value in every year, grouped as the page's tables group them and in their order, which
@@ -94,12 +88,6 @@ const linesByYear = (
   return sort([...lines.values()].map(({ category, subCategory, name, values }) => ({
     category, subCategory, name, currentValue: values.get(latest) ?? 0, previousValue: 0,
   }))).map(item => lines.get(lineKey(item))!);
-};
-
-const balanceLine = (superCategoryIds: number[]) => (item: FinancialItem): Line | null => {
-  const superCategory = item.entry_type.category?.super_category;
-  if (!superCategory || !superCategoryIds.includes(superCategory.id)) return null;
-  return { category: superCategory.name || 'Uncategorized', subCategory: item.entry_type.category?.name || 'Uncategorized', name: item.entry_type.name };
 };
 
 /**
@@ -256,18 +244,10 @@ export const financialsWorkbook = (data: FinancialsData): ExcelSheet[] => {
     totalRow: [totalLabel, null, null, ...reportYears.map(year => lines.reduce((sum, line) => sum + (line.values.get(year) ?? 0), 0))],
   });
   const expenditureLines = linesByYear(data.reports, reportYears, report => report.expenditures, expenditureLine, sortExpenditureComparisonItems);
-  const revenueLines = linesByYear(
-    data.reports, reportYears, report => report.revenues,
-    revenue => ({
-      category: normalizeRevenueCategory(revenue.entry_type.category?.super_category?.name || 'Uncategorized'),
-      subCategory: revenue.entry_type.category?.name || 'Uncategorized',
-      name: revenue.entry_type.name,
-    }),
-    sortRevenueComparisonItems,
-  );
+  const revenueLines = linesByYear(data.reports, reportYears, report => report.revenues, revenueLine, sortRevenueComparisonItems);
   // Assets are super categories 1 and 3, liabilities 2, as on the Balance Sheet tab
-  const assetLines = linesByYear(data.reports, reportYears, report => report.balance_sheets, balanceLine([1, 3]), sortBalanceLines);
-  const liabilityLines = linesByYear(data.reports, reportYears, report => report.balance_sheets, balanceLine([2]), sortBalanceLines);
+  const assetLines = linesByYear(data.reports, reportYears, report => report.balance_sheets, balanceSheetLine([1, 3]), sortBalanceComparisonItems);
+  const liabilityLines = linesByYear(data.reports, reportYears, report => report.balance_sheets, balanceSheetLine([2]), sortBalanceComparisonItems);
 
   return [
     spendingSheet,

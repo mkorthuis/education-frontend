@@ -1,4 +1,4 @@
-import { ProcessedReport, Expenditure, Revenue, BalanceSheet } from '@/store/slices/financeSlice';
+import { ProcessedReport, Expenditure, Revenue, BalanceSheet, FinancialItem } from '@/store/slices/financeSlice';
 import { FinancialComparisonItem } from '@/components/ui/tables';
 import { EXPENDITURE_CATEGORY_ORDER, REVENUE_CATEGORY_ORDER } from '@/utils/categoryOrdering';
 import { FISCAL_YEAR, FISCAL_START_YEAR } from '@/utils/environment';
@@ -50,55 +50,61 @@ export const SCHOOL_LEVEL_SUPER_CATEGORY_IDS = {
  * @param categoryName - Raw category name to normalize
  * @returns Normalized category name
  */
-export const normalizeRevenueCategory = (categoryName: string): string => {
+const normalizeRevenueCategory = (categoryName: string): string => {
   // Revenue normalization rules can be added here as needed
   return categoryName || "Uncategorized";
 };
 
-/**
- * Helper interface for grouped financial items
- */
-interface GroupedFinancialItem {
-  name: string;
-  subCategory: string;
-  category: string;
-  currentValue: number;
-  previousValue: number;
-  entries: Expenditure[] | Revenue[] | BalanceSheet[];
-}
+/** Where a table lists a line: its category, sub category and name */
+export type Line = { category: string; subCategory: string; name: string };
 
 /**
- * Creates a map of comparison year items by entry type ID
- * 
- * @param comparisonYearProcessedReport - The processed comparison year report
- * @param itemType - The type of items to map ('expenditures' or 'revenues')
- * @returns A map of entry type IDs to arrays of items
+ * A comparison table's rows: every line in either year, under the category, sub category and name the
+ * table lists it by, with its total in each year ($0 in a year without it). Lines are matched by where
+ * they're listed rather than by entry type, so a line renamed on the form (catastrophic aid became special
+ * education aid) still meets its earlier years. With Adjust For Inflation, the comparison year's values are
+ * restated in the current year's dollars.
  */
-export const createComparisonYearItemsMap = <T extends Expenditure | Revenue | BalanceSheet>(
-  comparisonYearProcessedReport: ProcessedReport | null,
-  itemType: 'expenditures' | 'revenues' | 'balance_sheets'
-): Map<number, T[]> => {
-  if (!comparisonYearProcessedReport) {
-    return new Map<number, T[]>();
-  }
-
-  const comparisonYearItemsMap = new Map<number, T[]>();
-  comparisonYearProcessedReport[itemType].forEach(item => {
-    const entryTypeId = item.entry_type.id;
-    if (!comparisonYearItemsMap.has(entryTypeId)) {
-      comparisonYearItemsMap.set(entryTypeId, []);
-    }
-    comparisonYearItemsMap.get(entryTypeId)?.push(item as T);
+const comparisonRows = <T extends FinancialItem>(
+  current: T[],
+  comparison: T[],
+  lineOf: (item: T) => Line | null,
+  inflation: { adjustForInflation: boolean; currentYear: number; comparisonYear: number }
+): FinancialComparisonItem[] => {
+  const rows = new Map<string, Line & { currentValue: number; previousValue: number }>();
+  const add = (items: T[], field: 'currentValue' | 'previousValue') => items.forEach(item => {
+    const line = lineOf(item);
+    if (!line) return;
+    const key = `${line.category}|${line.subCategory}|${line.name}`;
+    const row = rows.get(key) ?? { ...line, currentValue: 0, previousValue: 0 };
+    row[field] += item.value;
+    rows.set(key, row);
   });
+  add(current, 'currentValue');
+  add(comparison, 'previousValue');
 
-  return comparisonYearItemsMap;
+  return [...rows.values()].map(row => {
+    const previousValue = inflation.adjustForInflation && row.previousValue > 0
+      ? calculateInflationAdjustedAmount(row.previousValue, inflation.comparisonYear, inflation.currentYear)
+      : row.previousValue;
+    const difference = row.currentValue - previousValue;
+    return {
+      name: row.name,
+      subCategory: row.subCategory,
+      category: row.category,
+      currentValue: row.currentValue,
+      previousValue,
+      difference,
+      percentChange: previousValue > 0 ? (difference / previousValue) * 100 : 0,
+    };
+  });
 };
 
 /**
  * The category, sub category and name an expenditure is listed under in the expenditure table:
  * categories normalized across funds, and food service under each school level's support services
  */
-export const expenditureLine = (expenditure: Expenditure): { category: string; subCategory: string; name: string } => {
+export const expenditureLine = (expenditure: Expenditure): Line => {
   let subCategory = expenditure.entry_type.category?.name || "Uncategorized";
   
   // Get the raw category and normalize it
@@ -129,6 +135,24 @@ export const expenditureLine = (expenditure: Expenditure): { category: string; s
   }
   return { category, subCategory, name };
 };
+
+/** The category, sub category and name a revenue is listed under in the revenue table */
+export const revenueLine = (revenue: Revenue): Line => ({
+  category: normalizeRevenueCategory(revenue.entry_type.category?.super_category?.name || "Uncategorized"),
+  subCategory: revenue.entry_type.category?.name || "Uncategorized",
+  name: revenue.entry_type.name,
+});
+
+/** A balance sheet item's line, when it's in one of the super categories (1 and 3: assets; 2: liabilities) */
+export const balanceSheetLine = (superCategoryIds: number[]) => (item: BalanceSheet): Line | null => {
+  const superCategory = item.entry_type.category?.super_category;
+  if (!superCategory || !superCategoryIds.includes(superCategory.id)) return null;
+  return { category: superCategory.name || "Uncategorized", subCategory: item.entry_type.category?.name || "Uncategorized", name: item.entry_type.name };
+};
+
+/** Balance sheet rows by category, sub category, then the current year's value, largest first */
+export const sortBalanceComparisonItems = (items: FinancialComparisonItem[]): FinancialComparisonItem[] => [...items].sort((a, b) =>
+  a.category.localeCompare(b.category) || a.subCategory.localeCompare(b.subCategory) || b.currentValue - a.currentValue);
 
 /**
  * A year's spending on instruction and on support services, as the trend chart on the Overall tab
@@ -169,77 +193,12 @@ export const prepareDetailedExpenditureComparisonData = (
   if (!processedReport || !comparisonYearProcessedReport) {
     return [];
   }
-
-  // Create a lookup map for comparison year expenditures by entry type ID
-  const comparisonYearExpendituresMap = createComparisonYearItemsMap<Expenditure>(
-    comparisonYearProcessedReport,
-    'expenditures'
-  );
-
-  // Group expenditures by a unique key composed of category, subCategory, and name
-  const expenditureGroups = new Map<string, GroupedFinancialItem>();
-
-  // Process and group current year expenditures
-  processedReport.expenditures.forEach(expenditure => {
-    const { category, subCategory, name } = expenditureLine(expenditure);
-    
-    // Create a unique key for this combination
-    const groupKey = `${category}|${subCategory}|${name}`;
-    
-    if (!expenditureGroups.has(groupKey)) {
-      expenditureGroups.set(groupKey, {
-        name,
-        subCategory,
-        category,
-        currentValue: 0,
-        previousValue: 0,
-        entries: []
-      });
-    }
-    
-    const group = expenditureGroups.get(groupKey)!;
-    group.currentValue += expenditure.value;
-    group.entries.push(expenditure);
-  });
-  
-  // Calculate comparison year values for each group
-  for (const group of expenditureGroups.values()) {
-    // Get the entry type IDs that are part of this group
-    const entryTypeIds = new Set(group.entries.map(entry => entry.entry_type.id));
-    
-    // Sum the comparison year values for these entry types
-    for (const entryTypeId of entryTypeIds) {
-      const comparisonYearExpenditures = comparisonYearExpendituresMap.get(entryTypeId) || [];
-      group.previousValue += comparisonYearExpenditures.reduce((sum, exp) => sum + exp.value, 0);
-    }
-    
-    // Apply inflation adjustment if requested
-    if (adjustForInflation && group.previousValue > 0) {
-      group.previousValue = calculateInflationAdjustedAmount(
-        group.previousValue,
-        comparisonYear,
-        currentYear
-      );
-    }
-  }
-  
-  // Convert grouped data to comparison items
-  const comparisonItems: FinancialComparisonItem[] = Array.from(expenditureGroups.values()).map(group => {
-    const difference = group.currentValue - group.previousValue;
-    const percentChange = group.previousValue > 0 ? (difference / group.previousValue) * 100 : 0;
-    
-    return {
-      name: group.name,
-      subCategory: group.subCategory,
-      category: group.category,
-      currentValue: group.currentValue,
-      previousValue: group.previousValue,
-      difference,
-      percentChange
-    };
-  });
-
-  return sortExpenditureComparisonItems(comparisonItems);
+  return sortExpenditureComparisonItems(comparisonRows(
+    processedReport.expenditures,
+    comparisonYearProcessedReport.expenditures,
+    expenditureLine,
+    { adjustForInflation, currentYear, comparisonYear }
+  ));
 };
 
 /**
@@ -322,82 +281,12 @@ export const prepareDetailedRevenueComparisonData = (
   if (!processedReport || !comparisonYearProcessedReport) {
     return [];
   }
-
-  // Create a lookup map for comparison year revenues by entry type ID
-  const comparisonYearRevenuesMap = createComparisonYearItemsMap<Revenue>(
-    comparisonYearProcessedReport,
-    'revenues'
-  );
-
-  // Group revenues by a unique key composed of category, subCategory, and name
-  const revenueGroups = new Map<string, GroupedFinancialItem>();
-
-  // Process and group current year revenues
-  processedReport.revenues.forEach(revenue => {
-    const subCategory = revenue.entry_type.category?.name || "Uncategorized";
-    
-    // Get the category and normalize it
-    const rawCategory = revenue.entry_type.category?.super_category?.name || "Uncategorized";
-    const category = normalizeRevenueCategory(rawCategory);
-    const name = revenue.entry_type.name;
-    
-    // Create a unique key for this combination
-    const groupKey = `${category}|${subCategory}|${name}`;
-    
-    if (!revenueGroups.has(groupKey)) {
-      revenueGroups.set(groupKey, {
-        name,
-        subCategory,
-        category,
-        currentValue: 0,
-        previousValue: 0,
-        entries: []
-      });
-    }
-    
-    const group = revenueGroups.get(groupKey)!;
-    group.currentValue += revenue.value;
-    group.entries.push(revenue);
-  });
-  
-  // Calculate comparison year values for each group
-  for (const group of revenueGroups.values()) {
-    // Get the entry type IDs that are part of this group
-    const entryTypeIds = new Set(group.entries.map(entry => entry.entry_type.id));
-    
-    // Sum the comparison year values for these entry types
-    for (const entryTypeId of entryTypeIds) {
-      const comparisonYearRevenues = comparisonYearRevenuesMap.get(entryTypeId) || [];
-      group.previousValue += comparisonYearRevenues.reduce((sum, rev) => sum + rev.value, 0);
-    }
-    
-    // Apply inflation adjustment if requested
-    if (adjustForInflation && group.previousValue > 0) {
-      group.previousValue = calculateInflationAdjustedAmount(
-        group.previousValue,
-        comparisonYear,
-        currentYear
-      );
-    }
-  }
-  
-  // Convert grouped data to comparison items
-  const comparisonItems: FinancialComparisonItem[] = Array.from(revenueGroups.values()).map(group => {
-    const difference = group.currentValue - group.previousValue;
-    const percentChange = group.previousValue > 0 ? (difference / group.previousValue) * 100 : 0;
-    
-    return {
-      name: group.name,
-      subCategory: group.subCategory,
-      category: group.category,
-      currentValue: group.currentValue,
-      previousValue: group.previousValue,
-      difference,
-      percentChange
-    };
-  });
-
-  return sortRevenueComparisonItems(comparisonItems);
+  return sortRevenueComparisonItems(comparisonRows(
+    processedReport.revenues,
+    comparisonYearProcessedReport.revenues,
+    revenueLine,
+    { adjustForInflation, currentYear, comparisonYear }
+  ));
 };
 
 /**
@@ -501,101 +390,12 @@ export const prepareDetailedAssetsComparisonData = (
     return [];
   }
 
-  // Create a map to hold processed asset items
-  const assetGroups = new Map<string, GroupedFinancialItem>();
-
-  // Process current year assets (super categories 1 & 3)
-  processedReport.balance_sheets.forEach(asset => {
-    // Only include items from super categories 1 & 3 (Assets)
-    const superCategoryId = asset.entry_type.category?.super_category?.id;
-    if (superCategoryId !== 1 && superCategoryId !== 3) {
-      return;
-    }
-
-    const subCategory = asset.entry_type.category?.name || "Uncategorized";
-    const rawCategory = asset.entry_type.category?.super_category?.name || "Uncategorized";
-    const category = rawCategory; // No normalization needed yet
-    const name = asset.entry_type.name;
-    
-    // Create a unique key for this combination
-    const groupKey = `${category}|${subCategory}|${name}`;
-    
-    if (!assetGroups.has(groupKey)) {
-      assetGroups.set(groupKey, {
-        name,
-        subCategory,
-        category,
-        currentValue: 0,
-        previousValue: 0,
-        entries: []
-      });
-    }
-    
-    const group = assetGroups.get(groupKey)!;
-    group.currentValue += asset.value;
-    group.entries.push(asset);
-  });
-
-  // If we have a comparison year processed report, use it
-  if (comparisonYearProcessedReport) {
-    // Create a lookup map for comparison year balance sheet items by entry type ID
-    const comparisonYearBalanceSheetMap = createComparisonYearItemsMap<BalanceSheet>(
-      comparisonYearProcessedReport,
-      'balance_sheets'
-    );
-    
-    // Calculate comparison year values for each group
-    for (const group of assetGroups.values()) {
-      // Get the entry type IDs that are part of this group
-      const entryTypeIds = new Set(group.entries.map(entry => entry.entry_type.id));
-      
-      // Sum the comparison year values for these entry types
-      for (const entryTypeId of entryTypeIds) {
-        const comparisonYearAssets = comparisonYearBalanceSheetMap.get(entryTypeId) || [];
-        group.previousValue += comparisonYearAssets.reduce((sum, asset) => sum + asset.value, 0);
-      }
-      
-      // Apply inflation adjustment if requested
-      if (adjustForInflation && group.previousValue > 0) {
-        group.previousValue = calculateInflationAdjustedAmount(
-          group.previousValue,
-          comparisonYear,
-          currentYear
-        );
-      }
-    }
-  }
-  
-  // Convert grouped data to comparison items
-  const comparisonItems: FinancialComparisonItem[] = Array.from(assetGroups.values()).map(group => {
-    const difference = group.currentValue - group.previousValue;
-    const percentChange = group.previousValue > 0 ? (difference / group.previousValue) * 100 : 0;
-    
-    return {
-      name: group.name,
-      subCategory: group.subCategory,
-      category: group.category,
-      currentValue: group.currentValue,
-      previousValue: group.previousValue,
-      difference,
-      percentChange
-    };
-  });
-
-  return comparisonItems.sort((a, b) => {
-    // First sort by category
-    if (a.category !== b.category) {
-      return a.category.localeCompare(b.category);
-    }
-    
-    // Then by subcategory
-    if (a.subCategory !== b.subCategory) {
-      return a.subCategory.localeCompare(b.subCategory);
-    }
-    
-    // Finally by current value (descending)
-    return b.currentValue - a.currentValue;
-  });
+  return sortBalanceComparisonItems(comparisonRows(
+    processedReport.balance_sheets,
+    comparisonYearProcessedReport?.balance_sheets ?? [],
+    balanceSheetLine([1, 3]),
+    { adjustForInflation, currentYear, comparisonYear }
+  ));
 };
 
 /**
@@ -619,101 +419,12 @@ export const prepareDetailedLiabilitiesComparisonData = (
     return [];
   }
 
-  // Group balance sheet items by a unique key composed of category, subCategory, and name
-  const liabilityGroups = new Map<string, GroupedFinancialItem>();
-
-  // Process and group current year liabilities (super category 2)
-  processedReport.balance_sheets.forEach(liability => {
-    // Only include items from super category 2 (Liabilities)
-    const superCategoryId = liability.entry_type.category?.super_category?.id;
-    if (superCategoryId !== 2) {
-      return;
-    }
-
-    const subCategory = liability.entry_type.category?.name || "Uncategorized";
-    const rawCategory = liability.entry_type.category?.super_category?.name || "Uncategorized";
-    const category = rawCategory; // No normalization needed yet
-    const name = liability.entry_type.name;
-    
-    // Create a unique key for this combination
-    const groupKey = `${category}|${subCategory}|${name}`;
-    
-    if (!liabilityGroups.has(groupKey)) {
-      liabilityGroups.set(groupKey, {
-        name,
-        subCategory,
-        category,
-        currentValue: 0,
-        previousValue: 0,
-        entries: []
-      });
-    }
-    
-    const group = liabilityGroups.get(groupKey)!;
-    group.currentValue += liability.value;
-    group.entries.push(liability);
-  });
-  
-  // If we have a comparison year processed report, use it
-  if (comparisonYearProcessedReport) {
-    // Create a lookup map for comparison year balance sheet items by entry type ID
-    const comparisonYearBalanceSheetMap = createComparisonYearItemsMap<BalanceSheet>(
-      comparisonYearProcessedReport,
-      'balance_sheets'
-    );
-    
-    // Calculate comparison year values for each group
-    for (const group of liabilityGroups.values()) {
-      // Get the entry type IDs that are part of this group
-      const entryTypeIds = new Set(group.entries.map(entry => entry.entry_type.id));
-      
-      // Sum the comparison year values for these entry types
-      for (const entryTypeId of entryTypeIds) {
-        const comparisonYearLiabilities = comparisonYearBalanceSheetMap.get(entryTypeId) || [];
-        group.previousValue += comparisonYearLiabilities.reduce((sum, liability) => sum + liability.value, 0);
-      }
-      
-      // Apply inflation adjustment if requested
-      if (adjustForInflation && group.previousValue > 0) {
-        group.previousValue = calculateInflationAdjustedAmount(
-          group.previousValue,
-          comparisonYear,
-          currentYear
-        );
-      }
-    }
-  }
-  
-  // Convert grouped data to comparison items
-  const comparisonItems: FinancialComparisonItem[] = Array.from(liabilityGroups.values()).map(group => {
-    const difference = group.currentValue - group.previousValue;
-    const percentChange = group.previousValue > 0 ? (difference / group.previousValue) * 100 : 0;
-    
-    return {
-      name: group.name,
-      subCategory: group.subCategory,
-      category: group.category,
-      currentValue: group.currentValue,
-      previousValue: group.previousValue,
-      difference,
-      percentChange
-    };
-  });
-
-  return comparisonItems.sort((a, b) => {
-    // First sort by category
-    if (a.category !== b.category) {
-      return a.category.localeCompare(b.category);
-    }
-    
-    // Then by subcategory
-    if (a.subCategory !== b.subCategory) {
-      return a.subCategory.localeCompare(b.subCategory);
-    }
-    
-    // Finally by current value (descending)
-    return b.currentValue - a.currentValue;
-  });
+  return sortBalanceComparisonItems(comparisonRows(
+    processedReport.balance_sheets,
+    comparisonYearProcessedReport?.balance_sheets ?? [],
+    balanceSheetLine([2]),
+    { adjustForInflation, currentYear, comparisonYear }
+  ));
 }; 
 
 export const formatFiscalYear = (year: string | number | null): string | null => {
