@@ -16,7 +16,6 @@ import {
   AskSection,
   isPageAvailable,
   KeyFiguresLoading,
-  OverviewColumn,
   OverviewGrid,
   OverviewSection,
   OverviewTitle,
@@ -25,14 +24,16 @@ import {
   PHONE_SPACING,
   SchoolCards,
 } from '@/features/entity/overview/OverviewParts';
+import PlaceAsk from '@/features/ask/PlaceAsk';
 import { useCharterSchoolsIn } from '../hooks/useCharterSchoolsIn';
 import { DistrictKeyFigures, useDistrictKeyFigures } from '../hooks/useDistrictKeyFigures';
 import { DISTRICT_TILE_GROUPS, districtTileGroups } from '../utils/keyFigures';
 import { districtFacts, districtPhoneTitle, districtTitle, DISTRICT_PAGE_DESCRIPTIONS, listNames } from '../utils/labels';
 
-// A district's overview, on the pattern of the statewide overview: its name and what it is, cards to
-// its pages, beside them a box to ask about it over its schools (and any public charter schools in its
-// towns), and key figures with the state's beside them.
+// A district's overview, on the pattern of the statewide overview: its name and what it is, with a box
+// to ask about it beside the title on wide screens; cards to its pages and its schools (and any public
+// charter schools in its towns), the box to ask under its pages on narrower screens; and key figures
+// with the state's beside them.
 
 const DISTRICT_PAGES = PAGE_REGISTRY.district;
 const GROUPS = DISTRICT_TILE_GROUPS;
@@ -91,22 +92,30 @@ const DistrictOverview: React.FC<{ district: District; towns: Town[]; schools: S
   // the SAU, towns, grades and schools
   const theme = useTheme();
   const isPhone = useMediaQuery(theme.breakpoints.down('sm'));
+  // Where the page goes two across, the box to ask sits beside the title
+  const isWide = useMediaQuery(theme.breakpoints.up('lg'));
   const facts = districtFacts({ sauId, towns, grades: district.grades, schoolCount: schools.length, phone: isPhone });
+  const askPlace = { kind: 'district', id: district.id } as const;
 
   // The registry's rules for the district's pages look at its schools
   const withSchools = { ...district, schools };
-  const pages = Object.values(DISTRICT_PAGES).filter(page => page.id !== DISTRICT_PAGES.overview.id);
+  // The cards to its other pages: the box to ask about it is its own
+  const pages = Object.values(DISTRICT_PAGES).filter(page => page.id !== DISTRICT_PAGES.overview.id && page.id !== DISTRICT_PAGES.ask.id);
   const hasGraduation = isPageAvailable(DISTRICT_PAGES.outcomes, withSchools);
 
   const { status, retry, figures } = useDistrictKeyFigures(district.id, { hasSchools, hasGraduation });
 
   return (
     <>
-      <OverviewTitle title={isPhone ? districtPhoneTitle(district.name, sauId) : title} facts={facts.length > 0 ? facts.join(' · ') : undefined} />
-      <OverviewGrid twoColumns>
+      <OverviewTitle
+        title={isPhone ? districtPhoneTitle(district.name, sauId) : title}
+        facts={facts.length > 0 ? facts.join(' · ') : undefined}
+        aside={isWide && <PlaceAsk place={askPlace} title={district.name} inline />}
+      />
+      <OverviewGrid twoColumns={showSchools}>
         {/* Phones go straight from the title to the cards */}
         <OverviewSection id="pages-heading" title="Explore District Data" titleOnPhones={false}>
-          {/* Two across, beside the box to ask about the district */}
+          {/* Two across beside the schools; four across when there are no schools beside them */}
           <PageCards
             pages={pages}
             place={withSchools}
@@ -114,19 +123,19 @@ const DistrictOverview: React.FC<{ district: District; towns: Town[]; schools: S
             descriptions={DISTRICT_PAGE_DESCRIPTIONS}
             unavailableLine={hasSchools ? 'Not available: no grade 12' : 'Not available: runs no schools'}
             label={`${title} pages`}
-            wideColumns={2}
+            wideColumns={showSchools ? 2 : 4}
           />
         </OverviewSection>
 
-        <OverviewColumn>
-          <AskSection place={{ kind: 'district', id: district.id }} title={district.name} />
-          {showSchools && (
-            <OverviewSection id="schools-heading" title="Schools">
-              {hasSchools && <SchoolCards schools={schools} label={`Schools in ${title}`} />}
-              {charters.length > 0 && <CharterSchools schools={charters} towns={towns} />}
-            </OverviewSection>
-          )}
-        </OverviewColumn>
+        {/* Narrower screens, one column: the box to ask comes after the district's pages */}
+        {!isWide && <AskSection place={askPlace} title={district.name} />}
+
+        {showSchools && (
+          <OverviewSection id="schools-heading" title="Schools">
+            {hasSchools && <SchoolCards schools={schools} label={`Schools in ${title}`} />}
+            {charters.length > 0 && <CharterSchools schools={charters} towns={towns} />}
+          </OverviewSection>
+        )}
 
         {/* Each tile: the figure and its year, the change since 2014-15 (green where the change is good,
             red where it's bad), a trend line, and the state's figure for the same year */}

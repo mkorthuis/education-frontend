@@ -19,7 +19,7 @@ export interface AskTurn {
   context: AskEarlierTurn[];
   /** Asked taking more time, which a retry keeps */
   deep: boolean;
-  /** The district or school page it was about, which a retry keeps */
+  /** The district or school whose Ask page it was asked on, which a retry keeps; that page shows only its own questions */
   place: AskPlace | null;
   status: 'loading' | 'succeeded' | 'failed';
   /** The answer's paragraphs written so far, while it's loading */
@@ -34,8 +34,6 @@ export interface AskState {
   turns: AskTurn[];
   /** Whether the next question is asked taking more time */
   moreTime: boolean;
-  /** The district or school page the discussion started from: a question that names no place is about it */
-  place: AskPlace | null;
 }
 
 // The page keeps the latest questions; older ones drop off the top
@@ -59,7 +57,7 @@ export interface AskRequest {
   place?: AskPlace | null;
 }
 
-const initialState: AskState = { draft: '', turns: [], moreTime: false, place: null };
+const initialState: AskState = { draft: '', turns: [], moreTime: false };
 
 const errorKind = (error: unknown): AskErrorKind => {
   if (!axios.isAxiosError(error)) return 'server';
@@ -110,15 +108,10 @@ const askSlice = createSlice({
     setMoreTime: (state, action: PayloadAction<boolean>) => {
       state.moreTime = action.payload;
     },
-    /** The district or school page questions that name no place are about, or none */
-    setPlace: (state, action: PayloadAction<AskPlace | null>) => {
-      state.place = action.payload;
-    },
-    /** A new discussion, from the home page or starting over (no place) or from a district's or school's page: no questions, an empty field */
-    startDiscussion: (state, action: PayloadAction<AskPlace | null>) => {
+    /** Start over: no questions, an empty field */
+    clearTurns: (state) => {
       state.turns = [];
       state.draft = '';
-      state.place = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -157,6 +150,6 @@ const askSlice = createSlice({
   },
 });
 
-export const { setDraft, setMoreTime, removeTurn, setPlace, startDiscussion } = askSlice.actions;
+export const { setDraft, setMoreTime, removeTurn, clearTurns } = askSlice.actions;
 export const selectAsk = (state: RootState) => state.ask;
 export default askSlice.reducer;

@@ -290,4 +290,15 @@ describe('rewrites', () => {
     // Plain pages are files, not rewrites
     expect(rewrites.some(rewrite => rewrite.source === '/district/:id' || rewrite.source === '/')).toBe(false);
   });
+
+  it("serves a place's Ask page its overview's page, writing none of its own", () => {
+    expect(paramRewrites()).toEqual(expect.arrayContaining([
+      { source: '/district/:id/ask', destination: '/district/:id/index.html' },
+      { source: '/school/:id/ask', destination: '/school/:id/index.html' },
+    ]));
+    vi.stubEnv('VITE_GRADUATION_GRADE', 'Grade 12');
+    const pages = staticPages(INDEX);
+    expect(pages.some(page => page.path.endsWith('/ask') && page.path !== '/ask')).toBe(false);
+    expect(pages.flatMap(page => page.sections.flatMap(section => section.links)).some(link => /\/(district|school)\/\d+\/ask/.test(link.href))).toBe(false);
+  });
 });

@@ -26,24 +26,32 @@ export const PHONE_SPACING = {
 // ---------------------------------------------------------------- Layout
 
 /**
- * The page title, and under it a line of facts ("SAU 8 · Serves Concord"), in 14px on phones, and
- * below that any notice about the place ("School Opened on ..."), in grey italics
+ * The page's header: the title, under it a line of facts ("SAU 8 · Serves Concord"), in 14px on
+ * phones, and any notice about the place ("School Opened on ..."), in grey italics, with one rule
+ * under them all from tablets up. Anything `aside` (the box to ask about the place, on wide screens)
+ * sits at the right, level with the facts line.
  */
-export const OverviewTitle: React.FC<{ title: string; facts?: React.ReactNode; notice?: string }> = ({ title, facts, notice }) => (
+export const OverviewTitle: React.FC<{ title: string; facts?: React.ReactNode; notice?: string; aside?: React.ReactNode }> = ({ title, facts, notice, aside }) => (
   <>
     {/* Keeps keyboard focus and in-page jumps clear of the fixed header and section tabs */}
     <GlobalStyles styles={{ html: { scrollPaddingTop: 128 } }} />
-    <SectionTitle
-      displayName={title}
-      entityName=""
-      pageTitle
-      showEntityOnPhone={false}
-      // The facts line sits right under the title, on phones too; without one (a school on a phone),
-      // the title keeps the facts line's space below it
-      sx={{ mb: facts ? 0.5 : { xs: 2, sm: 0.5 } }}
-    />
-    {facts && <Typography variant="body1" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, mb: notice ? 0.5 : { xs: 2, sm: 3 } }}>{facts}</Typography>}
-    {notice && <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, fontStyle: 'italic', mb: { xs: 2, sm: 3 } }}>{notice}</Typography>}
+    {/* The rule is the theme's divider grey, as under the site's other titles */}
+    <Box sx={theme => ({ display: 'flex', alignItems: 'flex-end', columnGap: 5, mb: 2, [theme.breakpoints.up('sm')]: { pb: 2.5, borderBottom: `1px solid ${theme.palette.divider}` } })}>
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <SectionTitle
+          displayName={title}
+          entityName=""
+          pageTitle
+          showEntityOnPhone={false}
+          withDivider={false}
+          sx={{ mb: facts || notice ? 0.5 : 0 }}
+        />
+        {facts && <Typography variant="body1" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, mb: notice ? 0.5 : 0 }}>{facts}</Typography>}
+        {notice && <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, fontStyle: 'italic' }}>{notice}</Typography>}
+      </Box>
+      {/* At most about half the row */}
+      {aside && <Box sx={{ flex: '0 1 540px', minWidth: 320 }}>{aside}</Box>}
+    </Box>
   </>
 );
 
@@ -62,11 +70,6 @@ export const OverviewGrid: React.FC<{ twoColumns: boolean; children: React.React
   >
     {children}
   </Box>
-);
-
-/** Sections stacked in one column of the grid, such as the box to ask about the place over its schools */
-export const OverviewColumn: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Box sx={{ minWidth: 0 }}>{children}</Box>
 );
 
 interface OverviewSectionProps {
@@ -92,7 +95,7 @@ export const OverviewSection: React.FC<OverviewSectionProps> = ({ id, title, wid
   </Box>
 );
 
-/** The question box under its heading ("Ask About Concord"), which asks the Ask page about the place */
+/** The question box under its heading ("Ask About Concord"), which asks the place's Ask page; on narrower screens, after the place's pages */
 export const AskSection: React.FC<{ place: AskPlace; title: string }> = ({ place, title }) => (
   <OverviewSection id="ask-heading" title={`Ask About ${title}`}>
     <Box sx={PHONE_SPACING.section}>

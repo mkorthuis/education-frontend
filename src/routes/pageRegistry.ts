@@ -20,6 +20,11 @@ export type PageEntry = {
   };
   enabled: boolean | ((entity: any) => boolean);
   tooltip?: string | ((entity: any) => string);
+  /**
+   * False for a page not written at build time (the Ask page about a district or school): the server
+   * serves its place's overview page at its address, and the app shows the page
+   */
+  prerender?: boolean;
 };
 
 export type PageCategory = {
@@ -386,13 +391,30 @@ export const PAGE_REGISTRY: PageRegistry = {
       },
       enabled: true,
     },
+    ask: {
+      id: 'district.ask',
+      component: AskPage,
+      urlPatterns: ['/district/:id/ask'],
+      displayName: 'Ask a Question',
+      shortName: 'Ask',
+      order: 10,
+      requiresId: true,
+      paramExtraction: {
+        districtIdParam: 'id'
+      },
+      dataRequirements: {
+        district: ['basic']
+      },
+      enabled: true,
+      prerender: false,
+    },
     contact: {
       id: 'district.contact',
       component: ContactInformation,
       urlPatterns: ['/district/:id/contact'],
       displayName: 'Contact Information',
       shortName: 'Contact',
-      order: 10,
+      order: 11,
       requiresId: true,
       paramExtraction: {
         districtIdParam: 'id'
@@ -506,13 +528,33 @@ export const PAGE_REGISTRY: PageRegistry = {
       enabled: (school) => !noDataYet(school, 'enrollment'),
       tooltip: (school) => noDataYetReason(school, 'enrollment') ?? '',
     },
+    ask: {
+      id: 'school.ask',
+      component: AskPage,
+      urlPatterns: ['/school/:id/ask'],
+      displayName: 'Ask a Question',
+      shortName: 'Ask',
+      order: 8,
+      requiresId: true,
+      paramExtraction: {
+        schoolIdParam: 'id'
+      },
+      dataRequirements: {
+        school: ['basic'],
+        district: ['basic']
+      },
+      // A school no longer in the state's list has no data in the Ask
+      enabled: (school) => school?.is_current !== false,
+      tooltip: (school) => school?.is_current === false ? "This school is no longer in the state's list, so there's nothing to ask about it" : '',
+      prerender: false,
+    },
     contact: {
       id: 'school.contact',
       component: SchoolContact,
       urlPatterns: ['/school/:id/contact'],
       displayName: 'Contact Information',
       shortName: 'Contact',
-      order: 8,
+      order: 9,
       requiresId: true,
       paramExtraction: {
         schoolIdParam: 'id'

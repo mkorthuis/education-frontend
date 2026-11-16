@@ -13,6 +13,8 @@ export const EXAMPLE_QUESTIONS = [
 ];
 
 export const AI_NOTE = "Answers written by AI from site's data. Validate with linked pages.";
+// In the field on a district's or school's overview and its Ask page, where the question needn't name the place
+export const PLACE_EXAMPLE = 'Example: How has enrollment changed?';
 export const LOADING_TEXT = "Looking up the answer in this site's data. This usually takes 5 to 15 seconds.";
 export const MORE_TIME_LOADING_TEXT = "Taking more time to think it through. This can take up to a minute or more.";
 export const MORE_TIME_TIP = "This takes more time to reason before answering. It's slower, often up to a minute, but can help with complex questions and comparisons.";

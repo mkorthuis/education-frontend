@@ -6,6 +6,7 @@ import { store } from '@/store/store';
 import { fetchData } from '@/services/api/utils/apiUtils';
 import { fetchAllDistrictData } from '@/store/slices/locationSlice';
 import { fixtureFor } from '@/features/state/test/stateApiFixtures';
+import AskPage from '@/features/ask/AskPage';
 import District from '../pages/District';
 import { districtFacts, districtPhoneTitle, listNames } from '../utils/labels';
 
@@ -142,6 +143,12 @@ const renderDistrict = async (id: number) => {
 
 const TIMEOUT = { timeout: 3000 };
 
+/** Renders as on a wide screen (from MUI's lg breakpoint, 1200px), where the overview goes two across */
+const asWideScreen = () => vi.stubGlobal('matchMedia', (query: string) => ({
+  matches: /min-width:\s*1200px/.test(query), media: query, onchange: null,
+  addListener: () => {}, removeListener: () => {}, addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false,
+}));
+
 // Text queries and direct lookups: role queries by name walk every element of these long pages
 const nav = (label: string) => document.querySelector<HTMLElement>(`nav[aria-label="${label}"]`)!;
 const linkTo = (text: string) => screen.getByText(text).closest('a');
@@ -184,6 +191,20 @@ describe('District overview', () => {
     expect(nav('Schools in Concord School District').compareDocumentPosition(keyFigures) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it('puts the box to ask beside the title on wide screens, and the pages beside the schools', async () => {
+    asWideScreen();
+    try {
+      await renderDistrict(111);
+      // No section of its own: the field sits in the title's row, before the pages
+      expect(screen.queryByText('Ask About Concord', { selector: 'h2' })).not.toBeInTheDocument();
+      const field = screen.getByLabelText('Ask about Concord');
+      expect(field.compareDocumentPosition(nav('Concord School District pages')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Ask' })).toBeInTheDocument();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('greys out the pages a district without schools has no data for', async () => {
     await renderDistrict(5);
     const pages = nav('Albany School District pages');
@@ -220,6 +241,37 @@ describe('District overview', () => {
     // A small district's count isn't shortened on phones
     expect(within(linkTo('Students')!).queryByText('0.3K')).not.toBeInTheDocument();
     expect(screen.queryByText('Four-Year Graduation Rate')).not.toBeInTheDocument();
+  });
+});
+
+describe("The district's own Ask page", () => {
+  it('is titled for the district', async () => {
+    await store.dispatch(fetchAllDistrictData(111));
+    render(
+      <Provider store={store}>
+        <MemoryRouter initialEntries={['/district/111/ask']}>
+          <Routes>
+            <Route path="/district/:id/ask" element={<AskPage />} />
+          </Routes>
+        </MemoryRouter>
+      </Provider>
+    );
+    expect(screen.getByText('Ask About Concord School District', { selector: 'h1' })).toBeInTheDocument();
+    expect(screen.getByText(/^Ask in your own words about Concord School District or how it compares with other districts and the state\./)).toBeInTheDocument();
+    expect(screen.getByLabelText('Your question')).toHaveAttribute('placeholder', 'Example: How has enrollment changed?');
+    // Opened without a question: examples about the district to try
+    expect(screen.getByText('Or try one of these:')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: "How do Concord's schools compare in math?" })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: "What is Concord's school tax rate?" })).toBeInTheDocument();
+  });
+
+  it("is the district's tab before Contact, and not one of the overview's cards", async () => {
+    await renderDistrict(111);
+    const tabs = store.getState().page.district.availablePages;
+    expect(tabs.slice(-3).map(tab => [tab.shortName, tab.path])).toEqual([
+      ['EFAs', '/district/111/efa'], ['Ask', '/district/111/ask'], ['Contact', '/district/111/contact'],
+    ]);
+    expect(nav('Concord School District pages').querySelector('a[href="/district/111/ask"]')).toBeNull();
   });
 });
 

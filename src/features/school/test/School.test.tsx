@@ -6,6 +6,7 @@ import { store } from '@/store/store';
 import { fetchData } from '@/services/api/utils/apiUtils';
 import { fetchAllSchoolData, fetchDistrictById } from '@/store/slices/locationSlice';
 import { fixtureFor } from '@/features/state/test/stateApiFixtures';
+import AskPage from '@/features/ask/AskPage';
 import School from '../pages/School';
 import SchoolEnrollment from '../components/Enrollment';
 import BackToDistrict from '@/components/layout/public/BackToDistrict';
@@ -148,6 +149,12 @@ const renderSchool = async (id: number) => {
 };
 
 const TIMEOUT = { timeout: 3000 };
+
+/** Renders as on a wide screen (from MUI's lg breakpoint, 1200px), where the overview goes two across */
+const asWideScreen = () => vi.stubGlobal('matchMedia', (query: string) => ({
+  matches: /min-width:\s*1200px/.test(query), media: query, onchange: null,
+  addListener: () => {}, removeListener: () => {}, addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false,
+}));
 // Text queries and direct lookups: role queries by name walk every element of these long pages
 const nav = (label: string) => document.querySelector<HTMLElement>(`nav[aria-label="${label}"]`);
 const linkTo = (text: string) => screen.getByText(text).closest('a')!;
@@ -191,6 +198,18 @@ describe('School overview', () => {
     expect(graduation).toHaveTextContent('73.0%');
     expect(graduation).toHaveTextContent('Statewide 87.5%');
     expect(graduation).not.toHaveTextContent('District');
+  });
+
+  it('puts the box to ask beside the title on wide screens', async () => {
+    asWideScreen();
+    try {
+      await renderSchool(20);
+      expect(screen.queryByText('Ask About Concord High School', { selector: 'h2' })).not.toBeInTheDocument();
+      const field = screen.getByLabelText('Ask about Concord High School');
+      expect(field.compareDocumentPosition(nav('Concord High School pages')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('greys out graduation for a school without a grade 12', async () => {
@@ -270,6 +289,30 @@ describe('A school no longer in the state\'s list', () => {
     await renderSchool(22);
     expect(screen.getByText('Bluff School', { selector: 'h1' })).toBeInTheDocument();
     expect(screen.queryByText(/^Ask About/)).not.toBeInTheDocument();
+    // Its Ask tab is greyed out, saying why
+    const ask = store.getState().page.school.availablePages.find(tab => tab.shortName === 'Ask')!;
+    expect(ask.enabled).toBe(false);
+    expect(ask.tooltip).toMatch(/no longer in the state's list/);
+  });
+});
+
+describe("The school's own Ask page", () => {
+  it('is titled for the school', async () => {
+    await store.dispatch(fetchAllSchoolData(20));
+    render(
+      <Provider store={store}>
+        <MemoryRouter initialEntries={['/school/20/ask']}>
+          <Routes>
+            <Route path="/school/:id/ask" element={<AskPage />} />
+          </Routes>
+        </MemoryRouter>
+      </Provider>
+    );
+    expect(screen.getByText('Ask About Concord High School', { selector: 'h1' })).toBeInTheDocument();
+    expect(screen.getByText(/^Ask in your own words about Concord High School or how it compares with other schools and the state\./)).toBeInTheDocument();
+    // Opened without a question: examples about the school to try, its district's spending among them
+    expect(screen.getByRole('button', { name: 'What do Concord High School graduates do after high school?' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'How much does Concord spend per student?' })).toBeInTheDocument();
   });
 });
 

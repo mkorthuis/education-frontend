@@ -4,23 +4,22 @@ import { AskEarlierTurn, AskPlace } from '@/services/api/endpoints/ask';
 
 export const ASK_PATH = '/ask';
 
+/** The Ask page for a district's or school's questions (/district/111/ask), or for any place's (/ask) */
+export const askPathFor = (place: AskPlace | null) => (place ? `/${place.kind}/${place.id}/ask` : ASK_PATH);
+
+/** The district or school an Ask page is for, from its address; none for /ask */
+export const placeAt = (pathname: string): AskPlace | null => {
+  const match = pathname.match(/^\/(district|school)\/(\d+)\/ask\/?$/);
+  return match ? { kind: match[1] as AskPlace['kind'], id: Number(match[2]) } : null;
+};
+
 /**
  * How a question opens the Ask page: in the history entry's state, not the address, so questions
  * stay out of the browser's history list, address-bar suggestions and analytics on shared devices,
  * while Back, Forward and a reload still find them. `context` is the earlier questions it follows,
- * and `place` the district or school page the discussion started from, kept with it so a reload asks
- * it the same way.
+ * kept with it so a reload asks it the same way.
  */
-export const askState = (question: string, context: AskEarlierTurn[] = [], deep = false, place: AskPlace | null = null) =>
-  ({ state: { question, context, deep, place } });
-
-/** The district or school page a history entry's question is about, if any */
-export const placeIn = (state: unknown): AskPlace | null => {
-  const place = (state as { place?: Partial<AskPlace> | null } | null)?.place;
-  return place && (place.kind === 'district' || place.kind === 'school') && typeof place.id === 'number'
-    ? { kind: place.kind, id: place.id }
-    : null;
-};
+export const askState = (question: string, context: AskEarlierTurn[] = [], deep = false) => ({ state: { question, context, deep } });
 
 /** Whether two places are the same, or both none */
 export const samePlace = (a: AskPlace | null, b: AskPlace | null) => a?.kind === b?.kind && a?.id === b?.id;

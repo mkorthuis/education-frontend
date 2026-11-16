@@ -14,7 +14,7 @@ import QuestionButtons from '@/features/ask/QuestionButtons';
 import MoreTimeToggle from '@/features/ask/MoreTimeToggle';
 import { STATE_PAGE_DESCRIPTIONS } from '@/features/state/utils/labels';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { selectAsk, startDiscussion } from '@/store/slices/askSlice';
+import { clearTurns, selectAsk } from '@/store/slices/askSlice';
 
 // The home page offers two ways in, side by side on wide screens and stacked on phones: look up a
 // place and browse its pages, or ask a question, which opens the Ask page. Below them, the
@@ -68,10 +68,9 @@ export default function Home() {
   const dispatch = useAppDispatch();
   // The Take More Time switch is shared with the Ask page
   const { moreTime } = useAppSelector(selectAsk);
-  // A question from here starts a new discussion: the earlier questions are cleared, not continued,
-  // and it's about no place in particular
+  // A question from here starts a new discussion: the earlier questions are cleared, not continued
   const askFresh = (question: string) => {
-    dispatch(startDiscussion(null));
+    dispatch(clearTurns());
     navigate(ASK_PATH, askState(question, [], moreTime));
   };
   const location = useLocation();

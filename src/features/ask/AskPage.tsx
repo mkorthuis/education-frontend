@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from 'react-redux';
 import { Alert, Box, Button, CircularProgress, Divider, GlobalStyles, Skeleton, Typography, useMediaQuery } from '@mui/material';
@@ -7,22 +7,31 @@ import { visuallyHidden } from '@/components/ds';
 import { PAGE_WIDTH, type } from '@/theme/tokens';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { RootState } from '@/store/store';
-import { askQuestion, AskTurn, contextFrom, removeTurn, selectAsk, setDraft, setPlace, startDiscussion } from '@/store/slices/askSlice';
+import { askQuestion, AskTurn, clearTurns, contextFrom, removeTurn, selectAsk, setDraft } from '@/store/slices/askSlice';
+import { isCharterSchool, selectCurrentDistrict, selectCurrentSchool, selectCurrentSchools } from '@/store/slices/locationSlice';
+import { PAGE_REGISTRY } from '@/routes/pageRegistry';
+import { isPageAvailable } from '@/features/entity/overview/OverviewParts';
 import { ASK_MAX_LENGTH, AskEarlierTurn, AskPlace } from '@/services/api/endpoints/ask';
 import { LOOK_UP_HASH } from '@/features/search/placeOptions';
+import { districtTitle } from '@/features/district/utils/labels';
 import AskAnswerView, { AnswerInProgress } from './AskAnswerView';
 import AskForm from './AskForm';
-import { AI_NOTE, DECLINED_MESSAGE, MORE_TIME_LOADING_TEXT, ERRORS, EXAMPLE_QUESTIONS, LOADING_TEXT, readyMessage } from './askCopy';
-import { ASK_PATH, askState, contextIn, deepIn, placeIn, questionIn, samePlace } from './askRoute';
+import { AI_NOTE, DECLINED_MESSAGE, MORE_TIME_LOADING_TEXT, ERRORS, EXAMPLE_QUESTIONS, LOADING_TEXT, PLACE_EXAMPLE, readyMessage } from './askCopy';
+import { askPathFor, askState, contextIn, deepIn, placeAt, questionIn, samePlace } from './askRoute';
 import MoreTimeToggle from './MoreTimeToggle';
+import { districtExamples, schoolExamples } from './placeExamples';
 import QuestionButtons from './QuestionButtons';
 
 // The Ask page: the visitor's questions and their answers, oldest first, with the question field
 // under the latest. Each question is its own history entry (see askState), so Back and Forward step
-// through them, and a reload asks the latest again. A discussion started on a district's or school's
-// page is about that place until it's cleared: a question that names no place is about it.
+// through them, and a reload asks the latest again. A district or school has its own Ask page
+// (/district/111/ask), under its tabs, where a question that names no place is about it; each page
+// shows only its own questions.
 
 const STILL_WORKING_MS = 15000;
+// Room for the fixed header, and on a district's or school's page the tabs under it from tablets up
+const HEADER_PX = 72;
+const HEADER_WITH_TABS_PX = 128;
 
 /** Whether a question on the page is this one: the same words after the same earlier questions, asked the same way about the same place */
 const isAsked = (turn: AskTurn, question: string, context: AskEarlierTurn[], deep: boolean, place: AskPlace | null) =>
@@ -59,7 +68,38 @@ const AskPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const question = questionIn(location.state);
-  const { turns, moreTime, place } = useAppSelector(selectAsk);
+  const place = placeAt(location.pathname);
+  const path = askPathFor(place);
+  const { turns: allTurns, moreTime } = useAppSelector(selectAsk);
+  // This page's questions: the questions on a district's Ask page are its own
+  const turns = useMemo(() => allTurns.filter(turn => samePlace(turn.place, place)), [allTurns, place?.kind, place?.id]);
+  const district = useAppSelector(selectCurrentDistrict);
+  const school = useAppSelector(selectCurrentSchool);
+  const schools = useAppSelector(selectCurrentSchools);
+  // The place's name once its page's data has loaded
+  const placeName = place?.kind === 'district' ? (district?.id === place.id ? districtTitle(district.name) : null)
+    : place?.kind === 'school' && school?.id === place.id ? school.name : null;
+  const title = !place ? 'Ask About New Hampshire Schools' : `Ask About ${placeName ?? (place.kind === 'district' ? 'This District' : 'This School')}`;
+  const intro = !place ? 'Ask in your own words about any public school district, school or the whole state.'
+    : place.kind === 'district' ? `Ask in your own words about ${placeName ?? 'this district'} or how it compares with other districts and the state.`
+    : `Ask in your own words about ${placeName ?? 'this school'} or how it compares with other schools and the state.`;
+  const headerPx = place ? HEADER_WITH_TABS_PX : HEADER_PX;
+  // Questions to try before anything is asked: about the place, once its data has loaded, as its tabs decide what it has
+  const examples = !place ? EXAMPLE_QUESTIONS
+    : place.kind === 'district' && district?.id === place.id ? districtExamples({
+      name: district.name,
+      schoolCount: schools.length,
+      hasGraduation: isPageAvailable(PAGE_REGISTRY.district.outcomes, { ...district, schools }),
+    })
+    : place.kind === 'school' && school?.id === place.id ? schoolExamples({
+      name: school.name,
+      district: !isCharterSchool(school) && district ? district.name : null,
+      hasTestScores: isPageAvailable(PAGE_REGISTRY.school.academic, school),
+      hasEnrollment: isPageAvailable(PAGE_REGISTRY.school.enrollment, school),
+      hasGraduation: isPageAvailable(PAGE_REGISTRY.school.outcomes, school),
+      hasSafety: isPageAvailable(PAGE_REGISTRY.school.safety, school),
+    })
+    : [];
   const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const [announcement, setAnnouncement] = useState('');
   const fieldRef = useRef<HTMLTextAreaElement>(null);
@@ -89,8 +129,8 @@ const AskPage: React.FC = () => {
     if (select) field.select();
   };
 
-  const ask = (text: string, context: AskEarlierTurn[], deep: boolean, about: AskPlace | null) => {
-    const request = dispatch(askQuestion({ question: text, context, deep, place: about }));
+  const ask = (text: string, context: AskEarlierTurn[], deep: boolean) => {
+    const request = dispatch(askQuestion({ question: text, context, deep, place }));
     requests.current.set(request.requestId, request);
     announce(deep ? MORE_TIME_LOADING_TEXT : 'Looking up the answer. This usually takes 5 to 15 seconds.');
     window.requestAnimationFrame(() => showTurn(request.requestId, true));
@@ -104,8 +144,7 @@ const AskPage: React.FC = () => {
     const current = store.getState().ask.turns;
     const context = contextIn(location.state);
     const deep = deepIn(location.state);
-    const about = placeIn(location.state);
-    const existing = [...current].reverse().find(turn => isAsked(turn, question, context, deep, about) && turn.status !== 'failed');
+    const existing = [...current].reverse().find(turn => isAsked(turn, question, context, deep, place) && turn.status !== 'failed');
     if (existing) {
       window.requestAnimationFrame(() => showTurn(existing.id, false));
       return;
@@ -115,10 +154,8 @@ const AskPage: React.FC = () => {
       announce(ERRORS.tooLong.message);
       return;
     }
-    current.filter(turn => isAsked(turn, question, context, deep, about)).forEach(turn => dispatch(removeTurn(turn.id)));
-    // The discussion is about the place its question was asked about, after a reload too
-    dispatch(setPlace(about));
-    ask(question, context, deep, about);
+    current.filter(turn => isAsked(turn, question, context, deep, place)).forEach(turn => dispatch(removeTurn(turn.id)));
+    ask(question, context, deep);
     // Once per history entry
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.key]);
@@ -137,12 +174,12 @@ const AskPage: React.FC = () => {
     });
   }, [turns]);
 
-  /** Each question gets its own history entry, which asks it after the questions answered on the page, taking more time if that's switched on, about the discussion's place */
-  const submit = (text: string) => navigate(ASK_PATH, askState(text, contextFrom(turns), moreTime, place));
+  /** Each question gets its own history entry, which asks it after the questions answered on the page, taking more time if that's switched on */
+  const submit = (text: string) => navigate(path, askState(text, contextFrom(turns), moreTime));
 
   const retry = (turn: AskTurn) => {
     dispatch(removeTurn(turn.id));
-    ask(turn.question, turn.context, turn.deep, turn.place);
+    ask(turn.question, turn.context, turn.deep);
   };
 
   const edit = (turn: AskTurn) => {
@@ -154,15 +191,14 @@ const AskPage: React.FC = () => {
     requests.current.get(turn.id)?.abort();
     announce('Question canceled.');
     // So Back or a reload doesn't ask it again
-    if (turn.question === question) navigate(ASK_PATH, { replace: true });
+    if (turn.question === question) navigate(path, { replace: true });
     window.requestAnimationFrame(() => focusField());
   };
 
-  // Starting over drops the place a district's or school's page started the discussion with, too
   const startOver = () => {
     turns.forEach(turn => requests.current.get(turn.id)?.abort());
-    dispatch(startDiscussion(null));
-    navigate(ASK_PATH, { replace: true });
+    dispatch(clearTurns());
+    navigate(path, { replace: true });
     announce('Questions cleared.');
     window.requestAnimationFrame(() => focusField());
   };
@@ -186,10 +222,10 @@ const AskPage: React.FC = () => {
     // The full width of the page; only an answer's paragraphs keep to reading width
     <Box sx={{ width: '100%', maxWidth: PAGE_WIDTH, py: 3 }}>
       {/* Keep focused and scrolled-to items clear of the fixed header */}
-      <GlobalStyles styles={{ html: { scrollPaddingTop: 72 } }} />
-      <Typography component="h1" sx={{ ...type.pageTitle, mb: 1 }}>Ask About New Hampshire Schools</Typography>
+      <GlobalStyles styles={{ html: { scrollPaddingTop: headerPx } }} />
+      <Typography component="h1" sx={{ ...type.pageTitle, mb: 1 }}>{title}</Typography>
       <Typography variant="body1" sx={{ mb: 4 }}>
-        Ask in your own words about any public school district, school or the whole state. Answers come from this site's data, with charts, tables and links to the pages the numbers came from.
+        {intro} Answers come from this site's data, with charts, tables and links to the pages the numbers came from.
       </Typography>
 
       {turns.map(turn => (
@@ -199,7 +235,7 @@ const AskPage: React.FC = () => {
           aria-labelledby={`question-${turn.id}`}
           aria-busy={turn.status === 'loading'}
           ref={(element: HTMLElement | null) => { if (element) sections.current.set(turn.id, element); else sections.current.delete(turn.id); }}
-          sx={{ scrollMarginTop: '72px' }}
+          sx={{ scrollMarginTop: `${headerPx}px` }}
         >
           <Box sx={{ borderLeft: '3px solid', borderColor: 'grey.300', pl: 1.5, mb: 3 }}>
             <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8125rem' }}>{turn.deep ? 'You asked, taking more time' : 'You asked'}</Typography>
@@ -253,12 +289,16 @@ const AskPage: React.FC = () => {
           disabled={loading}
           hint={hasTurns ? false : undefined}
           controls={<MoreTimeToggle />}
+          // A district's or school's page: an example that needn't name it, showing as on its overview
+          placeholder={place ? PLACE_EXAMPLE : undefined}
+          showExample={Boolean(place)}
         />
 
-        {!hasTurns && (
+        {/* Only before anything is asked on the page */}
+        {!hasTurns && examples.length > 0 && (
           <>
             <Typography id="ask-examples" variant="body1" sx={{ mt: 3, mb: 1 }}>Or try one of these:</Typography>
-            <QuestionButtons labelledBy="ask-examples" questions={EXAMPLE_QUESTIONS} onAsk={submit} columns={3} />
+            <QuestionButtons labelledBy="ask-examples" questions={examples} onAsk={submit} columns={3} />
           </>
         )}
 

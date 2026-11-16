@@ -280,7 +280,7 @@ export const staticPages = (index: SiteIndex, figures: PageFigures = {}): Static
     const name = districtTitle(district.name);
     const towns = district.towns.map(id => townName.get(id)).filter((town): town is string => Boolean(town));
     const where = !towns.length || (towns.length === 1 && towns[0] === district.name) ? '' : ` (${listNames(towns)})`;
-    const enabled = Object.values(PAGE_REGISTRY.district).filter(page => isEnabled(page, entity));
+    const enabled = Object.values(PAGE_REGISTRY.district).filter(page => page.prerender !== false && isEnabled(page, entity));
     const topics = enabled.map(page => TOPICS[pageKey(page)]).filter(Boolean);
     const charters = chartersIn(district.towns);
     const charterTowns = listNames(district.towns.filter(town => charters.some(school => school.town_id === town)).map(town => townName.get(town) ?? ''));
@@ -313,7 +313,7 @@ export const staticPages = (index: SiteIndex, figures: PageFigures = {}): Static
     const district = districtById.get(school.district_id);
     const town = townName.get(school.town_id);
     const name = schoolName(school, town);
-    const enabled = Object.values(PAGE_REGISTRY.school).filter(page => isEnabled(page, school));
+    const enabled = Object.values(PAGE_REGISTRY.school).filter(page => page.prerender !== false && isEnabled(page, school));
     const topics = enabled.map(page => TOPICS[pageKey(page)]).filter(Boolean);
     // A charter school's own board isn't a district: it's described as what it is
     const inDistrict = district ? ` (${districtTitle(district.name)})` : isCharter(school) ? ' (public charter school)' : '';
@@ -362,16 +362,22 @@ export const notFoundPage = (): StaticPage => ({
 
 /**
  * The server's rewrites for addresses with optional parts, e.g. /district/12/financials/revenue is
- * served the page written for /district/12/financials. An id the site doesn't have finds no file, so
- * it gets the 404 page.
+ * served the page written for /district/12/financials, and for pages not written at build time:
+ * /district/12/ask is served /district/12's, and the app shows the Ask page.
+ * An id the site doesn't have finds no file, so it gets the 404 page.
  */
-export const paramRewrites = (): { source: string; destination: string }[] =>
-  Object.values(PAGE_REGISTRY)
-    .flatMap(category => Object.values(category))
+export const paramRewrites = (): { source: string; destination: string }[] => {
+  const pages = Object.values(PAGE_REGISTRY).flatMap(category => Object.values(category));
+  const optionalParts = pages
     .flatMap(page => page.urlPatterns)
     .map(pattern => pattern.replace(/\?$/, ''))
     .filter(pattern => /\/:(?!id$)[A-Za-z]+$/.test(pattern))
     .map(pattern => ({ source: pattern, destination: `${pattern.replace(/\/:[A-Za-z]+$/, '')}/index.html` }));
+  const notWritten = pages
+    .filter(page => page.prerender === false)
+    .map(page => ({ source: page.urlPatterns[0], destination: `${page.urlPatterns[0].replace(/\/[^/]+$/, '')}/index.html` }));
+  return [...optionalParts, ...notWritten];
+};
 
 // -------------------- HTML --------------------
 

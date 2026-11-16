@@ -1,24 +1,11 @@
 import React, { useState } from 'react';
 import { Box, Button, TextField } from '@mui/material';
-import { alpha, Theme } from '@mui/material/styles';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectAsk, setDraft } from '@/store/slices/askSlice';
 import { ASK_MAX_LENGTH } from '@/services/api/endpoints/ask';
-import { color } from '@/theme/tokens';
 
 const COUNTER_FROM = 400;
 const DEFAULT_HINT = "Name the school, town or district you mean. Don't include personal details.";
-// A quiet Ask button from tablets up: blue bold text and a light blue border on the grey of the site's
-// navigation cards. Phones keep the usual blue button, across the field's width.
-const QUIET_BUTTON = (theme: Theme) => ({
-  [theme.breakpoints.up('sm')]: {
-    backgroundColor: color.surfaceSubtle,
-    color: theme.palette.primary.main,
-    border: `1px solid ${alpha(theme.palette.primary.main, 0.5)}`,
-    fontWeight: 700,
-    '&:hover': { backgroundColor: color.surfaceSubtleHover, borderColor: theme.palette.primary.main },
-  },
-});
 
 interface AskFormProps {
   id: string;
@@ -34,16 +21,16 @@ interface AskFormProps {
   /** Beside the Ask button, such as the Take More Time switch */
   controls?: React.ReactNode;
   placeholder?: string;
-  /** A grey button from tablets up where asking isn't the page's main action, as beside a district's or school's pages */
-  quiet?: boolean;
   /** The example shows in the empty field before it's selected, with the label above the field */
   showExample?: boolean;
+  /** One line, the button beside the field, as beside a district's or school's title */
+  inline?: boolean;
 }
 
 /** The question field and its Ask button. The field's text is shared by the home page and the Ask page. */
 const AskForm: React.FC<AskFormProps> = ({
   id, label, onAsk, onMessage, disabled = false, hint = DEFAULT_HINT, fieldRef, controls,
-  placeholder = 'Example: How many teachers does Concord have?', quiet = false, showExample = false,
+  placeholder = 'Example: How many teachers does Concord have?', showExample = false, inline = false,
 }) => {
   const dispatch = useAppDispatch();
   const { draft } = useAppSelector(selectAsk);
@@ -66,8 +53,25 @@ const AskForm: React.FC<AskFormProps> = ({
   const length = draft.trim().length;
   const counter = length >= COUNTER_FROM ? `${length} of ${ASK_MAX_LENGTH} characters${length > ASK_MAX_LENGTH ? '. Please shorten your question.' : ''}` : null;
 
+  const askButton = (
+    <Button
+      type="submit"
+      variant="contained"
+      disableElevation
+      disabled={disabled}
+      sx={{ textTransform: 'none', minHeight: inline ? 48 : 44, px: 3, flexShrink: 0, width: inline ? 'auto' : { xs: '100%', sm: 'auto' } }}
+    >
+      Ask
+    </Button>
+  );
+
   return (
-    <Box component="form" noValidate onSubmit={(event: React.FormEvent) => { event.preventDefault(); submit(); }}>
+    <Box
+      component="form"
+      noValidate
+      onSubmit={(event: React.FormEvent) => { event.preventDefault(); submit(); }}
+      sx={inline ? { display: 'flex', alignItems: 'flex-start', gap: 1 } : undefined}
+    >
       <TextField
         id={id}
         inputRef={fieldRef}
@@ -83,8 +87,9 @@ const AskForm: React.FC<AskFormProps> = ({
           }
         }}
         multiline
-        minRows={2}
+        minRows={inline ? 1 : 2}
         maxRows={8}
+        size={inline ? 'small' : 'medium'}
         fullWidth
         autoComplete="off"
         error={Boolean(fieldError) || length > ASK_MAX_LENGTH}
@@ -96,21 +101,16 @@ const AskForm: React.FC<AskFormProps> = ({
         )}
         inputProps={{ enterKeyHint: 'go' }}
         slotProps={showExample ? { inputLabel: { shrink: true } } : undefined}
-        sx={{ '& textarea::placeholder': { color: 'text.secondary', opacity: 1 } }}
+        // One line, 48px tall like its button
+        sx={{ '& textarea::placeholder': { color: 'text.secondary', opacity: 1 }, ...(inline && { '& .MuiInputBase-multiline': { py: '12.5px' } }) }}
       />
-      {/* Phones: the button across the field's width, any controls under it */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', columnGap: 2, rowGap: 0.5, mt: 1.5 }}>
-        <Button
-          type="submit"
-          variant="contained"
-          disableElevation
-          disabled={disabled}
-          sx={[{ textTransform: 'none', minHeight: 44, px: 3, width: { xs: '100%', sm: 'auto' } }, quiet && QUIET_BUTTON]}
-        >
-          Ask
-        </Button>
-        {controls}
-      </Box>
+      {inline ? askButton : (
+        // Phones: the button across the field's width, any controls under it
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', columnGap: 2, rowGap: 0.5, mt: 1.5 }}>
+          {askButton}
+          {controls}
+        </Box>
+      )}
     </Box>
   );
 };
