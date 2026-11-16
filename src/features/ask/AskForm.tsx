@@ -1,11 +1,24 @@
 import React, { useState } from 'react';
 import { Box, Button, TextField } from '@mui/material';
+import { alpha, Theme } from '@mui/material/styles';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { selectAsk, setDraft } from '@/store/slices/askSlice';
 import { ASK_MAX_LENGTH } from '@/services/api/endpoints/ask';
+import { color } from '@/theme/tokens';
 
 const COUNTER_FROM = 400;
 const DEFAULT_HINT = "Name the school, town or district you mean. Don't include personal details.";
+// A quiet Ask button from tablets up: blue bold text and a light blue border on the grey of the site's
+// navigation cards. Phones keep the usual blue button, across the field's width.
+const QUIET_BUTTON = (theme: Theme) => ({
+  [theme.breakpoints.up('sm')]: {
+    backgroundColor: color.surfaceSubtle,
+    color: theme.palette.primary.main,
+    border: `1px solid ${alpha(theme.palette.primary.main, 0.5)}`,
+    fontWeight: 700,
+    '&:hover': { backgroundColor: color.surfaceSubtleHover, borderColor: theme.palette.primary.main },
+  },
+});
 
 interface AskFormProps {
   id: string;
@@ -20,10 +33,18 @@ interface AskFormProps {
   fieldRef?: React.RefObject<HTMLTextAreaElement>;
   /** Beside the Ask button, such as the Take More Time switch */
   controls?: React.ReactNode;
+  placeholder?: string;
+  /** A grey button from tablets up where asking isn't the page's main action, as beside a district's or school's pages */
+  quiet?: boolean;
+  /** The example shows in the empty field before it's selected, with the label above the field */
+  showExample?: boolean;
 }
 
 /** The question field and its Ask button. The field's text is shared by the home page and the Ask page. */
-const AskForm: React.FC<AskFormProps> = ({ id, label, onAsk, onMessage, disabled = false, hint = DEFAULT_HINT, fieldRef, controls }) => {
+const AskForm: React.FC<AskFormProps> = ({
+  id, label, onAsk, onMessage, disabled = false, hint = DEFAULT_HINT, fieldRef, controls,
+  placeholder = 'Example: How many teachers does Concord have?', quiet = false, showExample = false,
+}) => {
   const dispatch = useAppDispatch();
   const { draft } = useAppSelector(selectAsk);
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -51,7 +72,7 @@ const AskForm: React.FC<AskFormProps> = ({ id, label, onAsk, onMessage, disabled
         id={id}
         inputRef={fieldRef}
         label={label}
-        placeholder="Example: How many teachers does Concord have?"
+        placeholder={placeholder}
         value={draft}
         onChange={event => { dispatch(setDraft(event.target.value)); if (fieldError) setFieldError(null); }}
         onKeyDown={event => {
@@ -74,6 +95,7 @@ const AskForm: React.FC<AskFormProps> = ({ id, label, onAsk, onMessage, disabled
           </Box>
         )}
         inputProps={{ enterKeyHint: 'go' }}
+        slotProps={showExample ? { inputLabel: { shrink: true } } : undefined}
         sx={{ '& textarea::placeholder': { color: 'text.secondary', opacity: 1 } }}
       />
       {/* Phones: the button across the field's width, any controls under it */}
@@ -83,7 +105,7 @@ const AskForm: React.FC<AskFormProps> = ({ id, label, onAsk, onMessage, disabled
           variant="contained"
           disableElevation
           disabled={disabled}
-          sx={{ textTransform: 'none', minHeight: 44, px: 3, width: { xs: '100%', sm: 'auto' } }}
+          sx={[{ textTransform: 'none', minHeight: 44, px: 3, width: { xs: '100%', sm: 'auto' } }, quiet && QUIET_BUTTON]}
         >
           Ask
         </Button>

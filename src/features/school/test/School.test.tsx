@@ -49,6 +49,8 @@ const JACKSON_GRAMMAR = { id: 30, name: 'Jackson Grammar School', district_id: 2
 const CONWAY = { id: 113, name: 'Conway', sau_id: 9, is_public: true, kind: 'district', towns: [113], grades: [...K6, ...HIGH] };
 const ROBERT_FROST_BOARD = { id: 750, name: 'Robert Frost Charter School', sau_id: 450, is_public: false, kind: 'charter', towns: [], grades: HIGH };
 const ROBERT_FROST = { id: 40, name: 'Robert Frost Charter School (H)', district_id: 750, town_id: 113, city: 'CONWAY', grades: HIGH, kind: 'charter' };
+// A school no longer in the state's list: it keeps its page
+const FORMER = { id: 22, name: 'Bluff School', district_id: 111, grades: PK5, is_current: false };
 // A charter school that opened after the latest figures the state has published
 const NEW_BOARD = { id: 751, name: 'Breakthrough Academy', sau_id: 451, is_public: false, kind: 'charter', towns: [], grades: HIGH };
 const NEW_CHARTER = {
@@ -60,6 +62,10 @@ const NEW_CHARTER = {
 const FIXTURES: Record<string, unknown> = {
   'location/school/20': CONCORD_HIGH,
   'location/school/21': ABBOT_DOWNING,
+  'location/school/22': FORMER,
+  'location/district?school_id=22': [CONCORD],
+  'enrollment/school/22': [],
+  'assessment/school?school_id=22': [],
   'location/school/30': JACKSON_GRAMMAR,
   'location/district?school_id=20': [CONCORD],
   'location/district?school_id=21': [CONCORD],
@@ -160,6 +166,10 @@ describe('School overview', () => {
     expect(pages.querySelector('[aria-disabled="true"]')).toBeNull();
     expect(linkTo('Academic Performance')).toHaveAttribute('href', '/school/20/academic');
 
+    // A box to ask about the school beside its pages
+    expect(screen.getByText('Ask About Concord High School', { selector: 'h2' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Your question about Concord High School')).toBeInTheDocument();
+
     // The district's own pages for what's reported district-wide
     const districtWide = [...nav('Concord School District data for the whole district')!.querySelectorAll('a')];
     expect(districtWide.map(link => [link.querySelector('h4')?.textContent, link.getAttribute('href')])).toEqual([
@@ -252,6 +262,14 @@ describe('A school that opened after the latest figures', () => {
     expect(screen.queryByText('Enrollment Projections')).not.toBeInTheDocument();
     // The page says why, as the overview does
     expect(screen.getByText('School Opened on September 1, 2026. State data currently minimal.')).toBeInTheDocument();
+  });
+});
+
+describe('A school no longer in the state\'s list', () => {
+  it('keeps its page without a box to ask about it, since the Ask has no data on it', async () => {
+    await renderSchool(22);
+    expect(screen.getByText('Bluff School', { selector: 'h1' })).toBeInTheDocument();
+    expect(screen.queryByText(/^Ask About/)).not.toBeInTheDocument();
   });
 });
 

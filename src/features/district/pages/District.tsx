@@ -13,8 +13,10 @@ import {
 } from '@/store/slices/locationSlice';
 import { RootState } from '@/store/store';
 import {
+  AskSection,
   isPageAvailable,
   KeyFiguresLoading,
+  OverviewColumn,
   OverviewGrid,
   OverviewSection,
   OverviewTitle,
@@ -29,8 +31,8 @@ import { DISTRICT_TILE_GROUPS, districtTileGroups } from '../utils/keyFigures';
 import { districtFacts, districtPhoneTitle, districtTitle, DISTRICT_PAGE_DESCRIPTIONS, listNames } from '../utils/labels';
 
 // A district's overview, on the pattern of the statewide overview: its name and what it is, cards to
-// its pages and its schools (and any public charter schools in its towns), and key figures with the
-// state's beside them.
+// its pages, beside them a box to ask about it over its schools (and any public charter schools in its
+// towns), and key figures with the state's beside them.
 
 const DISTRICT_PAGES = PAGE_REGISTRY.district;
 const GROUPS = DISTRICT_TILE_GROUPS;
@@ -101,9 +103,10 @@ const DistrictOverview: React.FC<{ district: District; towns: Town[]; schools: S
   return (
     <>
       <OverviewTitle title={isPhone ? districtPhoneTitle(district.name, sauId) : title} facts={facts.length > 0 ? facts.join(' · ') : undefined} />
-      <OverviewGrid twoColumns={showSchools}>
-        <OverviewSection id="pages-heading" title="Explore District Data">
-          {/* Two across beside the schools; four across when there are no schools beside them */}
+      <OverviewGrid twoColumns>
+        {/* Phones go straight from the title to the cards */}
+        <OverviewSection id="pages-heading" title="Explore District Data" titleOnPhones={false}>
+          {/* Two across, beside the box to ask about the district */}
           <PageCards
             pages={pages}
             place={withSchools}
@@ -111,16 +114,19 @@ const DistrictOverview: React.FC<{ district: District; towns: Town[]; schools: S
             descriptions={DISTRICT_PAGE_DESCRIPTIONS}
             unavailableLine={hasSchools ? 'Not available: no grade 12' : 'Not available: runs no schools'}
             label={`${title} pages`}
-            wideColumns={showSchools ? 2 : 4}
+            wideColumns={2}
           />
         </OverviewSection>
 
-        {showSchools && (
-          <OverviewSection id="schools-heading" title="Schools">
-            {hasSchools && <SchoolCards schools={schools} label={`Schools in ${title}`} />}
-            {charters.length > 0 && <CharterSchools schools={charters} towns={towns} />}
-          </OverviewSection>
-        )}
+        <OverviewColumn>
+          <AskSection place={{ kind: 'district', id: district.id }} title={district.name} />
+          {showSchools && (
+            <OverviewSection id="schools-heading" title="Schools">
+              {hasSchools && <SchoolCards schools={schools} label={`Schools in ${title}`} />}
+              {charters.length > 0 && <CharterSchools schools={charters} towns={towns} />}
+            </OverviewSection>
+          )}
+        </OverviewColumn>
 
         {/* Each tile: the figure and its year, the change since 2014-15 (green where the change is good,
             red where it's bad), a trend line, and the state's figure for the same year */}

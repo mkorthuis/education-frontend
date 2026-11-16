@@ -152,6 +152,12 @@ describe('District overview', () => {
     expect(screen.getByText('Concord School District', { selector: 'h1' })).toBeInTheDocument();
     expect(screen.getByText('SAU 8 · Serves Concord · Grades PK-12 · 2 schools')).toBeInTheDocument();
 
+    // A box to ask about the district beside its pages, over its schools
+    const askHeading = screen.getByText('Ask About Concord', { selector: 'h2' });
+    expect(screen.getByLabelText('Your question about Concord')).toBeInTheDocument();
+    expect(nav('Concord School District pages').compareDocumentPosition(askHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(askHeading.compareDocumentPosition(nav('Schools in Concord School District')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
     expect(nav('Concord School District pages').querySelectorAll('a')).toHaveLength(8);
     expect(linkTo('Academic Performance')).toHaveAttribute('href', '/district/111/academic');
     expect(linkTo('Financials')).toHaveAttribute('href', '/district/111/financials');
@@ -196,7 +202,8 @@ describe('District overview', () => {
     expect(screen.queryByText('Results')).not.toBeInTheDocument();
     expect(screen.queryByText('Cost per Student')).not.toBeInTheDocument();
     expect(screen.queryByText('Schools', { selector: 'h2' })).not.toBeInTheDocument();
-    expect(screen.queryByText(/^Ask About/)).not.toBeInTheDocument();
+    // Its students go elsewhere, which the Ask can say: the box to ask stands beside its pages alone
+    expect(screen.getByText('Ask About Albany', { selector: 'h2' })).toBeInTheDocument();
   });
 
   it('shows a withheld result as over 90% with no change, and greys out graduation', async () => {

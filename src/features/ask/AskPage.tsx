@@ -1,31 +1,33 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from 'react-redux';
-import { Alert, Box, Button, CircularProgress, Divider, GlobalStyles, Link, Skeleton, Typography, useMediaQuery } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, Divider, GlobalStyles, Skeleton, Typography, useMediaQuery } from '@mui/material';
 import HourglassEmptyOutlinedIcon from '@mui/icons-material/HourglassEmptyOutlined';
 import { visuallyHidden } from '@/components/ds';
 import { PAGE_WIDTH, type } from '@/theme/tokens';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { RootState } from '@/store/store';
-import { askQuestion, AskTurn, clearTurns, contextFrom, removeTurn, selectAsk, setDraft } from '@/store/slices/askSlice';
-import { ASK_MAX_LENGTH, AskEarlierTurn } from '@/services/api/endpoints/ask';
+import { askQuestion, AskTurn, contextFrom, removeTurn, selectAsk, setDraft, setPlace, startDiscussion } from '@/store/slices/askSlice';
+import { ASK_MAX_LENGTH, AskEarlierTurn, AskPlace } from '@/services/api/endpoints/ask';
 import { LOOK_UP_HASH } from '@/features/search/placeOptions';
 import AskAnswerView, { AnswerInProgress } from './AskAnswerView';
 import AskForm from './AskForm';
 import { AI_NOTE, DECLINED_MESSAGE, MORE_TIME_LOADING_TEXT, ERRORS, EXAMPLE_QUESTIONS, LOADING_TEXT, readyMessage } from './askCopy';
-import { ASK_PATH, askState, contextIn, deepIn, questionIn } from './askRoute';
+import { ASK_PATH, askState, contextIn, deepIn, placeIn, questionIn, samePlace } from './askRoute';
 import MoreTimeToggle from './MoreTimeToggle';
 import QuestionButtons from './QuestionButtons';
 
 // The Ask page: the visitor's questions and their answers, oldest first, with the question field
 // under the latest. Each question is its own history entry (see askState), so Back and Forward step
-// through them, and a reload asks the latest again.
+// through them, and a reload asks the latest again. A discussion started on a district's or school's
+// page is about that place until it's cleared: a question that names no place is about it.
 
 const STILL_WORKING_MS = 15000;
 
-/** Whether a question on the page is this one: the same words after the same earlier questions, asked the same way */
-const isAsked = (turn: AskTurn, question: string, context: AskEarlierTurn[], deep: boolean) =>
-  turn.question === question && turn.deep === deep && turn.context.length === context.length && turn.context.every((earlier, index) => earlier.question === context[index].question);
+/** Whether a question on the page is this one: the same words after the same earlier questions, asked the same way about the same place */
+const isAsked = (turn: AskTurn, question: string, context: AskEarlierTurn[], deep: boolean, place: AskPlace | null) =>
+  turn.question === question && turn.deep === deep && samePlace(turn.place, place)
+  && turn.context.length === context.length && turn.context.every((earlier, index) => earlier.question === context[index].question);
 
 /** The spinner and "still working" note while a question is being answered */
 const Working: React.FC<{ deep: boolean; onCancel: () => void; onStillWorking: () => void }> = ({ deep, onCancel, onStillWorking }) => {
@@ -57,7 +59,7 @@ const AskPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const question = questionIn(location.state);
-  const { turns, moreTime } = useAppSelector(selectAsk);
+  const { turns, moreTime, place } = useAppSelector(selectAsk);
   const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const [announcement, setAnnouncement] = useState('');
   const fieldRef = useRef<HTMLTextAreaElement>(null);
@@ -87,8 +89,8 @@ const AskPage: React.FC = () => {
     if (select) field.select();
   };
 
-  const ask = (text: string, context: AskEarlierTurn[], deep: boolean) => {
-    const request = dispatch(askQuestion({ question: text, context, deep }));
+  const ask = (text: string, context: AskEarlierTurn[], deep: boolean, about: AskPlace | null) => {
+    const request = dispatch(askQuestion({ question: text, context, deep, place: about }));
     requests.current.set(request.requestId, request);
     announce(deep ? MORE_TIME_LOADING_TEXT : 'Looking up the answer. This usually takes 5 to 15 seconds.');
     window.requestAnimationFrame(() => showTurn(request.requestId, true));
@@ -102,7 +104,8 @@ const AskPage: React.FC = () => {
     const current = store.getState().ask.turns;
     const context = contextIn(location.state);
     const deep = deepIn(location.state);
-    const existing = [...current].reverse().find(turn => isAsked(turn, question, context, deep) && turn.status !== 'failed');
+    const about = placeIn(location.state);
+    const existing = [...current].reverse().find(turn => isAsked(turn, question, context, deep, about) && turn.status !== 'failed');
     if (existing) {
       window.requestAnimationFrame(() => showTurn(existing.id, false));
       return;
@@ -112,8 +115,10 @@ const AskPage: React.FC = () => {
       announce(ERRORS.tooLong.message);
       return;
     }
-    current.filter(turn => isAsked(turn, question, context, deep)).forEach(turn => dispatch(removeTurn(turn.id)));
-    ask(question, context, deep);
+    current.filter(turn => isAsked(turn, question, context, deep, about)).forEach(turn => dispatch(removeTurn(turn.id)));
+    // The discussion is about the place its question was asked about, after a reload too
+    dispatch(setPlace(about));
+    ask(question, context, deep, about);
     // Once per history entry
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.key]);
@@ -132,12 +137,12 @@ const AskPage: React.FC = () => {
     });
   }, [turns]);
 
-  /** Each question gets its own history entry, which asks it after the questions answered on the page, taking more time if that's switched on */
-  const submit = (text: string) => navigate(ASK_PATH, askState(text, contextFrom(turns), moreTime));
+  /** Each question gets its own history entry, which asks it after the questions answered on the page, taking more time if that's switched on, about the discussion's place */
+  const submit = (text: string) => navigate(ASK_PATH, askState(text, contextFrom(turns), moreTime, place));
 
   const retry = (turn: AskTurn) => {
     dispatch(removeTurn(turn.id));
-    ask(turn.question, turn.context, turn.deep);
+    ask(turn.question, turn.context, turn.deep, turn.place);
   };
 
   const edit = (turn: AskTurn) => {
@@ -153,9 +158,10 @@ const AskPage: React.FC = () => {
     window.requestAnimationFrame(() => focusField());
   };
 
+  // Starting over drops the place a district's or school's page started the discussion with, too
   const startOver = () => {
     turns.forEach(turn => requests.current.get(turn.id)?.abort());
-    dispatch(clearTurns());
+    dispatch(startDiscussion(null));
     navigate(ASK_PATH, { replace: true });
     announce('Questions cleared.');
     window.requestAnimationFrame(() => focusField());
@@ -257,9 +263,6 @@ const AskPage: React.FC = () => {
         )}
 
         <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>{AI_NOTE}</Typography>
-        <Typography variant="body2" sx={{ mt: 1 }}>
-          Prefer to browse? <Link component={RouterLink} to={`/${LOOK_UP_HASH}`}>Look up a district or school</Link> or see <Link component={RouterLink} to="/state">statewide data</Link>.
-        </Typography>
         {hasTurns && (
           <Button onClick={startOver} sx={{ mt: 2, textTransform: 'none' }}>Clear All Questions</Button>
         )}

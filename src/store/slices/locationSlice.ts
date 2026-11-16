@@ -48,6 +48,8 @@ export interface School {
   open_date?: string | null;
   /** The topics it opened too recently to have figures in yet: enrollment, test_scores, graduation, safety */
   not_yet_reported?: string[];
+  /** False for a school no longer in the state's list, which has a page but isn't in the Ask's data */
+  is_current?: boolean;
 }
 
 /** A public charter school: run by its own board, not a school district */

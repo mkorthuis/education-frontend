@@ -7,11 +7,13 @@ import { selectCurrentSchools } from '@/store/slices/locationSlice';
 import { radius } from '@/theme/tokens';
 import { formatGradesDisplay } from '@/utils/formatting';
 import { SubjectFigures } from '@/features/state/utils/stateMetrics';
+import PlaceAsk from '@/features/ask/PlaceAsk';
+import { AskPlace } from '@/services/api/endpoints/ask';
 import { Comparison, subjectTileModel } from './tileModels';
 
 // The pieces the district and school overviews share: a title over a line of facts, cards to the
-// place's pages and to schools, sections laid out two across on wide screens, and the key-figure
-// tiles' notes, test-score tile and placeholders.
+// place's pages and to schools, a box to ask about the place, sections laid out two across on wide
+// screens, and the key-figure tiles' notes, test-score tile and placeholders.
 
 type School = ReturnType<typeof selectCurrentSchools>[number];
 
@@ -62,12 +64,41 @@ export const OverviewGrid: React.FC<{ twoColumns: boolean; children: React.React
   </Box>
 );
 
-/** A section of the grid under its heading; a wide one spans both columns */
-export const OverviewSection: React.FC<{ id: string; title: string; wide?: boolean; children: React.ReactNode }> = ({ id, title, wide = false, children }) => (
+/** Sections stacked in one column of the grid, such as the box to ask about the place over its schools */
+export const OverviewColumn: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <Box sx={{ minWidth: 0 }}>{children}</Box>
+);
+
+interface OverviewSectionProps {
+  id: string;
+  title: string;
+  /** Spans both columns */
+  wide?: boolean;
+  /** False to keep the heading off phones, where the section speaks for itself; screen readers still get it */
+  titleOnPhones?: boolean;
+  children: React.ReactNode;
+}
+
+/** A section of the grid under its heading */
+export const OverviewSection: React.FC<OverviewSectionProps> = ({ id, title, wide = false, titleOnPhones = true, children }) => (
   <Box component="section" aria-labelledby={id} sx={{ minWidth: 0, ...(wide && { gridColumn: '1 / -1' }) }}>
-    <SectionHeading sx={PHONE_SPACING.heading} id={id}>{title}</SectionHeading>
+    <SectionHeading
+      sx={[PHONE_SPACING.heading, !titleOnPhones && (theme => ({ [theme.breakpoints.down('sm')]: visuallyHidden }))]}
+      id={id}
+    >
+      {title}
+    </SectionHeading>
     {children}
   </Box>
+);
+
+/** The question box under its heading ("Ask About Concord"), which asks the Ask page about the place */
+export const AskSection: React.FC<{ place: AskPlace; title: string }> = ({ place, title }) => (
+  <OverviewSection id="ask-heading" title={`Ask About ${title}`}>
+    <Box sx={PHONE_SPACING.section}>
+      <PlaceAsk place={place} title={title} />
+    </Box>
+  </OverviewSection>
 );
 
 // ---------------------------------------------------------------- Page and school cards

@@ -68,6 +68,12 @@ export interface AskEarlierTurn {
   answer: string[];
 }
 
+/** The district or school page a question was asked from: a question that names no place is about it */
+export interface AskPlace {
+  kind: 'district' | 'school';
+  id: number;
+}
+
 /**
  * Reads the answer as it arrives: lines of JSON, {"partial": [paragraphs so far]} while it's being
  * written, then the answer, or {"detail"} if it failed. Spaces between lines keep the connection open.
@@ -125,7 +131,7 @@ export const askApi = {
   /**
    * `history` is the page's earlier questions, oldest first, so "What about science?" knows what came
    * before. `deep` is Take More Time: Claude thinks longer, for complex questions. `onPartial` is given the
-   * answer's paragraphs as they're written.
+   * answer's paragraphs as they're written. `place` is the district or school page it was asked from.
    */
   ask: async (
     question: string,
@@ -133,11 +139,12 @@ export const askApi = {
     signal?: AbortSignal,
     deep = false,
     onPartial: (paragraphs: string[]) => void = () => {},
+    place: AskPlace | null = null,
   ): Promise<AskAnswer> => {
     // Fetch, which can hand over the answer as it arrives; the timeout runs until the last of it
     const response = await axiosInstance.post(
       `${BASE_API_URL}ask`,
-      { question, history, stream: true, ...(deep && { deep: true }) },
+      { question, history, stream: true, ...(deep && { deep: true }), ...(place && { place }) },
       { timeout: deep ? ASK_DEEP_TIMEOUT_MS : ASK_TIMEOUT_MS, skipCache: true, signal, adapter: 'fetch', responseType: 'stream' },
     );
     return readAnswer(response.data, onPartial, signal);

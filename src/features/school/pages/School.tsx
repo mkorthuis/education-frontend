@@ -17,8 +17,10 @@ import { RootState } from '@/store/store';
 import { formatGradesDisplay, schoolTown } from '@/utils/formatting';
 import { districtTitle, DISTRICT_PAGE_DESCRIPTIONS } from '@/features/district/utils/labels';
 import {
+  AskSection,
   isPageAvailable,
   KeyFiguresLoading,
+  OverviewColumn,
   OverviewGrid,
   OverviewSection,
   OverviewTitle,
@@ -34,9 +36,9 @@ import { schoolTileGroups } from '../utils/keyFigures';
 import { CHARTER_LAW_URL, CHARTER_SCHOOL_LABEL, newSchoolNotice, noDataYet, SCHOOL_PAGE_DESCRIPTIONS } from '../utils/labels';
 
 // A school's overview, on the pattern of the district overview: its name, its district and grades,
-// cards to its pages and to the district's other schools, and key figures with the district's and
-// the state's beside them. A public charter school belongs to no district: it says what a charter
-// school is instead, and compares its figures with the state's only.
+// cards to its pages, beside them a box to ask about it over the district's other schools, and key
+// figures with the district's and the state's beside them. A public charter school belongs to no
+// district: it says what a charter school is instead, and compares its figures with the state's only.
 
 const SCHOOL_PAGES = PAGE_REGISTRY.school;
 // The district's pages with data reported for the whole district, not each school
@@ -160,6 +162,10 @@ const SchoolOverview: React.FC<SchoolOverviewProps> = ({ school, district, schoo
   const hosts = useHostDistricts(school);
 
   const pages = Object.values(SCHOOL_PAGES).filter(page => page.id !== SCHOOL_PAGES.overview.id);
+  // A school no longer in the state's list keeps its page, but the Ask has no data on it
+  const canAsk = school.is_current !== false;
+  // Beside the page cards: the box to ask about the school, over the district's other schools
+  const besidePages = canAsk || (hasOthers && Boolean(district));
   const hasGraduation = isPageAvailable(SCHOOL_PAGES.outcomes, school);
   // The district's figures are compared only where they aren't just this school's: its test scores
   // when it has other schools, its graduation when it has another high school. A charter school's
@@ -171,9 +177,9 @@ const SchoolOverview: React.FC<SchoolOverviewProps> = ({ school, district, schoo
   return (
     <>
       <OverviewTitle title={school.name} facts={schoolFacts(school, district, towns, hosts, isPhone)} notice={newSchoolNotice(school)} />
-      <OverviewGrid twoColumns={hasOthers}>
+      <OverviewGrid twoColumns={besidePages}>
         <OverviewSection id="pages-heading" title="Explore School Data">
-          {/* Two across beside the other schools; four across when there are none beside them */}
+          {/* Two across beside the box to ask about the school and the other schools; four across with nothing beside them */}
           <PageCards
             pages={pages}
             place={school}
@@ -185,7 +191,7 @@ const SchoolOverview: React.FC<SchoolOverviewProps> = ({ school, district, schoo
               return noDataYet(school, key) ? SCHOOL_PAGE_DESCRIPTIONS[key] : 'Not available: no grade 12';
             }}
             label={`${school.name} pages`}
-            wideColumns={hasOthers ? 2 : 4}
+            wideColumns={besidePages ? 2 : 4}
           />
           {charter && <CharterSchoolNote />}
           {/* Spending, staffing and EFAs are reported for the whole district: cards to the district's
@@ -193,7 +199,7 @@ const SchoolOverview: React.FC<SchoolOverviewProps> = ({ school, district, schoo
           {district && !charter && (
             <>
               <GroupLabel>District-Wide Data</GroupLabel>
-              <NavCardGrid label={`${districtTitle(district.name)} data for the whole district`} wideColumns={hasOthers ? 2 : 4} sx={PHONE_SPACING.section}>
+              <NavCardGrid label={`${districtTitle(district.name)} data for the whole district`} wideColumns={besidePages ? 2 : 4} sx={PHONE_SPACING.section}>
                 {DISTRICT_WIDE_PAGES.map(key => {
                   const page = PAGE_REGISTRY.district[key];
                   return <NavCard key={page.id} component="h4" title={page.displayName} description={DISTRICT_PAGE_DESCRIPTIONS[key]} to={pagePath(page, district.id)} />;
@@ -203,10 +209,15 @@ const SchoolOverview: React.FC<SchoolOverviewProps> = ({ school, district, schoo
           )}
         </OverviewSection>
 
-        {hasOthers && district && (
-          <OverviewSection id="schools-heading" title={charter ? 'Other Schools Under This Charter' : 'Other Schools in the District'}>
-            <SchoolCards schools={otherSchools} label={charter ? `Other schools under ${district.name}'s charter` : `Other schools in ${districtTitle(district.name)}`} />
-          </OverviewSection>
+        {besidePages && (
+          <OverviewColumn>
+            {canAsk && <AskSection place={{ kind: 'school', id: school.id }} title={school.name} />}
+            {hasOthers && district && (
+              <OverviewSection id="schools-heading" title={charter ? 'Other Schools Under This Charter' : 'Other Schools in the District'}>
+                <SchoolCards schools={otherSchools} label={charter ? `Other schools under ${district.name}'s charter` : `Other schools in ${districtTitle(district.name)}`} />
+              </OverviewSection>
+            )}
+          </OverviewColumn>
         )}
 
         {/* Each tile: the figure and its year, the change since 2014-15 (green where the change is good,
