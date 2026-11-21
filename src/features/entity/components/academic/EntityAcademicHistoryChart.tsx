@@ -23,6 +23,7 @@ import {
   withEmptyYears
 } from '@/features/state/utils/stateMetrics';
 import { plainLabel, STUDENT_GROUP_LABELS } from '@/features/state/utils/labels';
+import { shortYear } from '@/features/state/utils/phrases';
 import { EntityKind } from '@/features/entity/entity';
 import { ASSESSMENT } from '@/features/entity/bindings/assessment';
 import { besideState, RATE_SERIES } from '@/features/entity/trends';
@@ -69,16 +70,13 @@ const EntityAcademicHistoryChart: React.FC<{ kind: EntityKind }> = ({ kind }) =>
       overall: isGroup
         ? { data: mergeSeries({ entity: shares(entityRows, ALL_STUDENTS_SUBGROUP_ID) }), label: 'All Students' }
         : undefined,
-      estimated: rows.some(row => row.year < GROUPS_FROM_YEAR),
     };
   }, [subjectId, gradeId, subgroupId, subgroups, entityRows, stateRows]);
 
+  // Short, with years as on the axis: 14/15
   const note = chart && chart.rows.length > 0 ? [
-    "State changed tests in 2014-15 and 2017-18. Scores before/after change aren't directly comparable. No tests in Spring 2020.",
+    `Test changed in ${ASSESSMENT_CHANGE_YEARS.map(shortYear).join(' and ')}. No test in ${shortYear(NO_TEST_YEAR)}.`,
     chart.bounds.size ? 'Where the state reports only under 10% or over 90%, the line is drawn at 10% or 90%.' : '',
-    chart.estimated
-      ? `${kind === 'district' ? 'District and state' : 'State'} figures before 2017-18 were calculated from school results, not by the NH DOE: very close, but not exact.`
-      : '',
   ].filter(Boolean).join(' ') : undefined;
 
   return (
@@ -91,6 +89,8 @@ const EntityAcademicHistoryChart: React.FC<{ kind: EntityKind }> = ({ kind }) =>
       valueLabel={(year, key) => chart?.bounds.get(`${key}-${year}`)}
       format={value => formatPercent(value)}
       yDomain={[0, 100]}
+      // School years as the tiles write them: 14/15
+      yearLabel={shortYear}
       breaks={ASSESSMENT_CHANGE_YEARS}
       connectGaps
       markers={MARKERS}

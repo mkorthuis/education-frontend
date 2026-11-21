@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography, Card, CardContent, Divider } from '@mui/material';
-import { FISCAL_YEAR } from '@/utils/environment';
+import { ChartHeader } from '@/features/state/components/chartText';
 import { POST_GRADUATION_TYPES } from '@/features/district/utils/outcomeDataProcessing';
 
 export interface GraduationCohortStats {
@@ -102,38 +102,8 @@ const OutcomeSummaryCard: React.FC<OutcomeSummaryCardProps> = ({
 
   return (
     <>
-      <Box sx={{ 
-        display: { xs: 'none', md: 'flex' },
-        flexDirection: { md: 'row' },
-        alignItems: { md: 'center' },
-        justifyContent: 'space-between',
-        mb: 2
-      }}>
-        <Box sx={{ flex: 1 }}>
-          <Typography 
-            variant="body1" 
-            sx={{ 
-              textAlign: "left",
-              width: "100%",
-              fontWeight: 'medium'
-            }} 
-          >
-            Key Graduation Statistics
-          </Typography>
-          <Typography        
-            variant="body2" 
-            sx={{ 
-              textAlign: "left",
-              width: "100%",
-              fontWeight: 'medium',
-              fontStyle: 'italic',
-              color: 'text.secondary'
-            }}
-          >
-            (Class of '{FISCAL_YEAR.toString().slice(-2)})
-          </Typography>
-        </Box>
-      </Box>
+      {/* Titled like the charts beside it */}
+      <ChartHeader title="Key Graduation Statistics" subtitle={`Class of ${fiscalYear}`} />
 
       <Card sx={{ 
         border: '1px solid', 

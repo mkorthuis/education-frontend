@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, screen } from '@testing-library/react';
 // The harness first: it loads the store, which the pages' modules expect to exist
 import { answerFrom, downloadExcel, renderEntityPage, row, sheet } from './entityPages';
 import DistrictOutcomes from '@/features/district/components/Outcomes';
@@ -40,6 +41,8 @@ beforeEach(() => answerFrom({
 describe('Graduation / College download', () => {
   it("saves the district's classes, plans and dropout rate beside New Hampshire's", async () => {
     await renderEntityPage('district', <DistrictOutcomes />);
+    // The graduation rate's fitted axis isn't spelled out under the chart
+    expect(screen.queryByText(/The vertical axis starts at/)).not.toBeInTheDocument();
     const { fileName, sheets } = await downloadExcel();
 
     expect(fileName).toBe('concord-school-district-graduation.xlsx');
@@ -69,5 +72,24 @@ describe('Graduation / College download', () => {
     expect(fileName).toBe('concord-high-school-graduation.xlsx');
     expect(row(sheet(sheets, 'Graduation By Class'), 2025).slice(0, 3)).toEqual([2025, 371, 271]);
     expect(sheet(sheets, 'Notes').subtitle).toBe('Graduation / College for Concord High School');
+  });
+});
+
+describe('Graduation / College on a phone', () => {
+  it('shows the graduation rate and graduates\' plans as charts alone, without the Chart/Table toggle', async () => {
+    await renderEntityPage('district', <DistrictOutcomes />);
+    const onWideScreens = (await screen.findAllByRole('button', { name: 'Table' })).length;
+    cleanup();
+    // Phones: MUI's sm breakpoint and down
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: /max-width:\s*599\.95px/.test(query), media: query, onchange: null,
+      addListener: () => {}, removeListener: () => {}, addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false,
+    }));
+    try {
+      await renderEntityPage('district', <DistrictOutcomes />);
+      expect(screen.queryAllByRole('button', { name: 'Table' })).toHaveLength(onWideScreens - 2);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

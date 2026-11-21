@@ -1,28 +1,24 @@
 import React, { useState } from 'react';
-import { 
-  Box, 
-  Typography, 
-  FormControl, 
-  Select, 
-  MenuItem, 
-  SelectChangeEvent, 
-  useTheme, 
-  useMediaQuery, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TableRow, 
-  Paper, 
-  ToggleButtonGroup, 
-  ToggleButton, 
-  Tooltip 
+import {
+  Box,
+  Typography,
+  useTheme,
+  useMediaQuery,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Tooltip,
 } from '@mui/material';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import { FISCAL_YEAR } from '@/utils/environment';
+import { ChartHeader } from '@/features/state/components/chartText';
+import ChartSelect from '@/features/state/components/ChartSelect';
 
 // Common interface for data rows
 export interface PostSecondaryPlanRow {
@@ -50,7 +46,7 @@ export interface PostSecondaryPlansTableProps {
 
 const PostSecondaryPlansTable: React.FC<PostSecondaryPlansTableProps> = ({
   title = 'Post Secondary Plans',
-  subtitle = '(Vs. State or Prev. Year)',
+  subtitle = `Percentage of Graduates, Class of ${FISCAL_YEAR}`,
   entityLabel,
   availableYears,
   tableData,
@@ -66,168 +62,43 @@ const PostSecondaryPlansTable: React.FC<PostSecondaryPlansTableProps> = ({
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const defaultFiscalYear = parseInt(FISCAL_YEAR);
   
-  // State for view mode and comparison year
-  const [viewMode, setViewMode] = useState<'comparison' | 'state'>('state');
-  const [comparisonYear, setComparisonYear] = useState<string | number>(
-    initialComparisonYear || defaultFiscalYear - 1
-  );
-
-  // Handlers
-  const handleComparisonYearChange = (event: SelectChangeEvent<string | number>) => {
-    const year = Number(event.target.value);
-    setComparisonYear(year);
-    onComparisonYearChange(year);
-    setViewMode('comparison');
-    onViewModeChange('comparison');
-  };
-
-  const handleViewModeChange = (
-    event: React.MouseEvent<HTMLElement>,
-    newViewMode: 'comparison' | 'state' | null
-  ) => {
-    if (newViewMode !== null) {
-      setViewMode(newViewMode);
-      onViewModeChange(newViewMode);
+  // What the class is compared with: the state average, or an earlier class
+  const [compare, setCompare] = useState<'state' | number>('state');
+  const viewMode = compare === 'state' ? 'state' : 'comparison';
+  const comparisonYear = compare === 'state' ? (initialComparisonYear || defaultFiscalYear - 1) : compare;
+  const compareOptions: { value: 'state' | number; label: string }[] = [
+    { value: 'state', label: 'State Average' },
+    ...availableYears.map(year => ({ value: year, label: `Class of ${year}` })),
+  ];
+  const changeCompare = (next: 'state' | number) => {
+    setCompare(next);
+    if (next === 'state') {
+      onViewModeChange('state');
+    } else {
+      onComparisonYearChange(next);
+      onViewModeChange('comparison');
     }
-  };
-
-  const handleDropdownOpen = () => {
-    setViewMode('comparison');
-    onViewModeChange('comparison');
   };
 
   return (
     <>
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: isMobile ? 'column' : 'row', 
-        alignItems: isMobile ? 'center' : 'center', 
-        justifyContent: 'space-between',
-        mb: 2 
-      }}>
-        <Box sx={{ 
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: isMobile ? 'center' : 'flex-start',
-          mb: isMobile ? 2 : 0
-        }}>
-          <Typography 
-            variant={isMobile ? "h6" : "body1"} 
-            sx={{ 
-              textAlign: isMobile ? "center" : "left",
-              width: "100%",
-              fontWeight: 'medium',
-              fontSize: isMobile ? '1.25rem' : 'inherit'
-            }} 
-          >
-            {title}
-          </Typography>
-          {!isMobile && (
-            <Typography        
-              variant="body2" 
-              sx={{ 
-                textAlign: "left",
-                width: "100%",
-                fontWeight: 'medium',
-                fontStyle: 'italic',
-                color: 'text.secondary'
-              }}
-            >
-              {subtitle}
-            </Typography>
-          )}
-        </Box>
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          width: isMobile ? '100%' : 'auto',
-          flexDirection: 'row',
-          justifyContent: isMobile ? 'center' : 'flex-end',
-          gap: 2
-        }}>
-          <FormControl 
-            size="small" 
-            sx={{ 
-              minWidth: 150,
-              ml: isMobile ? 0 : 2,
-            }}
-          >
-            <Select
-              value={comparisonYear}
-              onChange={handleComparisonYearChange}
-              onOpen={handleDropdownOpen}
-              displayEmpty
-              inputProps={{ 'aria-label': 'comparison year selector' }}
-              sx={{ 
-                bgcolor: viewMode === 'comparison' ? 'rgba(0, 0, 0, 0.08)' : 'white',
-                '&.Mui-focused': {
-                  bgcolor: viewMode === 'comparison' ? 'rgba(0, 0, 0, 0.08)' : 'white'
-                },
-                border: '1px solid rgba(0, 0, 0, 0.12)',
-                borderRadius: '4px',
-                '& .MuiOutlinedInput-notchedOutline': { 
-                  border: 'none' 
-                },
-                '&:hover': {
-                  bgcolor: viewMode === 'comparison' ? 'rgba(0, 0, 0, 0.12)' : 'rgba(0, 0, 0, 0.04)'
-                }
-              }}
-            >
-              {availableYears.map((year) => (
-                <MenuItem 
-                  key={year} 
-                  value={year}
-                  sx={{
-                    fontWeight: 500
-                  }}
-                >
-                  Compare '{year.toString().slice(-2)}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          
-          <ToggleButtonGroup
-            value={viewMode}
-            exclusive
-            onChange={handleViewModeChange}
-            aria-label="table view mode"
-            size="small"
-            sx={{
-              '& .MuiToggleButton-root': {
-                color: 'rgba(0, 0, 0, 0.87)',
-                fontWeight: 500
-              },
-              '& .MuiToggleButton-root.Mui-selected': {
-                bgcolor: 'rgba(0, 0, 0, 0.08)',
-                color: 'rgba(0, 0, 0, 0.87)',
-                '&:hover': {
-                  bgcolor: 'rgba(0, 0, 0, 0.12)'
-                }
-              }
-            }}
-          >
-            <Tooltip title="Show state average comparison">
-              <ToggleButton value="state" aria-label="state average view">
-                State Avg
-              </ToggleButton>
-            </Tooltip>
-          </ToggleButtonGroup>
-        </Box>
-      </Box>
-
+      {/* Titled like the charts beside it, with one picker for what the class is compared with */}
+      <ChartHeader
+        title={title}
+        subtitle={subtitle}
+        actions={<ChartSelect value={compare} options={compareOptions} onChange={changeCompare} label="Compare with" />}
+      />
       <TableContainer component={Paper} sx={{ bgcolor: 'grey.100', border: 1, borderColor: 'grey.300', borderRadius: 1 }}>
         <Table size="small">
           <TableHead sx={{ bgcolor: 'grey.200', '& th': { borderBottom: '2px solid', borderColor: 'grey.400', fontWeight: 'bold' } }}>
             <TableRow>
               <TableCell colSpan={2} align="right">
-                {`Class of '${FISCAL_YEAR.toString().slice(-2)}`}
+                {isMobile ? `Class of '${FISCAL_YEAR.toString().slice(-2)}` : `Class of ${FISCAL_YEAR}`}
               </TableCell>
               <TableCell align="right">
-                {viewMode === 'comparison' 
-                  ? (isMobile ? `'${comparisonYear.toString().slice(-2)}` : `Class '${comparisonYear.toString().slice(-2)}`)
-                  : 'State Avg'}
+                {viewMode === 'comparison'
+                  ? (isMobile ? `'${comparisonYear.toString().slice(-2)}` : `Class of ${comparisonYear}`)
+                  : (isMobile ? 'State Avg' : 'State Average')}
               </TableCell>
               {!isMobile && (
                 <TableCell align="right">Difference</TableCell>

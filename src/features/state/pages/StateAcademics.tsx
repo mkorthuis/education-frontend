@@ -359,12 +359,14 @@ const StateAcademics: React.FC = () => {
             series={chartSeries}
             format={value => formatPercent(value)}
             yDomain={[0, 100]}
+            // School years as the tiles write them: 14/15
+            yearLabel={shortYear}
             breaks={ASSESSMENT_CHANGE_YEARS}
             connectGaps
             markers={[...ASSESSMENT_CHANGE_YEARS.map(year => ({ year, label: 'New Test' })), { year: NO_TEST_YEAR, label: 'No Test' }]}
             compare={showAllStudents && hasResults ? { data: allStudents, label: 'All Students, All Grades' } : undefined}
             wideNote
-            note={hasResults ? `State changed tests in 2014-15 and 2017-18. Scores before/after change aren't directly comparable. No tests in Spring 2020.${boundsByYear.size ? ' Where the state reports only under 10% or over 90%, the line is drawn at 10% or 90%.' : ''}` : undefined}
+            note={hasResults ? `Test changed in ${ASSESSMENT_CHANGE_YEARS.map(shortYear).join(' and ')}. No test in ${shortYear(NO_TEST_YEAR)}.${boundsByYear.size ? ' Where the state reports only under 10% or over 90%, the line is drawn at 10% or 90%.' : ''}` : undefined}
           />
         </Box>
 

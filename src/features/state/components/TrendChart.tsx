@@ -85,6 +85,8 @@ interface TrendChartProps {
   control?: React.ReactNode;
   /** Offer the Chart/Table toggle (default on) */
   showViewToggle?: boolean;
+  /** Say under the chart when a fitted axis doesn't start at zero (default on) */
+  showAxisNote?: boolean;
   data: YearRow[];
   series: TrendSeries[];
   /** Tooltip and table values */
@@ -228,6 +230,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
   hideSubtitleOnPhone,
   control,
   showViewToggle = true,
+  showAxisNote = true,
   legendBelow = false,
   data,
   series,
@@ -306,7 +309,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
     const labels = yAxis.ticks.map(tick => preferred(tick));
     return new Set(labels).size < labels.length ? format : preferred;
   }, [axisFormat, format, yAxis]);
-  const axisNote = axis === 'fit' && yAxis && yAxis.domain[0] > 0 ? `The vertical axis starts at ${tickFormat(yAxis.domain[0])}, not zero.` : null;
+  const axisNote = showAxisNote && axis === 'fit' && yAxis && yAxis.domain[0] > 0 ? `The vertical axis starts at ${tickFormat(yAxis.domain[0])}, not zero.` : null;
 
   const showLegend = colored.length > 1;
   // The comparison's dashed line has its own key in the legend (line charts only)
@@ -448,7 +451,8 @@ const TrendChart: React.FC<TrendChartProps> = ({
       />
       <Box component="p" id={summaryId} sx={visuallyHidden}>{summary}</Box>
 
-      {view === 'table' ? (
+      {/* Without the toggle, the chart: a table picked before the toggle went (a phone turned upright) doesn't stay */}
+      {showViewToggle && view === 'table' ? (
         <StateTable
           caption={title}
           columns={[
