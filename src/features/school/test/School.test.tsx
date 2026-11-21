@@ -309,7 +309,7 @@ describe("The school's own Ask page", () => {
       </Provider>
     );
     expect(screen.getByText('Ask About Concord High School', { selector: 'h1' })).toBeInTheDocument();
-    expect(screen.getByText(/^Ask in your own words about Concord High School or how it compares with other schools and the state\./)).toBeInTheDocument();
+    expect(screen.getByText(/^Ask about this school, or how it compares with other schools and the state\./)).toBeInTheDocument();
     // Opened without a question: examples about the school to try, its district's spending among them
     expect(screen.getByRole('button', { name: 'What do Concord High School graduates do after high school?' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'How much does Concord spend per student?' })).toBeInTheDocument();

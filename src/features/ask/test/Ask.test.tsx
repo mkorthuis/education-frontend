@@ -81,6 +81,8 @@ describe('Ask page', { timeout: 15000 }, () => {
 
   it('asks nothing for an empty question and says why', async () => {
     renderAt();
+    // No tip under the field until there's something to say
+    expect(screen.queryByText(/personal details/)).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Ask' }));
     // On screen, and announced to screen readers a moment later
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Type a question first, or choose an example.'));
@@ -419,7 +421,7 @@ describe('Asking from a district or school page', () => {
     // The Ask page for any place doesn't show them, and its questions are about no place
     renderAt('/ask');
     expect(screen.getByRole('heading', { level: 1, name: 'Ask About New Hampshire Schools' })).toBeInTheDocument();
-    expect(screen.getByText(/^Ask in your own words about any public school district, school or the whole state\./)).toBeInTheDocument();
+    expect(screen.getByText(/^Ask about any district or school, or the whole state\./)).toBeInTheDocument();
     expect(screen.queryByText('Concord science answer.')).not.toBeInTheDocument();
     ask.mockResolvedValueOnce(answer({ answer: ['Statewide answer.'], follow_ups: [] }));
     await fillAndAsk("What's the graduation rate?");

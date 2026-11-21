@@ -35,7 +35,6 @@ const PlaceAsk: React.FC<PlaceAskProps> = ({ place, title, inline = false }) => 
       // Beside the title it has no heading of its own, so the label says what it's for
       label={inline ? `Ask about ${title}` : `Your question about ${title}`}
       onAsk={askFresh}
-      hint={false}
       placeholder={PLACE_EXAMPLE}
       showExample
       inline={inline}

@@ -136,7 +136,7 @@ export default function Home() {
           id="ask-heading"
           title="Or Try Asking a Question"
           intro="In your own words. Answers come from this site with charts and links to source data."
-          field={<AskForm id="home-question" label="Your question" onAsk={askFresh} fieldRef={questionRef} hint={false} controls={<MoreTimeToggle />} />}
+          field={<AskForm id="home-question" label="Your question" onAsk={askFresh} fieldRef={questionRef} controls={<MoreTimeToggle />} />}
         >
           <QuestionButtons label="Example questions" questions={EXAMPLE_QUESTIONS.slice(0, HOME_EXAMPLES)} onAsk={askFresh} />
           <Typography variant="body2" color="text.secondary">{AI_NOTE}</Typography>

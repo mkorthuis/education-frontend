@@ -80,9 +80,10 @@ const AskPage: React.FC = () => {
   const placeName = place?.kind === 'district' ? (district?.id === place.id ? districtTitle(district.name) : null)
     : place?.kind === 'school' && school?.id === place.id ? school.name : null;
   const title = !place ? 'Ask About New Hampshire Schools' : `Ask About ${placeName ?? (place.kind === 'district' ? 'This District' : 'This School')}`;
-  const intro = !place ? 'Ask in your own words about any public school district, school or the whole state.'
-    : place.kind === 'district' ? `Ask in your own words about ${placeName ?? 'this district'} or how it compares with other districts and the state.`
-    : `Ask in your own words about ${placeName ?? 'this school'} or how it compares with other schools and the state.`;
+  // The title names the place, so the intro needn't
+  const intro = !place ? 'Ask about any district or school, or the whole state.'
+    : place.kind === 'district' ? 'Ask about this district, or how it compares with other districts and the state.'
+    : 'Ask about this school, or how it compares with other schools and the state.';
   const headerPx = place ? HEADER_WITH_TABS_PX : HEADER_PX;
   // Questions to try before anything is asked: about the place, once its data has loaded, as its tabs decide what it has
   const examples = !place ? EXAMPLE_QUESTIONS
@@ -225,7 +226,7 @@ const AskPage: React.FC = () => {
       <GlobalStyles styles={{ html: { scrollPaddingTop: headerPx } }} />
       <Typography component="h1" sx={{ ...type.pageTitle, mb: 1 }}>{title}</Typography>
       <Typography variant="body1" sx={{ mb: 4 }}>
-        {intro} Answers come from this site's data, with charts, tables and links to the pages the numbers came from.
+        {intro} Answers use this site's data, with charts, tables and links to the sources.
       </Typography>
 
       {turns.map(turn => (
@@ -287,7 +288,6 @@ const AskPage: React.FC = () => {
           onMessage={announce}
           fieldRef={fieldRef}
           disabled={loading}
-          hint={hasTurns ? false : undefined}
           controls={<MoreTimeToggle />}
           // A district's or school's page: an example that needn't name it, showing as on its overview
           placeholder={place ? PLACE_EXAMPLE : undefined}

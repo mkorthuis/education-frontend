@@ -257,7 +257,7 @@ describe("The district's own Ask page", () => {
       </Provider>
     );
     expect(screen.getByText('Ask About Concord School District', { selector: 'h1' })).toBeInTheDocument();
-    expect(screen.getByText(/^Ask in your own words about Concord School District or how it compares with other districts and the state\./)).toBeInTheDocument();
+    expect(screen.getByText(/^Ask about this district, or how it compares with other districts and the state\./)).toBeInTheDocument();
     expect(screen.getByLabelText('Your question')).toHaveAttribute('placeholder', 'Example: How has enrollment changed?');
     // Opened without a question: examples about the district to try
     expect(screen.getByText('Or try one of these:')).toBeInTheDocument();

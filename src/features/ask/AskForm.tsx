@@ -5,7 +5,6 @@ import { selectAsk, setDraft } from '@/store/slices/askSlice';
 import { ASK_MAX_LENGTH } from '@/services/api/endpoints/ask';
 
 const COUNTER_FROM = 400;
-const DEFAULT_HINT = "Name the school, town or district you mean. Don't include personal details.";
 
 interface AskFormProps {
   id: string;
@@ -15,8 +14,6 @@ interface AskFormProps {
   /** Says a check's message aloud, through the page's live region */
   onMessage?: (message: string) => void;
   disabled?: boolean;
-  /** The tip under the field, or false for none; the checks' messages show there either way */
-  hint?: string | false;
   fieldRef?: React.RefObject<HTMLTextAreaElement>;
   /** Beside the Ask button, such as the Take More Time switch */
   controls?: React.ReactNode;
@@ -29,7 +26,7 @@ interface AskFormProps {
 
 /** The question field and its Ask button. The field's text is shared by the home page and the Ask page. */
 const AskForm: React.FC<AskFormProps> = ({
-  id, label, onAsk, onMessage, disabled = false, hint = DEFAULT_HINT, fieldRef, controls,
+  id, label, onAsk, onMessage, disabled = false, fieldRef, controls,
   placeholder = 'Example: How many teachers does Concord have?', showExample = false, inline = false,
 }) => {
   const dispatch = useAppDispatch();
@@ -93,12 +90,8 @@ const AskForm: React.FC<AskFormProps> = ({
         fullWidth
         autoComplete="off"
         error={Boolean(fieldError) || length > ASK_MAX_LENGTH}
-        helperText={(hint || fieldError || counter) && (
-          <Box component="span" sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
-            <span>{fieldError ?? (hint || '')}</span>
-            {counter && !fieldError && <span>{counter}</span>}
-          </Box>
-        )}
+        // Under the field, only the checks' messages: why it can't be asked, or, at the right, how long it is near the limit
+        helperText={fieldError ?? (counter && <Box component="span" sx={{ display: 'block', textAlign: 'right' }}>{counter}</Box>)}
         inputProps={{ enterKeyHint: 'go' }}
         slotProps={showExample ? { inputLabel: { shrink: true } } : undefined}
         // One line, 48px tall like its button
