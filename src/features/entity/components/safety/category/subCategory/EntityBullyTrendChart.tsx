@@ -41,6 +41,8 @@ const EntityBullyTrendChart: React.FC<{ kind: EntityKind }> = ({ kind }) => {
   const name = picked === ALL_TYPES ? 'Bullying' : options.find(option => option.value === picked)?.label ?? 'Bullying';
   return (
     <TrendChart
+      // Phones show the chart alone
+      viewToggleOnPhones={false}
       sx={{ mt: 3 }}
       title={`${name} Incidents By Year`}
       shortTitle={`${name} Incidents`}

@@ -4,7 +4,7 @@
 //   vi.mock('@/features/state/utils/excel', async (importOriginal) => ({ ...(await importOriginal<typeof import('@/features/state/utils/excel')>()), downloadWorkbook: vi.fn() }));
 import React from 'react';
 import { expect, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -71,6 +71,28 @@ export const renderEntityPage = async (kind: EntityKind, page: React.ReactElemen
       </MemoryRouter>
     </Provider>
   );
+};
+
+/**
+ * How many Chart/Table toggles a page offers on wide screens, and then on a phone (MUI's sm breakpoint and down).
+ * `show` runs once the page is up, as a reader's click would, such as picking a Safety card.
+ */
+export const viewToggles = async (kind: EntityKind, page: React.ReactElement, show?: () => void) => {
+  await renderEntityPage(kind, page);
+  if (show) act(show);
+  const onWideScreens = (await screen.findAllByRole('button', { name: 'Table' })).length;
+  cleanup();
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: /max-width:\s*599\.95px/.test(query), media: query, onchange: null,
+    addListener: () => {}, removeListener: () => {}, addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false,
+  }));
+  try {
+    await renderEntityPage(kind, page);
+    if (show) act(show);
+    return { onWideScreens, onPhones: screen.queryAllByRole('button', { name: 'Table' }).length };
+  } finally {
+    vi.unstubAllGlobals();
+  }
 };
 
 /** Clicks Download Excel once the page's data has loaded, and returns the file name and sheets saved. */

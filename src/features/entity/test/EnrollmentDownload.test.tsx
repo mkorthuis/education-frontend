@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { screen } from '@testing-library/react';
 // The harness first: it loads the store, which the pages' modules expect to exist
-import { answerFrom, downloadExcel, renderEntityPage, row, sheet } from './entityPages';
+import { answerFrom, downloadExcel, renderEntityPage, row, sheet, viewToggles } from './entityPages';
 import DistrictEnrollment from '@/features/district/components/Enrollment';
 import SchoolEnrollment from '@/features/school/components/Enrollment';
 
@@ -43,6 +44,8 @@ beforeEach(() => answerFrom({
 describe('Enrollment download', () => {
   it("saves the district's towns, grades, projection and school groups", async () => {
     await renderEntityPage('district', <DistrictEnrollment />);
+    // The charts' fitted axes aren't spelled out under them
+    expect(screen.queryByText(/The vertical axis starts at/)).not.toBeInTheDocument();
     const { fileName, sheets } = await downloadExcel();
 
     expect(fileName).toBe('concord-school-district-enrollment.xlsx');
@@ -71,6 +74,7 @@ describe('Enrollment download', () => {
 
   it("saves the school's students by year and grade, and its projection for its own grades", async () => {
     await renderEntityPage('school', <SchoolEnrollment />);
+    expect(screen.queryByText(/The vertical axis starts at/)).not.toBeInTheDocument();
     const { fileName, sheets } = await downloadExcel();
 
     expect(fileName).toBe('concord-high-school-enrollment.xlsx');
@@ -85,5 +89,17 @@ describe('Enrollment download', () => {
     expect(row(projection, 'Grade 12').slice(0, 3)).toEqual(['Grade 12', 365, 370]);
     expect(projection.totalRow?.slice(0, 3)).toEqual(['Total Students', 1545, 1570]);
     expect(sheet(sheets, 'Notes').subtitle).toBe('Enrollment for Concord High School');
+  });
+});
+
+describe('Enrollment on a phone', () => {
+  it.each([
+    // Current Students and District School Enrollment
+    ['district', <DistrictEnrollment />, 2],
+    // Current Students
+    ['school', <SchoolEnrollment />, 1],
+  ] as const)('shows the %s page\'s student counts as charts alone', async (kind, page, charts) => {
+    const { onWideScreens, onPhones } = await viewToggles(kind, page);
+    expect(onPhones).toBe(onWideScreens - charts);
   });
 });

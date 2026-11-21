@@ -91,13 +91,9 @@ const TownEnrollmentDetails: React.FC<TownEnrollmentDetailsProps> = ({
       });
   }, [enrollmentData, selectedYear, grades]);
 
-  // Determine title and subtitle based on number of towns
-  const title = towns.length === 1 
-    ? `${towns[0].name} Students By Grade`
-    : 'All District Towns Students By Grade';
-  const subtitle = towns.length === 1 
-    ? undefined
-    : 'In All District Towns';
+  // Titled like the charts beside it, which don't name the place; a district of several towns counts them all
+  const title = 'Students By Grade';
+  const subtitle = towns.length === 1 ? '# of Students' : '# of Students, All District Towns';
 
   return (
     <SharedEnrollmentDetails

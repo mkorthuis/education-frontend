@@ -31,12 +31,16 @@ const TownEnrollmentChart: React.FC<TownEnrollmentChartProps> = ({ enrollmentDat
     <TrendChart
       title="Current Students"
       subtitle="# of Students"
+      // Phones show the chart alone
+      viewToggleOnPhones={false}
       control={towns.length > 1 ? <ChartSelect value={town} options={options} onChange={setTown} label="Town" /> : undefined}
       data={rows}
       series={SERIES}
       format={formatCount}
       axisFormat={value => formatCompact(value)}
       axis="fit"
+      // Its axis labels say where it starts
+      showAxisNote={false}
       bands={REMOTE_BAND}
     />
   );

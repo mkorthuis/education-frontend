@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 // The harness first: it loads the store, which the pages' modules expect to exist
-import { answerFrom, downloadExcel, renderEntityPage, row, sheet } from './entityPages';
+import { answerFrom, downloadExcel, renderEntityPage, row, sheet, viewToggles } from './entityPages';
 import DistrictOutcomes from '@/features/district/components/Outcomes';
 import SchoolOutcomes from '@/features/school/components/Outcomes';
 
@@ -77,19 +77,7 @@ describe('Graduation / College download', () => {
 
 describe('Graduation / College on a phone', () => {
   it('shows the graduation rate and graduates\' plans as charts alone, without the Chart/Table toggle', async () => {
-    await renderEntityPage('district', <DistrictOutcomes />);
-    const onWideScreens = (await screen.findAllByRole('button', { name: 'Table' })).length;
-    cleanup();
-    // Phones: MUI's sm breakpoint and down
-    vi.stubGlobal('matchMedia', (query: string) => ({
-      matches: /max-width:\s*599\.95px/.test(query), media: query, onchange: null,
-      addListener: () => {}, removeListener: () => {}, addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false,
-    }));
-    try {
-      await renderEntityPage('district', <DistrictOutcomes />);
-      expect(screen.queryAllByRole('button', { name: 'Table' })).toHaveLength(onWideScreens - 2);
-    } finally {
-      vi.unstubAllGlobals();
-    }
+    const { onWideScreens, onPhones } = await viewToggles('district', <DistrictOutcomes />);
+    expect(onPhones).toBe(onWideScreens - 2);
   });
 });

@@ -1,30 +1,23 @@
 import React, { useMemo } from 'react';
-import { Box, Typography, FormControl, Select, MenuItem, SelectChangeEvent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, IconButton, Divider, useTheme, useMediaQuery, SxProps, Theme } from '@mui/material';
+import { Box, Typography, Select, MenuItem, SelectChangeEvent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, IconButton, Divider, useTheme, useMediaQuery, SxProps, Theme } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
+import { type } from '@/theme/tokens';
 import {
   GRADE_IDS,
   EnrollmentProjection,
   formatChange
 } from '@/utils/enrollmentProjection';
 
-// Shared styles for the three year dropdowns
-const yearFormControlSx: SxProps<Theme> = { minWidth: 40, '& .MuiSelect-select': { textAlign: 'right' } };
+// The three year pickers, set in the type of the title or subtitle they sit in, in the site's blue
+// with a caret so they read as choices
 const yearSelectSx: SxProps<Theme> = {
-  color: (theme: Theme) => theme.palette.primary.main,
-  marginTop: '5px',
-  fontWeight: 500,
-  height: '20px',
-  '&:hover': {
-    color: (theme: Theme) => theme.palette.primary.dark
-  },
-  '& .MuiSvgIcon-root': {
-    color: (theme: Theme) => theme.palette.primary.main,
-    '&:hover': {
-      color: (theme: Theme) => theme.palette.primary.dark
-    }
-  }
+  font: 'inherit',
+  color: 'primary.main',
+  '& .MuiSelect-select': { py: 0, minHeight: 0 },
+  '& .MuiSvgIcon-root': { color: 'primary.main' },
+  '&:hover': { color: 'primary.dark' },
 };
 const yearMenuProps = {
   PaperProps: {
@@ -46,29 +39,6 @@ const changeColorSx = (change: number): SxProps<Theme> => ({
     return 'inherit';
   }
 });
-
-// Inline label: body1 on desktop, italic body2 on mobile
-const responsiveLabel = (text: string) => (
-  <>
-    <Typography
-      variant="body1"
-      sx={{
-        display: { xs: 'none', sm: 'block' }
-      }}
-    >
-      {text}
-    </Typography>
-    <Typography
-      variant="body2"
-      sx={{
-        display: { xs: 'block', sm: 'none' },
-        fontStyle: 'italic'
-      }}
-    >
-      {text}
-    </Typography>
-  </>
-);
 
 // Full name on desktop, short name on mobile
 const gradeLabel = (full: React.ReactNode, short: React.ReactNode) => (
@@ -177,97 +147,67 @@ const EnrollmentProjectionTable: React.FC<EnrollmentProjectionTableProps> = ({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {/* New Enrollment Projections Table */}
-      <Box sx={{ mt: 2 }}>
-        <Box sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'left',
-          mb: 1,
-          flexWrap: 'wrap',
-          gap: 0.5
-        }}>
-          <Typography variant="body1">
-            Projected Students in
-          </Typography>
-          <FormControl size="small" sx={yearFormControlSx}>
+      {/* Level with the chart beside it */}
+      <Box>
+        {/* Titled like the charts: the projected year in the title, the years it averages in the subtitle */}
+        <Box sx={{ mb: 1.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 0.75, ...type.chartTitle }}>
+            <Typography component="h2" sx={{ ...type.chartTitle, m: 0 }}>Projected Students in</Typography>
             <Select
               value={futureYear}
               onChange={onFutureYearChange}
               variant="standard"
+              inputProps={{ 'aria-label': 'Projected school year' }}
               sx={yearSelectSx}
               MenuProps={yearMenuProps}
             >
               {futureYears.map((year) => (
-                <MenuItem
-                  key={year}
-                  value={year}
-                  sx={{ fontWeight: 500 }}
-                >
+                <MenuItem key={year} value={year} sx={yearMenuItemSx}>
                   {formatFiscalYear(year)}
                 </MenuItem>
               ))}
             </Select>
-          </FormControl>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
-            {responsiveLabel('Based on')}
-            <FormControl size="small" sx={yearFormControlSx}>
-              <Select
-                value={startYear}
-                onChange={onStartYearChange}
-                variant="standard"
-                sx={yearSelectSx}
-                MenuProps={yearMenuProps}
-              >
-                {availableYears.map((year) => (
-                  <MenuItem
-                    key={year}
-                    value={year}
-                    disabled={year > endYear}
-                    sx={yearMenuItemSx}
-                  >
-                    {formatFiscalYear(year)}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            {responsiveLabel('to')}
-            <FormControl size="small" sx={yearFormControlSx}>
-              <Select
-                value={endYear}
-                onChange={onEndYearChange}
-                variant="standard"
-                sx={yearSelectSx}
-                MenuProps={yearMenuProps}
-              >
-                {availableYears.map((year) => (
-                  <MenuItem
-                    key={year}
-                    value={year}
-                    disabled={year < startYear}
-                    sx={yearMenuItemSx}
-                  >
-                    {formatFiscalYear(year)}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              {responsiveLabel('Averages')}
-              <IconButton
-                onClick={onOpenMethodology}
-                sx={{
-                  p: 0.5,
-                  color: 'primary.main',
-                  '&:hover': {
-                    color: 'primary.dark'
-                  }
-                }}
-              >
-                <InfoOutlinedIcon sx={{ fontSize: '1.25rem' }} />
-              </IconButton>
-            </Box>
           </Box>
+          <Typography component="div" variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 0.5 }}>
+            Based on
+            <Select
+              value={startYear}
+              onChange={onStartYearChange}
+              variant="standard"
+              inputProps={{ 'aria-label': 'First school year averaged' }}
+              sx={yearSelectSx}
+              MenuProps={yearMenuProps}
+            >
+              {availableYears.map((year) => (
+                <MenuItem key={year} value={year} disabled={year > endYear} sx={yearMenuItemSx}>
+                  {formatFiscalYear(year)}
+                </MenuItem>
+              ))}
+            </Select>
+            to
+            <Select
+              value={endYear}
+              onChange={onEndYearChange}
+              variant="standard"
+              inputProps={{ 'aria-label': 'Last school year averaged' }}
+              sx={yearSelectSx}
+              MenuProps={yearMenuProps}
+            >
+              {availableYears.map((year) => (
+                <MenuItem key={year} value={year} disabled={year < startYear} sx={yearMenuItemSx}>
+                  {formatFiscalYear(year)}
+                </MenuItem>
+              ))}
+            </Select>
+            Averages
+            <IconButton
+              onClick={onOpenMethodology}
+              aria-label="How the projection is made"
+              sx={{ p: 0.5, color: 'primary.main', '&:hover': { color: 'primary.dark' } }}
+            >
+              <InfoOutlinedIcon sx={{ fontSize: '1.125rem' }} />
+            </IconButton>
+          </Typography>
         </Box>
         <TableContainer component={Paper} sx={{ bgcolor: 'grey.100', border: 1, borderColor: 'grey.300', borderRadius: 1 }}>
           <Table size="small">

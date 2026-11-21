@@ -40,6 +40,8 @@ const EntitySuspensionTrendChart: React.FC<{ kind: EntityKind }> = ({ kind }) =>
 
   return (
     <TrendChart
+      // Phones show the chart alone
+      viewToggleOnPhones={false}
       sx={{ mt: 3 }}
       title={VIEWS.find(option => option.value === view)!.title}
       subtitle="Per 100 Students"

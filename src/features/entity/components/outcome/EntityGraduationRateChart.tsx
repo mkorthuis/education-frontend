@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from 'react';
-import { useMediaQuery, useTheme } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
 import * as outcomeSlice from '@/store/slices/outcomeSlice';
 import TrendChart from '@/features/state/components/TrendChart';
@@ -28,8 +27,6 @@ const classYear = (year: number) => String(year);
 /** Each class's graduation, HiSET or dropout rate beside the state's */
 const EntityGraduationRateChart: React.FC<{ kind: EntityKind }> = ({ kind }) => {
   const [outcome, setOutcome] = useState<Outcome>('graduated');
-  // Phones show the chart alone, as the statewide page does
-  const isPhone = useMediaQuery(useTheme().breakpoints.down('sm'));
   const entityParams = OUTCOME[kind].params(useRouteId());
   const entityCohorts = useAppSelector(state => OUTCOME[kind].select.graduationCohort(state, entityParams));
   const stateCohorts = useAppSelector(state => outcomeSlice.selectStateGraduationCohortData(state, {}));
@@ -51,7 +48,8 @@ const EntityGraduationRateChart: React.FC<{ kind: EntityKind }> = ({ kind }) => 
       subtitle="Percentage of Each Class That Started Grade 9 Together"
       shortSubtitle="% That Started Grade 9"
       control={<ChartSelect value={outcome} options={OUTCOMES} onChange={setOutcome} label="Rate to show" />}
-      showViewToggle={!isPhone}
+      // Phones show the chart alone
+      viewToggleOnPhones={false}
       data={rows}
       series={RATE_SERIES[kind]}
       format={value => formatPercent(value, 1)}

@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from 'react';
-import { useMediaQuery, useTheme } from '@mui/material';
 import { useAppSelector } from '@/store/hooks';
 import * as outcomeSlice from '@/store/slices/outcomeSlice';
 import TrendChart from '@/features/state/components/TrendChart';
@@ -23,8 +22,6 @@ const planOrder = (name: string) => {
 /** One plan's share of each class's graduates beside the state's, four-year college first */
 const EntityWhatIsNextChart: React.FC<{ kind: EntityKind }> = ({ kind }) => {
   const [chosen, setChosen] = useState(FOUR_YEAR_COLLEGE);
-  // Phones show the chart alone, as the statewide page does
-  const isPhone = useMediaQuery(useTheme().breakpoints.down('sm'));
   const entityParams = OUTCOME[kind].params(useRouteId());
   const planTypes = useAppSelector(outcomeSlice.selectPostGraduationTypes);
   const entityPlans = useAppSelector(state => OUTCOME[kind].select.postGraduation(state, entityParams));
@@ -51,7 +48,8 @@ const EntityWhatIsNextChart: React.FC<{ kind: EntityKind }> = ({ kind }) => {
       shortTitle="Graduates' Plans"
       subtitle="Percentage of Graduates"
       control={<ChartSelect value={plan} options={options} onChange={setChosen} label="Plan to show" />}
-      showViewToggle={!isPhone}
+      // Phones show the chart alone
+      viewToggleOnPhones={false}
       data={rows}
       series={RATE_SERIES[kind]}
       format={value => formatPercent(value, 1)}

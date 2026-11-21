@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 // The harness first: it loads the store, which the pages' modules expect to exist
-import { answerFrom, downloadExcel, renderEntityPage, row, sheet } from './entityPages';
+import { answerFrom, downloadExcel, renderEntityPage, row, sheet, viewToggles } from './entityPages';
 import DistrictSafety from '@/features/district/components/Safety';
 import SchoolSafety from '@/features/school/components/Safety';
+import { store } from '@/store/store';
+import { setSelectedSafetyPage } from '@/store/slices/safetySlice';
 
 vi.mock('@/services/api/utils/apiUtils', async (importOriginal) => ({ ...(await importOriginal<typeof import('@/services/api/utils/apiUtils')>()), fetchData: vi.fn() }));
 vi.mock('@/features/state/utils/excel', async (importOriginal) => ({ ...(await importOriginal<typeof import('@/features/state/utils/excel')>()), downloadWorkbook: vi.fn() }));
@@ -164,5 +166,19 @@ describe('Safety download', () => {
     expect(serious.columns.map(column => column.header)).toEqual(['School Year', 'Incident', 'Incidents']);
     expect(serious.rows).toEqual([['2024-25', 'Arsons', 1]]);
     expect(sheet(sheets, 'Notes').subtitle).toBe('Safety for Concord High School');
+  });
+});
+
+describe('Safety on a phone', () => {
+  // The cards with a chart over the years; serious incidents have none
+  const CHARTED = ['bullying', 'harassment', 'suspension', 'restraint', 'truancy'] as const;
+  const CASES = (['district', 'school'] as const).flatMap(kind => CHARTED.map(category => [kind, category] as const));
+
+  it.each(CASES)('shows the %s page\'s %s chart alone, without the Chart/Table toggle', async (kind, category) => {
+    const { onWideScreens, onPhones } = await viewToggles(
+      kind, kind === 'district' ? <DistrictSafety /> : <SchoolSafety />, () => store.dispatch(setSelectedSafetyPage(category)),
+    );
+    expect(onWideScreens).toBeGreaterThan(0);
+    expect(onPhones).toBe(0);
   });
 });

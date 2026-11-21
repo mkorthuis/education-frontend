@@ -68,7 +68,7 @@ function EntityAcademicPerformance({
       <ChartHeader
         titleId={titleId}
         title={`% Students Proficient For Each ${entityLabel}`}
-        subtitle={rank !== null && total > 0 ? `Ranked #${rank} of ${total} ${entityPlural.toLowerCase()}` : `Number of ${entityPlural}`}
+        subtitle={rank !== null && total > 0 ? `Ranked #${rank} out of ${total} ${entityPlural.toLowerCase()}` : `Number of ${entityPlural}`}
       />
       <Box component="p" id={summaryId} sx={visuallyHidden}>
         {`Bar chart of how many ${entityPlural.toLowerCase()} reached each percent proficient.`}

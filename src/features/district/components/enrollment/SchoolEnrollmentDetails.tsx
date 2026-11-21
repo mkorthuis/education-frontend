@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, useTheme, useMediaQuery, FormControl, Select, MenuItem, SelectChangeEvent } from '@mui/material';
+import { Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, useTheme, useMediaQuery } from '@mui/material';
 import { formatFiscalYear } from '@/features/district/utils/financialDataProcessing';
+import { ChartHeader } from '@/features/state/components/chartText';
+import ChartSelect from '@/features/state/components/ChartSelect';
 import { FISCAL_YEAR } from '@/utils/environment';
 import { 
   ENROLLMENT_MEASUREMENT_TYPES, 
@@ -9,31 +11,6 @@ import {
   processEnrollmentMeasurements
 } from '@/features/district/utils/enrollmentDataProcessing';
 import { Measurement } from '@/store/slices/measurementSlice';
-
-// Add tableStyles
-const tableStyles = {
-  yearSelect: {
-    minWidth: 40,
-    '& .MuiSelect-select': {
-      textAlign: 'right',
-    }
-  },
-  selectInput: (theme: any) => ({
-    color: theme.palette.primary.main,
-    marginTop: '5px',
-    fontWeight: 500,
-    height: '20px',
-    '&:hover': {
-      color: theme.palette.primary.dark
-    },
-    '& .MuiSvgIcon-root': {
-      color: theme.palette.primary.main,
-      '&:hover': {
-        color: theme.palette.primary.dark
-      }
-    }
-  })
-};
 
 interface SchoolEnrollmentDetailsProps {
   measurements?: Measurement[];
@@ -65,10 +42,7 @@ const SchoolEnrollmentDetails: React.FC<SchoolEnrollmentDetailsProps> = ({
   // State for selected year
   const [selectedYear, setSelectedYear] = useState<number>(defaultFiscalYear);
 
-  // Handle year change
-  const handleYearChange = (event: SelectChangeEvent<number>) => {
-    setSelectedYear(Number(event.target.value));
-  };
+  const yearOptions = availableYears.map(year => ({ value: year, label: formatFiscalYear(year) ?? String(year) }));
 
   // Process data for the table
   const tableData = useMemo(() => {
@@ -104,140 +78,13 @@ const SchoolEnrollmentDetails: React.FC<SchoolEnrollmentDetailsProps> = ({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: isMobile ? 'column' : 'row', 
-        alignItems: isMobile ? 'center' : 'center', 
-        justifyContent: 'space-between',
-        mb: 2 
-      }}>
-        <Box sx={{ 
-          flex: 1,
-          display: 'flex',
-          flexDirection: isMobile ? 'row' : 'column',
-          alignItems: isMobile ? 'center' : 'flex-start',
-          mb: isMobile ? 0 : 0,
-          width: '100%'
-        }}>
-          {isMobile ? (
-            <>
-              <FormControl 
-                size="small" 
-                sx={{ 
-                  minWidth: 50,
-                  mr: 1
-                }}
-              >
-                <Select
-                  value={selectedYear}
-                  onChange={handleYearChange}
-                  variant="standard"
-                  sx={tableStyles.selectInput(theme)}
-                  MenuProps={{
-                    PaperProps: {
-                      sx: { maxHeight: 300 }
-                    }
-                  }}
-                >
-                  {availableYears.map((year) => (
-                    <MenuItem 
-                      key={year} 
-                      value={year}
-                      sx={{
-                        fontWeight: 500
-                      }}
-                    >
-                      {formatFiscalYear(year)}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <Typography 
-                variant="body1" 
-                sx={{ 
-                  fontWeight: 'medium'
-                }} 
-              >
-                District School Enrollment Breakdown
-              </Typography>
-            </>
-          ) : (
-            <>
-              <Typography 
-                variant="body1" 
-                sx={{ 
-                  textAlign: "left",
-                  width: "100%",
-                  fontWeight: 'medium'
-                }} 
-              >
-                District School Enrollment
-              </Typography>
-              <Typography
-                variant="body2" 
-                sx={{ 
-                  textAlign: "left",
-                  width: "100%",
-                  fontWeight: 'medium',
-                  fontStyle: 'italic',
-                  color: 'text.secondary'
-                }}
-              >
-                By Category
-              </Typography>
-            </>
-          )}
-        </Box>
-
-        {!isMobile && (
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            width: 'auto',
-            flexDirection: 'row',
-            justifyContent: 'flex-end'
-          }}>
-            <FormControl 
-              size="small" 
-              sx={{ 
-                minWidth: 150,
-                ml: 2,
-              }}
-            >
-              <Select
-                value={selectedYear}
-                onChange={handleYearChange}
-                sx={{ 
-                  bgcolor: 'rgba(0, 0, 0, 0.08)',
-                  '&.Mui-focused': {
-                    bgcolor: 'rgba(0, 0, 0, 0.08)'
-                  },
-                  border: '1px solid rgba(0, 0, 0, 0.12)',
-                  borderRadius: '4px',
-                  '& .MuiOutlinedInput-notchedOutline': { 
-                    border: 'none' 
-                  },
-                  '&:hover': {
-                    bgcolor: 'rgba(0, 0, 0, 0.12)'
-                  }
-                }}
-              >
-                {availableYears.map((year) => (
-                  <MenuItem 
-                    key={year} 
-                    value={year}
-                    sx={{
-                      fontWeight: 500
-                    }}
-                  >
-                    {formatFiscalYear(year)}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
-        )}
-      </Box>
+      {/* Titled like the charts, with the same year picker, on phones too */}
+      <ChartHeader
+        title="District School Enrollment"
+        shortTitle="School Enrollment"
+        subtitle="By Category"
+        actions={<ChartSelect value={selectedYear} options={yearOptions} onChange={setSelectedYear} label="School year" />}
+      />
 
       <TableContainer component={Paper} sx={{ bgcolor: 'grey.100', border: 1, borderColor: 'grey.300', borderRadius: 1 }}>
         <Table size="small">

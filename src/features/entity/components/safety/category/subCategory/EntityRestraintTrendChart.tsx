@@ -22,6 +22,8 @@ const EntityRestraintTrendChart: React.FC<EntityRestraintTrendChartProps> = ({ k
 
   return (
     <TrendChart
+      // Phones show the chart alone
+      viewToggleOnPhones={false}
       sx={{ mt: 3 }}
       title={TITLES[measure]}
       subtitle="Per 100 Students"

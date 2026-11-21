@@ -61,7 +61,10 @@ const SchoolEnrollmentChart: React.FC<SchoolEnrollmentChartProps> = ({ measureme
     <TrendChart
       // The picker names the group, as on the State Enrollment page
       title="District School Enrollment"
+      shortTitle="School Enrollment"
       subtitle="# of Students"
+      // Phones show the chart alone
+      viewToggleOnPhones={false}
       control={<ChartSelect value={type} options={options} onChange={setPicked} label="Students to show" />}
       data={chart.rows}
       series={chart.series}
@@ -69,6 +72,8 @@ const SchoolEnrollmentChart: React.FC<SchoolEnrollmentChartProps> = ({ measureme
       format={formatCount}
       axisFormat={value => formatCompact(value)}
       axis="fit"
+      // Its axis labels say where it starts
+      showAxisNote={false}
       bands={REMOTE_BAND}
     />
   );

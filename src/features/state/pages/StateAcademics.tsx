@@ -366,7 +366,7 @@ const StateAcademics: React.FC = () => {
             markers={[...ASSESSMENT_CHANGE_YEARS.map(year => ({ year, label: 'New Test' })), { year: NO_TEST_YEAR, label: 'No Test' }]}
             compare={showAllStudents && hasResults ? { data: allStudents, label: 'All Students, All Grades' } : undefined}
             wideNote
-            note={hasResults ? `Test changed in ${ASSESSMENT_CHANGE_YEARS.map(shortYear).join(' and ')}. No test in ${shortYear(NO_TEST_YEAR)}.${boundsByYear.size ? ' Where the state reports only under 10% or over 90%, the line is drawn at 10% or 90%.' : ''}` : undefined}
+            note={hasResults ? `Test changed in ${ASSESSMENT_CHANGE_YEARS.map(shortYear).join(' and ')}. No test in ${shortYear(NO_TEST_YEAR)}.` : undefined}
           />
         </Box>
 

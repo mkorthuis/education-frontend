@@ -17,11 +17,15 @@ const SchoolEnrollmentChart: React.FC<SchoolEnrollmentChartProps> = ({ enrollmen
     <TrendChart
       title="Current Students"
       subtitle="# of Students"
+      // Phones show the chart alone
+      viewToggleOnPhones={false}
       data={rows}
       series={SERIES}
       format={formatCount}
       axisFormat={value => formatCompact(value)}
       axis="fit"
+      // Its axis labels say where it starts
+      showAxisNote={false}
       bands={REMOTE_BAND}
     />
   );

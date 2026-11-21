@@ -22,6 +22,8 @@ const EntityTruancyHistoryChart: React.FC<{ kind: EntityKind }> = ({ kind }) => 
 
   return (
     <TrendChart
+      // Phones show the chart alone
+      viewToggleOnPhones={false}
       sx={{ mt: 3 }}
       // Titled as on the State Safety page
       title="Share of Students Who Were Truant"

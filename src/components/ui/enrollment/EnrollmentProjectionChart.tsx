@@ -43,6 +43,8 @@ const EnrollmentProjectionChart: React.FC<EnrollmentProjectionChartProps> = ({
       format={formatCount}
       axisFormat={value => formatCompact(value)}
       axis="fit"
+      // Its axis labels say where it starts
+      showAxisNote={false}
       yearLabel={gradeLabel}
       yearHeader="Grade"
       // The projection's table beside it lists the grades

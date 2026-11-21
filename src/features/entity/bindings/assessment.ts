@@ -18,8 +18,8 @@ export const ASSESSMENT = {
     idField: 'school_id',
     nameField: 'school_name',
     rankInfo: getSchoolRankInfo,
-    // Charter schools take the same tests, and rank with the districts' schools
-    rankNoun: 'public schools, including charter schools',
+    // "Ranked #12 out of 300 schools": charter schools take the same tests and rank among them
+    rankNoun: 'schools',
     // Year that filters the subject card list; differs from the district page.
     cardListYear: FISCAL_YEAR
   },

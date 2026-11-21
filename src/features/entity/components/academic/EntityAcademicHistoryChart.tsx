@@ -74,10 +74,10 @@ const EntityAcademicHistoryChart: React.FC<{ kind: EntityKind }> = ({ kind }) =>
   }, [subjectId, gradeId, subgroupId, subgroups, entityRows, stateRows]);
 
   // Short, with years as on the axis: 14/15
-  const note = chart && chart.rows.length > 0 ? [
-    `Test changed in ${ASSESSMENT_CHANGE_YEARS.map(shortYear).join(' and ')}. No test in ${shortYear(NO_TEST_YEAR)}.`,
-    chart.bounds.size ? 'Where the state reports only under 10% or over 90%, the line is drawn at 10% or 90%.' : '',
-  ].filter(Boolean).join(' ') : undefined;
+  // The same on every place's page; a share the state reports only as under 10% or over 90% says so in the tooltip and table
+  const note = chart && chart.rows.length > 0
+    ? `Test changed in ${ASSESSMENT_CHANGE_YEARS.map(shortYear).join(' and ')}. No test in ${shortYear(NO_TEST_YEAR)}.`
+    : undefined;
 
   return (
     <TrendChart

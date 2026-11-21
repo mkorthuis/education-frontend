@@ -85,6 +85,8 @@ interface TrendChartProps {
   control?: React.ReactNode;
   /** Offer the Chart/Table toggle (default on) */
   showViewToggle?: boolean;
+  /** Offer it on phones too (default on); off, phones show the chart alone */
+  viewToggleOnPhones?: boolean;
   /** Say under the chart when a fitted axis doesn't start at zero (default on) */
   showAxisNote?: boolean;
   data: YearRow[];
@@ -230,6 +232,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
   hideSubtitleOnPhone,
   control,
   showViewToggle = true,
+  viewToggleOnPhones = true,
   showAxisNote = true,
   legendBelow = false,
   data,
@@ -261,6 +264,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const offerTable = showViewToggle && (viewToggleOnPhones || !isMobile);
   // Lines draw in and bars grow, like the district charts, unless the reader has asked for less motion
   const animate = !useMediaQuery('(prefers-reduced-motion: reduce)');
   const [view, setView] = useState<'chart' | 'table'>('chart');
@@ -360,9 +364,9 @@ const TrendChart: React.FC<TrendChartProps> = ({
         : `${entry.name}: ${format(first[entry.key] as number)} in ${yearLabel(first.year)} and ${format(last[entry.key] as number)} in ${yearLabel(last.year)}`;
     }).filter(Boolean);
     const sinceText = Number.isFinite(since) ? ` Since ${yearLabel(since)}, when the measure last changed:` : '';
-    return `${kind === 'share' ? 'Stacked column chart' : 'Line chart'}.${sinceText} ${parts.length ? `${parts.join('. ')}.` : 'No data.'}${showViewToggle ? ' The table view lists every year.' : ''}`;
+    return `${kind === 'share' ? 'Stacked column chart' : 'Line chart'}.${sinceText} ${parts.length ? `${parts.join('. ')}.` : 'No data.'}${offerTable ? ' The table view lists every year.' : ''}`;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [colored, data, format, kind, yearLabel, breakKey, showViewToggle]);
+  }, [colored, data, format, kind, yearLabel, breakKey, offerTable]);
 
   const tableColumns = [...colored, ...tableSeries];
   const handleDownload = () => {
@@ -419,10 +423,10 @@ const TrendChart: React.FC<TrendChartProps> = ({
         shortSubtitle={shortSubtitle}
         hideSubtitleOnPhone={hideSubtitleOnPhone}
         // No CSV on phones, where a download is little use
-        actions={control || showViewToggle || (csvName && !isMobile) ? (
+        actions={control || offerTable || (csvName && !isMobile) ? (
           <>
             {control}
-            {showViewToggle && (
+            {offerTable && (
               // The size of the pages' other buttons, such as Adj. For Inflation
               <ToggleButtonGroup
                 size="small"
@@ -452,7 +456,7 @@ const TrendChart: React.FC<TrendChartProps> = ({
       <Box component="p" id={summaryId} sx={visuallyHidden}>{summary}</Box>
 
       {/* Without the toggle, the chart: a table picked before the toggle went (a phone turned upright) doesn't stay */}
-      {showViewToggle && view === 'table' ? (
+      {offerTable && view === 'table' ? (
         <StateTable
           caption={title}
           columns={[
