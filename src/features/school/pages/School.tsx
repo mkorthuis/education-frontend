@@ -3,7 +3,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import { Alert, Box, CircularProgress, Link, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { GroupLabel, MetricTile, NavCard, NavCardGrid, Note, TileGroup } from '@/components/ds';
 import LoadErrorAlert from '@/components/ui/LoadErrorAlert';
-import { PAGE_REGISTRY } from '@/routes/pageRegistry';
+import { isPageAvailable, PAGE_REGISTRY } from '@/routes/pageRegistry';
 import { useAppSelector } from '@/store/hooks';
 import {
   isCharterSchool,
@@ -18,7 +18,6 @@ import { formatGradesDisplay, schoolTown } from '@/utils/formatting';
 import { districtTitle, DISTRICT_PAGE_DESCRIPTIONS } from '@/features/district/utils/labels';
 import {
   AskSection,
-  isPageAvailable,
   KeyFiguresLoading,
   OverviewGrid,
   OverviewSection,

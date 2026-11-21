@@ -197,8 +197,15 @@ describe('District overview', () => {
       await renderDistrict(111);
       // No section of its own: the field sits in the title's row, before the pages
       expect(screen.queryByText('Ask About Concord', { selector: 'h2' })).not.toBeInTheDocument();
-      const field = screen.getByLabelText('Ask about Concord');
+      const field = screen.getByLabelText('Ask a question about Concord');
       expect(field.compareDocumentPosition(nav('Concord School District pages')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      // One of Concord's own examples, short enough for one line
+      expect([
+        "Try: How do Concord's schools compare in math?",
+        "Try: What is Concord's school tax rate?",
+        'Try: How much state aid does Concord get?',
+        'Try: What is the average class size in Concord?',
+      ]).toContain(field.getAttribute('placeholder'));
       expect(screen.getByRole('button', { name: 'Ask' })).toBeInTheDocument();
     } finally {
       vi.unstubAllGlobals();

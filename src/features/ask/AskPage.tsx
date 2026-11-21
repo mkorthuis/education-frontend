@@ -8,9 +8,7 @@ import { PAGE_WIDTH, type } from '@/theme/tokens';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { RootState } from '@/store/store';
 import { askQuestion, AskTurn, clearTurns, contextFrom, removeTurn, selectAsk, setDraft } from '@/store/slices/askSlice';
-import { isCharterSchool, selectCurrentDistrict, selectCurrentSchool, selectCurrentSchools } from '@/store/slices/locationSlice';
-import { PAGE_REGISTRY } from '@/routes/pageRegistry';
-import { isPageAvailable } from '@/features/entity/overview/OverviewParts';
+import { selectCurrentDistrict, selectCurrentSchool } from '@/store/slices/locationSlice';
 import { ASK_MAX_LENGTH, AskEarlierTurn, AskPlace } from '@/services/api/endpoints/ask';
 import { LOOK_UP_HASH } from '@/features/search/placeOptions';
 import { districtTitle } from '@/features/district/utils/labels';
@@ -19,7 +17,7 @@ import AskForm from './AskForm';
 import { AI_NOTE, DECLINED_MESSAGE, MORE_TIME_LOADING_TEXT, ERRORS, EXAMPLE_QUESTIONS, LOADING_TEXT, PLACE_EXAMPLE, readyMessage } from './askCopy';
 import { askPathFor, askState, contextIn, deepIn, placeAt, questionIn, samePlace } from './askRoute';
 import MoreTimeToggle from './MoreTimeToggle';
-import { districtExamples, schoolExamples } from './placeExamples';
+import { usePlaceExamples } from './usePlaceExamples';
 import QuestionButtons from './QuestionButtons';
 
 // The Ask page: the visitor's questions and their answers, oldest first, with the question field
@@ -75,7 +73,6 @@ const AskPage: React.FC = () => {
   const turns = useMemo(() => allTurns.filter(turn => samePlace(turn.place, place)), [allTurns, place?.kind, place?.id]);
   const district = useAppSelector(selectCurrentDistrict);
   const school = useAppSelector(selectCurrentSchool);
-  const schools = useAppSelector(selectCurrentSchools);
   // The place's name once its page's data has loaded
   const placeName = place?.kind === 'district' ? (district?.id === place.id ? districtTitle(district.name) : null)
     : place?.kind === 'school' && school?.id === place.id ? school.name : null;
@@ -85,22 +82,9 @@ const AskPage: React.FC = () => {
     : place.kind === 'district' ? 'Ask about this district, or how it compares with other districts and the state.'
     : 'Ask about this school, or how it compares with other schools and the state.';
   const headerPx = place ? HEADER_WITH_TABS_PX : HEADER_PX;
-  // Questions to try before anything is asked: about the place, once its data has loaded, as its tabs decide what it has
-  const examples = !place ? EXAMPLE_QUESTIONS
-    : place.kind === 'district' && district?.id === place.id ? districtExamples({
-      name: district.name,
-      schoolCount: schools.length,
-      hasGraduation: isPageAvailable(PAGE_REGISTRY.district.outcomes, { ...district, schools }),
-    })
-    : place.kind === 'school' && school?.id === place.id ? schoolExamples({
-      name: school.name,
-      district: !isCharterSchool(school) && district ? district.name : null,
-      hasTestScores: isPageAvailable(PAGE_REGISTRY.school.academic, school),
-      hasEnrollment: isPageAvailable(PAGE_REGISTRY.school.enrollment, school),
-      hasGraduation: isPageAvailable(PAGE_REGISTRY.school.outcomes, school),
-      hasSafety: isPageAvailable(PAGE_REGISTRY.school.safety, school),
-    })
-    : [];
+  // Questions to try before anything is asked: about the place, once its data has loaded
+  const placeExamples = usePlaceExamples(place);
+  const examples = place ? placeExamples : EXAMPLE_QUESTIONS;
   const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const [announcement, setAnnouncement] = useState('');
   const fieldRef = useRef<HTMLTextAreaElement>(null);

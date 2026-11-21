@@ -2,7 +2,7 @@ import React from 'react';
 import { Alert, Box, CircularProgress, Typography, useMediaQuery, useTheme } from '@mui/material';
 import { GroupLabel, MetricTile, TileGroup } from '@/components/ds';
 import LoadErrorAlert from '@/components/ui/LoadErrorAlert';
-import { PAGE_REGISTRY } from '@/routes/pageRegistry';
+import { isPageAvailable, PAGE_REGISTRY } from '@/routes/pageRegistry';
 import { useAppSelector } from '@/store/hooks';
 import {
   selectCurrentDistrict,
@@ -14,7 +14,6 @@ import {
 import { RootState } from '@/store/store';
 import {
   AskSection,
-  isPageAvailable,
   KeyFiguresLoading,
   OverviewGrid,
   OverviewSection,

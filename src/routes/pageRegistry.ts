@@ -579,6 +579,10 @@ export const PAGE_REGISTRY: PageRegistry = {
   }
 };
 
+/** Whether the place has the page, as its tabs decide */
+export const isPageAvailable = (page: PageEntry, place: unknown) =>
+  typeof page.enabled === 'function' ? page.enabled(place) : page.enabled;
+
 // Helper function to get a flat list of all pages
 export const getAllPages = (): PageEntry[] => {
   return Object.values(PAGE_REGISTRY).flatMap(category => 

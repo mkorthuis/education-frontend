@@ -22,12 +22,14 @@ interface AskFormProps {
   showExample?: boolean;
   /** One line, the button beside the field, as beside a district's or school's title */
   inline?: boolean;
+  /** Asked when Ask is pressed with the field empty: the example shown in it */
+  emptyQuestion?: string;
 }
 
 /** The question field and its Ask button. The field's text is shared by the home page and the Ask page. */
 const AskForm: React.FC<AskFormProps> = ({
   id, label, onAsk, onMessage, disabled = false, fieldRef, controls,
-  placeholder = 'Example: How many teachers does Concord have?', showExample = false, inline = false,
+  placeholder = 'Example: How many teachers does Concord have?', showExample = false, inline = false, emptyQuestion,
 }) => {
   const dispatch = useAppDispatch();
   const { draft } = useAppSelector(selectAsk);
@@ -40,7 +42,7 @@ const AskForm: React.FC<AskFormProps> = ({
   };
 
   const submit = () => {
-    const question = draft.trim();
+    const question = draft.trim() || emptyQuestion;
     if (!question) return refuse('Type a question first, or choose an example.');
     if (question.length > ASK_MAX_LENGTH) return refuse(`${question.length} of ${ASK_MAX_LENGTH} characters. Please shorten your question.`);
     setFieldError(null);

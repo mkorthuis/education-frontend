@@ -205,7 +205,9 @@ describe('School overview', () => {
     try {
       await renderSchool(20);
       expect(screen.queryByText('Ask About Concord High School', { selector: 'h2' })).not.toBeInTheDocument();
-      const field = screen.getByLabelText('Ask about Concord High School');
+      const field = screen.getByLabelText('Ask a question about Concord High School');
+      expect(["Try: What is Concord High School's graduation rate?", 'Try: How much does Concord spend per student?'])
+        .toContain(field.getAttribute('placeholder'));
       expect(field.compareDocumentPosition(nav('Concord High School pages')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     } finally {
       vi.unstubAllGlobals();

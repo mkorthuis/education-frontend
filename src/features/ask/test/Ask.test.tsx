@@ -444,8 +444,8 @@ describe('Asking from a district or school page', () => {
         </MemoryRouter>
       </Provider>
     );
-    // The field, with an example in it, and its button alone: no tip under it
-    expect(screen.getByLabelText('Your question about Concord')).toHaveAttribute('placeholder', 'Example: How has enrollment changed?');
+    // The field, with an example in it (the general one, until the district's own have loaded), and its button alone: no tip under it
+    expect(screen.getByLabelText('Your question about Concord')).toHaveAttribute('placeholder', 'Try: How has enrollment changed?');
     expect(screen.queryByText(/personal details/)).not.toBeInTheDocument();
     await userEvent.type(screen.getByLabelText('Your question about Concord'), "What is Concord's school tax rate?");
     await userEvent.click(screen.getByRole('button', { name: 'Ask' }));
@@ -453,5 +453,23 @@ describe('Asking from a district or school page', () => {
     expect(screen.getByText('At /district/111/ask')).toBeInTheDocument();
     expect(ask).toHaveBeenLastCalledWith("What is Concord's school tax rate?", [], expect.anything(), false, expect.any(Function), CONCORD);
     expect(store.getState().ask.turns.map(turn => turn.question)).toEqual(["What is Concord's school tax rate?"]);
+  }, PAGE_CHANGE_MS);
+
+  it('asks the example in the field when Ask is pressed with nothing typed', async () => {
+    ask.mockResolvedValue(answer());
+    render(
+      <Provider store={store}>
+        <MemoryRouter initialEntries={['/district/111']}>
+          <Routes>
+            <Route path="/district/:id" element={<PlaceAsk place={CONCORD} title="Concord" inline />} />
+            <Route path="/district/:id/ask" element={<AskPage />} />
+          </Routes>
+        </MemoryRouter>
+      </Provider>
+    );
+    expect(screen.getByLabelText('Ask a question about Concord')).toHaveAttribute('placeholder', 'Try: How has enrollment changed?');
+    await userEvent.click(screen.getByRole('button', { name: 'Ask' }));
+    expect(await screen.findByRole('heading', { name: 'How has enrollment changed?' }, { timeout: 5000 })).toBeInTheDocument();
+    expect(ask).toHaveBeenLastCalledWith('How has enrollment changed?', [], expect.anything(), false, expect.any(Function), CONCORD);
   }, PAGE_CHANGE_MS);
 });

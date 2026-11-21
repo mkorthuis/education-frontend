@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, GlobalStyles, Skeleton, Typography } from '@mui/material';
 import { MetricTile, NavCard, NavCardGrid, SectionHeading, TileGroup, visuallyHidden } from '@/components/ds';
 import SectionTitle from '@/components/ui/SectionTitle';
-import { PageEntry } from '@/routes/pageRegistry';
+import { isPageAvailable, PageEntry } from '@/routes/pageRegistry';
 import { selectCurrentSchools } from '@/store/slices/locationSlice';
 import { radius } from '@/theme/tokens';
 import { formatGradesDisplay } from '@/utils/formatting';
@@ -109,10 +109,6 @@ export const AskSection: React.FC<{ place: AskPlace; title: string }> = ({ place
 /** A page's address for this place, without its optional parts: /district/111/academic */
 export const pagePath = (page: PageEntry, id: number) =>
   page.urlPatterns[0].replace(':id', String(id)).replace(/(\/:[^/]+\?)+$/, '');
-
-/** Whether the place has the page, as its tabs decide */
-export const isPageAvailable = (page: PageEntry, place: unknown) =>
-  typeof page.enabled === 'function' ? page.enabled(place) : page.enabled;
 
 interface PageCardsProps {
   /** The place's pages, without its overview */
